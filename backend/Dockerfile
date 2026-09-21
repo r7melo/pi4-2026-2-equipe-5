@@ -1,15 +1,18 @@
-# Placeholder Dockerfile for Backend
-# Adjust base image according to your framework (Python, Node, Java, Go, etc.)
-# This is a generic Python example
-FROM python:3.11-slim
+# Dockerfile de DESENVOLVIMENTO para o backend ASP.NET Core
+FROM mcr.microsoft.com/dotnet/sdk:8.0
 
 WORKDIR /app
 
-# Uncomment and adjust after adding requirements
-# COPY requirements.txt ./
-# RUN pip install -r requirements.txt
+# Copia os arquivos de projeto primeiro para cache de restore mais eficiente.
+# Quando o(s) .csproj do projeto de API existir(em), o restore roda aqui.
+COPY *.sln ./
+COPY **/*.csproj ./
+RUN dotnet restore || true
 
 COPY . .
 
 EXPOSE 8000
-CMD ["python", "app.py"]
+
+# Troque "Backend.Api" pelo nome real do seu projeto (pasta/.csproj) assim que criá-lo,
+# ex: dotnet new webapi -n Backend.Api
+CMD ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:8000", "--project", "Backend.Api"]
