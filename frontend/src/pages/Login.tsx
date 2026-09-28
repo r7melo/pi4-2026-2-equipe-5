@@ -1,66 +1,82 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sun, LogIn } from "lucide-react";
+import { LogIn, Loader2, AlertCircle } from "lucide-react";
+import { fazerLogin } from "@/services/auth";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { token, usuario } = useAuthStore();
+  const [email, setEmail] = useState("engenharia@zlengenharia.com");
+  const [senha, setSenha] = useState("SenhaForte123");
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const handleBypassLogin = (e: React.FormEvent) => {
+  // Redirecionamento automático para usuários já autenticados
+  useEffect(() => {
+    if (token && usuario) {
+      if (usuario.perfil?.nomePerfil === "InstaladorCampo") {
+        void navigate("/linkparainstaladores");
+      } else {
+        void navigate("/kanban");
+      }
+    }
+  }, [token, usuario, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/kanban");
+    setCarregando(true);
+    setErro(null);
+
+    try {
+      await fazerLogin(email, senha);
+      const perfilLogado = useAuthStore.getState().usuario?.perfil?.nomePerfil;
+      if (perfilLogado === "InstaladorCampo") {
+        void navigate("/linkparainstaladores");
+      } else {
+        void navigate("/kanban");
+      }
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao efetuar login");
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex">
-      {/* Lado Esquerdo - Área de Branding (Visível apenas Desktop) */}
-      <div className="hidden lg:flex flex-1 relative bg-slate-900 items-center justify-center overflow-hidden">
-        {/* Imagem de Fundo Gerada por IA */}
-        <div className="absolute inset-0">
-          <img
-            src="/solar-bg.jpg"
-            alt="Painéis Solares ao Pôr do Sol"
-            className="w-full h-full object-cover opacity-60"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
-        </div>
-
-        {/* Texto de Impacto */}
-        <div className="relative z-10 flex flex-col items-center text-center px-12 max-w-2xl">
-          <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 mb-8 shadow-2xl">
-            <Sun className="w-10 h-10 text-yellow-400" />
+    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-6 font-sans">
+      
+      {/* Card do Formulário */}
+      <div className="w-full max-w-[480px] bg-white rounded-xl shadow-lg border border-slate-200 p-8 sm:p-10">
+        
+        <div className="flex flex-col items-center text-center mb-10">
+          {/* Logo placeholder */}
+          <div className="w-16 h-8 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 mb-6">
+            ZL
           </div>
-          <h1 className="text-4xl xl:text-5xl font-bold text-white tracking-tight mb-6 leading-tight">
-            Gestão inteligente para um futuro sustentável.
-          </h1>
-          <p className="text-lg text-slate-300 font-medium">
-            Acompanhe o funil de obras, gerencie equipes e otimize os recursos da sua empresa em uma única plataforma.
-          </p>
+          
+          <h2 className="text-2xl font-semibold text-slate-800 mb-2">Acessar o sistema</h2>
+          <p className="text-sm text-slate-500">Gestão de Obras Fotovoltaicas</p>
         </div>
-      </div>
 
-      {/* Lado Direito - Formulário de Login */}
-      <div className="w-full lg:w-[500px] xl:w-[600px] flex flex-col justify-center px-8 sm:px-16 lg:px-20 bg-white">
-
-        {/* Cabeçalho Mobile */}
-        <div className="lg:hidden flex items-center gap-3 mb-10">
-          <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center">
-            <Sun className="w-6 h-6 text-yellow-400" />
+        {erro && (
+          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>{erro}</span>
           </div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Gestão Solar</h2>
-        </div>
+        )}
 
-        <div className="mb-10">
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Bem-vindo de volta</h2>
-          <p className="text-slate-500">Acesse o painel.</p>
-        </div>
-
-        <form onSubmit={handleBypassLogin} className="space-y-5">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
           {/* Campo E-mail */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700">E-mail corporativo</label>
             <input
-              type="text"
-              className="w-full px-4 py-3 rounded-lg border bg-slate-50 border-slate-200"
-              placeholder="Não é necessário digitar..."
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+              placeholder="seu.email@zlengenharia.com"
             />
           </div>
 
@@ -71,17 +87,38 @@ export default function Login() {
             </div>
             <input
               type="password"
-              className="w-full px-4 py-3 rounded-lg border bg-slate-50 border-slate-200"
-              placeholder="Não é necessário digitar..."
+              required
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+              placeholder="••••••••"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md mt-6"
+            disabled={carregando}
+            className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md mt-6 cursor-pointer"
           >
-            Entrar no sistema
-            <LogIn className="w-5 h-5" />
+            {carregando ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Entrando...</span>
+              </>
+            ) : (
+              <>
+                <span>Entrar no sistema</span>
+                <LogIn className="w-5 h-5" />
+              </>
+            )}
+          </button>
+
+
+          <button
+            type="button"
+            className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98] mt-3"
+          >
+            Esqueci minha senha
           </button>
 
           <div className="relative flex items-center py-2">

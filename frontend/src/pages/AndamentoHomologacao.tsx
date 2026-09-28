@@ -1,32 +1,27 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Clock, UploadCloud, Building, FileText } from "lucide-react";
+import { CheckCircle, Clock, UploadCloud, Building, FileText } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function Homologacao() {
-  const navigate = useNavigate();
-
   return (
-    <div className="h-screen w-full bg-slate-50 flex flex-col font-sans">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 shadow-sm z-10">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate("/kanban")}
-            className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">Homologação: João Silva</h1>
-            <p className="text-xs text-slate-500 font-medium">Acompanhamento junto à Concessionária</p>
-          </div>
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      {/* Header Reutilizável */}
+      <PageHeader
+        title="Homologação: João Silva"
+        subtitle="Acompanhamento junto à Concessionária"
+        backTo="/kanban"
+      >
+        <div
+          className="bg-amber-100 text-amber-700 px-2.5 md:px-3 py-1 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 md:gap-2 shrink-0"
+          title="Status: Em Análise"
+        >
+          <Clock className="w-4 h-4 shrink-0" />
+          <span className="hidden sm:inline">Em Análise</span>
         </div>
-        <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
-          <Clock className="w-4 h-4" /> Em Análise
-        </div>
-      </header>
 
-      <main className="flex-1 overflow-y-auto p-6 md:p-10 flex justify-center">
-        <div className="w-full max-w-4xl space-y-6">
+      </PageHeader>
+
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
+          <div className="w-full max-w-4xl space-y-6">
           
           {/* Card Resumo */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -53,10 +48,10 @@ export default function Homologacao() {
                 <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-emerald-200 bg-emerald-50">
                   <div className="flex items-center justify-between mb-1">
                     <h4 className="font-bold text-emerald-900">Parecer de Acesso</h4>
-                    <span className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded uppercase">Concluído</span>
+                    <span className="text-micro font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded uppercase">Concluído</span>
                   </div>
                   <p className="text-sm text-emerald-700 mb-3">Solicitação enviada e aprovada pela rede.</p>
-                  <button className="text-xs font-semibold text-emerald-700 flex items-center gap-1 hover:underline">
+                  <button className="text-xs font-semibold text-emerald-700 flex items-center gap-1 hover:underline cursor-pointer">
                     <FileText className="w-3.5 h-3.5" /> Ver PDF do Parecer
                   </button>
                 </div>
@@ -70,11 +65,11 @@ export default function Homologacao() {
                 <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-amber-200 bg-white shadow-sm relative">
                   <div className="flex items-center justify-between mb-1">
                     <h4 className="font-bold text-slate-800">Emissão de ART</h4>
-                    <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase">Pendente</span>
+                    <span className="text-micro font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase">Pendente</span>
                   </div>
                   <p className="text-sm text-slate-500 mb-4">Aguardando engenheiro responsável anexar o documento.</p>
                   
-                  <button className="w-full border-2 border-dashed border-slate-300 rounded-lg p-4 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-slate-400 hover:text-slate-700 transition-colors">
+                  <button className="w-full border-2 border-dashed border-slate-300 rounded-lg p-4 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
                     <UploadCloud className="w-6 h-6 mb-2" />
                     <span className="text-sm font-semibold">Anexar ART (.pdf)</span>
                   </button>
@@ -89,7 +84,7 @@ export default function Homologacao() {
                 <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 bg-white">
                   <div className="flex items-center justify-between mb-1">
                     <h4 className="font-bold text-slate-800">Solicitar Vistoria</h4>
-                    <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">Bloqueado</span>
+                    <span className="text-micro font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">Bloqueado</span>
                   </div>
                   <p className="text-sm text-slate-500">Requer a emissão da ART para ser liberada.</p>
                 </div>
