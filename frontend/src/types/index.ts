@@ -1,6 +1,3 @@
-// Arquivo principal para exportação de interfaces globais do projeto
-
-export interface Obra {
-  id: string;
-  nome: string;
-}
+export * from "./auth";
+export * from "./common";
+export * from "./obras";
