@@ -1,4 +1,4 @@
-// RF-14/15: Relatórios financeiros e DRE por obra
+// RF-14/15/20: Relatórios financeiros, DRE e Balanço de Materiais por obra
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -16,6 +16,9 @@ import {
   BarChart3,
   Search,
   ExternalLink,
+  Package,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 
 function formatarMoeda(valor: number) {
@@ -94,10 +97,10 @@ function PainelDRE({ obraId }: { obraId: number }) {
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Composição de Custos</h3>
         </div>
         <div className="divide-y divide-slate-100">
-          {data.itens.map((item, i) => {
+          {data.itens.map((item) => {
             const percentual = data.custoTotal > 0 ? ((item.valor / data.custoTotal) * 100).toFixed(0) : 0;
             return (
-              <div key={i} className="px-5 py-4 flex items-center justify-between">
+              <div key={item.descricao} className="px-5 py-4 flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-sm font-medium text-slate-800">{item.descricao}</p>
                   <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -116,6 +119,98 @@ function PainelDRE({ obraId }: { obraId: number }) {
           })}
         </div>
       </div>
+
+      {/* Balanço de Materiais (RF-20) */}
+      {data.balancoMateriais && data.balancoMateriais.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-amber-500" />
+              <div>
+                <h4 className="font-semibold text-slate-800">Balanço de Materiais</h4>
+                <p className="text-xs text-slate-500">Comparativo entre materiais comprados e aplicados na obra</p>
+              </div>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full">
+              RF-20
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-50/75 border-b border-slate-200/60 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  <th className="px-5 py-3">Insumo / Material</th>
+                  <th className="px-4 py-3 text-center">Comprado</th>
+                  <th className="px-4 py-3 text-center">Utilizado</th>
+                  <th className="px-4 py-3 text-center">Saldo / Sobra</th>
+                  <th className="px-5 py-3 text-right">Utilização (%)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {data.balancoMateriais.map((mat) => {
+                  const sobra = mat.quantidadeComprada - mat.quantidadeUtilizada;
+                  const pct =
+                    mat.quantidadeComprada > 0
+                      ? Math.min(100, Math.round((mat.quantidadeUtilizada / mat.quantidadeComprada) * 100))
+                      : 0;
+                  const isExcesso = mat.quantidadeUtilizada > mat.quantidadeComprada;
+                  const isCompleto = mat.quantidadeUtilizada === mat.quantidadeComprada;
+
+                  return (
+                    <tr key={mat.tipo} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-3.5 font-medium text-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-slate-400" />
+                          <span>{mat.tipo}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-center text-slate-600">
+                        <span className="font-semibold text-slate-900">{mat.quantidadeComprada}</span>{" "}
+                        <span className="text-xs text-slate-400">{mat.unidade}</span>
+                      </td>
+                      <td className="px-4 py-3.5 text-center text-slate-600">
+                        <span className="font-semibold text-slate-900">{mat.quantidadeUtilizada}</span>{" "}
+                        <span className="text-xs text-slate-400">{mat.unidade}</span>
+                      </td>
+                      <td className="px-4 py-3.5 text-center">
+                        {isExcesso ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                            <AlertTriangle className="w-3 h-3" />
+                            {sobra} {mat.unidade}
+                          </span>
+                        ) : isCompleto ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" />
+                            0 {mat.unidade}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                            +{sobra} {mat.unidade}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden shrink-0">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isExcesso ? "bg-red-500" : isCompleto ? "bg-emerald-500" : "bg-amber-500"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="font-semibold text-xs text-slate-700 w-9 text-right">{pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

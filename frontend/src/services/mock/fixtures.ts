@@ -505,7 +505,7 @@ export function adicionarMaterialArmazenado(obraId: number, payload: Omit<Materi
   return novo;
 }
 
-// ─── RELATÓRIOS (RF-14/15) ───
+// ─── RELATÓRIOS (RF-14/15/20) ───
 export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
   301: {
     obraId: 301,
@@ -519,6 +519,13 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "Estruturas de Fixação Telhado Trapezoidal", valor: 2100.0 },
       { descricao: "Cabeamento Solar 6mm e String Box CC/CA", valor: 1200.0 },
       { descricao: "Homologação, Projeto Elétrico e ART", valor: 800.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W Monocristalino", unidade: "un", quantidadeComprada: 45, quantidadeUtilizada: 45 },
+      { tipo: "Inversor String 25kW Trifásico", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 1 },
+      { tipo: "Cabo Solar 6mm Preto/Vermelho", unidade: "m", quantidadeComprada: 400, quantidadeUtilizada: 367 },
+      { tipo: "Estrutura Fixação Telhado Trapezoidal", unidade: "kit", quantidadeComprada: 12, quantidadeUtilizada: 12 },
+      { tipo: "String Box CC 1000V com DPS Integrado", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 1 },
     ],
   },
   302: {
@@ -534,6 +541,13 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "Subestação, Painel de Média Tensão e Proteção", valor: 4500.0 },
       { descricao: "Cabeamento Solar 10mm e Conectores MC4", valor: 2300.0 },
     ],
+    balancoMateriais: [
+      { tipo: "Módulo Fotovoltaico 550W Bifacial", unidade: "un", quantidadeComprada: 120, quantidadeUtilizada: 0 },
+      { tipo: "Inversor Central Trifásico 75kW", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 0 },
+      { tipo: "Cabo Solar 10mm Dupla Isolação", unidade: "m", quantidadeComprada: 600, quantidadeUtilizada: 0 },
+      { tipo: "Estrutura Metálica Reforçada Alumínio", unidade: "kit", quantidadeComprada: 30, quantidadeUtilizada: 0 },
+      { tipo: "Conectores MC4 Industriais Blindados", unidade: "par", quantidadeComprada: 32, quantidadeUtilizada: 0 },
+    ],
   },
   303: {
     obraId: 303,
@@ -546,6 +560,12 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "6 Microinversores 2000W", valor: 3600.0 },
       { descricao: "Estrutura Telha Cerâmica e Ganchos Inox", valor: 1100.0 },
       { descricao: "Quadro de Distribuição CA e Disjuntores", valor: 800.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W Monocristalino", unidade: "un", quantidadeComprada: 24, quantidadeUtilizada: 24 },
+      { tipo: "Microinversor 2000W 4 MPPT", unidade: "un", quantidadeComprada: 6, quantidadeUtilizada: 6 },
+      { tipo: "Cabo Tronco e Cabo Solar 6mm", unidade: "m", quantidadeComprada: 80, quantidadeUtilizada: 73 },
+      { tipo: "Estrutura Telha Cerâmica com Gancho Inox", unidade: "kit", quantidadeComprada: 6, quantidadeUtilizada: 6 },
     ],
   },
   304: {
@@ -560,6 +580,13 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "Estrutura de Fixação Biposte em Solo Galvanizado", valor: 4800.0 },
       { descricao: "Valas, Eletrodutos Enterrados e Cabos de Cobre", valor: 2500.0 },
     ],
+    balancoMateriais: [
+      { tipo: "Módulo Fotovoltaico 550W Tier 1", unidade: "un", quantidadeComprada: 80, quantidadeUtilizada: 0 },
+      { tipo: "Inversor Trifásico 20kW", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 0 },
+      { tipo: "Cabo Solar 6mm", unidade: "m", quantidadeComprada: 400, quantidadeUtilizada: 0 },
+      { tipo: "Estrutura Biposte de Solo em Aço Galvanizado", unidade: "kit", quantidadeComprada: 20, quantidadeUtilizada: 0 },
+      { tipo: "Eletroduto Corrugado Reforçado 2\"", unidade: "m", quantidadeComprada: 150, quantidadeUtilizada: 0 },
+    ],
   },
   305: {
     obraId: 305,
@@ -572,6 +599,13 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "Inversores Híbridos com Integração a Gerador", valor: 14200.0 },
       { descricao: "Sistema de Aterramento e Malha SPDA Hospitalar", valor: 4800.0 },
       { descricao: "String Boxes com Chave Seccionadora Motorizada", valor: 3000.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W Alta Eficiência", unidade: "un", quantidadeComprada: 96, quantidadeUtilizada: 58 },
+      { tipo: "Inversor Híbrido 25kW com Suporte a Nobreak", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 1 },
+      { tipo: "Cabo Solar 6mm Retardante a Chamas", unidade: "m", quantidadeComprada: 500, quantidadeUtilizada: 280 },
+      { tipo: "Estrutura Especial Fixação Alumínio Anodizado", unidade: "kit", quantidadeComprada: 24, quantidadeUtilizada: 14 },
+      { tipo: "Chave de Transferência Automática ATS", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 1 },
     ],
   },
   306: {
@@ -586,6 +620,12 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "Estruturas de Fixação para Telhas Shingle", valor: 1900.0 },
       { descricao: "Cabeamento Solar e Quadro Geral", valor: 1400.0 },
     ],
+    balancoMateriais: [
+      { tipo: "Módulo Fotovoltaico 550W", unidade: "un", quantidadeComprada: 36, quantidadeUtilizada: 21 },
+      { tipo: "Inversor Trifásico 15kW", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 0 },
+      { tipo: "Cabo Solar 6mm", unidade: "m", quantidadeComprada: 150, quantidadeUtilizada: 88 },
+      { tipo: "Estrutura Especial para Telhas Shingle", unidade: "kit", quantidadeComprada: 9, quantidadeUtilizada: 5 },
+    ],
   },
   307: {
     obraId: 307,
@@ -599,6 +639,13 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "Eletrodutos Galvanizados à Prova de Explosão", valor: 2900.0 },
       { descricao: "Laudo de Conformidade de Área Classificada e ART", valor: 1600.0 },
     ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W com Certificação Anti-chama", unidade: "un", quantidadeComprada: 50, quantidadeUtilizada: 50 },
+      { tipo: "Inversor IP66 para Área Classificada", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 1 },
+      { tipo: "Cabo Solar Blindado 6mm", unidade: "m", quantidadeComprada: 250, quantidadeUtilizada: 231 },
+      { tipo: "Estrutura em Aço Inox 316", unidade: "kit", quantidadeComprada: 14, quantidadeUtilizada: 14 },
+      { tipo: "Eletrodutos Galvanizados à Prova de Explosão", unidade: "m", quantidadeComprada: 80, quantidadeUtilizada: 80 },
+    ],
   },
   308: {
     obraId: 308,
@@ -611,8 +658,15 @@ export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
       { descricao: "Limpeza Química e Descontaminação dos Módulos", valor: 1900.0 },
       { descricao: "Inspeção Termográfica com Drone e Relatório Técnico", valor: 1500.0 },
     ],
+    balancoMateriais: [
+      { tipo: "Conector MC4 Original Stäubli", unidade: "par", quantidadeComprada: 20, quantidadeUtilizada: 14 },
+      { tipo: "Diodo de Bypass 15A 1000V", unidade: "un", quantidadeComprada: 4, quantidadeUtilizada: 3 },
+      { tipo: "Fusível Fotovoltaico gPV 1000V 15A", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 2 },
+      { tipo: "Solução Desengordurante Biodegradável", unidade: "l", quantidadeComprada: 50, quantidadeUtilizada: 42 },
+    ],
   },
 };
+
 
 /**
  * Obtém o relatório de custos da obra ou calcula dinamicamente se for uma nova obra.
