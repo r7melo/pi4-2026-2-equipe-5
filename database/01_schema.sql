@@ -1,18 +1,26 @@
--- 01_schema.sql
--- ZL Engenharia Solar — banco de dados principal
--- Sprint 2 | MER v2.0
+
+--  01_schema.sql
+--  Sistema de Gestão de Obras — ZL Engenharia Solar
+--  MER versão 2.0 — Sprint 2
 --
--- Ordem de criação (respeita dependências de FK):
---   perfil_acesso → equipe → cliente → usuario → obra
---   obra → pagamento, homologacao, material, comentario,
---          historico_obra, programacao_obra, relatorio_custo
+--  Ordem de criação respeita dependências de FK:
+--    1. perfil_acesso
+--    2. equipe
+--    3. cliente
+--    4. usuario          (depende de perfil_acesso, equipe)
+--    5. obra             (depende de cliente)
+--    6. pagamento        (depende de obra)
+--    7. homologacao      (depende de obra)
+--    8. material         (depende de obra)
+--    9. comentario       (depende de obra, usuario)
+--   10. historico_obra   (depende de obra, usuario)
+--   11. programacao_obra (depende de obra, equipe)
+--   12. relatorio_custo  (depende de obra)
 
 SET client_encoding = 'UTF8';
 
--- ---------------------------------------------------------
--- ENUMs
--- ---------------------------------------------------------
 
+-- ENUMs
 -- Etapas do funil Kanban
 DO $$ BEGIN
     CREATE TYPE status_obra_enum AS ENUM (
@@ -57,9 +65,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 
--- ---------------------------------------------------------
 -- 1. PERFIL_ACESSO
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS perfil_acesso (
     id          SERIAL           PRIMARY KEY,
     nome_perfil nome_perfil_enum NOT NULL UNIQUE,
@@ -67,9 +73,8 @@ CREATE TABLE IF NOT EXISTS perfil_acesso (
 );
 
 
--- ---------------------------------------------------------
+
 -- 2. EQUIPE
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS equipe (
     id            SERIAL       PRIMARY KEY,
     nome          VARCHAR(100) NOT NULL,
@@ -77,9 +82,7 @@ CREATE TABLE IF NOT EXISTS equipe (
 );
 
 
--- ---------------------------------------------------------
 -- 3. CLIENTE
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS cliente (
     id             SERIAL       PRIMARY KEY,
     nome           VARCHAR(200) NOT NULL,
@@ -88,23 +91,19 @@ CREATE TABLE IF NOT EXISTS cliente (
 );
 
 
--- ---------------------------------------------------------
 -- 4. USUARIO
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS usuario (
     id        SERIAL       PRIMARY KEY,
     nome      VARCHAR(200) NOT NULL,
     email     VARCHAR(200) NOT NULL UNIQUE,
-    senha     VARCHAR(255) NOT NULL, -- bcrypt, nunca texto puro
+    senha     VARCHAR(255) NOT NULL, 
     id_perfil INT          NOT NULL REFERENCES perfil_acesso(id) ON DELETE RESTRICT,
     id_equipe INT                   REFERENCES equipe(id)         ON DELETE SET NULL
 );
 
 
--- ---------------------------------------------------------
 -- 5. OBRA
 -- Entidade central do sistema — alimenta o Kanban e o Gantt
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS obra (
     id                   SERIAL           PRIMARY KEY,
     status               status_obra_enum NOT NULL DEFAULT 'MaterialComprado',
@@ -127,10 +126,8 @@ CREATE TABLE IF NOT EXISTS obra (
 );
 
 
--- ---------------------------------------------------------
 -- 6. PAGAMENTO
 -- 1:1 com Obra — dados do contrato financeiro
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS pagamento (
     id                    SERIAL PRIMARY KEY,
     data_confirmacao      DATE,
@@ -138,12 +135,8 @@ CREATE TABLE IF NOT EXISTS pagamento (
     id_obra               INT    NOT NULL UNIQUE REFERENCES obra(id) ON DELETE CASCADE
 );
 
-
--- ---------------------------------------------------------
 -- 7. HOMOLOGACAO
 -- 1:1 com Obra — acompanhamento junto à concessionária
--- Adicionado na Sprint 2 (ver MER v2.0)
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS homologacao (
     id             SERIAL       PRIMARY KEY,
     parecer_acesso parecer_enum NOT NULL DEFAULT 'Pendente',
@@ -154,10 +147,8 @@ CREATE TABLE IF NOT EXISTS homologacao (
 );
 
 
--- ---------------------------------------------------------
 -- 8. MATERIAL
 -- Kits e insumos vinculados a uma obra
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS material (
     id               SERIAL                PRIMARY KEY,
     tipo             VARCHAR(200)          NOT NULL, -- ex: 'Painel Solar 550W', 'Inversor 5kW'
@@ -167,10 +158,8 @@ CREATE TABLE IF NOT EXISTS material (
 );
 
 
--- ---------------------------------------------------------
 -- 9. COMENTARIO
 -- Anotações dos usuários em uma obra
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS comentario (
     id            SERIAL    PRIMARY KEY,
     descricao     TEXT      NOT NULL,
@@ -180,10 +169,8 @@ CREATE TABLE IF NOT EXISTS comentario (
 );
 
 
--- ---------------------------------------------------------
 -- 10. HISTORICO_OBRA
--- Toda mudança de status gera um registro aqui — não se apaga
--- ---------------------------------------------------------
+-- Toda mudança de status gera um registro aqui 
 CREATE TABLE IF NOT EXISTS historico_obra (
     id              SERIAL      PRIMARY KEY,
     status_anterior VARCHAR(50),  -- null na criação da obra
@@ -195,10 +182,8 @@ CREATE TABLE IF NOT EXISTS historico_obra (
 );
 
 
--- ---------------------------------------------------------
 -- 11. PROGRAMACAO_OBRA
 -- Alocação de equipe num período — base do Gantt
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS programacao_obra (
     id                    SERIAL      PRIMARY KEY,
     data_inicio           DATE        NOT NULL,
@@ -212,10 +197,8 @@ CREATE TABLE IF NOT EXISTS programacao_obra (
 );
 
 
--- ---------------------------------------------------------
 -- 12. RELATORIO_CUSTO
 -- 1:1 com Obra — custo_total é calculado automaticamente pelo banco
--- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS relatorio_custo (
     id             SERIAL         PRIMARY KEY,
     custo_mao_obra DECIMAL(12, 2) DEFAULT 0.00,
@@ -225,9 +208,7 @@ CREATE TABLE IF NOT EXISTS relatorio_custo (
 );
 
 
--- ---------------------------------------------------------
 -- ÍNDICES
--- ---------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_obra_status        ON obra(status);
 CREATE INDEX IF NOT EXISTS idx_obra_cliente       ON obra(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_material_obra      ON material(id_obra);
