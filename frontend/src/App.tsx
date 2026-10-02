@@ -5,6 +5,9 @@ import CadastrarObra from "./pages/CadastrarObra";
 import AndamentoHomologacao from "./pages/AndamentoHomologacao";
 import LinkInstaladores from "./pages/LinkInstaladores";
 import Equipes from "./pages/Equipes";
+import DetalheObra from "./pages/DetalheObra";
+import MateriaisObra from "./pages/MateriaisObra";
+import Relatorios from "./pages/Relatorios";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
@@ -59,6 +62,22 @@ function App() {
               <Route path="/cadastrarobra" element={<CadastrarObra />} />
               <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
             </Route>
+
+            {/* Detalhe da Obra: Todos perfis autenticados (RF-03/11) */}
+            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+              <Route path="/obras/:id" element={<DetalheObra />} />
+            </Route>
+
+            {/* Materiais da Obra: Admin e Engenharia (RF-06) */}
+            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
+              <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
+            </Route>
+
+            {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
+            <Route element={<ProtectedRoute allowedRoles={["Administrador", "Financeiro"]} />}>
+              <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/financeiro" element={<Relatorios />} />
+            </Route>
           </Route>
         </Route>
       </Routes>
@@ -68,4 +87,3 @@ function App() {
 }
 
 export default App;
-

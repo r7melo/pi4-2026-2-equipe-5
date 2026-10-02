@@ -9,7 +9,15 @@ import {
   obterProgramacoesArmazenadas,
   atualizarProgramacaoDataArmazenada,
   obterEquipesArmazenadas,
+  obterMateriaisArmazenados,
+  adicionarMaterialArmazenado,
+  obterRelatorioArmazenado,
+  obterHistoricoArmazenado,
+  obterComentariosArmazenados,
+  adicionarComentarioArmazenado,
 } from "./fixtures";
+import type { RelatorioCusto } from "../relatorios";
+import { gerarPdfRelatorio, gerarExcelRelatorio } from "./pdfGenerator";
 
 /**
  * Função utilitária para extrair com segurança o corpo de requisições,
@@ -277,6 +285,108 @@ mock.onPut(/\/programacoes\/\d+\/reordenar\/?(\?.*)?$/).reply((config) => {
   } catch {
     return [400, { error: { message: "Erro na reordenação" } }];
   }
+});
+
+// ─── MATERIAIS ───
+// GET /obras/:id/materiais
+mock.onGet(/\/obras\/\d+\/materiais\/?(\?.*)?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)\/materiais/);
+  const obraId = match ? Number(match[1]) : 0;
+  const itens = obterMateriaisArmazenados().filter(m => m.obraId === obraId);
+  return [200, itens];
+});
+
+// POST /obras/:id/materiais
+mock.onPost(/\/obras\/\d+\/materiais\/?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)\/materiais/);
+  const obraId = match ? Number(match[1]) : 0;
+  try {
+    const body = extrairDados<any>(config.data);
+    const novo = adicionarMaterialArmazenado(obraId, body);
+    return [201, novo];
+  } catch {
+    return [400, { error: { message: "Erro ao adicionar material" } }];
+  }
+});
+
+// ─── HISTÓRICO E COMENTÁRIOS ───
+// GET /obras/:id/historico
+mock.onGet(/\/obras\/\d+\/historico\/?(\?.*)?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)\/historico/);
+  const obraId = match ? Number(match[1]) : 0;
+  const itens = obterHistoricoArmazenado().filter(h => h.obraId === obraId);
+  return [200, itens];
+});
+
+// GET /obras/:id/comentarios
+mock.onGet(/\/obras\/\d+\/comentarios\/?(\?.*)?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)\/comentarios/);
+  const obraId = match ? Number(match[1]) : 0;
+  const itens = obterComentariosArmazenados().filter(c => c.obraId === obraId);
+  return [200, itens];
+});
+
+// POST /obras/:id/comentarios
+mock.onPost(/\/obras\/\d+\/comentarios\/?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)\/comentarios/);
+  const obraId = match ? Number(match[1]) : 0;
+  try {
+    const body = extrairDados<{ descricao: string }>(config.data);
+    
+    // Obtém o usuário logado para atribuir ao comentário
+    const authHeader = config.headers?.Authorization || "";
+    let usuario = MOCK_USUARIOS["engenharia@zlengenharia.com"];
+    if (authHeader.includes("admin")) usuario = MOCK_USUARIOS["admin@zl.com.br"];
+    else if (authHeader.includes("mock_jwt_token_")) {
+      const matchToken = authHeader.match(/mock_jwt_token_([A-Za-z0-9+/=]+)_/);
+      if (matchToken && matchToken[1]) {
+        const emailDecodificado = atob(matchToken[1]);
+        if (MOCK_USUARIOS[emailDecodificado]) usuario = MOCK_USUARIOS[emailDecodificado];
+      }
+    }
+
+    const novo = adicionarComentarioArmazenado(obraId, body.descricao, { id: usuario.id, nome: usuario.nome });
+    return [201, novo];
+  } catch {
+    return [400, { error: { message: "Erro ao adicionar comentário" } }];
+  }
+});
+
+// ─── RELATÓRIOS ───
+// GET /obras/:id/relatorio-custo
+mock.onGet(/\/obras\/\d+\/relatorio-custo\/?(\?.*)?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)\/relatorio-custo/);
+  const obraId = match ? Number(match[1]) : 0;
+  const relatorio = obterRelatorioArmazenado(obraId);
+  if (!relatorio) {
+    return [404, { error: { message: "Relatório não encontrado ou sem lançamentos." } }];
+  }
+  return [200, relatorio];
+});
+
+// GET /relatorios/export (Gera PDF ou Excel com base em todas as obras cadastradas)
+mock.onGet(/\/relatorios\/export\/?(\?.*)?$/).reply((config) => {
+  const params = extrairQueryParams(config);
+  const formato = params.formato === "excel" ? "excel" : "pdf";
+  const obraId = params.obraId ? Number(params.obraId) : null;
+
+  const obras = obterObrasArmazenadas();
+  // Garante que todas as obras possuam relatório calculado
+  const relatorios: Record<number, RelatorioCusto> = {};
+  for (const o of obras) {
+    const rel = obterRelatorioArmazenado(o.id);
+    if (rel) {
+      relatorios[o.id] = rel;
+    }
+  }
+
+  if (formato === "excel") {
+    const blob = gerarExcelRelatorio(obras, relatorios, obraId);
+    return [200, blob];
+  }
+
+  const blob = gerarPdfRelatorio(obras, relatorios, obraId);
+  return [200, blob];
 });
 
 // ATENÇÃO: PassThrough obrigatório para requisições não mockadas passarem livremente

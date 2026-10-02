@@ -15,7 +15,7 @@ export async function buscarRelatorioCusto(obraId: number): Promise<RelatorioCus
   return data;
 }
 
-/** GET /api/relatorios/export?formato=pdf|excel */
+/** GET /api/relatorios/export?formato=pdf|xlsx */
 export async function exportarRelatorio(formato: "pdf" | "excel"): Promise<Blob> {
   const { data } = await api.get(`/relatorios/export`, {
     params: { formato },
