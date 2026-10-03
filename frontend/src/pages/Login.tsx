@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 export default function Login() {
   const navigate = useNavigate();
   const { token, usuario } = useAuthStore();
-  const [email, setEmail] = useState("engenharia@zlengenharia.com");
+  const [email, setEmail] = useState("admin@zl.com.br");
   const [senha, setSenha] = useState("SenhaForte123");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);

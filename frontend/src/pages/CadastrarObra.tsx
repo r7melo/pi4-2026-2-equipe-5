@@ -3,16 +3,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  Save, 
-  Building2, 
-  Calendar, 
-  Zap, 
-  User, 
-  FileText, 
-  Clock, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  Save,
+  Building2,
+  Calendar,
+  Zap,
+  User,
+  FileText,
+  Clock,
+  Loader2,
+  CheckCircle2,
   AlertCircle,
   X
 } from "lucide-react";
@@ -70,7 +70,7 @@ export default function CadastrarObra() {
       };
 
       const novaObra = await criarObra(payload);
-      
+
       // Atualiza o cache do React Query imediatamente e agenda revalidação
       queryClient.setQueryData<ListaObras>(["obras"], (old) => {
         if (!old) return old;
@@ -105,12 +105,11 @@ export default function CadastrarObra() {
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       {/* Toast flutuante de feedback */}
       {toast && (
-        <div 
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
-            toast.tipo === "sucesso"
+        <div
+          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${toast.tipo === "sucesso"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
               : "bg-red-50 border-red-200 text-red-800"
-          }`}
+            }`}
           role="status"
           aria-live="polite"
         >
@@ -120,8 +119,8 @@ export default function CadastrarObra() {
             <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
           )}
           <span className="font-medium">{toast.mensagem}</span>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setToast(null)}
             className="p-1 hover:bg-black/5 rounded-md transition-colors cursor-pointer"
             aria-label="Fechar notificação"
@@ -142,7 +141,7 @@ export default function CadastrarObra() {
       <main className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
         <div className="w-full max-w-3xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-fit my-auto">
           <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="p-6 md:p-8 space-y-8" noValidate>
-            
+
             {/* Seção: Dados do Cliente */}
             <div>
               <h3 className="text-base md:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -240,15 +239,15 @@ export default function CadastrarObra() {
 
             {/* Ações */}
             <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-slate-100">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 variant="ghost"
                 onClick={() => void navigate("/kanban")}
                 disabled={isSubmitting}
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 type="submit"
                 variant="primary"
                 disabled={isSubmitting}

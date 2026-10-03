@@ -78,6 +78,12 @@ export default function Sidebar() {
       icon: BarChart2,
       roles: ["Administrador", "Financeiro"],
     },
+    {
+      label: "Configurações",
+      path: "/configuracoes",
+      icon: BarChart2,
+      roles: ["Administrador", "Financeiro"],
+    },
   ];
 
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
