@@ -9,6 +9,7 @@ import DetalheObra from "./pages/DetalheObra";
 import MateriaisObra from "./pages/MateriaisObra";
 import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
+import RelatorioPublico from "./pages/RelatorioPublico";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
@@ -39,6 +40,7 @@ function App() {
         {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
 
         {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
         <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>

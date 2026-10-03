@@ -233,7 +233,7 @@ export default function Financeiro() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <PageHeader title="Financeiro" subtitle="DRE e análise de custos por obra • RF-14/15">
+      <PageHeader title="Financeiro" subtitle="DRE e análise de custos por obra">
        
       </PageHeader>
 

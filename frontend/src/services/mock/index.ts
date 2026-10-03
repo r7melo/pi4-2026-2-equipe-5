@@ -389,6 +389,41 @@ mock.onGet(/\/relatorios\/export\/?(\?.*)?$/).reply((config) => {
   return [200, blob];
 });
 
+// GET /cronograma/compartilhado/{token} (RF-16: Cronograma/Relatório Público em modo leitura)
+mock.onGet(/\/cronograma\/compartilhado\/(.+)$/).reply((config) => {
+  const match = config.url?.match(/\/cronograma\/compartilhado\/(.+)$/);
+  const token = match ? match[1] : "";
+  try {
+    const decoded = atob(token);
+    const [periodoInicio, periodoFim, clienteFiltro] = decoded.split("|");
+    const obrasArmazenadas = obterObrasArmazenadas();
+    
+    const obrasFiltradas = obrasArmazenadas.filter((o) => {
+      const passaCliente = !clienteFiltro || clienteFiltro === "todos" || o.clienteNome.toLowerCase() === clienteFiltro.toLowerCase();
+      return passaCliente;
+    });
+
+    const totalPaineis = obrasFiltradas.reduce((acc, o) => acc + (o.quantidadePaineis || 0), 0);
+    const potenciaTotalKwp = obrasFiltradas.reduce((acc, o) => acc + (o.potenciaKwp || 0), 0);
+
+    return [
+      200,
+      {
+        periodoInicio: periodoInicio || "",
+        periodoFim: periodoFim || "",
+        clienteFiltro: clienteFiltro || "todos",
+        obras: obrasFiltradas,
+        totalObras: obrasFiltradas.length,
+        obrasConcluidas: obrasFiltradas.filter((o) => o.status === "Concluido").length,
+        totalPaineis,
+        potenciaTotalKwp,
+      },
+    ];
+  } catch {
+    return [400, { message: "Token inválido ou expirado" }];
+  }
+});
+
 // ATENÇÃO: PassThrough obrigatório para requisições não mockadas passarem livremente
 mock.onAny().passThrough();
 

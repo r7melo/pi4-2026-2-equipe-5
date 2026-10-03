@@ -81,7 +81,7 @@ export default function Relatorios() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <PageHeader title="Relatórios e Exportação" subtitle="RF-15 • RF-16">
+      <PageHeader title="Relatórios e Exportação">
         <button
           onClick={() => handleExportar("excel")}
           disabled={exportando}
