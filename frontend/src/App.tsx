@@ -8,6 +8,7 @@ import Equipes from "./pages/Equipes";
 import DetalheObra from "./pages/DetalheObra";
 import MateriaisObra from "./pages/MateriaisObra";
 import Relatorios from "./pages/Relatorios";
+import Financeiro from "./pages/Financeiro";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
@@ -76,7 +77,7 @@ function App() {
             {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
             <Route element={<ProtectedRoute allowedRoles={["Administrador", "Financeiro"]} />}>
               <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/financeiro" element={<Relatorios />} />
+              <Route path="/financeiro" element={<Financeiro />} />
             </Route>
           </Route>
         </Route>

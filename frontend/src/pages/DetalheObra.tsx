@@ -1,13 +1,17 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useObraDetalhe, useHistoricoObra, useComentariosObra, useAdicionarComentario } from "@/hooks/api/useObraDetalhe";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Loader2, AlertCircle, Calendar, MapPin, CreditCard, ChevronLeft, Send, Clock, User, MessageSquare } from "lucide-react";
+import { Loader2, AlertCircle, Calendar, MapPin, CreditCard, Send, Clock, User, MessageSquare } from "lucide-react";
 import { useState } from "react";
 
 export default function DetalheObra() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const obraId = Number(id);
+
+  // Recupera a página de origem para o botão Voltar funcionar corretamente
+  const paginaOrigem = (location.state as { from?: string } | null)?.from ?? "/kanban";
 
   const { data: obra, isLoading: loadingObra, isError: errorObra } = useObraDetalhe(obraId);
   const { data: historico, isLoading: loadingHist } = useHistoricoObra(obraId);
@@ -27,7 +31,7 @@ export default function DetalheObra() {
   if (loadingObra) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Detalhes da Obra" subtitle="Carregando dados..." />
+        <PageHeader title="Detalhes da Obra" subtitle="Carregando dados..." backTo={paginaOrigem} />
         <div className="flex-1 flex items-center justify-center bg-slate-50">
           <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>
@@ -38,7 +42,7 @@ export default function DetalheObra() {
   if (errorObra || !obra) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Erro" subtitle="Falha ao carregar obra" />
+        <PageHeader title="Erro" subtitle="Falha ao carregar obra" backTo={paginaOrigem} />
         <div className="flex-1 flex items-center justify-center bg-red-50 text-red-700">
           <AlertCircle className="w-6 h-6 mr-2" />
           <span>Não foi possível carregar os detalhes da obra. Verifique a conexão ou o ID.</span>
@@ -49,22 +53,12 @@ export default function DetalheObra() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4 shrink-0">
-        <button 
-          onClick={() => navigate("/kanban")} 
-          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Obra: {obra.cliente.nome}</h1>
-          <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
-            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-medium">#{obra.id}</span>
-            •
-            <span className="font-medium text-blue-600">{obra.status}</span>
-          </p>
-        </div>
-      </div>
+      {/* Título e botão Voltar renderizados no header do Dashboard via portal */}
+      <PageHeader
+        title={`Obra: ${obra.cliente.nome}`}
+        subtitle={`#${obra.id} • ${obra.status}`}
+        backTo={paginaOrigem}
+      />
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
