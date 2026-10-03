@@ -10,8 +10,10 @@ export default function DetalheObra() {
   const location = useLocation();
   const obraId = Number(id);
 
-  // Recupera a página de origem para o botão Voltar funcionar corretamente
-  const paginaOrigem = (location.state as { from?: string } | null)?.from ?? "/kanban";
+  // Recupera a página de origem e o estado para o botão Voltar funcionar corretamente
+  const stateFrom = location.state as { from?: string; selectedObraId?: number } | null;
+  const paginaOrigem = stateFrom?.from ?? "/kanban";
+  const backState = paginaOrigem === "/financeiro" ? { selectedObraId: obraId } : undefined;
 
   const { data: obra, isLoading: loadingObra, isError: errorObra } = useObraDetalhe(obraId);
   const { data: historico, isLoading: loadingHist } = useHistoricoObra(obraId);
@@ -31,7 +33,7 @@ export default function DetalheObra() {
   if (loadingObra) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Detalhes da Obra" subtitle="Carregando dados..." backTo={paginaOrigem} />
+        <PageHeader title="Detalhes da Obra" subtitle="Carregando dados..." backTo={paginaOrigem} backState={backState} />
         <div className="flex-1 flex items-center justify-center bg-slate-50">
           <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>
@@ -42,7 +44,7 @@ export default function DetalheObra() {
   if (errorObra || !obra) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Erro" subtitle="Falha ao carregar obra" backTo={paginaOrigem} />
+        <PageHeader title="Erro" subtitle="Falha ao carregar obra" backTo={paginaOrigem} backState={backState} />
         <div className="flex-1 flex items-center justify-center bg-red-50 text-red-700">
           <AlertCircle className="w-6 h-6 mr-2" />
           <span>Não foi possível carregar os detalhes da obra. Verifique a conexão ou o ID.</span>
@@ -58,6 +60,7 @@ export default function DetalheObra() {
         title={`Obra: ${obra.cliente.nome}`}
         subtitle={`#${obra.id} • ${obra.status}`}
         backTo={paginaOrigem}
+        backState={backState}
       />
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">

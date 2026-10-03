@@ -1,18 +1,15 @@
 // RF-14/15: Financeiro — DRE (Demonstrativo de Resultado por Exercício) por obra
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useObras } from "@/hooks/api/useObras";
 import { useRelatorioCusto } from "@/hooks/api/useRelatorios";
-import { exportarRelatorio } from "@/services/relatorios";
-import { toast } from "sonner";
 import {
   Loader2,
   AlertCircle,
   TrendingUp,
   TrendingDown,
   DollarSign,
-  Download,
   BarChart3,
   Search,
   ExternalLink,
@@ -217,28 +214,18 @@ function PainelDRE({ obraId }: { obraId: number }) {
 
 export default function Financeiro() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: listaObras, isLoading: loadingObras } = useObras();
-  const [obraIdSelecionada, setObraIdSelecionada] = useState<number | null>(null);
-  const [busca, setBusca] = useState("");
-  const [exportando, setExportando] = useState(false);
 
-  const handleExportar = async (formato: "pdf" | "excel") => {
-    setExportando(true);
-    try {
-      const blob = await exportarRelatorio(formato);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `financeiro-zl-${new Date().toISOString().split("T")[0]}.${formato === "pdf" ? "pdf" : "xlsx"}`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-      toast.success(`Relatório exportado em ${formato.toUpperCase()}`);
-    } catch {
-      toast.error("Erro ao exportar relatório");
-    } finally {
-      setExportando(false);
-    }
-  };
+  const stateObraId = (location.state as { selectedObraId?: number } | null)?.selectedObraId ?? null;
+  const [obraIdSelecionada, setObraIdSelecionada] = useState<number | null>(stateObraId);
+  const [prevStateObraId, setPrevStateObraId] = useState<number | null>(stateObraId);
+  const [busca, setBusca] = useState("");
+
+  if (stateObraId !== prevStateObraId) {
+    setPrevStateObraId(stateObraId);
+    setObraIdSelecionada(stateObraId);
+  }
 
   const obrasFiltradas = (listaObras?.itens || []).filter((o) =>
     o.clienteNome.toLowerCase().includes(busca.toLowerCase())
@@ -247,6 +234,7 @@ export default function Financeiro() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <PageHeader title="Financeiro" subtitle="DRE e análise de custos por obra • RF-14/15">
+       
       </PageHeader>
 
       <div className="flex-1 overflow-hidden flex">
@@ -314,10 +302,14 @@ export default function Financeiro() {
                     {obrasFiltradas.find((o) => o.id === obraIdSelecionada)?.clienteNome}
                   </p>
                 </div>
-                {/* Passa state.from para que DetalheObra saiba retornar ao Financeiro */}
+                {/* Passa state.from e selectedObraId para que DetalheObra saiba retornar ao Financeiro */}
                 <button
-                  onClick={() => navigate(`/obras/${obraIdSelecionada}`, { state: { from: "/financeiro" } })}
-                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  onClick={() =>
+                    navigate(`/obras/${obraIdSelecionada}`, {
+                      state: { from: "/financeiro", selectedObraId: obraIdSelecionada },
+                    })
+                  }
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors cursor-pointer"
                 >
                   Ver Detalhes da Obra <ExternalLink className="w-4 h-4" />
                 </button>
@@ -330,3 +322,4 @@ export default function Financeiro() {
     </div>
   );
 }
+
