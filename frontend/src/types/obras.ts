@@ -82,3 +82,22 @@ export interface ObraCriadaResposta {
   dataFimReal?: string | null;
   criadoEm?: string;
 }
+
+/** Dados de homologação da concessionária (Contrato Rota #17 / RF-17) */
+export interface DadosHomologacao {
+  obraId: number;
+  parecerAcesso: "Aprovado" | "Pendente" | "EmAnalise" | "Reprovado";
+  artTrt?: string;
+  prazoVistoria?: string;
+  atualizadoEm?: string;
+}
+
+/** Payload para alocar equipe a uma obra (Contrato Rota #15 / RF-08) */
+export interface CriarProgramacaoPayload {
+  obraId: number;
+  equipeId: number;
+  dataInicio: string; // ISO (yyyy-MM-dd)
+  dataFim?: string;    // ISO exclusiva (yyyy-MM-dd) — opcional; se omitida, calcula por ~9 painéis/dia
+  prioridade?: number;
+}
+

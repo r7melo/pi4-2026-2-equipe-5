@@ -42,6 +42,8 @@ export function ConfirmDialog({
     if (!aberto && el.open) el.close();
   }, [aberto]);
 
+  if (!aberto) return null;
+
   return (
     <dialog
       ref={dialogRef}

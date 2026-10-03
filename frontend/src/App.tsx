@@ -5,6 +5,7 @@ import CadastrarObra from "./pages/CadastrarObra";
 import AndamentoHomologacao from "./pages/AndamentoHomologacao";
 import LinkInstaladores from "./pages/LinkInstaladores";
 import Equipes from "./pages/Equipes";
+import CronogramaPublico from "./pages/CronogramaPublico";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
@@ -30,42 +31,41 @@ function App() {
       <Toaster richColors position="top-right" />
       <ReloadPrompt />
       <BrowserRouter>
+        <Routes>
+          {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
 
-      <Routes>
-        {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
+          {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
+          <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>
+            <Route path="/linkparainstaladores" element={<LinkInstaladores />} />
+          </Route>
 
-        {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
-        <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>
-          <Route path="/linkparainstaladores" element={<LinkInstaladores />} />
-        </Route>
+          {/* Rotas Privadas (Protegidas por JWT com DashboardLayout) */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardLayout />}>
+              {/* Kanban: Visível para Admin, Engenharia, Financeiro e Leitores */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+                <Route path="/kanban" element={<Kanban />} />
+              </Route>
 
-        {/* Rotas Privadas (Protegidas por JWT com DashboardLayout) */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
-            {/* Kanban: Visível para Admin, Engenharia, Financeiro e Leitores */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
-              <Route path="/kanban" element={<Kanban />} />
-            </Route>
+              {/* Equipes (Gantt): Visível para Admin, Engenharia, Financeiro e Leitores */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+                <Route path="/equipes" element={<Equipes />} />
+              </Route>
 
-            {/* Equipes (Gantt): Visível para Admin, Engenharia, Financeiro e Leitores */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
-              <Route path="/equipes" element={<Equipes />} />
-            </Route>
-
-            {/* Gestão de Obras: Apenas Admin e Engenharia */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
-              <Route path="/cadastrarobra" element={<CadastrarObra />} />
-              <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
+              {/* Gestão de Obras: Apenas Admin e Engenharia */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
+                <Route path="/cadastrarobra" element={<CadastrarObra />} />
+                <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  </QueryClientProvider>
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
 export default App;
-

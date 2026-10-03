@@ -1,5 +1,7 @@
-// Serviço de Programações / Cronograma (Rotas #14, #15, #16 do contrato)
+// frontend/src/services/programacoes.ts
+// Serviço de Programações / Cronograma (Rotas #14, #15, #16 e #22 do contrato)
 import { api } from "./api";
+import type { CriarProgramacaoPayload } from "@/types";
 
 export interface Programacao {
   id: number;
@@ -26,28 +28,35 @@ export interface ReordenarProgramacaoResposta {
   programacoesAfetadas: ProgramacaoAfetada[];
 }
 
-/** GET /api/programacoes */
+export type { CriarProgramacaoPayload };
+
+/** GET /api/programacoes — Rota #14 */
 export async function listarProgramacoes(): Promise<Programacao[]> {
   const { data } = await api.get<Programacao[]>("/programacoes");
   return data;
 }
 
-/** POST /api/programacoes */
+/** POST /api/programacoes — Rota #15 */
 export async function criarProgramacao(
-  payload: Omit<Programacao, "id">
+  payload: CriarProgramacaoPayload
 ): Promise<Programacao> {
   const { data } = await api.post<Programacao>("/programacoes", payload);
   return data;
 }
 
-/** PUT /api/programacoes/{id}/reordenar — Retorno conforme Contrato Rota #16 */
+/** PUT /api/programacoes/{id}/reordenar — Rota #16 */
 export async function reordenarProgramacao(
   id: number,
-  payload: { novaDataInicio: string }
+  payload: { novaDataInicio?: string; novaDataFim?: string }
 ): Promise<ReordenarProgramacaoResposta> {
   const { data } = await api.put<ReordenarProgramacaoResposta>(
     `/programacoes/${id}/reordenar`,
     payload
   );
   return data;
+}
+
+/** DELETE /api/programacoes/{id} — Rota #22 */
+export async function deletarProgramacao(id: number): Promise<void> {
+  await api.delete(`/programacoes/${id}`);
 }

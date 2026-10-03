@@ -1,6 +1,7 @@
 import MockAdapter from "axios-mock-adapter";
 import { api } from "@/services/api";
 import type { StatusObra } from "@/constants/kanbanStatus";
+import type { CriarProgramacaoPayload } from "@/types";
 import {
   MOCK_USUARIOS,
   obterObrasArmazenadas,
@@ -8,7 +9,11 @@ import {
   atualizarStatusObraArmazenada,
   obterProgramacoesArmazenadas,
   atualizarProgramacaoDataArmazenada,
+  criarProgramacaoArmazenada,
+  deletarProgramacaoArmazenada,
   obterEquipesArmazenadas,
+  obterHomologacaoObraArmazenada,
+  obterCronogramaCompartilhadoFixture,
 } from "./fixtures";
 
 /**
@@ -257,11 +262,11 @@ mock.onPut(/\/programacoes\/\d+\/reordenar\/?(\?.*)?$/).reply((config) => {
   try {
     const match = config.url?.match(/\/programacoes\/(\d+)\/reordenar/);
     const id = match ? Number(match[1]) : 0;
-    const body = extrairDados<{ novaDataInicio: string }>(config.data);
-    if (!body.novaDataInicio)
-      return [400, { error: { message: "novaDataInicio não informada" } }];
+    const body = extrairDados<{ novaDataInicio?: string; novaDataFim?: string }>(config.data);
+    if (!body.novaDataInicio && !body.novaDataFim)
+      return [400, { error: { message: "Nenhuma data informada para reordenação" } }];
 
-    const resultado = atualizarProgramacaoDataArmazenada(id, body.novaDataInicio);
+    const resultado = atualizarProgramacaoDataArmazenada(id, body.novaDataInicio, body.novaDataFim);
     if (!resultado) return [404, { error: { message: "Não encontrada" } }];
 
     // Resposta espelhando fielmente o contrato da API (Rota #16)
@@ -277,6 +282,50 @@ mock.onPut(/\/programacoes\/\d+\/reordenar\/?(\?.*)?$/).reply((config) => {
   } catch {
     return [400, { error: { message: "Erro na reordenação" } }];
   }
+});
+
+// POST /programacoes (Rota #15)
+mock.onPost(/\/programacoes\/?(\?.*)?$/).reply((config) => {
+  try {
+    const body = extrairDados<CriarProgramacaoPayload>(config.data);
+    const criada = criarProgramacaoArmazenada(body);
+    return [201, criada];
+  } catch {
+    return [400, { error: { code: "BAD_REQUEST", message: "Erro ao criar alocação mockada" } }];
+  }
+});
+
+// DELETE /programacoes/:id (Rota #22 — Desalocação)
+mock.onDelete(/\/programacoes\/\d+\/?(\?.*)?$/).reply((config) => {
+  const match = config.url?.match(/\/programacoes\/(\d+)/);
+  if (!match) return [400, { error: { code: "BAD_REQUEST", message: "ID inválido" } }];
+  const id = Number(match[1]);
+  const sucesso = deletarProgramacaoArmazenada(id);
+  if (!sucesso) return [404, { error: { code: "NOT_FOUND", message: "Alocação não encontrada" } }];
+  return [204];
+});
+
+// GET /obras/:id/homologacao (Rota #17)
+mock.onGet(/\/obras\/\d+\/homologacao\/?(\?.*)?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)\/homologacao/);
+  const id = match ? Number(match[1]) : 0;
+  const homologacao = obterHomologacaoObraArmazenada(id);
+  return [200, homologacao];
+});
+
+// GET /cronograma/compartilhado/:token (Rota #21 do contrato — RF-16)
+mock.onGet(/\/cronograma\/compartilhado\/[^/]+/).reply((config) => {
+  const match = config.url?.match(/\/cronograma\/compartilhado\/([^/?]+)/);
+  const token = match ? match[1] : "";
+  if (!token || token === "invalido") {
+    return [
+      401,
+      { error: { code: "UNAUTHORIZED", message: "Token de cronograma inválido ou expirado." } },
+    ];
+  }
+  const params = config.params as { dataInicio?: string; dataFim?: string } | undefined;
+  const dados = obterCronogramaCompartilhadoFixture(token, params);
+  return [200, dados];
 });
 
 // ATENÇÃO: PassThrough obrigatório para requisições não mockadas passarem livremente

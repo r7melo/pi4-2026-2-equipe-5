@@ -24,11 +24,11 @@ export function PageHeader({ title, subtitle, backTo, children }: PageHeaderProp
 
   const headerContent = (
     <>
-      {/* Lado Esquerdo: Menu Mobile + Títulos */}
-      <div className="flex items-center gap-2 md:gap-3 min-w-0">
-        <SidebarTrigger className="md:hidden" />
+      {/* Lado Esquerdo: Menu Mobile + Títulos (Blindado com shrink-0 e proporção controlada no mobile) */}
+      <div className="flex items-center gap-2 md:gap-3 shrink-0 max-w-[55%] sm:max-w-none min-w-0">
+        <SidebarTrigger className="md:hidden shrink-0" />
         <div className="min-w-0">
-          <h1 className="text-lg font-bold text-slate-800 tracking-tight leading-tight truncate">
+          <h1 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight leading-tight truncate">
             {title}
           </h1>
           {subtitle && (
@@ -39,8 +39,8 @@ export function PageHeader({ title, subtitle, backTo, children }: PageHeaderProp
         </div>
       </div>
 
-      {/* Lado Direito: Ações / Filtros + Botão de Voltar à Direita */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Lado Direito: Ações / Filtros (Alinhamento natural à direita preservado globalmente) */}
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 justify-end ml-auto">
         {children}
 
         {backTo && (
@@ -49,7 +49,7 @@ export function PageHeader({ title, subtitle, backTo, children }: PageHeaderProp
             variant="outline"
             size="md"
             onClick={() => void navigate(backTo)}
-            className="cursor-pointer px-3 md:px-4 gap-2 text-slate-700 hover:text-slate-900"
+            className="shrink-0 cursor-pointer px-3 md:px-4 gap-2 text-slate-700 hover:text-slate-900"
             title="Voltar"
           >
             <ArrowLeft className="w-4 h-4" />
