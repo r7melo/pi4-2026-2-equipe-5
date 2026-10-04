@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useMateriais, useAdicionarMaterial } from "@/hooks/api/useMateriais";
+import { useObraDetalhe } from "@/hooks/api/useObraDetalhe";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Loader2, AlertCircle, Package, Plus, ChevronLeft, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
@@ -10,6 +11,7 @@ export default function MateriaisObra() {
   const obraId = Number(id);
 
   const { data: materiais, isLoading, isError } = useMateriais(obraId);
+  const { data: obra } = useObraDetalhe(obraId);
   const addMaterial = useAdicionarMaterial();
 
   const [descricao, setDescricao] = useState("");
@@ -36,7 +38,7 @@ export default function MateriaisObra() {
   if (isLoading) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Materiais da Obra" subtitle="Carregando insumos..." />
+        <PageHeader title="Gerenciar Materiais da Obra" subtitle="Carregando insumos..." />
         <div className="flex-1 flex items-center justify-center bg-slate-50">
           <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>
@@ -56,21 +58,30 @@ export default function MateriaisObra() {
     );
   }
 
+  const clienteNome = obra?.cliente?.nome;
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
+      <PageHeader
+        title="Gerenciar Materiais da Obra"
+        subtitle={clienteNome ? `Cliente: ${clienteNome}` : `Obra #${obraId}`}
+      />
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate(`/obras/${obraId}`)} 
             className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            title="Voltar para Detalhes da Obra"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Package className="w-6 h-6 text-slate-400" /> Gestão de Materiais
+              <Package className="w-6 h-6 text-slate-400" /> Gestão de Materiais 
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Obra #{obraId} • Controle Logístico</p>
+            <p className="text-sm text-slate-500 mt-1">
+              {clienteNome ? `Cliente: ${clienteNome} (#${obraId})` : `Obra #${obraId}`} • Controle Logístico
+            </p>
           </div>
         </div>
         <button

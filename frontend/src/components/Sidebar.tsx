@@ -6,6 +6,7 @@ import {
   FileCheck, 
   DollarSign, 
   BarChart2,
+  Settings,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -81,7 +82,7 @@ export default function Sidebar() {
     {
       label: "Configurações",
       path: "/configuracoes",
-      icon: BarChart2,
+      icon: Settings,
       roles: ["Administrador", "Financeiro"],
     },
   ];

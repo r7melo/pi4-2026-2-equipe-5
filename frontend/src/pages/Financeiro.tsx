@@ -218,7 +218,7 @@ export default function Financeiro() {
   const { data: listaObras, isLoading: loadingObras } = useObras();
 
   const stateObraId = (location.state as { selectedObraId?: number } | null)?.selectedObraId ?? null;
-  const [obraIdSelecionada, setObraIdSelecionada] = useState<number | null>(stateObraId);
+  const [obraIdSelecionadaState, setObraIdSelecionada] = useState<number | null>(stateObraId);
   const [prevStateObraId, setPrevStateObraId] = useState<number | null>(stateObraId);
   const [busca, setBusca] = useState("");
 
@@ -226,6 +226,10 @@ export default function Financeiro() {
     setPrevStateObraId(stateObraId);
     setObraIdSelecionada(stateObraId);
   }
+
+  // Deriva o ID da primeira obra como padrão caso nenhuma obra esteja selecionada
+  const primeiroObraId = listaObras?.itens?.[0]?.id ?? null;
+  const obraIdSelecionada = obraIdSelecionadaState ?? primeiroObraId;
 
   const obrasFiltradas = (listaObras?.itens || []).filter((o) =>
     o.clienteNome.toLowerCase().includes(busca.toLowerCase())
