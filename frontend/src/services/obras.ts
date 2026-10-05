@@ -235,4 +235,3 @@ export async function obterHomologacaoObra(obraId: number): Promise<DadosHomolog
     };
   }
 }
-}

@@ -830,7 +830,6 @@ export function adicionarComentarioArmazenado(obraId: number, descricao: string,
   return novo;
 }
 
-=======
 /** Fixture de Homologação 100% sincronizada com 02_seed.sql e QA (com Obra 308 Reprovada para testes) */
 export const MOCK_HOMOLOGACOES_FIXTURE: Record<number, DadosHomologacao> = {
   301: { obraId: 301, parecerAcesso: "Aprovado", artTrt: "ART-2026-0301", prazoVistoria: "2026-10-10" },
@@ -934,4 +933,3 @@ export function obterCronogramaCompartilhadoFixture(
     duracaoEstimadaDias: p.duracaoEstimadaDias,
   }));
 }
->>>>>>> origin/main
