@@ -4,11 +4,13 @@ import { gantt } from "dhtmlx-gantt";
 import type { NivelZoom } from "./GanttToolbar";
 import {
   formatarDiasUteis,
-  proximoDiaUtil,
-  adicionarDiasUteis,
+  formatarDataBR,
+  dataFimExclusivaParaUltimoDiaUtil,
+  normalizarDataMeioDiaUTC,
   formatarDataISO,
   calcularDiasUteisEntre,
-  normalizarDataMeioDiaUTC,
+  proximoDiaUtil,
+  adicionarDiasUteis,
 } from "@/lib/formatters";
 
 export interface GanttTask {
@@ -93,7 +95,22 @@ export function GanttDhtmlxWrapper({
     gantt.config.show_grid = mostrarGradeRef.current;
     gantt.config.columns = [
       { name: "text", label: "Obra", width: 220, tree: true },
-      { name: "duration", label: "Dias", align: "center", width: 50 },
+      {
+        name: "duration",
+        label: "Dias",
+        align: "center",
+        width: 50,
+        template: (rawTask: unknown) => {
+          const task = rawTask as GanttTask;
+          const dur = Math.max(
+            1,
+            task.duracaoDias ||
+              calcularDiasUteisEntre(task.start_date, task.end_date) ||
+              1
+          );
+          return `${dur}`;
+        },
+      },
     ];
 
     // Weekends como não-trabalho e ajuste automático no drop (RF-08, RF-09)
@@ -143,8 +160,9 @@ export function GanttDhtmlxWrapper({
     // Tooltip dinâmico: oculta linhas de materiais e homologação se os dados forem undefined (ex: tela pública)
     gantt.templates.tooltip_text = (start: Date, end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
-      const dataIni = start.toLocaleDateString("pt-BR");
-      const dataFim = end.toLocaleDateString("pt-BR");
+      const dataIni = formatarDataBR(formatarDataISO(start));
+      const ultimoDiaUtil = dataFimExclusivaParaUltimoDiaUtil(end);
+      const dataFim = formatarDataBR(ultimoDiaUtil);
       const matRotulo =
         task.statusObra === "Assistencia"
           ? "Peças p/ Manutenção 🔧"
@@ -165,7 +183,13 @@ export function GanttDhtmlxWrapper({
       linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`);
 
       if (task.duracaoDias !== undefined || task.duration !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(task.duracaoDias || task.duration)}</span></div>`);
+        const dur = Math.max(
+          1,
+          task.duracaoDias ||
+            calcularDiasUteisEntre(start, end) ||
+            1
+        );
+        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(dur)}</span></div>`);
       }
 
       if (task.materialPronto !== undefined || task.statusObra !== undefined) {
@@ -209,6 +233,11 @@ export function GanttDhtmlxWrapper({
       return true;
     });
 
+    const scrollEventId = gantt.attachEvent("onGanttScroll", () => {
+      esconderTooltipDhtmlx();
+      return true;
+    });
+
     const handleDocumentMouseMove = (e: MouseEvent) => {
       const tooltipEl = document.querySelector(".gantt_tooltip") as HTMLElement | null;
       if (!tooltipEl || tooltipEl.style.display === "none") return;
@@ -235,7 +264,7 @@ export function GanttDhtmlxWrapper({
         dragEmAndamentoRef.current = false;
       }, 150);
 
-      const task = gantt.getTask(id) as GanttTask & {
+      const task = gantt.getTask(id) as Omit<GanttTask, "start_date" | "end_date"> & {
         start_date: Date;
         end_date: Date;
         duracaoDias?: number;
@@ -243,25 +272,42 @@ export function GanttDhtmlxWrapper({
       };
 
       if (mode === "resize") {
-        // O início da tarefa é preservado a partir do start_date da própria tarefa no Gantt
+        // Preserva ou ajusta o início para dia útil caso redimensionado pela alça esquerda sobre fim de semana
         const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
-        let dataFimObj = normalizarDataMeioDiaUTC(task.end_date);
+        const dataFimObjBruta = normalizarDataMeioDiaUTC(task.end_date);
 
-        // Trava de segurança: garante no mínimo 1 dia útil
-        const diasCalculados = calcularDiasUteisEntre(dataInicioObj, dataFimObj);
-        if (diasCalculados < 1 || dataFimObj <= dataInicioObj) {
-          dataFimObj = adicionarDiasUteis(dataInicioObj, 1);
-        }
+        // Calcula estritamente os dias úteis selecionados pelo arraste
+        const diasCalculados = calcularDiasUteisEntre(dataInicioObj, dataFimObjBruta);
+        const duracaoFinal = Math.max(1, diasCalculados);
+        const dataFimObj = adicionarDiasUteis(dataInicioObj, duracaoFinal);
+
+        // Sincronização simétrica no objeto interno em memória do DHTMLX:
+        // Blindagem contra race conditions se o usuário interagir novamente antes do ciclo assíncrono do React
+        task.start_date = dataInicioObj;
+        task.end_date = dataFimObj;
+        task.duracaoDias = duracaoFinal;
+        task.duration = duracaoFinal;
 
         const novaDataInicioStr = formatarDataISO(dataInicioObj);
         const novaDataFimStr = formatarDataISO(dataFimObj);
 
         onReorderRef.current?.(Number(id), novaDataInicioStr, novaDataFimStr);
       } else {
-        // Movimento completo da barra: respeita a duração corrente (task.duration)
-        const duracao = task.duration || task.duracaoDias || 1;
+        // Movimento completo da barra: preserva SEMPRE a duração em dias úteis original (duracaoDias)
+        // Fallback defensivo calcula dias úteis entre datas, NUNCA recorre a task.duration (dias corridos do DHTMLX)
+        const duracaoOriginal =
+          task.duracaoDias ||
+          calcularDiasUteisEntre(task.start_date, task.end_date) ||
+          1;
+        const duracao = Math.max(1, duracaoOriginal);
         const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
         const dataFimObj = adicionarDiasUteis(dataInicioObj, duracao);
+
+        // Sincronização simétrica no objeto interno em memória do DHTMLX
+        task.start_date = dataInicioObj;
+        task.end_date = dataFimObj;
+        task.duracaoDias = duracao;
+        task.duration = duracao;
 
         const novaDataInicioStr = formatarDataISO(dataInicioObj);
         const novaDataFimStr = formatarDataISO(dataFimObj);
@@ -292,6 +338,7 @@ export function GanttDhtmlxWrapper({
       gantt.detachEvent(dragEventId);
       gantt.detachEvent(clickEventId);
       gantt.detachEvent(mouseMoveEventId);
+      gantt.detachEvent(scrollEventId);
       inicializado.current = false;
     };
   }, []);

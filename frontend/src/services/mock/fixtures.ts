@@ -12,6 +12,7 @@ import {
   formatarDataISO,
   calcularDiasUteisEntre,
   normalizarDataMeioDiaUTC,
+  dataFimExclusivaParaUltimoDiaUtil,
 } from "@/lib/formatters";
 
 export interface MockUsuario {
@@ -187,7 +188,7 @@ export const MOCK_PROGRAMACOES_FIXTURE: Programacao[] = [
   { id: 610, obraId: 302, equipeId: 4, dataInicio: "2026-10-14", dataFim: "2026-10-18", prioridade: 3, duracaoEstimadaDias: 3.5 },
 ];
 
-const STORAGE_KEY_PROG = "mock_programacoes_v2";
+const STORAGE_KEY_PROG = "mock_programacoes_v3";
 
 export function obterEquipesArmazenadas(): Equipe[] {
   return MOCK_EQUIPES_FIXTURE;
@@ -916,7 +917,9 @@ export function obterCronogramaCompartilhadoFixture(
   let progs = obterProgramacoesArmazenadas();
 
   if (filtro?.dataInicio) {
-    progs = progs.filter((p) => p.dataFim >= filtro.dataInicio!);
+    progs = progs.filter(
+      (p) => dataFimExclusivaParaUltimoDiaUtil(p.dataFim) >= filtro.dataInicio!
+    );
   }
   if (filtro?.dataFim) {
     progs = progs.filter((p) => p.dataInicio <= filtro.dataFim!);

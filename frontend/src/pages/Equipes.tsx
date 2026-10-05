@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { useEquipes } from "@/hooks/api/useEquipes";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Loader2, AlertCircle, CalendarX2, Plus, Search } from "lucide-react";
+import { dataFimExclusivaParaUltimoDiaUtil } from "@/lib/formatters";
 import "@/components/gantt/gantt.css";
 
 export default function Equipes() {
@@ -42,7 +43,12 @@ export default function Equipes() {
   const [equipeSelecionada, setEquipeSelecionada] = useState<number | null>(null);
   const [dataFiltroInicio, setDataFiltroInicio] = useState("");
   const [dataFiltroFim, setDataFiltroFim] = useState("");
-  const [mostrarGrade, setMostrarGrade] = useState(true);
+  const [mostrarGrade, setMostrarGrade] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
   const [modalNovaAlocacaoAberto, setModalNovaAlocacaoAberto] = useState(false);
   const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
   const [tarefaSelecionadaId, setTarefaSelecionadaId] = useState<number | null>(null);
@@ -90,7 +96,9 @@ export default function Equipes() {
     }
 
     if (dataFiltroInicio) {
-      lista = lista.filter((p) => p.dataFim >= dataFiltroInicio);
+      lista = lista.filter(
+        (p) => dataFimExclusivaParaUltimoDiaUtil(p.dataFim) >= dataFiltroInicio
+      );
     }
 
     if (dataFiltroFim) {

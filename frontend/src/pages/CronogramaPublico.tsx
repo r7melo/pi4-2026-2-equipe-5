@@ -20,7 +20,12 @@ export default function CronogramaPublico() {
   const [dataFoco, setDataFoco] = useState<Date | null>(null);
   const [dataFiltroInicio, setDataFiltroInicio] = useState("");
   const [dataFiltroFim, setDataFiltroFim] = useState("");
-  const [mostrarGrade, setMostrarGrade] = useState(true);
+  const [mostrarGrade, setMostrarGrade] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 768;
+    }
+    return true;
+  });
 
   useEffect(() => {
     document.title = "Cronograma Público — ZL Engenharia Solar";
