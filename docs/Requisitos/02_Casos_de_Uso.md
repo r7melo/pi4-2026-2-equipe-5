@@ -11,7 +11,6 @@
 | Status | Vigente |
 | Projeto | Projeto Integrador IV (UFC) |
 | Cliente | ZL Engenharia |
-| Parte da especificação | 2 de 3 — Casos de Uso |
 | Documento anterior | - |
 | Documentos relacionados | [Requisitos Funcionais e Não Funcionais](01_Requisitos_Funcionais_e_Nao_Funcionais.md) |
 
