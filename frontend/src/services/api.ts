@@ -1,7 +1,8 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:8000/api";
+// VITE_API_URL é a raiz do backend (sem /api), compartilhada com o hub do SignalR
+const API_BASE_URL = `${(import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:8000"}/api`;
 
 /**
  * Erro estruturado da API, seguindo o padrão do contrato:

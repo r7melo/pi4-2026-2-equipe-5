@@ -1,0 +1,69 @@
+@api = http://localhost:8000/api
+
+### 1. Login OK
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@zl.com.br", "senha": "Senha123!" }
+
+### 1. Login inválido -> 401 INVALID_CREDENTIALS
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@zl.com.br", "senha": "errada" }
+
+### 2. Me (token do login) / sem token -> 401 UNAUTHORIZED
+GET {{api}}/auth/me
+Authorization: Bearer token-fixo-2
+
+### 3. Criar obra (clienteId inexistente -> cria cliente novo)
+POST {{api}}/obras
+Content-Type: application/json
+
+{ "clienteId": 45, "clienteNome": "Cliente Novo", "cidade": "Campinas", "quantidadePaineis": 45,
+  "dataInicioEstimada": "2026-10-01", "dataFimEstimada": "2026-10-06", "pagamento": { "prazoContratualDias": 45 } }
+
+### 3. Criar obra com data inválida -> 400 INVALID_BODY
+POST {{api}}/obras
+Content-Type: application/json
+
+{ "clienteId": 1, "quantidadePaineis": 10, "dataInicioEstimada": "abc", "pagamento": { "prazoContratualDias": 45 } }
+
+### 4. Listar obras / status inválido -> 400 INVALID_STATUS
+GET {{api}}/obras?status=EmAndamento&clienteNome=hospital
+
+### 5. Detalhar obra / inexistente -> 404 OBRA_NOT_FOUND
+GET {{api}}/obras/999
+
+### 6. Editar obra
+PUT {{api}}/obras/301
+Content-Type: application/json
+
+{ "cidade": "Campinas", "dataInicioEstimada": "2026-10-02", "dataFimEstimada": "2026-10-07", "pagamento": { "prazoContratualDias": 60 } }
+
+### 7. Mover status OK (301: MaterialComprado -> NoDeposito)
+PATCH {{api}}/obras/301/status
+Content-Type: application/json
+
+{ "statusNovo": "NoDeposito", "observacao": "Material chegou ao depósito" }
+
+### 7. Pular etapa -> 400 INVALID_STATUS_TRANSITION
+PATCH {{api}}/obras/302/status
+Content-Type: application/json
+
+{ "statusNovo": "EmAndamento" }
+
+### 8. Materiais da obra
+GET {{api}}/obras/301/materiais
+
+### 9. Registrar material / statusLogistico inválido -> 400 INVALID_STATUS_LOGISTICO
+POST {{api}}/obras/309/materiais
+Content-Type: application/json
+
+{ "tipo": "Cabo Solar 6mm", "quantidade": 200, "statusLogistico": "Comprado" }
+
+### 10. Histórico (mais recente primeiro)
+GET {{api}}/obras/305/historico
+
+### Rota inexistente -> 404 ROUTE_NOT_FOUND
+GET {{api}}/xyz

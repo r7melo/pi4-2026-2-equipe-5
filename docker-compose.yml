@@ -40,8 +40,8 @@ services:
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
     volumes:
       - ./backend:/app
-      - /app/bin
-      - /app/obj
+      - /app/Backend.Api/bin
+      - /app/Backend.Api/obj
     depends_on:
       db:
         condition: service_healthy
