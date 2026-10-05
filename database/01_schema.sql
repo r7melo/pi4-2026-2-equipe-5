@@ -1,7 +1,5 @@
-
 --  01_schema.sql
 --  Sistema de Gestão de Obras — ZL Engenharia Solar
---  MER versão 2.0 — Sprint 2
 --
 --  Ordem de criação respeita dependências de FK:
 --    1. perfil_acesso
