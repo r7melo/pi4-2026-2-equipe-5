@@ -42,7 +42,7 @@ export default function KanbanCard({ card }: KanbanCardProps) {
   const handleDetalheClick = (e: React.MouseEvent) => {
     // Evita conflito com o drag — só navega se foi um clique simples (sem arrastar)
     e.stopPropagation();
-    void navigate(`/obras/${card.id}`);
+    void navigate(`/obras/${card.id}`, { state: { from: "/kanban" } });
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useMateriais, useAdicionarMaterial } from "@/hooks/api/useMateriais";
 import { useObraDetalhe } from "@/hooks/api/useObraDetalhe";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -8,6 +8,7 @@ import { useState } from "react";
 export default function MateriaisObra() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const obraId = Number(id);
 
   const { data: materiais, isLoading, isError } = useMateriais(obraId);
@@ -38,7 +39,12 @@ export default function MateriaisObra() {
   if (isLoading) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Gerenciar Materiais da Obra" subtitle="Carregando insumos..." />
+        <PageHeader
+          title="Gerenciar Materiais da Obra"
+          subtitle="Carregando insumos..."
+          backTo={`/obras/${obraId}`}
+          backState={location.state}
+        />
         <div className="flex-1 flex items-center justify-center bg-slate-50">
           <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
         </div>
@@ -49,7 +55,12 @@ export default function MateriaisObra() {
   if (isError) {
     return (
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Erro" subtitle="Falha ao carregar" />
+        <PageHeader
+          title="Erro"
+          subtitle="Falha ao carregar"
+          backTo={`/obras/${obraId}`}
+          backState={location.state}
+        />
         <div className="flex-1 flex items-center justify-center bg-red-50 text-red-700">
           <AlertCircle className="w-6 h-6 mr-2" />
           <span>Erro ao buscar materiais da obra.</span>
@@ -65,11 +76,13 @@ export default function MateriaisObra() {
       <PageHeader
         title="Gerenciar Materiais da Obra"
         subtitle={clienteNome ? `Cliente: ${clienteNome}` : `Obra #${obraId}`}
+        backTo={`/obras/${obraId}`}
+        backState={location.state}
       />
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate(`/obras/${obraId}`)} 
+            onClick={() => navigate(`/obras/${obraId}`, { state: location.state })} 
             className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             title="Voltar para Detalhes da Obra"
           >

@@ -101,7 +101,7 @@ export default function DetalheObra() {
 
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <button
-                  onClick={() => navigate(`/obras/${obra.id}/materiais`)}
+                  onClick={() => navigate(`/obras/${obra.id}/materiais`, { state: { from: paginaOrigem, selectedObraId: obraId } })}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition-colors text-sm shadow-sm cursor-pointer"
                 >
                   Gerenciar Materiais da Obra
