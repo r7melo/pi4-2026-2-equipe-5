@@ -1,0 +1,142 @@
+@startuml ZL-Eng-Diagrama-Completo
+title ZL-Eng - Diagrama de Casos de Uso
+left to right direction
+skinparam packageStyle rectangle
+
+' ===== Atores =====
+actor "Usuário" as Usuario
+actor "Administrador" as Administrador
+actor "Engenharia" as Engenharia
+actor "Financeiro" as Financeiro
+actor "Instalador de Campo" as Instalador
+
+Administrador --|> Usuario
+Engenharia --|> Usuario
+Financeiro --|> Usuario
+Instalador --|> Usuario
+
+' ===== Casos de uso: autenticação =====
+usecase "UC-01 - Login" as Login
+usecase "UC-02 - Emitir Token de Acesso" as EmitirToken
+usecase "UC-03 - Acessar Recursos" as AcessarRecursos
+usecase "UC-04 - Validar Autorização de Acesso" as ValidarAutorizacao
+
+' ===== Casos de uso: cadastros =====
+usecase "UC-05 - Cadastrar Administrador" as CadAdmin
+usecase "UC-06 - Cadastrar Engenheiro" as CadEng
+usecase "UC-07 - Cadastrar Financeiro" as CadFin
+usecase "UC-08 - Cadastrar Clientes" as CadClientes
+usecase "UC-09 - Cadastrar Instalador de Campo" as CadInstalador
+
+' ===== Casos de uso: obra =====
+usecase "UC-10 - Cadastrar Obra" as CadObra
+usecase "UC-11 - Apagar Obra" as ApagarObra
+usecase "UC-12 - Alterar Status da Obra" as AlterarStatus
+usecase "UC-13 - Definir Obra para Instalação" as DefinirObra
+usecase "UC-14 - Criar Comentário sobre a Manutenção" as CriarComentarioManut
+
+' ===== Subjects =====
+rectangle "Gerenciar Kanban" as Kanban {
+  usecase "UC-15 - Inserir Cartão de Obra no Kanban" as InserirCartao
+  usecase "UC-16 - Deletar Cartão de Obra no Kanban" as DeletarCartao
+  usecase "UC-17 - Editar Cartão no Kanban" as EditarCartao
+  usecase "UC-18 - Mover Cartão no Kanban" as MoverCartao
+  usecase "UC-19 - Adicionar Comentario no Cartão" as ComentarCartao
+}
+
+rectangle "Linha do Tempo da Obra" as Timeline {
+  usecase "UC-20 - Registrar Ação" as RegistrarAcao
+  usecase "UC-29 - Consultar Linha do Tempo da Obra" as ConsultarTimeline
+  usecase "UC-30 - Incluir Comentário na Linha do Tempo" as ComentarTimeline
+}
+
+rectangle "Gerenciar Gantt" as Gantt {
+  usecase "UC-21 - Criar Equipe de Campo" as CriarEquipe
+  usecase "UC-22 - Alocar Equipe" as AlocarEquipe
+}
+
+rectangle "Gerenciar Instalação" as Instalacao {
+  usecase "UC-23 - Exportar Detalhes de Instalação" as ExportarDetalhes
+  usecase "UC-24 - Visualizar Detalhes da Instalação" as VisualizarDetalhes
+  usecase "UC-25 - Realizar Manutenção" as RealizarManutencao
+  usecase "UC-26 - Abrir Rota" as AbrirRota
+}
+
+rectangle "Consultar em Modo Leitura" as Consulta {
+  usecase "UC-27 - Consultar Obras e Quadro Kanban" as ConsultarKanban
+  usecase "UC-28 - Consultar Cronograma (Gantt)" as ConsultarGantt
+}
+
+rectangle "Gerenciar Financeiro" as Financas {
+  usecase "UC-31 - Registrar Custos e Precificação da Obra" as RegistrarCustos
+  usecase "UC-32 - Apurar Custo Total da Obra" as ApurarCusto
+  usecase "UC-33 - Emitir DRE da Obra" as EmitirDRE
+  usecase "UC-34 - Exportar Relatório Financeiro" as ExportarRelatorio
+}
+
+' ===== Associações: Usuário =====
+Usuario --> Login
+Usuario --> AcessarRecursos
+
+' ===== Associações: Administrador =====
+Administrador --> CadAdmin
+Administrador --> CadEng
+Administrador --> CadFin
+Administrador --> CadClientes
+Administrador --> CadInstalador
+Administrador --> CadObra
+Administrador --> ApagarObra
+Administrador --> EditarCartao
+Administrador --> MoverCartao
+Administrador --> CriarEquipe
+Administrador --> AlocarEquipe
+Administrador --> ExportarDetalhes
+Administrador --> ConsultarTimeline
+Administrador --> ApurarCusto
+Administrador --> EmitirDRE
+
+' ===== Associações: Engenharia =====
+Engenharia --> CadObra
+Engenharia --> ApagarObra
+Engenharia --> EditarCartao
+Engenharia --> MoverCartao
+Engenharia --> CriarEquipe
+Engenharia --> AlocarEquipe
+Engenharia --> ConsultarTimeline
+
+' ===== Associações: Financeiro =====
+Financeiro --> ConsultarKanban
+Financeiro --> ConsultarGantt
+Financeiro --> ConsultarTimeline
+Financeiro --> RegistrarCustos
+Financeiro --> ApurarCusto
+Financeiro --> EmitirDRE
+Financeiro --> ExportarRelatorio
+
+' ===== Associações: Instalador de Campo =====
+Instalador --> VisualizarDetalhes
+Instalador --> RealizarManutencao
+Instalador --> AbrirRota
+
+' ===== Associações entre casos de uso =====
+CriarEquipe --> DefinirObra
+AlocarEquipe --> DefinirObra
+
+' ===== Include =====
+Login ..> EmitirToken : <<include>>
+AcessarRecursos ..> ValidarAutorizacao : <<include>>
+CadObra ..> InserirCartao : <<include>>
+CadObra ..> RegistrarAcao : <<include>>
+ApagarObra ..> DeletarCartao : <<include>>
+MoverCartao ..> AlterarStatus : <<include>>
+AlterarStatus ..> RegistrarAcao : <<include>>
+DefinirObra ..> MoverCartao : <<include>>
+RealizarManutencao ..> RegistrarAcao : <<include>>
+EmitirDRE ..> ApurarCusto : <<include>>
+
+' ===== Extend =====
+CriarComentarioManut ..> RealizarManutencao : <<extend>>
+ComentarCartao ..> EditarCartao : <<extend>>
+ComentarTimeline ..> ConsultarTimeline : <<extend>>
+
+@enduml
