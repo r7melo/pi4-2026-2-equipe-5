@@ -21,6 +21,29 @@ Documentos de referência (`docs/documentacao de requisitos/`):
 | Erros | Corpo padrão: `{ "error": { "code": "string", "message": "string" } }` |
 | Perfis de acesso (RBAC — RF-01, RF-02) | `Administrador`, `EngenhariaObras`, `Financeiro`, `VisualizadorLeitor`, `InstaladorCampo` |
 
+### 2.1 Códigos de erro
+
+Todo erro retorna o corpo padrão `{ "error": { "code": "...", "message": "..." } }`, com `message` em português explicando o que corrigir.
+
+| HTTP | `code` | Quando ocorre |
+|---|---|---|
+| 400 | `INVALID_BODY` | Corpo ausente, JSON malformado ou campo com tipo/formato errado (a mensagem informa o campo) |
+| 400 | `INVALID_PARAMETER` | Query param inválido (ex.: `page=0`, `page=abc`) |
+| 400 | `VALIDATION_ERROR` | Regra de negócio violada (ex.: `dataFimEstimada` anterior a `dataInicioEstimada`, `quantidadePaineis` ≤ 0) |
+| 400 | `MISSING_STATUS` | `statusNovo` não informado ao mover card |
+| 400 | `INVALID_STATUS` | Status de obra inexistente (a mensagem lista os valores aceitos) |
+| 400 | `INVALID_STATUS_TRANSITION` | Transição não permitida no funil (a mensagem lista as próximas etapas permitidas) |
+| 400 | `INVALID_STATUS_LOGISTICO` | Status logístico de material inexistente |
+| 401 | `INVALID_CREDENTIALS` | E-mail ou senha inválidos no login |
+| 401 | `UNAUTHORIZED` | Token ausente ou inválido |
+| 404 | `OBRA_NOT_FOUND` | Obra informada na rota não existe |
+| 404 | `ROUTE_NOT_FOUND` | Rota inexistente (inclui id não numérico, ex.: `/api/obras/abc`) |
+| 405 | `METHOD_NOT_ALLOWED` | Método HTTP não suportado pela rota |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | Corpo enviado sem `Content-Type: application/json` |
+| 500 | `INTERNAL_ERROR` | Erro inesperado no servidor |
+
+**Transições válidas do funil (rota #7):** `MaterialComprado → NoDeposito → Separado → EmAndamento → Concluido`; `EmAndamento → Assistencia`; `Concluido → Assistencia`; `Assistencia → EmAndamento`.
+
 > **Rastreabilidade de campos:** os atributos de cada JSON abaixo correspondem aos atributos das entidades do MER, convertidos de `snake_case` para `camelCase` (ex.: `data_inicio_estimada` → `dataInicioEstimada`, `id_cliente` → `clienteId`). Campos sensíveis (ex.: `senha` de `Usuario`) nunca são retornados nas respostas.
 
 ## 3. Tabela-resumo das rotas
@@ -465,7 +488,18 @@ Documentos de referência (`docs/documentacao de requisitos/`):
 
 ---
 
-## 5. Próximos passos
+## 5. Status da implementação
+
+Rotas **#1 a #10** implementadas em `backend/Backend.Api` (.NET 8), com **dados fixos em memória** espelhando `database/02_seed.sql` (alterações se perdem ao reiniciar a API). Exemplos de chamadas em `backend/Backend.Api/Backend.Api.http`.
+
+Limitações desta etapa:
+- **Sem JWT/RBAC:** as rotas estão abertas (sem `403`). O login valida os usuários do seed (senha `Senha123!`) e retorna um token fixo `token-fixo-{idUsuario}`, aceito por `GET /api/auth/me` no header `Authorization: Bearer ...`.
+- **Histórico:** registros criados sem token são atribuídos ao Administrador (id 1). `GET /api/obras/{id}/historico` retorna do mais recente para o mais antigo e inclui `obraId`.
+- **`POST /api/obras`:** usa o `clienteId` se ele existir; caso contrário cadastra um cliente novo com `clienteNome` + `cidade`.
+- **`PUT /api/obras/{id}`:** campos omitidos mantêm o valor atual; `cidade` atualiza o Cliente da obra.
+- **`PATCH /api/obras/{id}/status`:** `emailNotificacaoEnviado` é sempre `false` (envio de e-mail ainda não implementado).
+
+## 6. Próximos passos
 
 - Validar com o time de Requisitos a extensão do MER para a entidade de **Homologação** (rota #17).
 - Definir com o time de Backend os nomes exatos dos Controllers/Actions em ASP.NET Core que implementarão cada rota.
