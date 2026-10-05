@@ -10,10 +10,12 @@ export interface PageHeaderProps {
   title: string;
   subtitle?: string;
   backTo?: string;
+  backState?: unknown;
+  onBack?: () => void;
   children?: React.ReactNode;
 }
 
-export function PageHeader({ title, subtitle, backTo, children }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, backTo, backState, onBack, children }: PageHeaderProps) {
   const navigate = useNavigate();
   const contextNode = useHeaderPortal();
   const targetNode =
@@ -43,12 +45,18 @@ export function PageHeader({ title, subtitle, backTo, children }: PageHeaderProp
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 justify-end ml-auto">
         {children}
 
-        {backTo && (
+        {(backTo || onBack) && (
           <Button
             type="button"
             variant="outline"
             size="md"
-            onClick={() => void navigate(backTo)}
+            onClick={() => {
+              if (onBack) {
+                onBack();
+              } else if (backTo) {
+                void navigate(backTo, { state: backState });
+              }
+            }}
             className="shrink-0 cursor-pointer px-3 md:px-4 gap-2 text-slate-700 hover:text-slate-900"
             title="Voltar"
           >

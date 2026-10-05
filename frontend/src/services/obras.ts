@@ -168,6 +168,62 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
   }
 }
 
+export interface ObraDetalhe {
+  id: number;
+  status: StatusObra;
+  dataInicioEstimada: string;
+  dataFimEstimada: string;
+  dataInicioReal: string | null;
+  dataFimReal: string | null;
+  cliente: {
+    id: number;
+    nome: string;
+    cidade: string;
+  };
+  pagamento: {
+    id: number;
+    dataConfirmacao: string;
+    prazoContratualDias: number;
+  };
+}
+
+export async function buscarObra(id: number): Promise<ObraDetalhe> {
+  return await apiFetch<ObraDetalhe>(`/obras/${id}`);
+}
+
+export interface HistoricoObra {
+  id: number;
+  obraId: number;
+  statusAnterior: string;
+  statusNovo: string;
+  dataAlteracao: string;
+  observacao?: string;
+  usuario: { id: number; nome: string };
+}
+
+export async function listarHistorico(obraId: number): Promise<HistoricoObra[]> {
+  return await apiFetch<HistoricoObra[]>(`/obras/${obraId}/historico`);
+}
+
+export interface ComentarioObra {
+  id: number;
+  obraId: number;
+  descricao: string;
+  dataRegistro: string;
+  usuario: { id: number; nome: string };
+}
+
+export async function listarComentarios(obraId: number): Promise<ComentarioObra[]> {
+  return await apiFetch<ComentarioObra[]>(`/obras/${obraId}/comentarios`);
+}
+
+export async function adicionarComentario(obraId: number, descricao: string): Promise<ComentarioObra> {
+  return await apiFetch<ComentarioObra>(`/obras/${obraId}/comentarios`, {
+    method: "POST",
+    body: JSON.stringify({ descricao }),
+  });
+}
+
 /** GET /api/obras/{id}/homologacao — Contrato Rota #17 */
 export async function obterHomologacaoObra(obraId: number): Promise<DadosHomologacao> {
   try {

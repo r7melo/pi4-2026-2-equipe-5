@@ -5,6 +5,11 @@ import CadastrarObra from "./pages/CadastrarObra";
 import AndamentoHomologacao from "./pages/AndamentoHomologacao";
 import LinkInstaladores from "./pages/LinkInstaladores";
 import Equipes from "./pages/Equipes";
+import DetalheObra from "./pages/DetalheObra";
+import MateriaisObra from "./pages/MateriaisObra";
+import Relatorios from "./pages/Relatorios";
+import Financeiro from "./pages/Financeiro";
+import RelatorioPublico from "./pages/RelatorioPublico";
 import CronogramaPublico from "./pages/CronogramaPublico";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -36,6 +41,7 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
+          <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
 
           {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
           <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>
@@ -59,6 +65,22 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
                 <Route path="/cadastrarobra" element={<CadastrarObra />} />
                 <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
+              </Route>
+
+              {/* Detalhe da Obra: Todos perfis autenticados (RF-03/11) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+                <Route path="/obras/:id" element={<DetalheObra />} />
+              </Route>
+
+              {/* Materiais da Obra: Admin e Engenharia (RF-06) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
+                <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
+              </Route>
+
+              {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Financeiro"]} />}>
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/financeiro" element={<Financeiro />} />
               </Route>
             </Route>
           </Route>

@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Zap } from "lucide-react";
+import { Zap, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { ObraCard } from "@/types";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ interface KanbanCardProps {
 }
 
 export default function KanbanCard({ card }: KanbanCardProps) {
+  const navigate = useNavigate();
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const canDrag = perfil === "Administrador" || perfil === "EngenhariaObras";
 
@@ -37,6 +39,12 @@ export default function KanbanCard({ card }: KanbanCardProps) {
     }
   };
 
+  const handleDetalheClick = (e: React.MouseEvent) => {
+    // Evita conflito com o drag — só navega se foi um clique simples (sem arrastar)
+    e.stopPropagation();
+    void navigate(`/obras/${card.id}`, { state: { from: "/kanban" } });
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -44,7 +52,7 @@ export default function KanbanCard({ card }: KanbanCardProps) {
       {...attributes}
       {...listeners}
       className={cn(
-        "bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm transition-all select-none",
+        "bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm transition-all select-none group",
         canDrag && "hover:shadow-md hover:border-slate-300 cursor-grab active:cursor-grabbing hover:-translate-y-0.5",
         isDragging && "shadow-xl border-slate-400"
       )}
@@ -53,9 +61,20 @@ export default function KanbanCard({ card }: KanbanCardProps) {
         {card.categoria}
       </span>
       <p className="text-xs font-semibold text-slate-800 leading-snug">{card.clienteNome}</p>
-      <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 mt-1.5 pt-1.5 border-t border-slate-100">
-        <Zap className="w-3 h-3 text-amber-500" />
-        {card.quantidadePaineis} Painéis
+      <div className="flex items-center justify-between gap-1 text-[11px] font-semibold text-slate-500 mt-1.5 pt-1.5 border-t border-slate-100">
+        <span className="flex items-center gap-1">
+          <Zap className="w-3 h-3 text-amber-500" />
+          {card.quantidadePaineis} Painéis
+        </span>
+        {/* Botão de detalhes visível ao hover */}
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={handleDetalheClick}
+          title="Ver detalhes da obra"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );

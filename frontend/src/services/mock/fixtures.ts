@@ -4,6 +4,8 @@ import type { ObraCard, NomePerfil, DadosHomologacao, CriarProgramacaoPayload } 
 import type { StatusObra } from "@/constants/kanbanStatus";
 import type { Programacao } from "../programacoes";
 import type { Equipe } from "../equipes";
+import type { Material } from "../materiais";
+import type { RelatorioCusto } from "../relatorios";
 import {
   proximoDiaUtil,
   adicionarDiasUteis,
@@ -307,6 +309,525 @@ export function atualizarProgramacaoDataArmazenada(
 
   const principalFinal = mapaEquipe.get(id) || progAtualizada;
   return { principal: principalFinal, afetadas };
+}
+
+// ─── MATERIAIS (RF-06) ───
+const STORAGE_KEY_MAT = "mock_materiais";
+
+export const MOCK_MATERIAIS_FIXTURE: Material[] = [
+  // Obra 301 - Rede Alfa Supermercados (45 painéis)
+  { id: 501, obraId: 301, descricao: "Painel Solar 550W Monocristalino", quantidade: 45, unidade: "un" },
+  { id: 502, obraId: 301, descricao: "Inversor String 25kW Trifásico", quantidade: 1, unidade: "un" },
+  { id: 503, obraId: 301, descricao: "Cabo Solar 6mm Preto/Vermelho", quantidade: 400, unidade: "m" },
+  { id: 504, obraId: 301, descricao: "Estrutura Fixação Telhado Trapezoidal", quantidade: 12, unidade: "kit" },
+  { id: 505, obraId: 301, descricao: "String Box CC 1000V com DPS Integrado", quantidade: 1, unidade: "un" },
+
+  // Obra 302 - Indústria Metalúrgica Ramos (120 painéis)
+  { id: 506, obraId: 302, descricao: "Módulo Fotovoltaico 550W Bifacial", quantidade: 120, unidade: "un" },
+  { id: 507, obraId: 302, descricao: "Inversor Central Trifásico 75kW", quantidade: 1, unidade: "un" },
+  { id: 508, obraId: 302, descricao: "Cabo Solar 10mm Dupla Isolação", quantidade: 600, unidade: "m" },
+  { id: 509, obraId: 302, descricao: "Estrutura Metálica Reforçada Alumínio", quantidade: 30, unidade: "kit" },
+  { id: 510, obraId: 302, descricao: "Painel de Média Tensão e Proteção", quantidade: 1, unidade: "un" },
+  { id: 511, obraId: 302, descricao: "Conectores MC4 Industriais Blindados", quantidade: 32, unidade: "par" },
+
+  // Obra 303 - Residencial Vista Verde (24 painéis)
+  { id: 512, obraId: 303, descricao: "Painel Solar 550W Monocristalino", quantidade: 24, unidade: "un" },
+  { id: 513, obraId: 303, descricao: "Microinversor 2000W 4 MPPT", quantidade: 6, unidade: "un" },
+  { id: 514, obraId: 303, descricao: "Cabo Tronco e Cabo Solar 6mm", quantidade: 80, unidade: "m" },
+  { id: 515, obraId: 303, descricao: "Estrutura Telha Cerâmica com Gancho Inox", quantidade: 6, unidade: "kit" },
+  { id: 516, obraId: 303, descricao: "Quadro de Distribuição CA com DPS e Disjuntor", quantidade: 1, unidade: "un" },
+
+  // Obra 304 - Fazenda Santa Maria (80 painéis)
+  { id: 517, obraId: 304, descricao: "Módulo Fotovoltaico 550W Tier 1", quantidade: 80, unidade: "un" },
+  { id: 518, obraId: 304, descricao: "Inversor Trifásico 20kW", quantidade: 2, unidade: "un" },
+  { id: 519, obraId: 304, descricao: "Cabo Solar 6mm", quantidade: 400, unidade: "m" },
+  { id: 520, obraId: 304, descricao: "Estrutura Biposte de Solo em Aço Galvanizado", quantidade: 20, unidade: "kit" },
+  { id: 521, obraId: 304, descricao: "String Box CC 2 Entradas / 2 Saídas", quantidade: 2, unidade: "un" },
+  { id: 522, obraId: 304, descricao: "Eletroduto Corrugado Reforçado 2\"", quantidade: 150, unidade: "m" },
+
+  // Obra 305 - Hospital São Lucas (96 painéis)
+  { id: 523, obraId: 305, descricao: "Painel Solar 550W Alta Eficiência", quantidade: 96, unidade: "un" },
+  { id: 524, obraId: 305, descricao: "Inversor Híbrido 25kW com Suporte a Nobreak", quantidade: 2, unidade: "un" },
+  { id: 525, obraId: 305, descricao: "Cabo Solar 6mm Retardante a Chamas", quantidade: 500, unidade: "m" },
+  { id: 526, obraId: 305, descricao: "Estrutura Especial Fixação Alumínio Anodizado", quantidade: 24, unidade: "kit" },
+  { id: 527, obraId: 305, descricao: "Sistema de Aterramento e Malha SPDA Hospitalar", quantidade: 1, unidade: "un" },
+  { id: 528, obraId: 305, descricao: "Chave de Transferência Automática ATS", quantidade: 2, unidade: "un" },
+
+  // Obra 306 - Condomínio Solar das Flores (36 painéis)
+  { id: 529, obraId: 306, descricao: "Módulo Fotovoltaico 550W", quantidade: 36, unidade: "un" },
+  { id: 530, obraId: 306, descricao: "Inversor Trifásico 15kW", quantidade: 1, unidade: "un" },
+  { id: 531, obraId: 306, descricao: "Cabo Solar 6mm", quantidade: 150, unidade: "m" },
+  { id: 532, obraId: 306, descricao: "Estrutura Especial para Telhas Shingle", quantidade: 9, unidade: "kit" },
+  { id: 533, obraId: 306, descricao: "Caixa de Proteção CA/CC Integrada", quantidade: 1, unidade: "un" },
+
+  // Obra 307 - Posto Alvorada Combustíveis (50 painéis)
+  { id: 534, obraId: 307, descricao: "Painel Solar 550W com Certificação Anti-chama", quantidade: 50, unidade: "un" },
+  { id: 535, obraId: 307, descricao: "Inversor IP66 para Área Classificada", quantidade: 1, unidade: "un" },
+  { id: 536, obraId: 307, descricao: "Cabo Solar Blindado 6mm", quantidade: 250, unidade: "m" },
+  { id: 537, obraId: 307, descricao: "Estrutura em Aço Inox 316", quantidade: 14, unidade: "kit" },
+  { id: 538, obraId: 307, descricao: "Eletrodutos Galvanizados à Prova de Explosão", quantidade: 80, unidade: "m" },
+
+  // Obra 308 - Manutenção Preventiva — Granja Silva (30 painéis)
+  { id: 539, obraId: 308, descricao: "Conector MC4 Original Stäubli", quantidade: 20, unidade: "par" },
+  { id: 540, obraId: 308, descricao: "Diodo de Bypass 15A 1000V", quantidade: 4, unidade: "un" },
+  { id: 541, obraId: 308, descricao: "Fusível Fotovoltaico gPV 1000V 15A", quantidade: 2, unidade: "un" },
+  { id: 542, obraId: 308, descricao: "Solução Desengordurante Biodegradável para Módulos", quantidade: 50, unidade: "l" },
+];
+
+export function obterMateriaisArmazenados(): Material[] {
+  if (typeof window === "undefined") return MOCK_MATERIAIS_FIXTURE;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_MAT);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length >= MOCK_MATERIAIS_FIXTURE.length) {
+        return parsed;
+      }
+    }
+  } catch { }
+  sessionStorage.setItem(STORAGE_KEY_MAT, JSON.stringify(MOCK_MATERIAIS_FIXTURE));
+  return MOCK_MATERIAIS_FIXTURE;
+}
+
+export function adicionarMaterialArmazenado(obraId: number, payload: Omit<Material, "id" | "obraId">): Material {
+  const materiais = obterMateriaisArmazenados();
+  const novoId = materiais.reduce((acc, curr) => Math.max(acc, curr.id), 500) + 1;
+  const novo: Material = { id: novoId, obraId, ...payload };
+  const atualizados = [...materiais, novo];
+  sessionStorage.setItem(STORAGE_KEY_MAT, JSON.stringify(atualizados));
+  return novo;
+}
+
+// ─── RELATÓRIOS (RF-14/15/20) ───
+export const MOCK_RELATORIOS_FIXTURE: Record<number, RelatorioCusto> = {
+  301: {
+    obraId: 301,
+    custoTotal: 38600.0,
+    receita: 58500.0,
+    lucro: 19900.0,
+    itens: [
+      { descricao: "Mão de Obra de Instalação e Montagem", valor: 10500.0 },
+      { descricao: "45 Módulos Fotovoltaicos 550W Monocristalinos", valor: 18200.0 },
+      { descricao: "Inversor String Trifásico 25kW", valor: 5800.0 },
+      { descricao: "Estruturas de Fixação Telhado Trapezoidal", valor: 2100.0 },
+      { descricao: "Cabeamento Solar 6mm e String Box CC/CA", valor: 1200.0 },
+      { descricao: "Homologação, Projeto Elétrico e ART", valor: 800.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W Monocristalino", unidade: "un", quantidadeComprada: 45, quantidadeUtilizada: 45 },
+      { tipo: "Inversor String 25kW Trifásico", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 1 },
+      { tipo: "Cabo Solar 6mm Preto/Vermelho", unidade: "m", quantidadeComprada: 400, quantidadeUtilizada: 367 },
+      { tipo: "Estrutura Fixação Telhado Trapezoidal", unidade: "kit", quantidadeComprada: 12, quantidadeUtilizada: 12 },
+      { tipo: "String Box CC 1000V com DPS Integrado", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 1 },
+    ],
+  },
+  302: {
+    obraId: 302,
+    custoTotal: 102400.0,
+    receita: 156000.0,
+    lucro: 53600.0,
+    itens: [
+      { descricao: "Mão de Obra Especializada Industrial", valor: 26000.0 },
+      { descricao: "120 Módulos Fotovoltaicos 550W Bifaciais", valor: 48000.0 },
+      { descricao: "Inversor Central Trifásico 75kW", valor: 15400.0 },
+      { descricao: "Estruturas de Fixação Reforçadas em Alumínio", valor: 6200.0 },
+      { descricao: "Subestação, Painel de Média Tensão e Proteção", valor: 4500.0 },
+      { descricao: "Cabeamento Solar 10mm e Conectores MC4", valor: 2300.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Módulo Fotovoltaico 550W Bifacial", unidade: "un", quantidadeComprada: 120, quantidadeUtilizada: 0 },
+      { tipo: "Inversor Central Trifásico 75kW", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 0 },
+      { tipo: "Cabo Solar 10mm Dupla Isolação", unidade: "m", quantidadeComprada: 600, quantidadeUtilizada: 0 },
+      { tipo: "Estrutura Metálica Reforçada Alumínio", unidade: "kit", quantidadeComprada: 30, quantidadeUtilizada: 0 },
+      { tipo: "Conectores MC4 Industriais Blindados", unidade: "par", quantidadeComprada: 32, quantidadeUtilizada: 0 },
+    ],
+  },
+  303: {
+    obraId: 303,
+    custoTotal: 21300.0,
+    receita: 32000.0,
+    lucro: 10700.0,
+    itens: [
+      { descricao: "Mão de Obra Residencial (Telhado Inclinado)", valor: 6000.0 },
+      { descricao: "24 Módulos Fotovoltaicos 550W", valor: 9800.0 },
+      { descricao: "6 Microinversores 2000W", valor: 3600.0 },
+      { descricao: "Estrutura Telha Cerâmica e Ganchos Inox", valor: 1100.0 },
+      { descricao: "Quadro de Distribuição CA e Disjuntores", valor: 800.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W Monocristalino", unidade: "un", quantidadeComprada: 24, quantidadeUtilizada: 24 },
+      { tipo: "Microinversor 2000W 4 MPPT", unidade: "un", quantidadeComprada: 6, quantidadeUtilizada: 6 },
+      { tipo: "Cabo Tronco e Cabo Solar 6mm", unidade: "m", quantidadeComprada: 80, quantidadeUtilizada: 73 },
+      { tipo: "Estrutura Telha Cerâmica com Gancho Inox", unidade: "kit", quantidadeComprada: 6, quantidadeUtilizada: 6 },
+    ],
+  },
+  304: {
+    obraId: 304,
+    custoTotal: 68900.0,
+    receita: 104000.0,
+    lucro: 35100.0,
+    itens: [
+      { descricao: "Mão de Obra Montagem Usina em Solo", valor: 18000.0 },
+      { descricao: "80 Módulos Fotovoltaicos 550W Tier 1", valor: 32400.0 },
+      { descricao: "2 Inversores Trifásicos 20kW", valor: 11200.0 },
+      { descricao: "Estrutura de Fixação Biposte em Solo Galvanizado", valor: 4800.0 },
+      { descricao: "Valas, Eletrodutos Enterrados e Cabos de Cobre", valor: 2500.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Módulo Fotovoltaico 550W Tier 1", unidade: "un", quantidadeComprada: 80, quantidadeUtilizada: 0 },
+      { tipo: "Inversor Trifásico 20kW", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 0 },
+      { tipo: "Cabo Solar 6mm", unidade: "m", quantidadeComprada: 400, quantidadeUtilizada: 0 },
+      { tipo: "Estrutura Biposte de Solo em Aço Galvanizado", unidade: "kit", quantidadeComprada: 20, quantidadeUtilizada: 0 },
+      { tipo: "Eletroduto Corrugado Reforçado 2\"", unidade: "m", quantidadeComprada: 150, quantidadeUtilizada: 0 },
+    ],
+  },
+  305: {
+    obraId: 305,
+    custoTotal: 83500.0,
+    receita: 128000.0,
+    lucro: 44500.0,
+    itens: [
+      { descricao: "Mão de Obra Especializada com Escala Noturna", valor: 22500.0 },
+      { descricao: "96 Módulos Fotovoltaicos 550W Alta Eficiência", valor: 39000.0 },
+      { descricao: "Inversores Híbridos com Integração a Gerador", valor: 14200.0 },
+      { descricao: "Sistema de Aterramento e Malha SPDA Hospitalar", valor: 4800.0 },
+      { descricao: "String Boxes com Chave Seccionadora Motorizada", valor: 3000.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W Alta Eficiência", unidade: "un", quantidadeComprada: 96, quantidadeUtilizada: 58 },
+      { tipo: "Inversor Híbrido 25kW com Suporte a Nobreak", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 1 },
+      { tipo: "Cabo Solar 6mm Retardante a Chamas", unidade: "m", quantidadeComprada: 500, quantidadeUtilizada: 280 },
+      { tipo: "Estrutura Especial Fixação Alumínio Anodizado", unidade: "kit", quantidadeComprada: 24, quantidadeUtilizada: 14 },
+      { tipo: "Chave de Transferência Automática ATS", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 1 },
+    ],
+  },
+  306: {
+    obraId: 306,
+    custoTotal: 31800.0,
+    receita: 48000.0,
+    lucro: 16200.0,
+    itens: [
+      { descricao: "Mão de Obra com Equipamento de Linha de Vida (NR-35)", valor: 8500.0 },
+      { descricao: "36 Módulos Fotovoltaicos 550W", valor: 14800.0 },
+      { descricao: "Inversor Trifásico 15kW", valor: 5200.0 },
+      { descricao: "Estruturas de Fixação para Telhas Shingle", valor: 1900.0 },
+      { descricao: "Cabeamento Solar e Quadro Geral", valor: 1400.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Módulo Fotovoltaico 550W", unidade: "un", quantidadeComprada: 36, quantidadeUtilizada: 21 },
+      { tipo: "Inversor Trifásico 15kW", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 0 },
+      { tipo: "Cabo Solar 6mm", unidade: "m", quantidadeComprada: 150, quantidadeUtilizada: 88 },
+      { tipo: "Estrutura Especial para Telhas Shingle", unidade: "kit", quantidadeComprada: 9, quantidadeUtilizada: 5 },
+    ],
+  },
+  307: {
+    obraId: 307,
+    custoTotal: 44700.0,
+    receita: 69000.0,
+    lucro: 24300.0,
+    itens: [
+      { descricao: "Mão de Obra com Certificações NR-10, NR-20 e NR-35", valor: 12000.0 },
+      { descricao: "50 Módulos Fotovoltaicos Anti-deflagrantes 550W", valor: 21000.0 },
+      { descricao: "Inversor String Grau de Proteção IP66", valor: 7200.0 },
+      { descricao: "Eletrodutos Galvanizados à Prova de Explosão", valor: 2900.0 },
+      { descricao: "Laudo de Conformidade de Área Classificada e ART", valor: 1600.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W com Certificação Anti-chama", unidade: "un", quantidadeComprada: 50, quantidadeUtilizada: 50 },
+      { tipo: "Inversor IP66 para Área Classificada", unidade: "un", quantidadeComprada: 1, quantidadeUtilizada: 1 },
+      { tipo: "Cabo Solar Blindado 6mm", unidade: "m", quantidadeComprada: 250, quantidadeUtilizada: 231 },
+      { tipo: "Estrutura em Aço Inox 316", unidade: "kit", quantidadeComprada: 14, quantidadeUtilizada: 14 },
+      { tipo: "Eletrodutos Galvanizados à Prova de Explosão", unidade: "m", quantidadeComprada: 80, quantidadeUtilizada: 80 },
+    ],
+  },
+  308: {
+    obraId: 308,
+    custoTotal: 9400.0,
+    receita: 18000.0,
+    lucro: 8600.0,
+    itens: [
+      { descricao: "Equipe Técnica Especializada em O&M Solar", valor: 4200.0 },
+      { descricao: "Substituição de Conectores MC4 e Diodos de Bypass", valor: 1800.0 },
+      { descricao: "Limpeza Química e Descontaminação dos Módulos", valor: 1900.0 },
+      { descricao: "Inspeção Termográfica com Drone e Relatório Técnico", valor: 1500.0 },
+    ],
+    balancoMateriais: [
+      { tipo: "Conector MC4 Original Stäubli", unidade: "par", quantidadeComprada: 20, quantidadeUtilizada: 14 },
+      { tipo: "Diodo de Bypass 15A 1000V", unidade: "un", quantidadeComprada: 4, quantidadeUtilizada: 3 },
+      { tipo: "Fusível Fotovoltaico gPV 1000V 15A", unidade: "un", quantidadeComprada: 2, quantidadeUtilizada: 2 },
+      { tipo: "Solução Desengordurante Biodegradável", unidade: "l", quantidadeComprada: 50, quantidadeUtilizada: 42 },
+    ],
+  },
+};
+
+
+/**
+ * Obtém o relatório de custos da obra ou calcula dinamicamente se for uma nova obra.
+ */
+export function obterRelatorioArmazenado(obraId: number): RelatorioCusto | null {
+  if (MOCK_RELATORIOS_FIXTURE[obraId]) {
+    return MOCK_RELATORIOS_FIXTURE[obraId];
+  }
+
+  // Se for uma obra recém-cadastrada, gera estimativa baseada no porte de painéis
+  const obras = obterObrasArmazenadas();
+  const obra = obras.find((o) => Number(o.id) === obraId);
+  if (obra) {
+    const paineis = obra.quantidadePaineis || 30;
+    const receita = paineis * 1300;
+    const custoTotal = paineis * 850;
+    const lucro = receita - custoTotal;
+
+    const relatorioGerado: RelatorioCusto = {
+      obraId,
+      receita,
+      custoTotal,
+      lucro,
+      itens: [
+        { descricao: `Módulos Fotovoltaicos (${paineis} un)`, valor: Math.round(custoTotal * 0.46) },
+        { descricao: "Mão de Obra de Instalação e Homologação", valor: Math.round(custoTotal * 0.28) },
+        { descricao: "Inversor String e String Box CA/CC", valor: Math.round(custoTotal * 0.18) },
+        { descricao: "Estruturas de Fixação e Cabeamento Solar", valor: Math.round(custoTotal * 0.08) },
+      ],
+    };
+
+    MOCK_RELATORIOS_FIXTURE[obraId] = relatorioGerado;
+    return relatorioGerado;
+  }
+
+  return null;
+}
+
+// ─── HISTÓRICO E COMENTÁRIOS (RF-11/12) ───
+export interface HistoricoObra {
+  id: number;
+  obraId: number;
+  statusAnterior: string;
+  statusNovo: string;
+  dataAlteracao: string;
+  observacao?: string;
+  usuario: { id: number; nome: string };
+}
+
+export interface ComentarioObra {
+  id: number;
+  obraId: number;
+  descricao: string;
+  dataRegistro: string;
+  usuario: { id: number; nome: string };
+}
+
+const STORAGE_KEY_HIST = "mock_historico";
+const STORAGE_KEY_COM = "mock_comentarios";
+
+export const MOCK_HISTORICO_FIXTURE: HistoricoObra[] = [
+  // Obra 301
+  {
+    id: 9001,
+    obraId: 301,
+    statusAnterior: "Criado",
+    statusNovo: "MaterialComprado",
+    dataAlteracao: new Date(Date.now() - 4 * 86400000).toISOString(),
+    observacao: "Pedido de compra emitido e aprovado pelo financeiro.",
+    usuario: { id: 1, nome: "Carlos Administrador" },
+  },
+  // Obra 302
+  {
+    id: 9002,
+    obraId: 302,
+    statusAnterior: "Criado",
+    statusNovo: "MaterialComprado",
+    dataAlteracao: new Date(Date.now() - 3 * 86400000).toISOString(),
+    observacao: "Módulos bifaciais de 550W encomendados junto à fabricante.",
+    usuario: { id: 12, nome: "Ana Souza" },
+  },
+  // Obra 303
+  {
+    id: 9003,
+    obraId: 303,
+    statusAnterior: "MaterialComprado",
+    statusNovo: "NoDeposito",
+    dataAlteracao: new Date(Date.now() - 2 * 86400000).toISOString(),
+    observacao: "Microinversores e módulos recebidos no almoxarifado central.",
+    usuario: { id: 1, nome: "Carlos Administrador" },
+  },
+  // Obra 304
+  {
+    id: 9004,
+    obraId: 304,
+    statusAnterior: "NoDeposito",
+    statusNovo: "Separado",
+    dataAlteracao: new Date(Date.now() - 86400000).toISOString(),
+    observacao: "Kit de solo e estruturas metálicas separados no Pallet #04.",
+    usuario: { id: 12, nome: "Ana Souza" },
+  },
+  // Obra 305
+  {
+    id: 9005,
+    obraId: 305,
+    statusAnterior: "Separado",
+    statusNovo: "EmAndamento",
+    dataAlteracao: new Date(Date.now() - 12 * 3600000).toISOString(),
+    observacao: "Equipe 02 iniciou a fixação dos suportes na cobertura do hospital.",
+    usuario: { id: 15, nome: "Marcos Instalador" },
+  },
+  // Obra 306
+  {
+    id: 9006,
+    obraId: 306,
+    statusAnterior: "Separado",
+    statusNovo: "EmAndamento",
+    dataAlteracao: new Date(Date.now() - 6 * 3600000).toISOString(),
+    observacao: "Instalação da linha de vida e cabeamento CA em execução.",
+    usuario: { id: 15, nome: "Marcos Instalador" },
+  },
+  // Obra 307
+  {
+    id: 9007,
+    obraId: 307,
+    statusAnterior: "EmAndamento",
+    statusNovo: "Concluido",
+    dataAlteracao: new Date(Date.now() - 14 * 86400000).toISOString(),
+    observacao: "Comissionamento elétrico aprovado e homologação concluída com sucesso.",
+    usuario: { id: 1, nome: "Carlos Administrador" },
+  },
+  // Obra 308
+  {
+    id: 9008,
+    obraId: 308,
+    statusAnterior: "Concluido",
+    statusNovo: "Assistencia",
+    dataAlteracao: new Date(Date.now() - 24 * 3600000).toISOString(),
+    observacao: "Abertura de chamado de assistência para revisão pós-tempestade.",
+    usuario: { id: 12, nome: "Ana Souza" },
+  },
+];
+
+export const MOCK_COMENTARIOS_FIXTURE: ComentarioObra[] = [
+  // Obra 301
+  {
+    id: 701,
+    obraId: 301,
+    descricao: "Cliente confirmou acesso ao telhado para descarregamento a partir de terça.",
+    dataRegistro: new Date(Date.now() - 3600000 * 5).toISOString(),
+    usuario: { id: 12, nome: "Ana Souza" },
+  },
+  // Obra 302
+  {
+    id: 702,
+    obraId: 302,
+    descricao: "Engenharia da metalúrgica solicitou cópia do plano de içamento de cargas.",
+    dataRegistro: new Date(Date.now() - 3600000 * 8).toISOString(),
+    usuario: { id: 1, nome: "Carlos Administrador" },
+  },
+  // Obra 303
+  {
+    id: 703,
+    obraId: 303,
+    descricao: "Materiais inspecionados sem avarias. Aguardando liberação da equipe.",
+    dataRegistro: new Date(Date.now() - 3600000 * 12).toISOString(),
+    usuario: { id: 15, nome: "Marcos Instalador" },
+  },
+  // Obra 304
+  {
+    id: 704,
+    obraId: 304,
+    descricao: "Trator da fazenda foi disponibilizado para abertura das valas dos cabos.",
+    dataRegistro: new Date(Date.now() - 3600000 * 18).toISOString(),
+    usuario: { id: 12, nome: "Ana Souza" },
+  },
+  // Obra 305
+  {
+    id: 705,
+    obraId: 305,
+    descricao: "Trabalhos elétricos pesados concentrados no turno noturno para evitar ruído.",
+    dataRegistro: new Date(Date.now() - 3600000 * 3).toISOString(),
+    usuario: { id: 15, nome: "Marcos Instalador" },
+  },
+  // Obra 306
+  {
+    id: 706,
+    obraId: 306,
+    descricao: "Síndico do condomínio liberou vaga para estacionamento do furgão de ferramentas.",
+    dataRegistro: new Date(Date.now() - 3600000 * 2).toISOString(),
+    usuario: { id: 12, nome: "Ana Souza" },
+  },
+  // Obra 307
+  {
+    id: 707,
+    obraId: 307,
+    descricao: "Vistoria da concessionária finalizada com parecer de acesso 100% deferido.",
+    dataRegistro: new Date(Date.now() - 86400000 * 10).toISOString(),
+    usuario: { id: 1, nome: "Carlos Administrador" },
+  },
+  // Obra 308
+  {
+    id: 708,
+    obraId: 308,
+    descricao: "Granja solicitou lavagem especializada dos módulos para recuperar rendimento.",
+    dataRegistro: new Date(Date.now() - 3600000 * 20).toISOString(),
+    usuario: { id: 12, nome: "Ana Souza" },
+  },
+];
+
+export function obterHistoricoArmazenado(): HistoricoObra[] {
+  if (typeof window === "undefined") return MOCK_HISTORICO_FIXTURE;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_HIST);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length >= MOCK_HISTORICO_FIXTURE.length) {
+        return parsed;
+      }
+    }
+  } catch { }
+  sessionStorage.setItem(STORAGE_KEY_HIST, JSON.stringify(MOCK_HISTORICO_FIXTURE));
+  return MOCK_HISTORICO_FIXTURE;
+}
+
+export function adicionarHistoricoArmazenado(obraId: number, statusAnterior: string, statusNovo: string, observacao?: string, usuario?: { id: number; nome: string }): HistoricoObra {
+  const historico = obterHistoricoArmazenado();
+  const novoId = historico.reduce((acc, curr) => Math.max(acc, curr.id), 9000) + 1;
+  const novo: HistoricoObra = {
+    id: novoId,
+    obraId,
+    statusAnterior,
+    statusNovo,
+    dataAlteracao: new Date().toISOString(),
+    observacao,
+    usuario: usuario || { id: 0, nome: "Sistema" },
+  };
+  sessionStorage.setItem(STORAGE_KEY_HIST, JSON.stringify([novo, ...historico]));
+  return novo;
+}
+
+export function obterComentariosArmazenados(): ComentarioObra[] {
+  if (typeof window === "undefined") return MOCK_COMENTARIOS_FIXTURE;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_COM);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length >= MOCK_COMENTARIOS_FIXTURE.length) {
+        return parsed;
+      }
+    }
+  } catch { }
+  sessionStorage.setItem(STORAGE_KEY_COM, JSON.stringify(MOCK_COMENTARIOS_FIXTURE));
+  return MOCK_COMENTARIOS_FIXTURE;
+}
+
+export function adicionarComentarioArmazenado(obraId: number, descricao: string, usuario: { id: number; nome: string }): ComentarioObra {
+  const comentarios = obterComentariosArmazenados();
+  const novoId = comentarios.reduce((acc, curr) => Math.max(acc, curr.id), 700) + 1;
+  const novo: ComentarioObra = {
+    id: novoId,
+    obraId,
+    descricao,
+    dataRegistro: new Date().toISOString(),
+    usuario,
+  };
+  sessionStorage.setItem(STORAGE_KEY_COM, JSON.stringify([novo, ...comentarios]));
+  return novo;
 }
 
 /** Fixture de Homologação 100% sincronizada com 02_seed.sql e QA (com Obra 308 Reprovada para testes) */

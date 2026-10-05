@@ -14,6 +14,11 @@ export interface ObraCard {
   categoria: string;
   quantidadePaineis: number;
   dataFimEstimada: string;
+  nome?: string;
+  cidade?: string;
+  uf?: string;
+  potenciaKwp?: number;
+  progressoGeral?: number;
 }
 
 export interface ListaObras {
