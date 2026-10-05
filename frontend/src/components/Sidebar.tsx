@@ -27,7 +27,7 @@ export function SidebarTrigger({ className }: { className?: string }) {
       aria-label="Abrir menu lateral"
       aria-expanded={isMobileOpen}
       className={cn(
-        "p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer",
+        "shrink-0 p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer",
         className
       )}
     >

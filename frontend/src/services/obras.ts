@@ -1,5 +1,12 @@
 import { apiFetch } from "./api";
-import type { CriarObraPayload, ListaObras, MoverStatusResposta, ObraCard, ObraCriadaResposta } from "@/types";
+import type {
+  CriarObraPayload,
+  ListaObras,
+  MoverStatusResposta,
+  ObraCard,
+  ObraCriadaResposta,
+  DadosHomologacao,
+} from "@/types";
 import type { StatusObra } from "@/constants/kanbanStatus";
 
 export type { CriarObraPayload };
@@ -215,4 +222,17 @@ export async function adicionarComentario(obraId: number, descricao: string): Pr
     method: "POST",
     body: JSON.stringify({ descricao }),
   });
+}
+
+/** GET /api/obras/{id}/homologacao — Contrato Rota #17 */
+export async function obterHomologacaoObra(obraId: number): Promise<DadosHomologacao> {
+  try {
+    return await apiFetch<DadosHomologacao>(`/obras/${obraId}/homologacao`);
+  } catch {
+    return {
+      obraId,
+      parecerAcesso: "Pendente",
+    };
+  }
+}
 }

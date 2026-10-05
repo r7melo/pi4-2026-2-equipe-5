@@ -2,18 +2,29 @@ import { useEffect, useRef } from "react";
 import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
 import { gantt } from "dhtmlx-gantt";
 import type { NivelZoom } from "./GanttToolbar";
+import {
+  formatarDiasUteis,
+  proximoDiaUtil,
+  adicionarDiasUteis,
+  formatarDataISO,
+  calcularDiasUteisEntre,
+  normalizarDataMeioDiaUTC,
+} from "@/lib/formatters";
 
-interface GanttTask {
+export interface GanttTask {
   id: number;
   text: string;
   start_date: string;
   end_date: string;
+  duration?: number;
   equipeId: number;
-  /** Dados extras para o tooltip */
   nomeEquipe?: string;
   nomeCliente?: string;
   paineis?: number;
   duracaoDias?: number;
+  statusObra?: string;
+  materialPronto?: boolean;
+  homologacaoOk?: boolean;
 }
 
 interface GanttWrapperProps {
@@ -21,27 +32,57 @@ interface GanttWrapperProps {
   canDrag: boolean;
   nivelZoom: NivelZoom;
   focarData?: Date | null;
-  onReorder: (id: number, novaData: string, novaDataFim: string) => void;
+  mostrarGrade?: boolean;
+  onReorder?: (id: number, novaData: string, novaDataFim: string) => void;
+  onSelectTask?: (id: number) => void;
 }
 
-export function GanttDhtmlxWrapper({ tarefas, canDrag, nivelZoom, focarData, onReorder }: GanttWrapperProps) {
+export function GanttDhtmlxWrapper({
+  tarefas,
+  canDrag,
+  nivelZoom,
+  focarData,
+  mostrarGrade = true,
+  onReorder,
+  onSelectTask,
+}: GanttWrapperProps) {
   const container = useRef<HTMLDivElement>(null);
   const onReorderRef = useRef(onReorder);
+  const onSelectTaskRef = useRef(onSelectTask);
+  const canDragRef = useRef(canDrag);
+  const mostrarGradeRef = useRef(mostrarGrade);
   const inicializado = useRef(false);
+  const dragEmAndamentoRef = useRef(false);
 
-  useEffect(() => { onReorderRef.current = onReorder; }, [onReorder]);
+  useEffect(() => {
+    onReorderRef.current = onReorder;
+  }, [onReorder]);
 
-  // Inicialização do Gantt (uma única vez)
+  useEffect(() => {
+    onSelectTaskRef.current = onSelectTask;
+  }, [onSelectTask]);
+
+  useEffect(() => {
+    canDragRef.current = canDrag;
+    if (inicializado.current) {
+      gantt.config.drag_move = canDrag;
+      gantt.config.drag_resize = canDrag;
+    }
+  }, [canDrag]);
+
+  useEffect(() => {
+    mostrarGradeRef.current = mostrarGrade;
+  }, [mostrarGrade]);
+
   useEffect(() => {
     if (inicializado.current) return;
 
-    // Plugins
     gantt.plugins({ tooltip: true });
-
-    // Locale
     gantt.i18n.setLocale("pt_br");
 
-    // Configuração geral
+    gantt.config.tooltip_hide_timeout = 30;
+    gantt.config.tooltip_timeout = 150;
+
     gantt.config.details_on_dblclick = false;
     gantt.config.show_links = false;
     gantt.config.show_progress = false;
@@ -49,22 +90,22 @@ export function GanttDhtmlxWrapper({ tarefas, canDrag, nivelZoom, focarData, onR
     gantt.config.row_height = 40;
     gantt.config.bar_height = 28;
 
-    // Grid columns
+    gantt.config.show_grid = mostrarGradeRef.current;
     gantt.config.columns = [
       { name: "text", label: "Obra", width: 220, tree: true },
       { name: "duration", label: "Dias", align: "center", width: 50 },
     ];
 
-    // Weekends como não-trabalho (RF-09)
+    // Weekends como não-trabalho e ajuste automático no drop (RF-08, RF-09)
     gantt.config.work_time = true;
-    gantt.setWorkTime({ day: 0, hours: false }); // Domingo
-    gantt.setWorkTime({ day: 6, hours: false }); // Sábado
+    gantt.config.correct_work_time = true;
+    gantt.setWorkTime({ day: 0, hours: false });
+    gantt.setWorkTime({ day: 6, hours: false });
 
-    // Template: weekends grayed-out e destaque de "Hoje"
-    gantt.templates.timeline_cell_class = (_item: any, date: Date) => {
+    gantt.templates.timeline_cell_class = (_item: unknown, date: Date) => {
       const classes = [];
       if (date.getDay() === 0 || date.getDay() === 6) classes.push("weekend");
-      
+
       const hoje = new Date();
       if (
         date.getDate() === hoje.getDate() &&
@@ -75,73 +116,199 @@ export function GanttDhtmlxWrapper({ tarefas, canDrag, nivelZoom, focarData, onR
       }
       return classes.join(" ");
     };
+
     gantt.templates.scale_cell_class = (date: Date) => {
       if (date.getDay() === 0 || date.getDay() === 6) return "weekend";
       return "";
     };
 
-    // Template: cor da barra por equipeId
-    gantt.templates.task_class = (_start: Date, _end: Date, task: any) => {
-      const indice = (task.equipeId % 8) || 8;
+    gantt.templates.task_class = (_start: Date, _end: Date, rawTask: unknown) => {
+      const task = rawTask as GanttTask;
+      const indice = (Number(task.equipeId) % 8) || 8;
       return `gantt-color-${indice}`;
     };
 
-    // Tooltip rico
-    gantt.templates.tooltip_text = (_start: Date, _end: Date, task: any) => {
-      const dataIni = task.start_date instanceof Date
-        ? task.start_date.toLocaleDateString("pt-BR")
-        : String(task.start_date);
-      const dataFim = task.end_date instanceof Date
-        ? task.end_date.toLocaleDateString("pt-BR")
-        : String(task.end_date);
-
-      return `
-        <div class="tooltip-title">${task.text || ""}</div>
-        <div class="tooltip-row"><span class="tooltip-label">Equipe:</span> <span class="tooltip-value">${task.nomeEquipe || "—"}</span></div>
-        <div class="tooltip-row"><span class="tooltip-label">Cliente:</span> <span class="tooltip-value">${task.nomeCliente || "—"}</span></div>
-        <div class="tooltip-row"><span class="tooltip-label">Painéis:</span> <span class="tooltip-value">${task.paineis !== undefined ? task.paineis + " un." : "—"}</span></div>
-        <div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>
-        <div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${task.duracaoDias ?? task.duration ?? "—"} dias úteis</span></div>
-      `;
+    gantt.templates.task_text = (_start: Date, _end: Date, rawTask: unknown) => {
+      const task = rawTask as GanttTask;
+      const matBadge = task.materialPronto
+        ? `<span class="gantt-bar-badge" title="Materiais prontos p/ obra">📦</span>`
+        : "";
+      const homBadge = task.homologacaoOk
+        ? `<span class="gantt-bar-badge" title="Homologação concluída na concessionária">⚡</span>`
+        : "";
+      const rotuloBarra = task.nomeCliente || task.text || "";
+      return `<span>${rotuloBarra}</span> ${matBadge} ${homBadge}`;
     };
 
-    // Drag & Drop
-    gantt.config.drag_move = canDrag;
-    gantt.config.drag_resize = false;
+    // Tooltip dinâmico: oculta linhas de materiais e homologação se os dados forem undefined (ex: tela pública)
+    gantt.templates.tooltip_text = (start: Date, end: Date, rawTask: unknown) => {
+      const task = rawTask as GanttTask;
+      const dataIni = start.toLocaleDateString("pt-BR");
+      const dataFim = end.toLocaleDateString("pt-BR");
+      const matRotulo =
+        task.statusObra === "Assistencia"
+          ? "Peças p/ Manutenção 🔧"
+          : task.materialPronto
+          ? "Separado p/ Obra 📦"
+          : "Em trânsito / depósito";
+
+      const linhas = [
+        `<div class="tooltip-title">${task.text || ""}</div>`,
+        `<div class="tooltip-row"><span class="tooltip-label">Equipe:</span> <span class="tooltip-value">${task.nomeEquipe || "—"}</span></div>`,
+        `<div class="tooltip-row"><span class="tooltip-label">Cliente:</span> <span class="tooltip-value">${task.nomeCliente || "—"}</span></div>`,
+      ];
+
+      if (task.paineis !== undefined) {
+        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Painéis:</span> <span class="tooltip-value">${task.paineis} un.</span></div>`);
+      }
+
+      linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`);
+
+      if (task.duracaoDias !== undefined || task.duration !== undefined) {
+        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(task.duracaoDias || task.duration)}</span></div>`);
+      }
+
+      if (task.materialPronto !== undefined || task.statusObra !== undefined) {
+        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Materiais:</span> <span class="tooltip-value">${matRotulo}</span></div>`);
+      }
+
+      if (task.homologacaoOk !== undefined) {
+        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Homologação:</span> <span class="tooltip-value">${task.homologacaoOk ? "Parecer Aprovado ⚡" : "Em análise / pendente"}</span></div>`);
+      }
+
+      return linhas.join("");
+    };
+
+    gantt.config.drag_move = canDragRef.current;
+    gantt.config.drag_resize = canDragRef.current;
     gantt.config.drag_progress = false;
     gantt.config.drag_links = false;
 
     gantt.init(container.current!);
     inicializado.current = true;
 
-    const eventId = gantt.attachEvent("onAfterTaskDrag", (id) => {
-      const task = gantt.getTask(id);
-      const formatter = gantt.date.date_to_str("%Y-%m-%d");
-      onReorderRef.current(Number(id), formatter(task.start_date), formatter(task.end_date));
+    const esconderTooltipDhtmlx = () => {
+      try {
+        (gantt as unknown as { ext?: { tooltips?: { tooltip?: { hide?: () => void } } } })
+          .ext?.tooltips?.tooltip?.hide?.();
+      } catch {
+        // Silencia exceções
+      }
+      document.querySelectorAll(".gantt_tooltip").forEach((el) => {
+        (el as HTMLElement).style.display = "none";
+      });
+    };
+
+    const containerEl = container.current;
+    containerEl?.addEventListener("mouseleave", esconderTooltipDhtmlx);
+
+    const mouseMoveEventId = gantt.attachEvent("onMouseMove", (id) => {
+      if (!id) {
+        esconderTooltipDhtmlx();
+      }
+      return true;
+    });
+
+    const handleDocumentMouseMove = (e: MouseEvent) => {
+      const tooltipEl = document.querySelector(".gantt_tooltip") as HTMLElement | null;
+      if (!tooltipEl || tooltipEl.style.display === "none") return;
+
+      const target = e.target as Element | null;
+      const estaSobreBarra = Boolean(target?.closest?.(".gantt_task_line"));
+      if (!estaSobreBarra) {
+        esconderTooltipDhtmlx();
+      }
+    };
+
+    const handleWindowMouseOut = (e: MouseEvent) => {
+      if (!e.relatedTarget) {
+        esconderTooltipDhtmlx();
+      }
+    };
+
+    document.addEventListener("mousemove", handleDocumentMouseMove, { passive: true });
+    window.addEventListener("mouseout", handleWindowMouseOut, { passive: true });
+
+    const dragEventId = gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
+      dragEmAndamentoRef.current = true;
+      setTimeout(() => {
+        dragEmAndamentoRef.current = false;
+      }, 150);
+
+      const task = gantt.getTask(id) as GanttTask & {
+        start_date: Date;
+        end_date: Date;
+        duracaoDias?: number;
+        duration?: number;
+      };
+
+      if (mode === "resize") {
+        // O início da tarefa é preservado a partir do start_date da própria tarefa no Gantt
+        const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
+        let dataFimObj = normalizarDataMeioDiaUTC(task.end_date);
+
+        // Trava de segurança: garante no mínimo 1 dia útil
+        const diasCalculados = calcularDiasUteisEntre(dataInicioObj, dataFimObj);
+        if (diasCalculados < 1 || dataFimObj <= dataInicioObj) {
+          dataFimObj = adicionarDiasUteis(dataInicioObj, 1);
+        }
+
+        const novaDataInicioStr = formatarDataISO(dataInicioObj);
+        const novaDataFimStr = formatarDataISO(dataFimObj);
+
+        onReorderRef.current?.(Number(id), novaDataInicioStr, novaDataFimStr);
+      } else {
+        // Movimento completo da barra: respeita a duração corrente (task.duration)
+        const duracao = task.duration || task.duracaoDias || 1;
+        const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
+        const dataFimObj = adicionarDiasUteis(dataInicioObj, duracao);
+
+        const novaDataInicioStr = formatarDataISO(dataInicioObj);
+        const novaDataFimStr = formatarDataISO(dataFimObj);
+
+        onReorderRef.current?.(Number(id), novaDataInicioStr, novaDataFimStr);
+      }
+    });
+
+    const clickEventId = gantt.attachEvent("onTaskClick", (id) => {
+      // Bloqueia clique se houve arraste de tarefa
+      if (dragEmAndamentoRef.current) {
+        return true;
+      }
+      esconderTooltipDhtmlx();
+      if (id) {
+        onSelectTaskRef.current?.(Number(id));
+      }
+      return true;
     });
 
     return () => {
+      document.removeEventListener("mousemove", handleDocumentMouseMove);
+      window.removeEventListener("mouseout", handleWindowMouseOut);
+      containerEl?.removeEventListener("mouseleave", esconderTooltipDhtmlx);
+      esconderTooltipDhtmlx();
+      document.querySelectorAll(".gantt_tooltip").forEach((el) => el.remove());
       gantt.clearAll();
-      gantt.detachEvent(eventId);
+      gantt.detachEvent(dragEventId);
+      gantt.detachEvent(clickEventId);
+      gantt.detachEvent(mouseMoveEventId);
       inicializado.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Atualizar drag permission quando canDrag muda
+  // Atualização dinâmica da visibilidade da grade esquerda
   useEffect(() => {
     if (!inicializado.current) return;
-    gantt.config.drag_move = canDrag;
-  }, [canDrag]);
+    gantt.config.show_grid = mostrarGrade;
+    gantt.render();
+  }, [mostrarGrade]);
 
-  // Focar em uma data específica de forma declarativa (React-way)
   useEffect(() => {
     if (focarData && inicializado.current) {
       gantt.showDate(focarData);
     }
   }, [focarData]);
 
-  // Zoom: mudar escala quando o nível muda
   useEffect(() => {
     if (!inicializado.current) return;
 
@@ -175,7 +342,6 @@ export function GanttDhtmlxWrapper({ tarefas, canDrag, nivelZoom, focarData, onR
     gantt.render();
   }, [nivelZoom]);
 
-  // Re-parse dados preservando scroll
   useEffect(() => {
     if (!inicializado.current) return;
     const scrollState = gantt.getScrollState();
@@ -184,5 +350,5 @@ export function GanttDhtmlxWrapper({ tarefas, canDrag, nivelZoom, focarData, onR
     gantt.scrollTo(scrollState.x, scrollState.y);
   }, [tarefas]);
 
-  return <div ref={container} style={{ width: "100%", height: "100%" }} />;
+  return <div ref={container} className="flex-1 w-full min-h-0" style={{ width: "100%", height: "100%" }} />;
 }

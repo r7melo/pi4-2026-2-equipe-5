@@ -10,6 +10,7 @@ import MateriaisObra from "./pages/MateriaisObra";
 import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
 import RelatorioPublico from "./pages/RelatorioPublico";
+import CronogramaPublico from "./pages/CronogramaPublico";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
@@ -35,57 +36,57 @@ function App() {
       <Toaster richColors position="top-right" />
       <ReloadPrompt />
       <BrowserRouter>
+        <Routes>
+          {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
+          <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
 
-      <Routes>
-        {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
+          {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
+          <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>
+            <Route path="/linkparainstaladores" element={<LinkInstaladores />} />
+          </Route>
 
-        {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
-        <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>
-          <Route path="/linkparainstaladores" element={<LinkInstaladores />} />
-        </Route>
+          {/* Rotas Privadas (Protegidas por JWT com DashboardLayout) */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardLayout />}>
+              {/* Kanban: Visível para Admin, Engenharia, Financeiro e Leitores */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+                <Route path="/kanban" element={<Kanban />} />
+              </Route>
 
-        {/* Rotas Privadas (Protegidas por JWT com DashboardLayout) */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
-            {/* Kanban: Visível para Admin, Engenharia, Financeiro e Leitores */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
-              <Route path="/kanban" element={<Kanban />} />
-            </Route>
+              {/* Equipes (Gantt): Visível para Admin, Engenharia, Financeiro e Leitores */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+                <Route path="/equipes" element={<Equipes />} />
+              </Route>
 
-            {/* Equipes (Gantt): Visível para Admin, Engenharia, Financeiro e Leitores */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
-              <Route path="/equipes" element={<Equipes />} />
-            </Route>
+              {/* Gestão de Obras: Apenas Admin e Engenharia */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
+                <Route path="/cadastrarobra" element={<CadastrarObra />} />
+                <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
+              </Route>
 
-            {/* Gestão de Obras: Apenas Admin e Engenharia */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
-              <Route path="/cadastrarobra" element={<CadastrarObra />} />
-              <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
-            </Route>
+              {/* Detalhe da Obra: Todos perfis autenticados (RF-03/11) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+                <Route path="/obras/:id" element={<DetalheObra />} />
+              </Route>
 
-            {/* Detalhe da Obra: Todos perfis autenticados (RF-03/11) */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
-              <Route path="/obras/:id" element={<DetalheObra />} />
-            </Route>
+              {/* Materiais da Obra: Admin e Engenharia (RF-06) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
+                <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
+              </Route>
 
-            {/* Materiais da Obra: Admin e Engenharia (RF-06) */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
-              <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
-            </Route>
-
-            {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
-            <Route element={<ProtectedRoute allowedRoles={["Administrador", "Financeiro"]} />}>
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/financeiro" element={<Financeiro />} />
+              {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Financeiro"]} />}>
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/financeiro" element={<Financeiro />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  </QueryClientProvider>
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

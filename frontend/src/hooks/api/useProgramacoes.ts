@@ -1,10 +1,15 @@
+// frontend/src/hooks/api/useProgramacoes.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   listarProgramacoes,
   reordenarProgramacao,
+  criarProgramacao,
+  deletarProgramacao,
   type Programacao,
   type ReordenarProgramacaoResposta,
 } from "@/services/programacoes";
+import { calcularDiasUteisEntre } from "@/lib/formatters";
 
 export function useProgramacoes() {
   return useQuery({
@@ -20,46 +25,53 @@ export function useReordenarProgramacao() {
     mutationFn: ({
       id,
       novaDataInicio,
+      novaDataFim,
     }: {
       id: number;
-      novaDataInicio: string;
-      novaDataFim: string;
-    }) => reordenarProgramacao(id, { novaDataInicio }),
+      novaDataInicio?: string;
+      novaDataFim?: string;
+    }) => reordenarProgramacao(id, { novaDataInicio, novaDataFim }),
 
-    // Fase 1: Feedback visual imediato (apenas o item arrastado)
     onMutate: async ({ id, novaDataInicio, novaDataFim }) => {
       await queryClient.cancelQueries({ queryKey: ["programacoes"] });
       const previous = queryClient.getQueryData<Programacao[]>(["programacoes"]);
 
       queryClient.setQueryData<Programacao[]>(["programacoes"], (old) => {
         if (!old) return old;
-        return old.map((p) =>
-          p.id === id
-            ? { ...p, dataInicio: novaDataInicio, dataFim: novaDataFim }
-            : p
-        );
+        return old.map((p) => {
+          if (p.id !== id) return p;
+          const dataIni = novaDataInicio || p.dataInicio;
+          const dataFim = novaDataFim || p.dataFim;
+          const novaDuracao = Math.max(1, calcularDiasUteisEntre(dataIni, dataFim));
+          return {
+            ...p,
+            dataInicio: dataIni,
+            dataFim: dataFim,
+            duracaoEstimadaDias: novaDuracao,
+          };
+        });
       });
 
       return { previous };
     },
 
-    // Fase 2: Propagação em cadeia com dados reais do backend (RF-09)
     onSuccess: (resposta: ReordenarProgramacaoResposta) => {
       queryClient.setQueryData<Programacao[]>(["programacoes"], (old) => {
         if (!old) return old;
         return old.map((p) => {
-          // Atualiza o item principal com as datas reais do backend
           if (p.id === resposta.id) {
+            const novaDuracao = Math.max(
+              1,
+              calcularDiasUteisEntre(resposta.novaDataInicio, resposta.novaDataFim)
+            );
             return {
               ...p,
               dataInicio: resposta.novaDataInicio,
               dataFim: resposta.novaDataFim,
+              duracaoEstimadaDias: novaDuracao,
             };
           }
-          // Propaga atrasos nas programações afetadas
-          const afetada = resposta.programacoesAfetadas?.find(
-            (a) => a.id === p.id
-          );
+          const afetada = resposta.programacoesAfetadas?.find((a) => a.id === p.id);
           if (afetada) {
             return {
               ...p,
@@ -72,15 +84,49 @@ export function useReordenarProgramacao() {
       });
     },
 
-    // Rollback em caso de falha na API
     onError: (_err, _variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(["programacoes"], context.previous);
       }
+      toast.error("Erro ao reordenar alocação no cronograma.");
     },
 
-    // Revalidação final para garantir consistência
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ["programacoes"] }),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+    },
+  });
+}
+
+export function useCriarProgramacao() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: criarProgramacao,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+      toast.success("Alocação criada com sucesso no cronograma!");
+    },
+    onError: (err: unknown) => {
+      const mensagem =
+        (err as { response?: { data?: { error?: { message?: string } } } })
+          ?.response?.data?.error?.message || "Erro ao alocar equipe.";
+      toast.error(mensagem);
+    },
+  });
+}
+
+export function useDeletarProgramacao() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deletarProgramacao,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+      toast.success("Alocação removida do cronograma.");
+    },
+    onError: (err: unknown) => {
+      const mensagem =
+        (err as { response?: { data?: { error?: { message?: string } } } })
+          ?.response?.data?.error?.message || "Erro ao remover alocação.";
+      toast.error(mensagem);
+    },
   });
 }
