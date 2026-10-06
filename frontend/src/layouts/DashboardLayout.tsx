@@ -1,13 +1,29 @@
-import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Outlet, Navigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import { SidebarProvider } from "@/contexts/SidebarProvider";
 import { HeaderPortalContext } from "@/contexts/HeaderPortalContext";
 import { useSignalR } from "@/hooks/useSignalR";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { toast } from "sonner";
 
 export default function DashboardLayout() {
+  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   useSignalR();
   const [headerNode, setHeaderNode] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (perfil === "InstaladorCampo") {
+      toast.error(
+        "Acesso Proibido: o perfil Instalador de Campo possui acesso exclusivo à interface móvel."
+      );
+    }
+  }, [perfil]);
+
+  // Instaladores de campo têm interface móvel exclusiva fora do layout desktop
+  if (perfil === "InstaladorCampo") {
+    return <Navigate to="/linkparainstaladores" replace />;
+  }
 
 
   return (

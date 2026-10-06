@@ -13,6 +13,7 @@ interface GanttKpiBarProps {
   equipes: Equipe[];
   canEdit: boolean;
   onNovaAlocacao: () => void;
+  onNovaEquipe?: () => void;
   dataFiltroInicio?: string;
   onDataInicioChange?: (val: string) => void;
   dataFiltroFim?: string;
@@ -31,6 +32,7 @@ export function GanttKpiBar({
   equipes,
   canEdit,
   onNovaAlocacao,
+  onNovaEquipe,
   dataFiltroInicio = "",
   onDataInicioChange,
   dataFiltroFim = "",
@@ -127,6 +129,17 @@ export function GanttKpiBar({
             </option>
           ))}
         </select>
+
+        {canEdit && onNovaEquipe && (
+          <button
+            onClick={onNovaEquipe}
+            title="Cadastrar Nova Equipe"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors cursor-pointer active:scale-95"
+          >
+            <Users className="w-3.5 h-3.5 text-blue-600" />
+            <span className="hidden sm:inline">Nova Equipe</span>
+          </button>
+        )}
 
         {canEdit && (
           <button

@@ -1,6 +1,6 @@
 // frontend/src/hooks/api/useObras.ts
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listarObras, obterHomologacaoObra } from "@/services/obras";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listarObras, obterHomologacaoObra, excluirObra } from "@/services/obras";
 import type { ListaObras, DadosHomologacao } from "@/types";
 
 export function useObras(params?: {
@@ -59,3 +59,16 @@ export function useHomologacoesObras(obraIds: number[]) {
     staleTime: 1000 * 60 * 5,
   });
 }
+
+export function useExcluirObra() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => excluirObra(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["obras"] });
+      queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+    },
+  });
+}
+

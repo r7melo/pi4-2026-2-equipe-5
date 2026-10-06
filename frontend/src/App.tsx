@@ -51,13 +51,13 @@ function App() {
           {/* Rotas Privadas (Protegidas por JWT com DashboardLayout) */}
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              {/* Kanban: Visível para Admin, Engenharia, Financeiro e Leitores */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+              {/* Kanban: Visível para Admin, Engenharia e Financeiro */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro"]} />}>
                 <Route path="/kanban" element={<Kanban />} />
               </Route>
 
-              {/* Equipes (Gantt): Visível para Admin, Engenharia, Financeiro e Leitores */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+              {/* Equipes (Gantt): Visível para Admin, Engenharia e Financeiro */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro"]} />}>
                 <Route path="/equipes" element={<Equipes />} />
               </Route>
 
@@ -67,8 +67,8 @@ function App() {
                 <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
               </Route>
 
-              {/* Detalhe da Obra: Todos perfis autenticados (RF-03/11) */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"]} />}>
+              {/* Detalhe da Obra: Admin, Engenharia e Financeiro (RF-03/11) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro"]} />}>
                 <Route path="/obras/:id" element={<DetalheObra />} />
               </Route>
 

@@ -9,6 +9,7 @@ import {
 import { GanttToolbar } from "@/components/gantt/GanttToolbar";
 import { GanttKpiBar } from "@/components/gantt/GanttKpiBar";
 import { GanttNovaAlocacaoModal } from "@/components/gantt/GanttNovaAlocacaoModal";
+import { GanttNovaEquipeModal } from "@/components/gantt/GanttNovaEquipeModal";
 import { GanttCompartilharModal } from "@/components/gantt/GanttCompartilharModal";
 import {
   GanttTaskDrawer,
@@ -50,6 +51,7 @@ export default function Equipes() {
     return true;
   });
   const [modalNovaAlocacaoAberto, setModalNovaAlocacaoAberto] = useState(false);
+  const [modalNovaEquipeAberto, setModalNovaEquipeAberto] = useState(false);
   const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
   const [tarefaSelecionadaId, setTarefaSelecionadaId] = useState<number | null>(null);
 
@@ -371,6 +373,7 @@ export default function Equipes() {
           equipes={equipes || []}
           canEdit={canEdit}
           onNovaAlocacao={() => setModalNovaAlocacaoAberto(true)}
+          onNovaEquipe={() => setModalNovaEquipeAberto(true)}
           dataFiltroInicio={dataFiltroInicio}
           onDataInicioChange={setDataFiltroInicio}
           dataFiltroFim={dataFiltroFim}
@@ -428,6 +431,15 @@ export default function Equipes() {
         equipes={equipes || []}
         onConfirmar={handleConfirmarAlocacao}
         isLoading={criandoAlocacao}
+      />
+
+      <GanttNovaEquipeModal
+        isOpen={modalNovaEquipeAberto}
+        onClose={() => setModalNovaEquipeAberto(false)}
+        onEquipeCriada={(novaEquipeId) => {
+          setEquipeSelecionada(novaEquipeId);
+          setModalNovaAlocacaoAberto(true);
+        }}
       />
 
       <GanttCompartilharModal

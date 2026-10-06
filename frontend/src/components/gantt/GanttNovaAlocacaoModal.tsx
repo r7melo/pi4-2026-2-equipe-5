@@ -132,7 +132,7 @@ export function GanttNovaAlocacaoModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
           <div>
             <h3 className="font-semibold text-slate-800 text-base">Nova Alocação no Cronograma</h3>
-            <p className="text-xs text-slate-500">Agende uma equipe para execução de obra (RF-08)</p>
+            <p className="text-xs text-slate-500">Agende uma equipe para execução de obra</p>
           </div>
           <button
             onClick={handleFechar}
@@ -230,7 +230,7 @@ export function GanttNovaAlocacaoModal({
               className="text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60"
             />
             <span className="text-[11px] text-slate-400">
-              Finais de semana são automaticamente ajustados para o próximo dia útil (RF-09).
+              Finais de semana são automaticamente ajustados para o próximo dia útil.
             </span>
           </div>
 

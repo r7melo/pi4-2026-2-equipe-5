@@ -53,13 +53,13 @@ export default function Sidebar() {
       label: "Obras",
       path: "/kanban",
       icon: LayoutDashboard,
-      roles: ["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"],
+      roles: ["Administrador", "EngenhariaObras", "Financeiro"],
     },
     {
       label: "Equipes",
       path: "/equipes",
       icon: Users,
-      roles: ["Administrador", "EngenhariaObras", "Financeiro", "VisualizadorLeitor"],
+      roles: ["Administrador", "EngenhariaObras", "Financeiro"],
     },
     {
       label: "Homologação",

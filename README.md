@@ -172,7 +172,6 @@ O sistema usa RBAC com 5 perfis:
 | `Administrador` | Acesso total, incluindo exclusão de comentários e gestão de equipes |
 | `EngenhariaObras` | Criar/editar obras, mover cards no Kanban, gerenciar cronograma |
 | `Financeiro` | Visualizar e exportar relatórios de custo |
-| `VisualizadorLeitor` | Somente leitura em todas as telas |
 | `InstaladorCampo` | Acesso via link mobile (sem login tradicional) |
 
 ---
