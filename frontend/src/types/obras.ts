@@ -66,7 +66,6 @@ export type NovaObraInput = z.input<typeof novaObraSchema>;
 export type NovaObraFormData = z.infer<typeof novaObraSchema>;
 
 export interface CriarObraPayload {
-  clienteId: number;
   clienteNome: string;
   cidade: string;
   quantidadePaineis: number;

@@ -235,3 +235,11 @@ export async function obterHomologacaoObra(obraId: number): Promise<DadosHomolog
     };
   }
 }
+
+/** DELETE /api/obras/{id} — Contrato Rota #11 (UC-11) */
+export async function excluirObra(id: number): Promise<void> {
+  await apiFetch<void>(`/obras/${id}`, {
+    method: "DELETE",
+  });
+}
+

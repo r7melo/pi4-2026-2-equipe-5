@@ -1,11 +1,25 @@
-// Serviço de Equipes (Rotas #13 do contrato — GET/POST /api/equipes)
 import { api } from "./api";
+
+export interface MembroEquipe {
+  id: number;
+  nome: string;
+  email?: string;
+}
 
 export interface Equipe {
   id: number;
   nome: string;
   especialidade?: string;
-  membros?: { id: number; nome: string }[];
+  responsavelId?: number;
+  responsavelNome?: string;
+  membros?: MembroEquipe[];
+}
+
+export interface CriarEquipePayload {
+  nome: string;
+  especialidade?: string;
+  instaladorIds: number[];
+  responsavelId: number;
 }
 
 /** GET /api/equipes */
@@ -15,8 +29,15 @@ export async function listarEquipes(): Promise<Equipe[]> {
 }
 
 /** POST /api/equipes */
-export async function criarEquipe(payload: { nome: string }): Promise<Equipe> {
+export async function criarEquipe(payload: CriarEquipePayload): Promise<Equipe> {
   const { data } = await api.post<Equipe>("/equipes", payload);
   return data;
 }
+
+/** GET /api/instaladores (Instaladores aptos para formação de equipe) */
+export async function listarInstaladores(): Promise<MembroEquipe[]> {
+  const { data } = await api.get<MembroEquipe[]>("/instaladores");
+  return data;
+}
+
 

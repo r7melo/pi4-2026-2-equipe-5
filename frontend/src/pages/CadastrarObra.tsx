@@ -56,9 +56,7 @@ export default function CadastrarObra() {
 
   const onSubmit = async (dados: NovaObraFormData) => {
     try {
-      // clienteId: 45 fixado para cumprir integridade referencial com seed do banco (conforme mitigação V2)
       const payload: CriarObraPayload = {
-        clienteId: 45,
         clienteNome: dados.clienteNome.trim(),
         cidade: dados.cidade.trim(),
         quantidadePaineis: Number(dados.quantidadePaineis),

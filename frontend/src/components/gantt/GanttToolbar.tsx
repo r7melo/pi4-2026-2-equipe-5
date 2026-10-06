@@ -138,7 +138,7 @@ export function GanttToolbar({
         <button
           onClick={onAbrirCompartilhar}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-all active:scale-[0.97] cursor-pointer shrink-0"
-          title="Compartilhar cronograma público (RF-16)"
+          title="Compartilhar cronograma público"
         >
           <Share2 className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Compartilhar</span>

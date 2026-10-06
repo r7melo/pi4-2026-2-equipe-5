@@ -20,7 +20,11 @@ import {
   adicionarComentarioArmazenado,
   obterHomologacaoObraArmazenada,
   obterCronogramaCompartilhadoFixture,
+  excluirObraArmazenada,
+  MOCK_INSTALADORES_DISPONIVEIS,
+  adicionarEquipeArmazenada,
 } from "./fixtures";
+import type { CriarEquipePayload } from "../equipes";
 import type { RelatorioCusto } from "../relatorios";
 import { gerarPdfRelatorio, gerarExcelRelatorio } from "./pdfGenerator";
 
@@ -168,7 +172,6 @@ mock.onPost(/\/obras\/?(\?.*)?$/).reply((config) => {
       quantidadePaineis: number;
       dataInicioEstimada: string;
       dataFimEstimada: string;
-      clienteId?: number;
     }>(config.data);
 
     const novaObra = adicionarObraArmazenada(payload);
@@ -178,7 +181,7 @@ mock.onPost(/\/obras\/?(\?.*)?$/).reply((config) => {
       {
         id: novaObra.id,
         status: novaObra.status,
-        clienteId: payload.clienteId || 45,
+        clienteId: 1,
         dataInicioEstimada: payload.dataInicioEstimada,
         dataFimEstimada: payload.dataFimEstimada,
         dataInicioReal: null,
@@ -244,9 +247,9 @@ mock.onGet(/\/obras\/\d+\/?(\?.*)?$/).reply((config) => {
       dataInicioReal: null,
       dataFimReal: null,
       cliente: {
-        id: 45,
+        id: 1,
         nome: obra.clienteNome,
-        cidade: "Campinas",
+        cidade: obra.cidade || "Campinas",
       },
       pagamento: {
         id: 88,
@@ -471,7 +474,83 @@ mock.onGet(/\/cronograma\/compartilhado\/[^/]+/).reply((config) => {
   return [200, dados];
 });
 
+// DELETE /obras/:id — UC-11 / UC-16 com bloqueio severo UC-11 RN2 / FA2
+mock.onDelete(/\/obras\/\d+\/?(\?.*)?$/).reply((config) => {
+  const match = config.url?.match(/\/obras\/(\d+)/);
+  const id = match ? Number(match[1]) : NaN;
+  if (isNaN(id)) {
+    return [400, { error: { code: "INVALID_PARAMETER", message: "ID de obra inválido" } }];
+  }
+
+  const obras = obterObrasArmazenadas();
+  const obra = obras.find((o) => Number(o.id) === id);
+  if (!obra) {
+    return [404, { error: { code: "OBRA_NOT_FOUND", message: `Obra ${id} não encontrada` } }];
+  }
+
+  // Regra de Negócio: Obra em execução não pode ser apagada
+  if (obra.status === "EmAndamento") {
+    return [
+      400,
+      {
+        error: {
+          code: "OBRA_EM_EXECUCAO",
+          message: "Obras com status Em Andamento não podem ser apagadas.",
+        },
+      },
+    ];
+  }
+
+  // Regra de Negócio: Obra com alocação no Gantt não pode ser apagada
+  const programacoes = obterProgramacoesArmazenadas();
+  const temAlocacao = programacoes.some((p) => Number(p.obraId) === id);
+  if (temAlocacao) {
+    return [
+      400,
+      {
+        error: {
+          code: "OBRA_ALOCADA",
+          message: "Esta obra possui equipe e cronograma agendado no Gantt. É necessário desalocá-la antes da exclusão.",
+        },
+      },
+    ];
+  }
+
+  const sucesso = excluirObraArmazenada(id);
+  if (!sucesso) {
+    return [404, { error: { code: "OBRA_NOT_FOUND", message: "Erro ao excluir obra mockada" } }];
+  }
+
+  return [204];
+});
+
+// GET /api/instaladores — Instaladores para montagem de equipes
+mock.onGet(/\/instaladores\/?(\?.*)?$/).reply(() => [200, MOCK_INSTALADORES_DISPONIVEIS]);
+
+// GET /api/equipes — Listagem de equipes
+mock.onGet(/\/equipes\/?(\?.*)?$/).reply(() => [200, obterEquipesArmazenadas()]);
+
+// POST /api/equipes — Criação de equipe com validação
+mock.onPost(/\/equipes\/?(\?.*)?$/).reply((config) => {
+  const payload = extrairDados<CriarEquipePayload>(config.data);
+  if (!payload.nome?.trim() || !payload.responsavelId || !payload.instaladorIds?.length) {
+    return [
+      400,
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Nome, ao menos um instalador e um responsável são obrigatórios.",
+        },
+      },
+    ];
+  }
+  const equipe = adicionarEquipeArmazenada(payload);
+  return [201, equipe];
+});
+
 // ATENÇÃO: PassThrough obrigatório para requisições não mockadas passarem livremente
 mock.onAny().passThrough();
 
 export default mock;
+
+

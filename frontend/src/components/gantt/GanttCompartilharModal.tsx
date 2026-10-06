@@ -60,7 +60,7 @@ export function GanttCompartilharModal({
                 Compartilhar Cronograma Público
               </h3>
               <p className="text-xs text-slate-500">
-                Visualização somente-leitura para clientes e parceiros (RF-16)
+                Visualização somente-leitura para clientes e parceiros
               </p>
             </div>
           </div>

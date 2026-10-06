@@ -3,7 +3,7 @@
 import type { ObraCard, NomePerfil, DadosHomologacao, CriarProgramacaoPayload } from "@/types";
 import type { StatusObra } from "@/constants/kanbanStatus";
 import type { Programacao } from "../programacoes";
-import type { Equipe } from "../equipes";
+import type { Equipe, CriarEquipePayload } from "../equipes";
 import type { Material } from "../materiais";
 import type { RelatorioCusto } from "../relatorios";
 import {
@@ -127,6 +127,7 @@ export function adicionarObraArmazenada(payload: {
   const novaObra: ObraCard = {
     id: novoId,
     clienteNome: payload.clienteNome,
+    cidade: payload.cidade,
     status: "MaterialComprado",
     categoria: "Novo",
     quantidadePaineis: payload.quantidadePaineis,
@@ -160,6 +161,30 @@ export function atualizarStatusObraArmazenada(
   return obraModificada;
 }
 
+export function excluirObraArmazenada(id: number): boolean {
+  const obras = obterObrasArmazenadas();
+  const index = obras.findIndex((o) => Number(o.id) === Number(id));
+  if (index === -1) return false;
+
+  obras.splice(index, 1);
+  salvarObrasArmazenadas(obras);
+
+  // Defesa em profundidade: purga defensiva de eventuais programações no Gantt
+  if (typeof window !== "undefined") {
+    try {
+      const progs = obterProgramacoesArmazenadas();
+      const filtradas = progs.filter((p) => Number(p.obraId) !== Number(id));
+      if (filtradas.length !== progs.length) {
+        sessionStorage.setItem("mock_programacoes_v3", JSON.stringify(filtradas));
+      }
+    } catch {
+      // Silencia erro no storage
+    }
+  }
+
+  return true;
+}
+
 /** 10 Equipes sincronizadas estritamente com database/02_seed.sql */
 export const MOCK_EQUIPES_FIXTURE: Equipe[] = [
   { id: 1, nome: "Equipe 01", especialidade: "Instalação Residencial" },
@@ -190,9 +215,75 @@ export const MOCK_PROGRAMACOES_FIXTURE: Programacao[] = [
 
 const STORAGE_KEY_PROG = "mock_programacoes_v3";
 
+export interface MockInstalador {
+  id: number;
+  nome: string;
+  email: string;
+}
+
+/** 3 Instaladores oficiais sincronizados com database/02_seed.sql (IDs 5, 8 e 9) */
+export const MOCK_INSTALADORES_DISPONIVEIS: MockInstalador[] = [
+  { id: 5, nome: "Marcos Instalador", email: "instalador@zl.com.br" },
+  { id: 8, nome: "Diego Instalador", email: "diego.campo@zl.com.br" },
+  { id: 9, nome: "Beatriz Instaladora", email: "beatriz.campo@zl.com.br" },
+];
+
+const STORAGE_KEY_EQUIPES = "mock_equipes_v1";
+
 export function obterEquipesArmazenadas(): Equipe[] {
+  if (typeof window === "undefined") return MOCK_EQUIPES_FIXTURE;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_EQUIPES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn("[Mock] Erro ao ler equipes no sessionStorage:", e);
+  }
+  salvarEquipesArmazenadas(MOCK_EQUIPES_FIXTURE);
   return MOCK_EQUIPES_FIXTURE;
 }
+
+export function salvarEquipesArmazenadas(equipes: Equipe[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(STORAGE_KEY_EQUIPES, JSON.stringify(equipes));
+  } catch (e) {
+    console.warn("[Mock] Erro ao salvar equipes no sessionStorage:", e);
+  }
+}
+
+export function adicionarEquipeArmazenada(payload: CriarEquipePayload): Equipe {
+  const equipes = obterEquipesArmazenadas();
+  const maxId = equipes.reduce((acc, curr) => Math.max(acc, Number(curr.id) || 0), 0);
+  const novoId = maxId + 1;
+
+  const membros = MOCK_INSTALADORES_DISPONIVEIS.filter((i) =>
+    payload.instaladorIds.includes(i.id)
+  ).map((i) => ({
+    id: i.id,
+    nome: i.nome,
+  }));
+
+  const responsavel = MOCK_INSTALADORES_DISPONIVEIS.find(
+    (i) => i.id === payload.responsavelId
+  );
+
+  const novaEquipe: Equipe = {
+    id: novoId,
+    nome: payload.nome,
+    especialidade: payload.especialidade || "Instalação Fotovoltaica Geral",
+    responsavelId: payload.responsavelId,
+    responsavelNome: responsavel?.nome || "Responsável não informado",
+    membros,
+  };
+
+  const atualizadas = [...equipes, novaEquipe];
+  salvarEquipesArmazenadas(atualizadas);
+  return novaEquipe;
+}
+
 
 export function obterProgramacoesArmazenadas(): Programacao[] {
   if (typeof window === "undefined") return MOCK_PROGRAMACOES_FIXTURE;

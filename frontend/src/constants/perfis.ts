@@ -5,7 +5,6 @@ export const PERFIS = {
   ADMIN: "Administrador" as NomePerfil,
   ENGENHARIA: "EngenhariaObras" as NomePerfil,
   FINANCEIRO: "Financeiro" as NomePerfil,
-  LEITOR: "VisualizadorLeitor" as NomePerfil,
   INSTALADOR: "InstaladorCampo" as NomePerfil,
 } as const;
 

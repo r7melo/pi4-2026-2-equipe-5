@@ -6,12 +6,11 @@
 
 | Campo | Valor |
 | --- | --- |
-| Versão do documento | 1.1 (Corrigida) |
+| Versão do documento | 1.1 |
 | Data | 05/10/2026 |
 | Status | Versão corrigida e alinhada com os Casos de Uso |
 | Projeto | Projeto Integrador IV (UFC) |
-| Cliente | ZL Engenharia (engenharia e instalação de energia solar) |
-| Parte da especificação | 1 de 3 — Requisitos Funcionais e Não Funcionais |
+| Cliente | ZL Engenharia |
 | Documento anterior | Especificacao_de_Requisitos_ZL_Engenharia_v1.0.md |
 | Documentos relacionados | Casos-de-Uso-ZL-Eng.md, ZLEng.puml |
 
