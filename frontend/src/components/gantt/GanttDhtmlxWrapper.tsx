@@ -14,12 +14,15 @@ import {
 } from "@/lib/formatters";
 
 export interface GanttTask {
-  id: number;
+  id: string | number;
+  parent?: string | number;
+  type?: "project" | "task";
+  open?: boolean;
   text: string;
   start_date: string;
   end_date: string;
   duration?: number;
-  equipeId: number;
+  equipeId?: number;
   nomeEquipe?: string;
   nomeCliente?: string;
   paineis?: number;
@@ -92,23 +95,49 @@ export function GanttDhtmlxWrapper({
     gantt.config.row_height = 40;
     gantt.config.bar_height = 28;
 
+    // Configuração de Anti-Reparenting: impede arraste vertical entre equipes
+    gantt.config.order_branch = false;
+    gantt.config.order_branch_free = false;
+
+    // Habilita redimensionamento individual e independente de colunas e da grade inteira
+    gantt.config.grid_resize = true;
+    gantt.config.keep_grid_width = false;
+
     gantt.config.show_grid = mostrarGradeRef.current;
     gantt.config.columns = [
-      { name: "text", label: "Obra", width: 220, tree: true },
       {
-        name: "duration",
-        label: "Dias",
+        name: "text",
+        label: "Obra",
+        width: 200,
+        min_width: 130,
+        tree: true,
+        resize: true,
+      },
+      {
+        name: "start_date",
+        label: "Início",
         align: "center",
-        width: 50,
+        width: 85,
+        min_width: 70,
+        resize: true,
         template: (rawTask: unknown) => {
           const task = rawTask as GanttTask;
-          const dur = Math.max(
-            1,
-            task.duracaoDias ||
-              calcularDiasUteisEntre(task.start_date, task.end_date) ||
-              1
-          );
-          return `${dur}`;
+          if (!task.start_date) return "—";
+          return formatarDataBR(formatarDataISO(normalizarDataMeioDiaUTC(task.start_date)));
+        },
+      },
+      {
+        name: "end_date",
+        label: "Fim",
+        align: "center",
+        width: 85,
+        min_width: 70,
+        resize: true,
+        template: (rawTask: unknown) => {
+          const task = rawTask as GanttTask;
+          if (!task.end_date) return "—";
+          const ultimoDia = dataFimExclusivaParaUltimoDiaUtil(task.end_date);
+          return formatarDataBR(ultimoDia);
         },
       },
     ];
@@ -141,12 +170,32 @@ export function GanttDhtmlxWrapper({
 
     gantt.templates.task_class = (_start: Date, _end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
+      if (task.type === "project") {
+        return "gantt-project-team";
+      }
+      if (task.statusObra === "Assistencia") {
+        return "gantt-material-assistencia";
+      }
+      if (task.materialPronto === true) {
+        return "gantt-material-pronto";
+      }
+      if (task.materialPronto === false) {
+        return "gantt-material-pendente";
+      }
       const indice = (Number(task.equipeId) % 8) || 8;
       return `gantt-color-${indice}`;
     };
 
+    gantt.templates.grid_row_class = (_start: Date, _end: Date, rawTask: unknown) => {
+      const task = rawTask as GanttTask;
+      return task.type === "project" ? "gantt-row-project" : "";
+    };
+
     gantt.templates.task_text = (_start: Date, _end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
+      if (task.type === "project") {
+        return `<strong>${task.text || ""}</strong>`;
+      }
       const matBadge = task.materialPronto
         ? `<span class="gantt-bar-badge" title="Materiais prontos p/ obra">📦</span>`
         : "";
@@ -157,12 +206,17 @@ export function GanttDhtmlxWrapper({
       return `<span>${rotuloBarra}</span> ${matBadge} ${homBadge}`;
     };
 
-    // Tooltip dinâmico: oculta linhas de materiais e homologação se os dados forem undefined (ex: tela pública)
+    // Tooltip dinâmico com guard para nó de projeto
     gantt.templates.tooltip_text = (start: Date, end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
       const dataIni = formatarDataBR(formatarDataISO(start));
       const ultimoDiaUtil = dataFimExclusivaParaUltimoDiaUtil(end);
       const dataFim = formatarDataBR(ultimoDiaUtil);
+
+      if (task.type === "project") {
+        return `<div class="tooltip-title">${task.text}</div><div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`;
+      }
+
       const matRotulo =
         task.statusObra === "Assistencia"
           ? "Peças p/ Manutenção 🔧"
@@ -239,7 +293,7 @@ export function GanttDhtmlxWrapper({
     });
 
     const handleDocumentMouseMove = (e: MouseEvent) => {
-      const tooltipEl = document.querySelector(".gantt_tooltip") as HTMLElement | null;
+      const tooltipEl = document.querySelector<HTMLElement>(".gantt_tooltip");
       if (!tooltipEl || tooltipEl.style.display === "none") return;
 
       const target = e.target as Element | null;
@@ -258,6 +312,18 @@ export function GanttDhtmlxWrapper({
     document.addEventListener("mousemove", handleDocumentMouseMove, { passive: true });
     window.addEventListener("mouseout", handleWindowMouseOut, { passive: true });
 
+    // Guard onBeforeTaskDrag: bloqueia arraste de linhas de equipe
+    const beforeDragEventId = gantt.attachEvent("onBeforeTaskDrag", (id) => {
+      const task = gantt.getTask(id) as unknown as GanttTask;
+      if (task.type === "project" || String(task.id).startsWith("equipe-")) {
+        return false;
+      }
+      return canDragRef.current;
+    });
+
+    // Guard onBeforeRowDragMove: bloqueia categoricamente reordenação vertical entre linhas
+    const rowDragMoveEventId = gantt.attachEvent("onBeforeRowDragMove", () => false);
+
     const dragEventId = gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
       dragEmAndamentoRef.current = true;
       setTimeout(() => {
@@ -271,18 +337,18 @@ export function GanttDhtmlxWrapper({
         duration?: number;
       };
 
+      // Defesa em profundidade contra nós de equipe ou IDs não-numéricos
+      if (task.type === "project" || String(task.id).startsWith("equipe-")) {
+        return;
+      }
+
       if (mode === "resize") {
-        // Preserva ou ajusta o início para dia útil caso redimensionado pela alça esquerda sobre fim de semana
         const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
         const dataFimObjBruta = normalizarDataMeioDiaUTC(task.end_date);
-
-        // Calcula estritamente os dias úteis selecionados pelo arraste
         const diasCalculados = calcularDiasUteisEntre(dataInicioObj, dataFimObjBruta);
         const duracaoFinal = Math.max(1, diasCalculados);
         const dataFimObj = adicionarDiasUteis(dataInicioObj, duracaoFinal);
 
-        // Sincronização simétrica no objeto interno em memória do DHTMLX:
-        // Blindagem contra race conditions se o usuário interagir novamente antes do ciclo assíncrono do React
         task.start_date = dataInicioObj;
         task.end_date = dataFimObj;
         task.duracaoDias = duracaoFinal;
@@ -293,8 +359,6 @@ export function GanttDhtmlxWrapper({
 
         onReorderRef.current?.(Number(id), novaDataInicioStr, novaDataFimStr);
       } else {
-        // Movimento completo da barra: preserva SEMPRE a duração em dias úteis original (duracaoDias)
-        // Fallback defensivo calcula dias úteis entre datas, NUNCA recorre a task.duration (dias corridos do DHTMLX)
         const duracaoOriginal =
           task.duracaoDias ||
           calcularDiasUteisEntre(task.start_date, task.end_date) ||
@@ -303,7 +367,6 @@ export function GanttDhtmlxWrapper({
         const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
         const dataFimObj = adicionarDiasUteis(dataInicioObj, duracao);
 
-        // Sincronização simétrica no objeto interno em memória do DHTMLX
         task.start_date = dataInicioObj;
         task.end_date = dataFimObj;
         task.duracaoDias = duracao;
@@ -316,14 +379,33 @@ export function GanttDhtmlxWrapper({
       }
     });
 
-    const clickEventId = gantt.attachEvent("onTaskClick", (id) => {
-      // Bloqueia clique se houve arraste de tarefa
+    // Guard onTaskClick com alternância segura de expansão para nós de projeto
+    const clickEventId = gantt.attachEvent("onTaskClick", (id, e) => {
       if (dragEmAndamentoRef.current) {
         return true;
       }
       esconderTooltipDhtmlx();
-      if (id) {
-        onSelectTaskRef.current?.(Number(id));
+
+      if (!id || !gantt.isTaskExists(id)) return true;
+
+      const task = gantt.getTask(id) as unknown as GanttTask;
+      if (task.type === "project" || String(task.id).startsWith("equipe-")) {
+        const target = e?.target as HTMLElement | null;
+        if (!target?.closest?.(".gantt_tree_icon")) {
+          const estaAberto = Boolean(
+            (task as unknown as { $open?: boolean }).$open ?? task.open
+          );
+          if (estaAberto) {
+            gantt.close(id);
+          } else {
+            gantt.open(id);
+          }
+        }
+        return false; // Não dispara onSelectTask para linha da equipe
+      }
+
+      if (id && onSelectTaskRef.current) {
+        onSelectTaskRef.current(Number(id));
       }
       return true;
     });
@@ -335,6 +417,8 @@ export function GanttDhtmlxWrapper({
       esconderTooltipDhtmlx();
       document.querySelectorAll(".gantt_tooltip").forEach((el) => el.remove());
       gantt.clearAll();
+      gantt.detachEvent(beforeDragEventId);
+      gantt.detachEvent(rowDragMoveEventId);
       gantt.detachEvent(dragEventId);
       gantt.detachEvent(clickEventId);
       gantt.detachEvent(mouseMoveEventId);
@@ -389,11 +473,31 @@ export function GanttDhtmlxWrapper({
     gantt.render();
   }, [nivelZoom]);
 
+  // Preservação do estado da árvore pós-render
   useEffect(() => {
     if (!inicializado.current) return;
     const scrollState = gantt.getScrollState();
+
+    const openStates = new Map<string | number, boolean>();
+    gantt.eachTask((t) => {
+      if (t.type === "project") {
+        openStates.set(
+          t.id,
+          Boolean((t as unknown as { $open?: boolean }).$open ?? t.open)
+        );
+      }
+    });
+
     gantt.clearAll();
     gantt.parse({ data: tarefas });
+
+    openStates.forEach((isOpen, id) => {
+      if (gantt.isTaskExists(id)) {
+        if (isOpen) gantt.open(id);
+        else gantt.close(id);
+      }
+    });
+
     gantt.scrollTo(scrollState.x, scrollState.y);
   }, [tarefas]);
 

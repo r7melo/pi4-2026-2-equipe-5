@@ -16,6 +16,7 @@ import {
   adicionarMaterialArmazenado,
   obterRelatorioArmazenado,
   obterHistoricoArmazenado,
+  adicionarHistoricoArmazenado,
   obterComentariosArmazenados,
   adicionarComentarioArmazenado,
   obterHomologacaoObraArmazenada,
@@ -199,11 +200,15 @@ mock.onPatch(/\/obras\/\d+\/status\/?(\?.*)?$/).reply((config) => {
   try {
     const match = config.url?.match(/\/obras\/(\d+)\/status/);
     const id = match ? Number(match[1]) : 0;
-    const { statusNovo } = extrairDados<{ statusNovo?: StatusObra }>(config.data);
+    const { statusNovo, observacao } = extrairDados<{ statusNovo?: StatusObra; observacao?: string }>(config.data);
 
     if (!statusNovo) {
       return [400, { error: { code: "MISSING_STATUS", message: "Novo status não informado" } }];
     }
+
+    const obrasAntes = obterObrasArmazenadas();
+    const obraAntes = obrasAntes.find((o) => Number(o.id) === id);
+    const statusAnterior = obraAntes ? obraAntes.status : "";
 
     const obraAtualizada = atualizarStatusObraArmazenada(id, statusNovo);
 
@@ -211,11 +216,20 @@ mock.onPatch(/\/obras\/\d+\/status\/?(\?.*)?$/).reply((config) => {
       return [404, { error: { code: "OBRA_NOT_FOUND", message: `Obra ${id} não encontrada` } }];
     }
 
+    // Registra evento formal de histórico (paridade com Rota #7 / Rota #10)
+    adicionarHistoricoArmazenado(
+      id,
+      statusAnterior,
+      statusNovo,
+      observacao || `Status alterado de ${statusAnterior} para ${statusNovo}.`,
+      { id: 1, nome: "Carlos Administrador" }
+    );
+
     return [
       200,
       {
         id,
-        statusAnterior: "",
+        statusAnterior,
         statusNovo,
         dataAlteracao: new Date().toISOString(),
         emailNotificacaoEnviado: statusNovo === "Concluido",

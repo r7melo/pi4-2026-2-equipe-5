@@ -2,7 +2,53 @@
    Gantt — Tema ZL Engenharia (Tailwind 4 compatível)
    ═══════════════════════════════════════════════════════ */
 
-/* ─── Paleta de Equipes (8 cores com cycling) ─── */
+/* ─── Gap G-01: Código Semântico de Cores das Barras ─── */
+/* 🟢 Kit Pronto / Separado / Liberado */
+.gantt_task_line.gantt-material-pronto {
+  background-color: #10b981 !important;
+  border-color: #059669 !important;
+  border-radius: 6px;
+  color: #fff;
+}
+
+/* 🔵 Aguardando Insumos / Em Trânsito / Compras Pendentes */
+.gantt_task_line.gantt-material-pendente {
+  background-color: #3b82f6 !important;
+  border-color: #2563eb !important;
+  border-radius: 6px;
+  color: #fff;
+}
+
+/* 🟡 Manutenção / Assistência Técnica */
+.gantt_task_line.gantt-material-assistencia {
+  background-color: #f59e0b !important;
+  border-color: #d97706 !important;
+  border-radius: 6px;
+  color: #fff;
+}
+
+/* ─── Gap G-08: Linhas e Barras de Nó Pai de Equipe (type: "project") ─── */
+.gantt_task_line.gantt-project-team {
+  background-color: #64748b !important;
+  border-color: #475569 !important;
+  border-radius: 4px;
+  color: #f8fafc;
+  opacity: 0.85;
+}
+.gantt_task_line.gantt-project-team .gantt_task_content {
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* Destaque sutil para as linhas de equipe na tabela esquerda e linha temporal */
+.gantt_row.gantt-row-project,
+.gantt_task_row.gantt-row-project {
+  background-color: #f8fafc !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+}
+
+/* ─── Paleta de Equipes (8 cores legadas mantidas para telas públicas / fallback) ─── */
 .gantt_task_line.gantt-color-1 { background-color: #3b82f6 !important; border-color: #2563eb !important; border-radius: 6px; color: #fff; }
 .gantt_task_line.gantt-color-2 { background-color: #10b981 !important; border-color: #059669 !important; border-radius: 6px; color: #fff; }
 .gantt_task_line.gantt-color-3 { background-color: #f59e0b !important; border-color: #d97706 !important; border-radius: 6px; color: #fff; }
@@ -110,7 +156,6 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
-
 
 /* ─── Otimização de Impressão / Exportação PDF (@media print) ─── */
 @media print {

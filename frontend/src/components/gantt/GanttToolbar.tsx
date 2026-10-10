@@ -4,6 +4,7 @@ import {
   Printer,
   Share2,
   X,
+  Filter,
 } from "lucide-react";
 
 export type NivelZoom = "day" | "week" | "month";
@@ -21,6 +22,8 @@ interface GanttToolbarProps {
   onLimparDatas?: () => void;
   onImprimir?: () => void;
   onAbrirCompartilhar?: () => void;
+  onAbrirFiltros?: () => void;
+  totalFiltrosAtivos?: number;
 }
 
 const NIVEIS: { valor: NivelZoom; label: string }[] = [
@@ -42,6 +45,8 @@ export function GanttToolbar({
   onLimparDatas,
   onImprimir,
   onAbrirCompartilhar,
+  onAbrirFiltros,
+  totalFiltrosAtivos = 0,
 }: GanttToolbarProps) {
   const temFiltroData = Boolean(dataFiltroInicio || dataFiltroFim);
 
@@ -90,6 +95,28 @@ export function GanttToolbar({
           <span className="hidden md:inline">{mostrarGrade ? "Grade" : "100% Timeline"}</span>
         </button>
       )}
+
+      {/* Botão de Filtros Avançados (Gap G-03) */}
+      {onAbrirFiltros && (
+        <button
+          onClick={onAbrirFiltros}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all cursor-pointer shrink-0 ${
+            totalFiltrosAtivos > 0
+              ? "bg-blue-50 border-blue-300 text-blue-700 font-semibold"
+              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+          }`}
+          title="Abrir gaveta de filtros avançados"
+        >
+          <Filter className="w-3.5 h-3.5" />
+          <span>Filtros</span>
+          {totalFiltrosAtivos > 0 ? (
+            <span className="ml-0.5 px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-[10px] font-bold">
+              {totalFiltrosAtivos}
+            </span>
+          ) : null}
+        </button>
+      )}
+
 
       {/* Grupo 3: Filtro de Período Opcional */}
       {onDataInicioChange && onDataFimChange && (

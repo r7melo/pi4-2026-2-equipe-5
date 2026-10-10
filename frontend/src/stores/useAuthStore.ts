@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { NomePerfil } from "@/types";
 
 export interface UsuarioPerfil {
@@ -22,26 +23,65 @@ interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
-  usuario: (() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const salvo = localStorage.getItem("usuario");
-      return salvo ? (JSON.parse(salvo) as Usuario) : null;
-    } catch {
-      return null;
+// Migração defensiva ativa: se houver chave nova, garante precedência e expurga resíduos;
+// se houver apenas chaves legadas, migra estruturado para "auth-storage" imediatamente.
+function migrarEstadoLegado(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const authStorage = localStorage.getItem("auth-storage");
+    if (authStorage) {
+      // Chave moderna já existe: expurga qualquer resíduo legado antigo
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+      return;
     }
-  })(),
-  login: (token, usuario) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-    set({ token, usuario });
-  },
-  logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    set({ token: null, usuario: null });
-    window.location.href = "/login";
-  },
-}));
+
+    const tokenLegado = localStorage.getItem("token");
+    const usuarioLegadoStr = localStorage.getItem("usuario");
+    if (tokenLegado || usuarioLegadoStr) {
+      let usuarioLegado: Usuario | null = null;
+      if (usuarioLegadoStr) {
+        try {
+          usuarioLegado = JSON.parse(usuarioLegadoStr) as Usuario;
+        } catch {
+          // Ignora JSON legado se corrompido
+        }
+      }
+      // Cria a estrutura canônica do Zustand persist
+      localStorage.setItem(
+        "auth-storage",
+        JSON.stringify({
+          state: { token: tokenLegado || null, usuario: usuarioLegado },
+          version: 0,
+        })
+      );
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+    }
+  } catch {
+    // Silencia eventuais restrições de storage em modo anônimo estrito
+  }
+}
+
+migrarEstadoLegado();
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      token: null,
+      usuario: null,
+      login: (token, usuario) => {
+        set({ token, usuario });
+      },
+      logout: () => {
+        set({ token: null, usuario: null });
+        window.location.href = "/login";
+      },
+    }),
+    {
+      name: "auth-storage",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ token: state.token, usuario: state.usuario }),
+    }
+  )
+);

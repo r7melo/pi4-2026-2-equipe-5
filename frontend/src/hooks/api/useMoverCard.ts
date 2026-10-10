@@ -13,7 +13,7 @@ interface MoverCardVariables {
 export function useMoverCard() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  const moverMutation = useMutation({
     mutationFn: async ({ cardId, novoStatus, observacao }: MoverCardVariables) => {
       return moverStatusObra(Number(cardId), novoStatus, observacao);
     },
@@ -36,20 +36,30 @@ export function useMoverCard() {
 
       return { previousObras };
     },
-    onError: (err, _variables, context) => {
+    onError: (err, variables, context) => {
       // Rollback caso a mutação falhe no backend
       if (context?.previousObras) {
         queryClient.setQueryData(["obras"], context.previousObras);
       }
       console.error("Falha ao mover card:", err);
-      toast.error("Falha ao mover o card. A posição foi restaurada.");
+      toast.error("Falha ao mover o card. A posição foi restaurada.", {
+        action: {
+          label: "Tentar novamente",
+          onClick: () => {
+            moverMutation.mutate(variables);
+          },
+        },
+      });
     },
     onSettled: (data) => {
-      // Revalida os dados da query no backend
+      // Revalida tanto obras quanto programações (sincronização Kanban <-> Gantt RF-10)
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
+      void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
       if (data?.emailNotificacaoEnviado) {
         toast.info("Obra marcada como concluída! Notificação enviada por e-mail.");
       }
     },
   });
+
+  return moverMutation;
 }

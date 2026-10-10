@@ -66,8 +66,8 @@ export function useExcluirObra() {
   return useMutation({
     mutationFn: (id: number) => excluirObra(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["obras"] });
-      queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["obras"] });
+      void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
     },
   });
 }

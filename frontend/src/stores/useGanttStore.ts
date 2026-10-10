@@ -1,38 +1,76 @@
 // frontend/src/stores/useGanttStore.ts
-// Store Zustand para UI State do Gantt com persistência em localStorage
+// Store Zustand para UI State do Gantt com persistência declarativa em localStorage
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type { NivelZoom } from "@/components/gantt/GanttToolbar";
+import type { CategoriaObra } from "@/types";
+import type { StatusObra } from "@/constants/kanbanStatus";
 
-const STORAGE_KEY_ZOOM = "gantt_nivel_zoom";
+export interface GanttFiltrosAvancados {
+  termoBusca?: string;
+  categoria?: CategoriaObra;
+  equipeId?: number;
+  statusObra?: StatusObra;
+  prioridade?: number;
+  responsavel?: string;
+  dataInicioDe?: string;
+  dataInicioAte?: string;
+  dataFimDe?: string;
+  dataFimAte?: string;
+  statusMaterial?: "todos" | "pronto" | "pendente";
+  apenasAtrasadas?: boolean;
+}
 
 export interface GanttUIState {
   nivelZoom: NivelZoom;
   setNivelZoom: (nivel: NivelZoom) => void;
+  filtrosSalvos: GanttFiltrosAvancados | null;
+  salvarFiltros: (filtros: GanttFiltrosAvancados) => void;
+  limparFiltrosSalvos: () => void;
 }
 
-function obterNivelZoomSalvo(): NivelZoom {
-  if (typeof window === "undefined") return "day";
+// Migração defensiva ativa do zoom legado para a chave moderna "gantt-storage"
+function migrarZoomLegado(): void {
+  if (typeof window === "undefined") return;
   try {
-    const salvo = localStorage.getItem(STORAGE_KEY_ZOOM);
+    if (localStorage.getItem("gantt-storage")) {
+      localStorage.removeItem("gantt_nivel_zoom");
+      return;
+    }
+    const salvo = localStorage.getItem("gantt_nivel_zoom");
     if (salvo === "day" || salvo === "week" || salvo === "month") {
-      return salvo;
+      localStorage.setItem(
+        "gantt-storage",
+        JSON.stringify({
+          state: { nivelZoom: salvo },
+          version: 0,
+        })
+      );
+      localStorage.removeItem("gantt_nivel_zoom");
     }
   } catch {
-    // Silencia erro de leitura no storage
+    // Silencia restrições de storage
   }
-  return "day"; // Padrão inicial: Dias
 }
 
-export const useGanttStore = create<GanttUIState>((set) => ({
-  nivelZoom: obterNivelZoomSalvo(),
-  setNivelZoom: (nivel) => {
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(STORAGE_KEY_ZOOM, nivel);
-      } catch {
-        // Silencia erro de escrita no storage
-      }
+migrarZoomLegado();
+
+export const useGanttStore = create<GanttUIState>()(
+  persist(
+    (set) => ({
+      nivelZoom: "day",
+      setNivelZoom: (nivel) => set({ nivelZoom: nivel }),
+      filtrosSalvos: null,
+      salvarFiltros: (filtros) => set({ filtrosSalvos: filtros }),
+      limparFiltrosSalvos: () => set({ filtrosSalvos: null }),
+    }),
+    {
+      name: "gantt-storage",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        nivelZoom: state.nivelZoom,
+        filtrosSalvos: state.filtrosSalvos,
+      }),
     }
-    set({ nivelZoom: nivel });
-  },
-}));
+  )
+);

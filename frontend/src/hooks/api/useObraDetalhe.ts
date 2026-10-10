@@ -36,7 +36,7 @@ export function useAdicionarComentario() {
     mutationFn: ({ obraId, descricao }: { obraId: number; descricao: string }) =>
       adicionarComentario(obraId, descricao),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["comentarios", variables.obraId] });
+      void queryClient.invalidateQueries({ queryKey: ["comentarios", variables.obraId] });
       toast.success("Comentário adicionado");
     },
     onError: () => {

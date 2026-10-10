@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { Zap, ExternalLink, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, memo } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { Zap, Trash2, Calendar, User } from "lucide-react";
+import axios from "axios";
 import type { ObraCard } from "@/types";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { cn } from "@/lib/utils";
@@ -10,53 +9,71 @@ import ModalExcluirObra from "./ModalExcluirObra";
 import { useExcluirObra } from "@/hooks/api/useObras";
 import { useProgramacoes } from "@/hooks/api/useProgramacoes";
 import { toast } from "sonner";
+import { getCategoriaBadgeStyle, getIniciaisNome, calcularDiasRestantes, obterHojeLocalISO } from "./kanbanUtils";
 
 interface KanbanCardProps {
   card: ObraCard;
+  onSelect?: (card: ObraCard) => void;
 }
 
-export default function KanbanCard({ card }: KanbanCardProps) {
-  const navigate = useNavigate();
+export default memo(function KanbanCard({ card, onSelect }: KanbanCardProps) {
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
-  const canDrag = perfil === "Administrador" || perfil === "EngenhariaObras";
-  const canDelete = canDrag;
+  const isFinanceiro = perfil === "Financeiro";
+  const canDrag = !isFinanceiro && (perfil === "Administrador" || perfil === "EngenhariaObras");
+  const canDelete = !isFinanceiro && canDrag;
 
   const { data: programacoes } = useProgramacoes();
-  const temAlocacaoAtiva = Boolean(
-    programacoes?.some((p) => Number(p.obraId) === Number(card.id))
-  );
+
+  // Bloqueio conforme UC-11 RN2 / FA2: apenas alocações ativas ou futuras (data local imune a UTC)
+  const temAlocacaoAtiva = useMemo(() => {
+    if (!programacoes) return false;
+    const hojeStr = obterHojeLocalISO();
+    return programacoes.some((p) => {
+      if (Number(p.obraId) !== Number(card.id)) return false;
+      const fimStr = p.dataFim ? String(p.dataFim).split("T")[0] : "";
+      return fimStr >= hojeStr;
+    });
+  }, [programacoes, card.id]);
 
   const { mutateAsync: excluir, isPending: excluindo } = useExcluirObra();
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: String(card.id),
     disabled: !canDrag,
+    data: {
+      type: "item",
+      card,
+      containerId: card.status,
+    },
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.25 : 1,
   };
 
-  const getBadgeStyle = (categoria: string) => {
-    switch (categoria.toLowerCase()) {
-      case "atenção":
-        return "bg-amber-50 text-amber-600";
-      case "em obra":
-        return "bg-blue-50 text-blue-600";
-      case "concluído":
-        return "bg-emerald-50 text-emerald-600";
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
-  };
+  const valorFormatado = useMemo(() => {
+    const valor = card.valorTotal || card.quantidadePaineis * 1300;
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 0,
+    }).format(valor);
+  }, [card.valorTotal, card.quantidadePaineis]);
 
-  const handleDetalheClick = (e: React.MouseEvent) => {
-    // Evita conflito com o drag — só navega se foi um clique simples (sem arrastar)
+  const prazoRestante = useMemo(
+    () => calcularDiasRestantes(card.dataFimEstimada, card.status),
+    [card.dataFimEstimada, card.status]
+  );
+
+  const iniciaisAutor = useMemo(
+    () => getIniciaisNome(card.atualizadoPor || "Carlos Administrador"),
+    [card.atualizadoPor]
+  );
+
+  const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    void navigate(`/obras/${card.id}`, { state: { from: "/kanban" } });
+    onSelect?.(card);
   };
 
   const handleConfirmarExclusao = async () => {
@@ -64,11 +81,13 @@ export default function KanbanCard({ card }: KanbanCardProps) {
       await excluir(card.id);
       toast.success("Obra excluída com sucesso.");
       setModalExcluirAberto(false);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error?.message ||
-        err?.message ||
-        "Não foi possível excluir a obra.";
+    } catch (err: unknown) {
+      let msg = "Não foi possível excluir a obra.";
+      if (axios.isAxiosError<{ error?: { message?: string } }>(err)) {
+        msg = err.response?.data?.error?.message || err.message;
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
       toast.error(msg);
     }
   };
@@ -80,16 +99,24 @@ export default function KanbanCard({ card }: KanbanCardProps) {
         style={style}
         {...attributes}
         {...listeners}
+        onClick={handleCardClick}
         className={cn(
-          "bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm transition-all select-none group relative",
-          canDrag && "hover:shadow-md hover:border-slate-300 cursor-grab active:cursor-grabbing hover:-translate-y-0.5",
-          isDragging && "shadow-xl border-slate-400"
+          "bg-white border border-slate-200/90 rounded-lg p-2.5 shadow-xs transition-all select-none group relative",
+          canDrag ? "cursor-pointer hover:shadow-md hover:border-slate-300 active:cursor-grabbing hover:-translate-y-0.5" : "cursor-default",
+          isDragging && "shadow-xl border-blue-400 ring-2 ring-blue-400/20"
         )}
       >
-        <div className="flex items-start justify-between gap-1 mb-1.5">
-          <span className={cn("inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full", getBadgeStyle(card.categoria))}>
+        {/* Linha 1: Categoria e Botão Excluir */}
+        <div className="flex items-center justify-between gap-1 mb-1">
+          <span
+            className={cn(
+              "inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border",
+              getCategoriaBadgeStyle(card.categoria)
+            )}
+          >
             {card.categoria}
           </span>
+
           {canDelete && (
             <button
               type="button"
@@ -99,34 +126,61 @@ export default function KanbanCard({ card }: KanbanCardProps) {
                 setModalExcluirAberto(true);
               }}
               title="Excluir obra"
-              aria-label="Excluir obra"
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-600 cursor-pointer"
+              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 rounded transition-opacity cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        <p className="text-xs font-semibold text-slate-800 leading-snug">{card.clienteNome}</p>
-        <div className="flex items-center justify-between gap-1 text-[11px] font-semibold text-slate-500 mt-1.5 pt-1.5 border-t border-slate-100">
-          <span className="flex items-center gap-1">
-            <Zap className="w-3 h-3 text-amber-500" />
-            {card.quantidadePaineis} Painéis
+        {/* Linha 2: Nome do Cliente */}
+        <h4 className="text-xs font-semibold text-slate-800 line-clamp-1 mb-1" title={card.clienteNome}>
+          {card.clienteNome}
+        </h4>
+
+        {/* Linha 3: Valor Total da Obra */}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="font-bold text-slate-700 text-[11px]">
+            {valorFormatado}
           </span>
-          {/* Botão de detalhes visível ao hover */}
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={handleDetalheClick}
-            title="Ver detalhes da obra"
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+          <span className="text-[10px] text-slate-500 font-medium flex items-center gap-1">
+            <Zap className="w-3 h-3 text-slate-400 shrink-0" />
+            {card.quantidadePaineis} painéis
+          </span>
+        </div>
+
+        {/* Linha 4: Prazos e Micro-Avatar do Autor com Ícone */}
+        <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-100 text-slate-500">
+          <div className="flex items-center gap-1 font-medium">
+            <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+            <span>{card.prazoContratualDias || 30}d •</span>
+            <span
+              className={cn(
+                "font-semibold",
+                prazoRestante.concluido
+                  ? "text-slate-500"
+                  : prazoRestante.urgente
+                  ? "text-red-600"
+                  : "text-slate-500"
+              )}
+            >
+              {prazoRestante.texto}
+            </span>
+          </div>
+
+          {/* Micro-avatar de autoria: ícone de usuário + iniciais */}
+          <div
+            title={`Última alteração por: ${card.atualizadoPor || "Carlos Administrador"}`}
+            className="flex items-center gap-1 font-medium"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </button>
+            <User className="w-3 h-3 text-slate-400 shrink-0" />
+            <span>{iniciaisAutor}</span>
+          </div>
         </div>
       </div>
 
       <ModalExcluirObra
-        card={card}
+        obra={card}
         isOpen={modalExcluirAberto}
         onClose={() => setModalExcluirAberto(false)}
         onConfirm={handleConfirmarExclusao}
@@ -135,5 +189,4 @@ export default function KanbanCard({ card }: KanbanCardProps) {
       />
     </>
   );
-}
-
+});

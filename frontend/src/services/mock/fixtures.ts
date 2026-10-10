@@ -75,19 +75,19 @@ export const MOCK_USUARIOS: Record<string, MockUsuario> = {
 
 /** 10 Obras sincronizadas estritamente com database/02_seed.sql */
 export const MOCK_OBRAS_FIXTURE: ObraCard[] = [
-  { id: 301, clienteNome: "Rede Alfa Supermercados", status: "MaterialComprado", categoria: "Comercial", quantidadePaineis: 45, dataFimEstimada: "2026-10-06" },
-  { id: 302, clienteNome: "Indústria Metalúrgica Ramos", status: "MaterialComprado", categoria: "Industrial", quantidadePaineis: 120, dataFimEstimada: "2026-10-25" },
-  { id: 303, clienteNome: "Residencial Vista Verde", status: "NoDeposito", categoria: "Residencial", quantidadePaineis: 24, dataFimEstimada: "2026-10-14" },
-  { id: 304, clienteNome: "Fazenda Santa Maria", status: "Separado", categoria: "Rural", quantidadePaineis: 80, dataFimEstimada: "2026-10-08" },
-  { id: 305, clienteNome: "Hospital São Lucas", status: "EmAndamento", categoria: "Comercial", quantidadePaineis: 96, dataFimEstimada: "2026-10-02" },
-  { id: 306, clienteNome: "Condomínio Solar das Flores", status: "EmAndamento", categoria: "Residencial", quantidadePaineis: 36, dataFimEstimada: "2026-10-04" },
-  { id: 307, clienteNome: "Posto Alvorada Combustíveis", status: "Concluido", categoria: "Comercial", quantidadePaineis: 50, dataFimEstimada: "2026-09-18" },
-  { id: 308, clienteNome: "Granja Silva", status: "Assistencia", categoria: "Manutenção", quantidadePaineis: 30, dataFimEstimada: "2026-10-12" },
-  { id: 309, clienteNome: "Escola Estadual Dom Pedro II", status: "NoDeposito", categoria: "Comercial", quantidadePaineis: 60, dataFimEstimada: "2026-10-20" },
-  { id: 310, clienteNome: "Shopping Bela Vista", status: "MaterialComprado", categoria: "Comercial", quantidadePaineis: 200, dataFimEstimada: "2026-11-10" },
+  { id: 301, clienteNome: "Rede Alfa Supermercados", status: "MaterialComprado", categoria: "Comercial", quantidadePaineis: 45, dataFimEstimada: "2026-10-06", valorTotal: 58500, prazoContratualDias: 45, atualizadoPor: "Carlos Admin" },
+  { id: 302, clienteNome: "Indústria Metalúrgica Ramos", status: "MaterialComprado", categoria: "Industrial", quantidadePaineis: 120, dataFimEstimada: "2026-10-25", valorTotal: 156000, prazoContratualDias: 60, atualizadoPor: "Carlos Admin" },
+  { id: 303, clienteNome: "Residencial Vista Verde", status: "NoDeposito", categoria: "Residencial", quantidadePaineis: 24, dataFimEstimada: "2026-10-14", valorTotal: 32000, prazoContratualDias: 30, atualizadoPor: "Ana Souza" },
+  { id: 304, clienteNome: "Fazenda Santa Maria", status: "Separado", categoria: "Rural", quantidadePaineis: 80, dataFimEstimada: "2026-10-08", valorTotal: 104000, prazoContratualDias: 45, atualizadoPor: "Ana Souza" },
+  { id: 305, clienteNome: "Hospital São Lucas", status: "EmAndamento", categoria: "Comercial", quantidadePaineis: 96, dataFimEstimada: "2026-10-02", valorTotal: 128000, prazoContratualDias: 30, atualizadoPor: "Ana Souza" },
+  { id: 306, clienteNome: "Condomínio Solar das Flores", status: "EmAndamento", categoria: "Residencial", quantidadePaineis: 36, dataFimEstimada: "2026-10-04", valorTotal: 48000, prazoContratualDias: 30, atualizadoPor: "Julia Eng." },
+  { id: 307, clienteNome: "Posto Alvorada Combustíveis", status: "Concluido", categoria: "Comercial", quantidadePaineis: 50, dataFimEstimada: "2026-09-18", valorTotal: 69000, prazoContratualDias: 45, atualizadoPor: "Ana Souza" },
+  { id: 308, clienteNome: "Granja Silva", status: "Assistencia", categoria: "Manutenção", quantidadePaineis: 30, dataFimEstimada: "2026-10-12", valorTotal: 18000, prazoContratualDias: 15, atualizadoPor: "Marcos Instalador" },
+  { id: 309, clienteNome: "Escola Estadual Dom Pedro II", status: "NoDeposito", categoria: "Comercial", quantidadePaineis: 60, dataFimEstimada: "2026-10-20", valorTotal: 78000, prazoContratualDias: 45, atualizadoPor: "Ana Souza" },
+  { id: 310, clienteNome: "Shopping Bela Vista", status: "MaterialComprado", categoria: "Comercial", quantidadePaineis: 200, dataFimEstimada: "2026-11-10", valorTotal: 260000, prazoContratualDias: 90, atualizadoPor: "Carlos Admin" },
 ];
 
-const STORAGE_KEY = "mock_obras_v2";
+const STORAGE_KEY = "mock_obras_v3";
 
 export function obterObrasArmazenadas(): ObraCard[] {
   if (typeof window === "undefined") return MOCK_OBRAS_FIXTURE;
@@ -129,9 +129,12 @@ export function adicionarObraArmazenada(payload: {
     clienteNome: payload.clienteNome,
     cidade: payload.cidade,
     status: "MaterialComprado",
-    categoria: "Novo",
+    categoria: "Residencial",
     quantidadePaineis: payload.quantidadePaineis,
     dataFimEstimada: payload.dataFimEstimada,
+    valorTotal: payload.quantidadePaineis * 1300,
+    prazoContratualDias: 30,
+    atualizadoPor: "Ana Souza",
   };
 
   const listaAtualizada = [novaObra, ...obras];
@@ -141,14 +144,19 @@ export function adicionarObraArmazenada(payload: {
 
 export function atualizarStatusObraArmazenada(
   id: number,
-  statusNovo: StatusObra
+  statusNovo: StatusObra,
+  autorAtualizacao?: string
 ): ObraCard | null {
   const obras = obterObrasArmazenadas();
   let obraModificada: ObraCard | null = null;
 
   const listaAtualizada = obras.map((obra) => {
     if (Number(obra.id) === id) {
-      obraModificada = { ...obra, status: statusNovo };
+      obraModificada = {
+        ...obra,
+        status: statusNovo,
+        atualizadoPor: autorAtualizacao || obra.atualizadoPor || "Ana Souza",
+      };
       return obraModificada;
     }
     return obra;
@@ -408,62 +416,62 @@ const STORAGE_KEY_MAT = "mock_materiais";
 
 export const MOCK_MATERIAIS_FIXTURE: Material[] = [
   // Obra 301 - Rede Alfa Supermercados (45 painéis)
-  { id: 501, obraId: 301, descricao: "Painel Solar 550W Monocristalino", quantidade: 45, unidade: "un" },
-  { id: 502, obraId: 301, descricao: "Inversor String 25kW Trifásico", quantidade: 1, unidade: "un" },
-  { id: 503, obraId: 301, descricao: "Cabo Solar 6mm Preto/Vermelho", quantidade: 400, unidade: "m" },
-  { id: 504, obraId: 301, descricao: "Estrutura Fixação Telhado Trapezoidal", quantidade: 12, unidade: "kit" },
-  { id: 505, obraId: 301, descricao: "String Box CC 1000V com DPS Integrado", quantidade: 1, unidade: "un" },
+  { id: 501, obraId: 301, descricao: "Painel Solar 550W Monocristalino", quantidade: 45, unidade: "un", statusLogistico: "Comprado" },
+  { id: 502, obraId: 301, descricao: "Inversor String 25kW Trifásico", quantidade: 1, unidade: "un", statusLogistico: "EmTransito" },
+  { id: 503, obraId: 301, descricao: "Cabo Solar 6mm Preto/Vermelho", quantidade: 400, unidade: "m", statusLogistico: "Comprado" },
+  { id: 504, obraId: 301, descricao: "Estrutura Fixação Telhado Trapezoidal", quantidade: 12, unidade: "kit", statusLogistico: "EmTransito" },
+  { id: 505, obraId: 301, descricao: "String Box CC 1000V com DPS Integrado", quantidade: 1, unidade: "un", statusLogistico: "Comprado" },
 
   // Obra 302 - Indústria Metalúrgica Ramos (120 painéis)
-  { id: 506, obraId: 302, descricao: "Módulo Fotovoltaico 550W Bifacial", quantidade: 120, unidade: "un" },
-  { id: 507, obraId: 302, descricao: "Inversor Central Trifásico 75kW", quantidade: 1, unidade: "un" },
-  { id: 508, obraId: 302, descricao: "Cabo Solar 10mm Dupla Isolação", quantidade: 600, unidade: "m" },
-  { id: 509, obraId: 302, descricao: "Estrutura Metálica Reforçada Alumínio", quantidade: 30, unidade: "kit" },
-  { id: 510, obraId: 302, descricao: "Painel de Média Tensão e Proteção", quantidade: 1, unidade: "un" },
-  { id: 511, obraId: 302, descricao: "Conectores MC4 Industriais Blindados", quantidade: 32, unidade: "par" },
+  { id: 506, obraId: 302, descricao: "Módulo Fotovoltaico 550W Bifacial", quantidade: 120, unidade: "un", statusLogistico: "Comprado" },
+  { id: 507, obraId: 302, descricao: "Inversor Central Trifásico 75kW", quantidade: 1, unidade: "un", statusLogistico: "EmTransito" },
+  { id: 508, obraId: 302, descricao: "Cabo Solar 10mm Dupla Isolação", quantidade: 600, unidade: "m", statusLogistico: "Comprado" },
+  { id: 509, obraId: 302, descricao: "Estrutura Metálica Reforçada Alumínio", quantidade: 30, unidade: "kit", statusLogistico: "Comprado" },
+  { id: 510, obraId: 302, descricao: "Painel de Média Tensão e Proteção", quantidade: 1, unidade: "un", statusLogistico: "EmTransito" },
+  { id: 511, obraId: 302, descricao: "Conectores MC4 Industriais Blindados", quantidade: 32, unidade: "par", statusLogistico: "Comprado" },
 
   // Obra 303 - Residencial Vista Verde (24 painéis)
-  { id: 512, obraId: 303, descricao: "Painel Solar 550W Monocristalino", quantidade: 24, unidade: "un" },
-  { id: 513, obraId: 303, descricao: "Microinversor 2000W 4 MPPT", quantidade: 6, unidade: "un" },
-  { id: 514, obraId: 303, descricao: "Cabo Tronco e Cabo Solar 6mm", quantidade: 80, unidade: "m" },
-  { id: 515, obraId: 303, descricao: "Estrutura Telha Cerâmica com Gancho Inox", quantidade: 6, unidade: "kit" },
-  { id: 516, obraId: 303, descricao: "Quadro de Distribuição CA com DPS e Disjuntor", quantidade: 1, unidade: "un" },
+  { id: 512, obraId: 303, descricao: "Painel Solar 550W Monocristalino", quantidade: 24, unidade: "un", statusLogistico: "Disponivel" },
+  { id: 513, obraId: 303, descricao: "Microinversor 2000W 4 MPPT", quantidade: 6, unidade: "un", statusLogistico: "Disponivel" },
+  { id: 514, obraId: 303, descricao: "Cabo Tronco e Cabo Solar 6mm", quantidade: 80, unidade: "m", statusLogistico: "Disponivel" },
+  { id: 515, obraId: 303, descricao: "Estrutura Telha Cerâmica com Gancho Inox", quantidade: 6, unidade: "kit", statusLogistico: "Disponivel" },
+  { id: 516, obraId: 303, descricao: "Quadro de Distribuição CA com DPS e Disjuntor", quantidade: 1, unidade: "un", statusLogistico: "Disponivel" },
 
   // Obra 304 - Fazenda Santa Maria (80 painéis)
-  { id: 517, obraId: 304, descricao: "Módulo Fotovoltaico 550W Tier 1", quantidade: 80, unidade: "un" },
-  { id: 518, obraId: 304, descricao: "Inversor Trifásico 20kW", quantidade: 2, unidade: "un" },
-  { id: 519, obraId: 304, descricao: "Cabo Solar 6mm", quantidade: 400, unidade: "m" },
-  { id: 520, obraId: 304, descricao: "Estrutura Biposte de Solo em Aço Galvanizado", quantidade: 20, unidade: "kit" },
-  { id: 521, obraId: 304, descricao: "String Box CC 2 Entradas / 2 Saídas", quantidade: 2, unidade: "un" },
-  { id: 522, obraId: 304, descricao: "Eletroduto Corrugado Reforçado 2\"", quantidade: 150, unidade: "m" },
+  { id: 517, obraId: 304, descricao: "Módulo Fotovoltaico 550W Tier 1", quantidade: 80, unidade: "un", statusLogistico: "Disponivel" },
+  { id: 518, obraId: 304, descricao: "Inversor Trifásico 20kW", quantidade: 2, unidade: "un", statusLogistico: "Disponivel" },
+  { id: 519, obraId: 304, descricao: "Cabo Solar 6mm", quantidade: 400, unidade: "m", statusLogistico: "Disponivel" },
+  { id: 520, obraId: 304, descricao: "Estrutura Biposte de Solo em Aço Galvanizado", quantidade: 20, unidade: "kit", statusLogistico: "Disponivel" },
+  { id: 521, obraId: 304, descricao: "String Box CC 2 Entradas / 2 Saídas", quantidade: 2, unidade: "un", statusLogistico: "Disponivel" },
+  { id: 522, obraId: 304, descricao: "Eletroduto Corrugado Reforçado 2\"", quantidade: 150, unidade: "m", statusLogistico: "Disponivel" },
 
   // Obra 305 - Hospital São Lucas (96 painéis)
-  { id: 523, obraId: 305, descricao: "Painel Solar 550W Alta Eficiência", quantidade: 96, unidade: "un" },
-  { id: 524, obraId: 305, descricao: "Inversor Híbrido 25kW com Suporte a Nobreak", quantidade: 2, unidade: "un" },
-  { id: 525, obraId: 305, descricao: "Cabo Solar 6mm Retardante a Chamas", quantidade: 500, unidade: "m" },
-  { id: 526, obraId: 305, descricao: "Estrutura Especial Fixação Alumínio Anodizado", quantidade: 24, unidade: "kit" },
-  { id: 527, obraId: 305, descricao: "Sistema de Aterramento e Malha SPDA Hospitalar", quantidade: 1, unidade: "un" },
-  { id: 528, obraId: 305, descricao: "Chave de Transferência Automática ATS", quantidade: 2, unidade: "un" },
+  { id: 523, obraId: 305, descricao: "Painel Solar 550W Alta Eficiência", quantidade: 96, unidade: "un", statusLogistico: "Utilizado" },
+  { id: 524, obraId: 305, descricao: "Inversor Híbrido 25kW com Suporte a Nobreak", quantidade: 2, unidade: "un", statusLogistico: "Utilizado" },
+  { id: 525, obraId: 305, descricao: "Cabo Solar 6mm Retardante a Chamas", quantidade: 500, unidade: "m", statusLogistico: "Utilizado" },
+  { id: 526, obraId: 305, descricao: "Estrutura Especial Fixação Alumínio Anodizado", quantidade: 24, unidade: "kit", statusLogistico: "Utilizado" },
+  { id: 527, obraId: 305, descricao: "Sistema de Aterramento e Malha SPDA Hospitalar", quantidade: 1, unidade: "un", statusLogistico: "Utilizado" },
+  { id: 528, obraId: 305, descricao: "Chave de Transferência Automática ATS", quantidade: 2, unidade: "un", statusLogistico: "Utilizado" },
 
   // Obra 306 - Condomínio Solar das Flores (36 painéis)
-  { id: 529, obraId: 306, descricao: "Módulo Fotovoltaico 550W", quantidade: 36, unidade: "un" },
-  { id: 530, obraId: 306, descricao: "Inversor Trifásico 15kW", quantidade: 1, unidade: "un" },
-  { id: 531, obraId: 306, descricao: "Cabo Solar 6mm", quantidade: 150, unidade: "m" },
-  { id: 532, obraId: 306, descricao: "Estrutura Especial para Telhas Shingle", quantidade: 9, unidade: "kit" },
-  { id: 533, obraId: 306, descricao: "Caixa de Proteção CA/CC Integrada", quantidade: 1, unidade: "un" },
+  { id: 529, obraId: 306, descricao: "Módulo Fotovoltaico 550W", quantidade: 36, unidade: "un", statusLogistico: "Utilizado" },
+  { id: 530, obraId: 306, descricao: "Inversor Trifásico 15kW", quantidade: 1, unidade: "un", statusLogistico: "Utilizado" },
+  { id: 531, obraId: 306, descricao: "Cabo Solar 6mm", quantidade: 150, unidade: "m", statusLogistico: "Utilizado" },
+  { id: 532, obraId: 306, descricao: "Estrutura Especial para Telhas Shingle", quantidade: 9, unidade: "kit", statusLogistico: "Utilizado" },
+  { id: 533, obraId: 306, descricao: "Caixa de Proteção CA/CC Integrada", quantidade: 1, unidade: "un", statusLogistico: "Utilizado" },
 
   // Obra 307 - Posto Alvorada Combustíveis (50 painéis)
-  { id: 534, obraId: 307, descricao: "Painel Solar 550W com Certificação Anti-chama", quantidade: 50, unidade: "un" },
-  { id: 535, obraId: 307, descricao: "Inversor IP66 para Área Classificada", quantidade: 1, unidade: "un" },
-  { id: 536, obraId: 307, descricao: "Cabo Solar Blindado 6mm", quantidade: 250, unidade: "m" },
-  { id: 537, obraId: 307, descricao: "Estrutura em Aço Inox 316", quantidade: 14, unidade: "kit" },
-  { id: 538, obraId: 307, descricao: "Eletrodutos Galvanizados à Prova de Explosão", quantidade: 80, unidade: "m" },
+  { id: 534, obraId: 307, descricao: "Painel Solar 550W com Certificação Anti-chama", quantidade: 50, unidade: "un", statusLogistico: "Disponivel" },
+  { id: 535, obraId: 307, descricao: "Inversor IP66 para Área Classificada", quantidade: 1, unidade: "un", statusLogistico: "Disponivel" },
+  { id: 536, obraId: 307, descricao: "Cabo Solar Blindado 6mm", quantidade: 250, unidade: "m", statusLogistico: "Disponivel" },
+  { id: 537, obraId: 307, descricao: "Estrutura em Aço Inox 316", quantidade: 14, unidade: "kit", statusLogistico: "Disponivel" },
+  { id: 538, obraId: 307, descricao: "Eletrodutos Galvanizados à Prova de Explosão", quantidade: 80, unidade: "m", statusLogistico: "Disponivel" },
 
   // Obra 308 - Manutenção Preventiva — Granja Silva (30 painéis)
-  { id: 539, obraId: 308, descricao: "Conector MC4 Original Stäubli", quantidade: 20, unidade: "par" },
-  { id: 540, obraId: 308, descricao: "Diodo de Bypass 15A 1000V", quantidade: 4, unidade: "un" },
-  { id: 541, obraId: 308, descricao: "Fusível Fotovoltaico gPV 1000V 15A", quantidade: 2, unidade: "un" },
-  { id: 542, obraId: 308, descricao: "Solução Desengordurante Biodegradável para Módulos", quantidade: 50, unidade: "l" },
+  { id: 539, obraId: 308, descricao: "Conector MC4 Original Stäubli", quantidade: 20, unidade: "par", statusLogistico: "Comprado" },
+  { id: 540, obraId: 308, descricao: "Diodo de Bypass 15A 1000V", quantidade: 4, unidade: "un", statusLogistico: "Comprado" },
+  { id: 541, obraId: 308, descricao: "Fusível Fotovoltaico gPV 1000V 15A", quantidade: 2, unidade: "un", statusLogistico: "Comprado" },
+  { id: 542, obraId: 308, descricao: "Solução Desengordurante Biodegradável para Módulos", quantidade: 50, unidade: "l", statusLogistico: "Comprado" },
 ];
 
 export function obterMateriaisArmazenados(): Material[] {

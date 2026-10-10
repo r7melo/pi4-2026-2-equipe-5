@@ -1,11 +1,8 @@
 // frontend/src/components/gantt/GanttKpiBar.tsx
-import { Search, Plus, Users, Sun, Calendar, X } from "lucide-react";
+import { Search, Plus, Users, X } from "lucide-react";
 import type { Equipe } from "@/services/equipes";
 
 interface GanttKpiBarProps {
-  totalEquipes: number;
-  totalPaineis: number;
-  totalObras: number;
   termoBusca: string;
   onBuscaChange: (termo: string) => void;
   equipeSelecionada: number | null;
@@ -22,9 +19,6 @@ interface GanttKpiBarProps {
 }
 
 export function GanttKpiBar({
-  totalEquipes,
-  totalPaineis,
-  totalObras,
   termoBusca,
   onBuscaChange,
   equipeSelecionada,
@@ -42,30 +36,9 @@ export function GanttKpiBar({
   const temFiltroData = Boolean(dataFiltroInicio || dataFiltroFim);
 
   return (
-    <div className="kpi-bar flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5 px-3 py-2 bg-white rounded-lg border border-slate-200 shadow-xs shrink-0">
-      {/* ─── Esquerda: Mini-KPIs em Chips Reativos ─── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 xl:pb-0 scrollbar-none text-xs shrink-0">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200/60 text-slate-700 font-medium whitespace-nowrap">
-          <Users className="w-3.5 h-3.5 text-blue-600" />
-          <span>Equipes:</span>
-          <span className="font-semibold text-slate-900">{totalEquipes}</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200/60 text-slate-700 font-medium whitespace-nowrap">
-          <Sun className="w-3.5 h-3.5 text-amber-500" />
-          <span>Painéis:</span>
-          <span className="font-semibold text-slate-900">{totalPaineis} un.</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-200/60 text-slate-700 font-medium whitespace-nowrap">
-          <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Obras:</span>
-          <span className="font-semibold text-slate-900">{totalObras}</span>
-        </div>
-      </div>
-
-      {/* ─── Direita: Filtro de Período, Busca, Equipe e Botão Nova Alocação ─── */}
-      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+    <div className="kpi-bar flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 bg-white rounded-lg border border-slate-200 shadow-xs shrink-0">
+      {/* ─── Esquerda: Filtros de Período, Busca e Seleção de Equipe ─── */}
+      <div className="flex flex-wrap items-center gap-2">
         {/* Filtro de Período (De / Até) */}
         {onDataInicioChange && onDataFimChange && (
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs">
@@ -129,7 +102,10 @@ export function GanttKpiBar({
             </option>
           ))}
         </select>
+      </div>
 
+      {/* ─── Direita: Ações de Criação ─── */}
+      <div className="flex items-center gap-2">
         {canEdit && onNovaEquipe && (
           <button
             onClick={onNovaEquipe}

@@ -18,7 +18,7 @@ export function useAdicionarMaterial() {
     mutationFn: ({ obraId, payload }: { obraId: number; payload: Omit<Material, "id" | "obraId"> }) =>
       registrarMaterial(obraId, payload),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
+      void queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
       toast.success("Material registrado com sucesso");
     },
     onError: () => {

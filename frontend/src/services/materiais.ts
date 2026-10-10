@@ -7,6 +7,8 @@ export interface Material {
   descricao: string;
   quantidade: number;
   unidade: string;
+  tipo?: string;
+  statusLogistico?: string;
 }
 
 /** GET /api/obras/{obraId}/materiais */

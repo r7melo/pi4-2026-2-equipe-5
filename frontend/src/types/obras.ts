@@ -7,18 +7,24 @@ export interface Obra {
   nome: string;
 }
 
+export type CategoriaObra = "Residencial" | "Comercial" | "Industrial" | "Rural" | "Manutenção";
+
 export interface ObraCard {
   id: number;
   status: StatusObra;
   clienteNome: string;
-  categoria: string;
+  categoria: CategoriaObra;
   quantidadePaineis: number;
   dataFimEstimada: string;
+  dataFimReal?: string;
   nome?: string;
   cidade?: string;
   uf?: string;
   potenciaKwp?: number;
   progressoGeral?: number;
+  valorTotal?: number;
+  atualizadoPor?: string;
+  prazoContratualDias?: number;
 }
 
 export interface ListaObras {

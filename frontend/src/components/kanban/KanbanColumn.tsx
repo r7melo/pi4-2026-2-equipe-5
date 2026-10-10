@@ -1,76 +1,89 @@
+import { memo, useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, horizontalListSortingStrategy } from "@dnd-kit/sortable";
-import KanbanCard from "./KanbanCard";
 import type { ObraCard } from "@/types";
+import type { StatusObra } from "@/constants/kanbanStatus";
+import KanbanCard from "./KanbanCard";
 import { cn } from "@/lib/utils";
 
-interface Props {
-  columnId: string;
-  label: string;
+interface KanbanColumnProps {
+  id?: StatusObra;
+  title?: string;
+  columnId?: string;
+  label?: string;
   cards: ObraCard[];
+  onSelectCard?: (card: ObraCard) => void;
   horizontal?: boolean;
+  headerAction?: React.ReactNode;
 }
 
-export default function KanbanColumn({ columnId, label, cards, horizontal }: Props) {
-  const { setNodeRef, isOver } = useDroppable({ id: columnId });
-  const cardIds = cards.map((c) => String(c.id));
+export default memo(function KanbanColumn({
+  id,
+  title,
+  columnId,
+  label,
+  cards,
+  onSelectCard,
+  headerAction,
+}: KanbanColumnProps) {
+  const colId = (id || columnId || "") as StatusObra;
+  const colTitle = title || label || "";
+  const { setNodeRef, isOver } = useDroppable({ id: colId });
 
-  if (horizontal) {
-    return (
-      <div className="mt-6 shrink-0 pb-4">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 pl-1">
-          Raia — {label}
-        </h3>
-        <SortableContext id={columnId} items={cardIds} strategy={horizontalListSortingStrategy}>
-          <div
-            ref={setNodeRef}
-            className={cn(
-              "flex gap-4 p-2 rounded-xl transition-colors min-h-[120px] border border-dashed border-transparent",
-              isOver && "bg-slate-100/60 border-slate-300"
-            )}
-          >
-            {cards.length === 0 ? (
-              <div className="w-72 h-24 border border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs text-slate-400">
-                Arraste uma obra para cá
-              </div>
-            ) : (
-              cards.map((card) => <KanbanCard key={card.id} card={card} />)
-            )}
-          </div>
-        </SortableContext>
-      </div>
+  // Métricas agregadas da coluna: quantidade e valor financeiro total
+  const valorTotalColuna = useMemo(() => {
+    const soma = cards.reduce(
+      (acc, curr) => acc + (curr.valorTotal || curr.quantidadePaineis * 1300),
+      0
     );
-  }
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 0,
+    }).format(soma);
+  }, [cards]);
 
   return (
     <div
+      ref={setNodeRef}
       className={cn(
-        "w-72 shrink-0 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden transition-colors",
-        isOver && "border-slate-400 ring-2 ring-slate-200"
+        "flex flex-col bg-slate-100/90 rounded-xl p-2.5 transition-colors border border-slate-200/80 w-full min-w-[240px]",
+        isOver && "bg-blue-50/70 border-blue-300 ring-2 ring-blue-300/30"
       )}
     >
-      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <h3 className="font-semibold text-slate-700 text-sm">{label}</h3>
-        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-          {cards.length}
-        </span>
+      {/* Cabeçalho da Coluna: Título, Quantidade de Obras e Valor Acumulado */}
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/70">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+          <h3 className="font-semibold text-slate-800 text-xs tracking-tight truncate" title={colTitle}>
+            {colTitle}
+          </h3>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {headerAction}
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white text-slate-600 border border-slate-200 shrink-0">
+            {cards.length}
+          </span>
+        </div>
       </div>
 
-      <SortableContext id={columnId} items={cardIds} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className="p-3 flex-1 overflow-y-auto space-y-3 custom-scrollbar bg-slate-50/30 min-h-[150px]"
-        >
-          {cards.map((card) => (
-            <KanbanCard key={card.id} card={card} />
-          ))}
-          {cards.length === 0 && (
-            <div className="h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs text-slate-400">
-              Nenhuma obra
-            </div>
-          )}
-        </div>
-      </SortableContext>
+      {/* Sub-cabeçalho com valor total acumulado */}
+      <div className="flex items-center justify-between text-[10px] text-slate-500 mb-2 px-0.5">
+        <span>Total da etapa:</span>
+        <span className="font-bold text-slate-700">{valorTotalColuna}</span>
+      </div>
+
+      {/* Lista de Cards com Layout Infinito (sem overflow-y interno) */}
+      <div className="flex-1 space-y-2 min-h-[140px]">
+        {cards.map((card) => (
+          <KanbanCard key={card.id} card={card} onSelect={onSelectCard} />
+        ))}
+
+        {cards.length === 0 && (
+          <div className="h-28 border border-dashed border-slate-300/80 rounded-lg flex items-center justify-center p-3 text-center">
+            <p className="text-[11px] text-slate-400">Nenhuma obra nesta etapa</p>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+});
