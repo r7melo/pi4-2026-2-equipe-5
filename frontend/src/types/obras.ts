@@ -1,11 +1,6 @@
-// Tipos do domínio Obra (RF-03, RF-04)
+// Tipos do domínio Obra (RF-03, RF-04, RF-17)
 import { z } from "zod";
 import type { StatusObra } from "@/constants/kanbanStatus";
-
-export interface Obra {
-  id: string;
-  nome: string;
-}
 
 export type CategoriaObra = "Residencial" | "Comercial" | "Industrial" | "Rural" | "Manutenção";
 
@@ -102,12 +97,40 @@ export interface DadosHomologacao {
   atualizadoEm?: string;
 }
 
-/** Payload para alocar equipe a uma obra (Contrato Rota #15 / RF-08) */
-export interface CriarProgramacaoPayload {
-  obraId: number;
-  equipeId: number;
-  dataInicio: string; // ISO (yyyy-MM-dd)
-  dataFim?: string;    // ISO exclusiva (yyyy-MM-dd) — opcional; se omitida, calcula por ~9 painéis/dia
-  prioridade?: number;
+/** Detalhamento completo da obra para tela de Detalhe e Drawer (Rota #5) */
+export interface ObraDetalhe {
+  id: number;
+  status: StatusObra;
+  dataInicioEstimada: string;
+  dataFimEstimada: string;
+  dataInicioReal: string | null;
+  dataFimReal: string | null;
+  cliente: {
+    id: number;
+    nome: string;
+    cidade: string;
+  };
+  pagamento: {
+    id: number;
+    dataConfirmacao: string;
+    prazoContratualDias: number;
+  };
 }
 
+export interface HistoricoObra {
+  id: number;
+  obraId: number;
+  statusAnterior: string;
+  statusNovo: string;
+  dataAlteracao: string;
+  observacao?: string;
+  usuario: { id: number; nome: string };
+}
+
+export interface ComentarioObra {
+  id: number;
+  obraId: number;
+  descricao: string;
+  dataRegistro: string;
+  usuario: { id: number; nome: string };
+}

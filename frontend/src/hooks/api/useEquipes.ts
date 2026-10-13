@@ -1,10 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  listarEquipes,
-  criarEquipe,
-  listarInstaladores,
-  type CriarEquipePayload,
-} from "@/services/equipes";
+import { listarEquipes, criarEquipe, listarInstaladores } from "@/services/equipes";
+import type { CriarEquipePayload } from "@/types";
 
 export function useEquipes() {
   return useQuery({
@@ -31,4 +27,3 @@ export function useInstaladoresDisponiveis() {
     staleTime: 1000 * 60 * 5,
   });
 }
-

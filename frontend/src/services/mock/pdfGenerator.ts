@@ -1,6 +1,6 @@
 // Utilitário autônomo para geração de PDF 1.4 e Planilha Excel (RF-14 / RF-15)
 import type { ObraCard } from "@/types";
-import type { RelatorioCusto } from "../relatorios";
+import type { RelatorioCusto } from "@/types";
 
 function formatarMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", {

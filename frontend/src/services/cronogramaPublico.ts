@@ -1,24 +1,9 @@
-// frontend/src/services/cronogramaPublico.ts
-// Rota #21 do Contrato de API — GET /api/cronograma/compartilhado/{token} (RF-16)
 import { api } from "./api";
-import type { ObraCard } from "@/types";
-import type { Programacao } from "./programacoes";
-
-export interface RelatorioPublicoDados {
-  periodoInicio: string;
-  periodoFim: string;
-  clienteFiltro: string;
-  obras: ObraCard[];
-  totalObras: number;
-  obrasConcluidas: number;
-  totalPaineis: number;
-  potenciaTotalKwp: number;
-}
-
-export interface FiltroCronogramaPublico {
-  dataInicio?: string;
-  dataFim?: string;
-}
+import type {
+  RelatorioPublicoDados,
+  FiltroCronogramaPublico,
+  Programacao,
+} from "@/types";
 
 /**
  * GET /api/cronograma/compartilhado/{token}

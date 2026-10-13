@@ -1,6 +1,6 @@
-// frontend/src/components/gantt/GanttKpiBar.tsx
-import { Search, Plus, Users, X } from "lucide-react";
-import type { Equipe } from "@/services/equipes";
+import { Plus, Users, X } from "lucide-react";
+import type { Equipe } from "@/types";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 interface GanttKpiBarProps {
   termoBusca: string;
@@ -37,9 +37,7 @@ export function GanttKpiBar({
 
   return (
     <div className="kpi-bar flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 bg-white rounded-lg border border-slate-200 shadow-xs shrink-0">
-      {/* ─── Esquerda: Filtros de Período, Busca e Seleção de Equipe ─── */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Filtro de Período (De / Até) */}
         {onDataInicioChange && onDataFimChange && (
           <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs">
             <span className="text-slate-400 font-medium text-[11px]">De:</span>
@@ -68,25 +66,13 @@ export function GanttKpiBar({
           </div>
         )}
 
-        <div className="relative flex-1 sm:w-44 min-w-[130px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={termoBusca}
-            onChange={(e) => onBuscaChange(e.target.value)}
-            placeholder="Buscar obra..."
-            className="w-full text-xs pl-8 pr-7 py-1.5 bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400 transition-colors"
-          />
-          {termoBusca && (
-            <button
-              onClick={() => onBuscaChange("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-              title="Limpar busca"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          valor={termoBusca}
+          onChange={onBuscaChange}
+          placeholder="Buscar obra..."
+          tamanho="sm"
+          className="flex-1 sm:w-44 min-w-[130px]"
+        />
 
         <select
           value={equipeSelecionada ?? ""}
@@ -104,7 +90,6 @@ export function GanttKpiBar({
         </select>
       </div>
 
-      {/* ─── Direita: Ações de Criação ─── */}
       <div className="flex items-center gap-2">
         {canEdit && onNovaEquipe && (
           <button

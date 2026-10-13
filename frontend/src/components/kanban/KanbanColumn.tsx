@@ -4,6 +4,8 @@ import type { ObraCard } from "@/types";
 import type { StatusObra } from "@/constants/kanbanStatus";
 import KanbanCard from "./KanbanCard";
 import { cn } from "@/lib/utils";
+import { formatarMoeda } from "@/lib/formatters";
+import { obterValorObra } from "./kanbanUtils";
 
 interface KanbanColumnProps {
   id?: StatusObra;
@@ -29,17 +31,9 @@ export default memo(function KanbanColumn({
   const colTitle = title || label || "";
   const { setNodeRef, isOver } = useDroppable({ id: colId });
 
-  // Métricas agregadas da coluna: quantidade e valor financeiro total
   const valorTotalColuna = useMemo(() => {
-    const soma = cards.reduce(
-      (acc, curr) => acc + (curr.valorTotal || curr.quantidadePaineis * 1300),
-      0
-    );
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      maximumFractionDigits: 0,
-    }).format(soma);
+    const soma = cards.reduce((acc, curr) => acc + obterValorObra(curr), 0);
+    return formatarMoeda(soma, { semCentavos: true });
   }, [cards]);
 
   return (
@@ -50,7 +44,6 @@ export default memo(function KanbanColumn({
         isOver && "bg-blue-50/70 border-blue-300 ring-2 ring-blue-300/30"
       )}
     >
-      {/* Cabeçalho da Coluna: Título, Quantidade de Obras e Valor Acumulado */}
       <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/70">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
@@ -66,13 +59,11 @@ export default memo(function KanbanColumn({
         </div>
       </div>
 
-      {/* Sub-cabeçalho com valor total acumulado */}
       <div className="flex items-center justify-between text-[10px] text-slate-500 mb-2 px-0.5">
         <span>Total da etapa:</span>
         <span className="font-bold text-slate-700">{valorTotalColuna}</span>
       </div>
 
-      {/* Lista de Cards com Layout Infinito (sem overflow-y interno) */}
       <div className="flex-1 space-y-2 min-h-[140px]">
         {cards.map((card) => (
           <KanbanCard key={card.id} card={card} onSelect={onSelectCard} />

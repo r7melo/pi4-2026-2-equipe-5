@@ -1,11 +1,17 @@
 // frontend/src/services/mock/fixtures.ts
 // Fixtures sincronizadas 100% com database/02_seed.sql e database/GUIA_QA.md
-import type { ObraCard, NomePerfil, DadosHomologacao, CriarProgramacaoPayload } from "@/types";
+import type {
+  ObraCard,
+  DadosHomologacao,
+  CriarProgramacaoPayload,
+  Programacao,
+  Equipe,
+  CriarEquipePayload,
+  Material,
+  RelatorioCusto,
+  Usuario,
+} from "@/types";
 import type { StatusObra } from "@/constants/kanbanStatus";
-import type { Programacao } from "../programacoes";
-import type { Equipe, CriarEquipePayload } from "../equipes";
-import type { Material } from "../materiais";
-import type { RelatorioCusto } from "../relatorios";
 import {
   proximoDiaUtil,
   adicionarDiasUteis,
@@ -15,17 +21,7 @@ import {
   dataFimExclusivaParaUltimoDiaUtil,
 } from "@/lib/formatters";
 
-export interface MockUsuario {
-  id: number;
-  nome: string;
-  email: string;
-  perfil: {
-    id: number;
-    nomePerfil: NomePerfil;
-    permissoes: string[];
-  };
-  equipeId?: number;
-}
+export type MockUsuario = Usuario;
 
 /** Usuários sincronizados estritamente com IDs do 02_seed.sql e GUIA_QA.md */
 export const MOCK_USUARIOS: Record<string, MockUsuario> = {
@@ -38,6 +34,7 @@ export const MOCK_USUARIOS: Record<string, MockUsuario> = {
       nomePerfil: "Administrador",
       permissoes: ["*"],
     },
+    equipeId: null,
   },
   "engenharia@zlengenharia.com": {
     id: 2,
@@ -59,13 +56,14 @@ export const MOCK_USUARIOS: Record<string, MockUsuario> = {
       nomePerfil: "Financeiro",
       permissoes: ["financeiro:visualizar", "relatorios:visualizar"],
     },
+    equipeId: null,
   },
   "instalador@zl.com.br": {
-    id: 5,
+    id: 4,
     nome: "Marcos Instalador",
     email: "instalador@zl.com.br",
     perfil: {
-      id: 5,
+      id: 4,
       nomePerfil: "InstaladorCampo",
       permissoes: ["obras:visualizar", "materiais:confirmar"],
     },

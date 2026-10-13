@@ -1,7 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { listarMateriais } from "@/services/materiais";
-import type { Material } from "@/services/materiais";
+import type { Material } from "@/types";
 
 export function useMateriaisObras(obraIds: number[]) {
   const queryDefs = useMemo(

@@ -69,3 +69,17 @@ export function isObraConcluidaArquivada(dataFimISO?: string): boolean {
   const diffMs = hoje.getTime() - new Date(dataFimISO).getTime();
   return Math.floor(diffMs / (1000 * 60 * 60 * 24)) > 30;
 }
+
+/**
+ * Retorna o valor financeiro da obra. Caso valorTotal não esteja definido ou seja <= 0,
+ * calcula a estimativa padrão de R$ 1.300 por painel solar fotovoltaico.
+ */
+export function obterValorObra(card: {
+  valorTotal?: number | null;
+  quantidadePaineis: number;
+}): number {
+  if (card.valorTotal && card.valorTotal > 0) {
+    return card.valorTotal;
+  }
+  return (card.quantidadePaineis || 0) * 1300;
+}

@@ -1,35 +1,7 @@
-// frontend/src/stores/useGanttStore.ts
-// Store Zustand para UI State do Gantt com persistência declarativa em localStorage
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { NivelZoom } from "@/components/gantt/GanttToolbar";
-import type { CategoriaObra } from "@/types";
-import type { StatusObra } from "@/constants/kanbanStatus";
+import type { GanttUIState } from "@/types";
 
-export interface GanttFiltrosAvancados {
-  termoBusca?: string;
-  categoria?: CategoriaObra;
-  equipeId?: number;
-  statusObra?: StatusObra;
-  prioridade?: number;
-  responsavel?: string;
-  dataInicioDe?: string;
-  dataInicioAte?: string;
-  dataFimDe?: string;
-  dataFimAte?: string;
-  statusMaterial?: "todos" | "pronto" | "pendente";
-  apenasAtrasadas?: boolean;
-}
-
-export interface GanttUIState {
-  nivelZoom: NivelZoom;
-  setNivelZoom: (nivel: NivelZoom) => void;
-  filtrosSalvos: GanttFiltrosAvancados | null;
-  salvarFiltros: (filtros: GanttFiltrosAvancados) => void;
-  limparFiltrosSalvos: () => void;
-}
-
-// Migração defensiva ativa do zoom legado para a chave moderna "gantt-storage"
 function migrarZoomLegado(): void {
   if (typeof window === "undefined") return;
   try {

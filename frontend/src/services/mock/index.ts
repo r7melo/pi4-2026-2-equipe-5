@@ -1,7 +1,12 @@
 import MockAdapter from "axios-mock-adapter";
 import { api } from "@/services/api";
 import type { StatusObra } from "@/constants/kanbanStatus";
-import type { CriarProgramacaoPayload } from "@/types";
+import type {
+  CriarProgramacaoPayload,
+  CriarEquipePayload,
+  RelatorioCusto,
+  Material,
+} from "@/types";
 import {
   MOCK_USUARIOS,
   obterObrasArmazenadas,
@@ -25,29 +30,30 @@ import {
   MOCK_INSTALADORES_DISPONIVEIS,
   adicionarEquipeArmazenada,
 } from "./fixtures";
-import type { CriarEquipePayload } from "../equipes";
-import type { RelatorioCusto } from "../relatorios";
 import { gerarPdfRelatorio, gerarExcelRelatorio } from "./pdfGenerator";
 
 /**
  * Função utilitária para extrair com segurança o corpo de requisições,
  * suportando tanto string JSON quanto objetos já serializados pelo Axios.
  */
-function extrairDados<T = Record<string, any>>(data: any): T {
+function extrairDados<T = Record<string, unknown>>(data: unknown): T {
   if (!data) return {} as T;
   if (typeof data === "object") return data as T;
-  try {
-    return JSON.parse(data) as T;
-  } catch {
-    return {} as T;
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data) as T;
+    } catch {
+      return {} as T;
+    }
   }
+  return {} as T;
 }
 
 /**
  * Extrai parâmetros de consulta (query params) mesclando
  * config.params com eventuais query strings embutidas na URL.
  */
-function extrairQueryParams(config: { url?: string; params?: Record<string, any> }): Record<string, string> {
+function extrairQueryParams(config: { url?: string; params?: Record<string, unknown> }): Record<string, string> {
   const params: Record<string, string> = {};
 
   if (config.params) {
@@ -323,7 +329,7 @@ mock.onPost(/\/obras\/\d+\/materiais\/?$/).reply((config) => {
   const match = config.url?.match(/\/obras\/(\d+)\/materiais/);
   const obraId = match ? Number(match[1]) : 0;
   try {
-    const body = extrairDados<any>(config.data);
+    const body = extrairDados<Omit<Material, "id" | "obraId">>(config.data);
     const novo = adicionarMaterialArmazenado(obraId, body);
     return [201, novo];
   } catch {

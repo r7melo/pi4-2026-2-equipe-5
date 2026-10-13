@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
 import { gantt } from "dhtmlx-gantt";
-import type { NivelZoom } from "./GanttToolbar";
+import type { NivelZoom } from "@/types";
 import {
   formatarDiasUteis,
   formatarDataBR,

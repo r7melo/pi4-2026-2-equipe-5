@@ -151,3 +151,20 @@ export function calcularDiasUteisEntre(
 
   return dias;
 }
+
+/**
+ * Formata um valor numérico para o padrão de moeda brasileiro (BRL).
+ * Sanitizado contra valores nulos, indefinidos, NaN ou infinitos.
+ */
+export function formatarMoeda(
+  valor?: number | null,
+  opcoes?: { semCentavos?: boolean }
+): string {
+  const valorSeguro = typeof valor === "number" && Number.isFinite(valor) ? valor : 0;
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: opcoes?.semCentavos ? 0 : 2,
+    minimumFractionDigits: opcoes?.semCentavos ? 0 : 2,
+  }).format(valorSeguro);
+}

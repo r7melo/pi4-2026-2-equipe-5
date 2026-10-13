@@ -1,8 +1,6 @@
-// frontend/src/components/gantt/GanttTaskDrawer.tsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  X,
   Package,
   Zap,
   Calendar,
@@ -28,6 +26,7 @@ import {
 } from "@/lib/formatters";
 import { useHomologacao } from "@/hooks/api/useObras";
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog";
+import { Drawer } from "@/components/ui/Drawer";
 import { toast } from "sonner";
 
 export interface TarefaDetalhes {
@@ -104,14 +103,10 @@ export function GanttTaskDrawer({
   );
 
   useEffect(() => {
-    if (!tarefa) return;
-    document.querySelectorAll(".gantt_tooltip").forEach((el) => el.remove());
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !confirmarDesalocacao) onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [tarefa, confirmarDesalocacao, onClose]);
+    if (tarefa) {
+      document.querySelectorAll(".gantt_tooltip").forEach((el) => el.remove());
+    }
+  }, [tarefa]);
 
   if (!tarefa) return null;
 
@@ -137,17 +132,13 @@ export function GanttTaskDrawer({
     : "Obra não encontrada";
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 overflow-hidden bg-slate-900/30 backdrop-blur-xs transition-opacity animate-fade-in"
-    >
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10 pointer-events-none">
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="pointer-events-auto w-screen max-w-md bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-slide-in-right"
-        >
-          {/* Header do Drawer */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
+    <>
+      <Drawer
+        isOpen={Boolean(tarefa)}
+        onClose={onClose}
+        tamanho="md"
+        headerCustomizado={
+          <div className="flex items-center justify-between flex-1 pr-2">
             <div>
               <span className="text-[11px] font-semibold text-blue-600 tracking-wider uppercase">
                 {tarefa.nomeEquipe}
@@ -156,321 +147,330 @@ export function GanttTaskDrawer({
                 {tarefa.nomeCliente}
               </h2>
             </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
+        }
+      >
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">Status da Obra</span>
+              <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 font-semibold rounded-full shadow-2xs">
+                {statusObraLabel}
+              </span>
+            </div>
 
-          {/* Conteúdo */}
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
-            {/* Seletor de Equipe Rápido */}
-            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-blue-600 shrink-0" />
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200/60">
+              <div className="flex items-center gap-2 text-xs">
+                <Sun className="w-4 h-4 text-amber-500 shrink-0" />
                 <div>
-                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">
-                    Equipe Responsável
-                  </span>
-                  <span className="text-xs font-semibold text-slate-800">
-                    {tarefa.nomeEquipe}
+                  <span className="text-slate-400 block text-[10px]">Painéis</span>
+                  <span className="font-bold text-slate-700">
+                    {tarefa.paineis ?? "N/D"} un.
                   </span>
                 </div>
               </div>
 
-              {canEdit && equipes && equipes.length > 0 && onMudarEquipe && (
-                <div className="flex items-center gap-1.5">
-                  <select
-                    disabled={mudandoEquipe}
-                    value={tarefa.equipeId}
-                    onChange={async (e) => {
-                      const novaEq = Number(e.target.value);
-                      if (novaEq && novaEq !== tarefa.equipeId) {
-                        try {
-                          setMudandoEquipe(true);
-                          await onMudarEquipe(tarefa.id, novaEq);
-                        } finally {
-                          setMudandoEquipe(false);
-                        }
-                      }
-                    }}
-                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
-                  >
-                    {equipes.map((eq) => (
-                      <option key={eq.id} value={eq.id}>
-                        {eq.nome}
-                      </option>
-                    ))}
-                  </select>
-                  {mudandoEquipe && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />}
+              <div className="flex items-center gap-2 text-xs">
+                <Tag className="w-4 h-4 text-blue-500 shrink-0" />
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Categoria</span>
+                  <span className="font-bold text-slate-700">
+                    {obra?.categoria ?? "N/D"}
+                  </span>
+                </div>
+              </div>
+
+              {obra?.dataFimEstimada && (
+                <div className="col-span-2 flex items-center justify-between text-xs pt-2 border-t border-slate-200/60 text-slate-600">
+                  <span className="text-[11px] text-slate-500">Término Contratual:</span>
+                  <strong className="text-slate-800 font-semibold">{formatarDataBR(obra.dataFimEstimada)}</strong>
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              {/* Card Materiais */}
-              <div
-                className={`p-3 rounded-xl border flex flex-col gap-1.5 ${
-                  !obra
-                    ? "bg-slate-50 border-slate-200 text-slate-600"
-                    : materialSeparado
-                    ? "bg-emerald-50/60 border-emerald-200 text-emerald-900"
-                    : materialNoDeposito
-                    ? "bg-amber-50/60 border-amber-200 text-amber-900"
-                    : materialAssistencia
-                    ? "bg-purple-50/60 border-purple-200 text-purple-900"
-                    : "bg-blue-50/60 border-blue-200 text-blue-900"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 text-xs font-semibold">
-                  <Package className="w-4 h-4" />
-                  <span>Materiais</span>
-                </div>
-                <p className="text-[11px] font-medium">
-                  {!obra
-                    ? "Dados indisponíveis"
-                    : materialSeparado
-                    ? "Separados p/ Obra"
-                    : materialNoDeposito
-                    ? "No Depósito (Aguardando)"
-                    : materialComprado
-                    ? "Comprados (Em trânsito)"
-                    : materialAssistencia
-                    ? "Peças p/ Manutenção"
-                    : "Status não definido"}
-                </p>
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <span>Datas Programadas</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                <span className="text-slate-400 block text-[10px] mb-0.5">Início</span>
+                <span className="font-semibold text-slate-800 text-sm">
+                  {formatarDataBR(tarefa.dataInicio)}
+                </span>
               </div>
 
-              {/* Card Homologação */}
-              <div
-                className={`p-3 rounded-xl border flex flex-col gap-1.5 ${
-                  carregandoHomologacao
-                    ? "bg-slate-50/70 border-slate-200 text-slate-700"
-                    : homologacaoAprovada
-                    ? "bg-emerald-50/60 border-emerald-200 text-emerald-900"
-                    : homologacaoEmAnalise
-                    ? "bg-blue-50/60 border-blue-200 text-blue-900"
-                    : homologacaoReprovada
-                    ? "bg-red-50/60 border-red-200 text-red-900"
-                    : "bg-amber-50/60 border-amber-200 text-amber-900"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 text-xs font-semibold">
-                  {carregandoHomologacao ? (
-                    <Zap className="w-4 h-4 text-slate-400" />
-                  ) : homologacaoReprovada ? (
-                    <AlertTriangle className="w-4 h-4 text-red-600" />
-                  ) : (
-                    <Zap className="w-4 h-4" />
-                  )}
-                  <span>Homologação</span>
-                  {carregandoHomologacao && (
-                    <Loader2 className="w-3 h-3 animate-spin text-slate-400 ml-auto" />
+              <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs relative group">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-slate-400 block text-[10px]">Término (Último dia)</span>
+                  {canEdit && !editandoTermino && (
+                    <button
+                      type="button"
+                      onClick={handleIniciarEdicaoTermino}
+                      className="text-slate-400 hover:text-blue-600 p-0.5 rounded transition-colors cursor-pointer"
+                      title="Editar término"
+                      aria-label="Editar data de término"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
                   )}
                 </div>
-                <p className="text-[11px] font-medium">
-                  {carregandoHomologacao
-                    ? "Consultando concessionária..."
-                    : homologacaoAprovada
-                    ? "Aprovado na Concessionária"
-                    : homologacaoEmAnalise
-                    ? "Em Análise pela Rede"
-                    : homologacaoReprovada
-                    ? "Reprovado pela Concessionária"
-                    : "Pendente de Envio"}
-                </p>
+
+                {editandoTermino ? (
+                  <div className="flex items-center gap-1 mt-1">
+                    <input
+                      type="date"
+                      value={novoTerminoInput}
+                      onChange={(e) => setNovoTerminoInput(e.target.value)}
+                      className="text-xs border border-blue-400 rounded px-1.5 py-0.5 font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSalvarTermino}
+                      className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+                      title="Salvar término"
+                    >
+                      <Check className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelarEdicaoTermino}
+                      className="p-1 bg-slate-200 text-slate-600 rounded hover:bg-slate-300 cursor-pointer"
+                      title="Cancelar"
+                    >
+                      <span className="text-[10px] font-bold px-0.5">✕</span>
+                    </button>
+                  </div>
+                ) : (
+                  <span className="font-semibold text-slate-800 text-sm">
+                    {formatarDataBR(dataFimExclusivaParaUltimoDiaUtil(tarefa.dataFim))}
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Dados do Cronograma */}
-            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col gap-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Dados do Cronograma
-              </h4>
+            <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-center justify-between text-xs text-blue-900">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Clock className="w-4 h-4 text-blue-500" /> Duração Útil Estimada:
+              </span>
+              <span className="font-bold">{formatarDiasUteis(tarefa.duracaoDias)}</span>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Início</span>
-                    <strong className="text-slate-800">{formatarDataBR(tarefa.dataInicio)}</strong>
-                  </div>
-                </div>
-
-                <div
-                  className={`flex items-center gap-2 text-slate-600 transition-all ${
-                    editandoTermino
-                      ? "col-span-2 bg-blue-50/60 p-2.5 rounded-xl border border-blue-200 shadow-xs"
-                      : ""
-                  }`}
+          {/* Troca Rápida de Equipe */}
+          {canEdit && equipes && equipes.length > 0 && onMudarEquipe && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-slate-500" />
+                <span>Reatribuir Equipe</span>
+              </h3>
+              <div className="flex items-center gap-2">
+                <select
+                  value={tarefa.equipeId}
+                  disabled={mudandoEquipe}
+                  onChange={async (e) => {
+                    const novaEquipeId = Number(e.target.value);
+                    if (novaEquipeId && novaEquipeId !== tarefa.equipeId) {
+                      setMudandoEquipe(true);
+                      try {
+                        await onMudarEquipe(tarefa.id, novaEquipeId);
+                      } finally {
+                        setMudandoEquipe(false);
+                      }
+                    }
+                  }}
+                  className="flex-1 text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-60"
                 >
-                  <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] text-slate-400 block font-semibold uppercase">
-                      Término Previsto
-                    </span>
-                    {editandoTermino ? (
-                      <div className="flex items-center gap-2 mt-1">
-                        <input
-                          type="date"
-                          min={String(tarefa.dataInicio).split(/[T ]/)[0]}
-                          value={novoTerminoInput}
-                          onChange={(e) => setNovoTerminoInput(e.target.value)}
-                          className="flex-1 min-w-0 px-2 py-1 text-xs border border-blue-400 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSalvarTermino}
-                          title="Salvar término"
-                          className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg cursor-pointer transition-colors shrink-0"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Salvar</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelarEdicaoTermino}
-                          title="Cancelar"
-                          className="p-1 text-slate-400 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors shrink-0"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                  {equipes.map((eq) => (
+                    <option key={eq.id} value={eq.id}>
+                      {eq.nome}
+                    </option>
+                  ))}
+                </select>
+                {mudandoEquipe && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+              </div>
+            </div>
+          )}
+
+          {/* Prontidão para Execução */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <Package className="w-4 h-4 text-slate-500" />
+              <span>Prontidão Operacional</span>
+            </h3>
+
+            <div className="space-y-2">
+              {/* Card de Material */}
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-slate-400" /> Insumos & Materiais
+                  </span>
+                  <span
+                    className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
+                      materialSeparado
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : materialNoDeposito
+                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        : materialComprado
+                        ? "bg-purple-50 text-purple-700 border border-purple-200"
+                        : materialAssistencia
+                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                    }`}
+                  >
+                    {materialSeparado
+                      ? "Kit Pronto / Separado"
+                      : materialNoDeposito
+                      ? "No Depósito Central"
+                      : materialComprado
+                      ? "Comprado"
+                      : materialAssistencia
+                      ? "Assistência"
+                      : "Pendente"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {materialSeparado
+                    ? "Todos os componentes estão prontos para saída a campo."
+                    : materialNoDeposito
+                    ? "Materiais recebidos no depósito central da empresa."
+                    : materialComprado
+                    ? "Insumos adquiridos pelo setor de compras em entrega."
+                    : materialAssistencia
+                    ? "Aguardando peças de reposição para manutenção."
+                    : "Obra ainda não possui os kits separados para instalação."}
+                </p>
+              </div>
+
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-medium flex items-center gap-1.5">
+                    <FileCheck className="w-3.5 h-3.5 text-slate-400" /> Parecer de Acesso
+                  </span>
+                  <span
+                    className={`font-semibold px-2 py-0.5 rounded text-[11px] flex items-center gap-1 ${
+                      carregandoHomologacao
+                        ? "bg-slate-100 text-slate-500"
+                        : homologacaoAprovada
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : homologacaoEmAnalise
+                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        : homologacaoReprovada
+                        ? "bg-red-50 text-red-700 border border-red-200"
+                        : "bg-amber-50 text-amber-700 border border-amber-200"
+                    }`}
+                  >
+                    {carregandoHomologacao ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" /> Verificando...
+                      </>
+                    ) : homologacaoReprovada ? (
+                      <>
+                        <AlertTriangle className="w-3 h-3 text-red-600" /> Reprovado
+                      </>
                     ) : (
-                      <div className="flex items-center gap-1.5">
-                        <strong className="text-slate-800">
-                          {formatarDataBR(dataFimExclusivaParaUltimoDiaUtil(tarefa.dataFim))}
-                        </strong>
-                        {canEdit && (
-                          <button
-                            type="button"
-                            onClick={handleIniciarEdicaoTermino}
-                            title="Ajustar data de término"
-                            className="p-0.5 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer"
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                        )}
+                      parecerStatus
+                    )}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  {carregandoHomologacao && "Consultando concessionária de energia..."}
+                  {!carregandoHomologacao && homologacaoAprovada && (
+                    "Projeto aprovado na concessionária. Instalação liberada para ligação."
+                  )}
+                  {!carregandoHomologacao && homologacaoEmAnalise && (
+                    "Documentação em análise técnica junto à rede distribuidora."
+                  )}
+                  {!carregandoHomologacao && homologacaoReprovada && (
+                    "Pendências técnicas apontadas. Acesso reprovado provisoriamente."
+                  )}
+                  {!carregandoHomologacao && parecerStatus === "Pendente" && (
+                    "Aguardando submissão do projeto elétrico à concessionária."
+                  )}
+                </p>
+                {(homologacao?.artTrt || homologacao?.prazoVistoria) && (
+                  <div className="pt-2 mt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px]">
+                    {homologacao.artTrt && (
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Registro Técnico</span>
+                        <span className="font-mono font-semibold text-slate-700">{homologacao.artTrt}</span>
+                      </div>
+                    )}
+                    {homologacao.prazoVistoria && (
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Prazo de Vistoria</span>
+                        <span className="font-semibold text-slate-700">{formatarDataBR(homologacao.prazoVistoria)}</span>
                       </div>
                     )}
                   </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Clock className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Duração</span>
-                    <strong className="text-slate-800">{formatarDiasUteis(tarefa.duracaoDias)}</strong>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Sun className="w-4 h-4 text-amber-500" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Módulos</span>
-                    <strong className="text-slate-800">{tarefa.paineis !== undefined ? `${tarefa.paineis} un.` : "—"}</strong>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
-
-            {/* Dados da Obra */}
-            {obra && (
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col gap-2.5 text-xs">
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Ficha da Obra
-                </h4>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Categoria:</span>
-                  </span>
-                  <span className="font-semibold text-slate-900">{obra.categoria}</span>
-                </div>
-                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-slate-600">
-                  <span>Status do Funil:</span>
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800">
-                    {statusObraLabel}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-slate-600">
-                  <span>Término Contratual:</span>
-                  <strong className="text-slate-900">{formatarDataBR(obra.dataFimEstimada)}</strong>
-                </div>
-                {homologacao?.artTrt && (
-                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-slate-600">
-                    <span>Registro Técnico:</span>
-                    <strong className="text-slate-900 font-mono text-[11px]">{homologacao.artTrt}</strong>
-                  </div>
-                )}
-                {homologacao?.prazoVistoria && (
-                  <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-slate-600">
-                    <span>Prazo de Vistoria:</span>
-                    <strong className="text-slate-900">{formatarDataBR(homologacao.prazoVistoria)}</strong>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
+        </div>
 
-          {/* Footer de Ações */}
-          <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  void navigate("/kanban");
-                  onClose();
-                }}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors cursor-pointer"
-                title="Abrir no Kanban"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Kanban</span>
-              </button>
-
-              {canEdit && (
-                <button
-                  onClick={() => {
-                    void navigate(`/acompanharhomologacao?obraId=${tarefa.obraId}`);
-                    onClose();
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer"
-                  title="Acompanhar Homologação"
-                >
-                  <FileCheck className="w-3.5 h-3.5" />
-                  <span>Homologação</span>
-                </button>
-              )}
-            </div>
+        <div className="p-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                void navigate(`/obras/${tarefa.obraId}`);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Ver Obra</span>
+            </button>
 
             {canEdit && (
               <button
-                onClick={() => setConfirmarDesalocacao(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer"
+                type="button"
+                onClick={() => {
+                  onClose();
+                  void navigate(`/acompanharhomologacao?obraId=${tarefa.obraId}`);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                title="Acompanhar homologação na concessionária"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Desalocar</span>
+                <Zap className="w-3.5 h-3.5" />
+                <span>Homologação</span>
               </button>
             )}
           </div>
 
-          <ConfirmDialog
-            aberto={confirmarDesalocacao}
-            titulo="Confirmar Desalocação"
-            descricao={`Deseja realmente remover a alocação da obra "${tarefa.nomeCliente}" da equipe ${tarefa.nomeEquipe}? A obra continuará cadastrada no sistema.`}
-            labelConfirmar="Sim, Desalocar"
-            variant="danger"
-            onConfirmar={() => {
-              onDesalocar(tarefa.id);
-              setConfirmarDesalocacao(false);
-              onClose();
-            }}
-            onCancelar={() => setConfirmarDesalocacao(false)}
-          />
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setConfirmarDesalocacao(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Desalocar</span>
+            </button>
+          )}
         </div>
-      </div>
-    </div>
+      </Drawer>
+
+      <ConfirmDialog
+        isOpen={confirmarDesalocacao}
+        onClose={() => setConfirmarDesalocacao(false)}
+        onConfirm={() => {
+          onDesalocar(tarefa.id);
+          setConfirmarDesalocacao(false);
+          onClose();
+        }}
+        titulo="Confirmar Desalocação"
+        descricao={`Deseja realmente remover a alocação da obra "${tarefa.nomeCliente}" da equipe ${tarefa.nomeEquipe}? A obra continuará cadastrada no sistema.`}
+        labelConfirmar="Sim, Desalocar"
+        variant="danger"
+      />
+    </>
   );
 }
+
+export default GanttTaskDrawer;

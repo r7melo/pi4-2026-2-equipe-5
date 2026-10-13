@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { buscarRelatorioPublico, type RelatorioPublicoDados } from "@/services/cronogramaPublico";
+import { buscarRelatorioPublico } from "@/services/cronogramaPublico";
+import type { RelatorioPublicoDados } from "@/types";
 
 export function useRelatorioPublico(token: string) {
   return useQuery<RelatorioPublicoDados>({

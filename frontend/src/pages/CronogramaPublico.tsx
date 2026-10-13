@@ -8,8 +8,12 @@ import {
   GanttDhtmlxWrapper,
   type GanttTask,
 } from "@/components/gantt/GanttDhtmlxWrapper";
-import { GanttToolbar, type NivelZoom } from "@/components/gantt/GanttToolbar";
-import { Loader2, AlertCircle, CalendarX2, Shield, Sun } from "lucide-react";
+import { GanttToolbar } from "@/components/gantt/GanttToolbar";
+import type { NivelZoom } from "@/types";
+import FeedbackLoading from "@/components/feedback/FeedbackLoading";
+import FeedbackErro from "@/components/feedback/FeedbackErro";
+import { EmptyState } from "@/components/feedback/EmptyState";
+import { CalendarX2, Shield, Sun } from "lucide-react";
 import "@/components/gantt/gantt.css";
 
 const ANO_ATUAL = new Date().getFullYear();
@@ -77,26 +81,22 @@ export default function CronogramaPublico() {
   if (loadingProg) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
-        <p className="text-sm font-medium text-slate-600">Carregando cronograma...</p>
+        <FeedbackLoading mensagem="Carregando cronograma..." />
       </div>
     );
   }
 
   if (erroProg) {
+    const msg =
+      (errorProg as { response?: { data?: { error?: { message?: string } } } })
+        ?.response?.data?.error?.message ||
+      "O link informado não é válido ou foi desativado pelo administrador.";
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white border border-red-200 rounded-2xl p-8 max-w-md text-center flex flex-col items-center gap-3 shadow-xs">
-          <AlertCircle className="w-10 h-10 text-red-500" />
-          <h2 className="text-base font-bold text-slate-800">
-            Acesso não autorizado ou expirado
-          </h2>
-          <p className="text-xs text-slate-500">
-            {(errorProg as { response?: { data?: { error?: { message?: string } } } })
-              ?.response?.data?.error?.message ||
-              "O link informado não é válido ou foi desativado pelo administrador."}
-          </p>
-        </div>
+        <FeedbackErro
+          titulo="Acesso não autorizado ou expirado"
+          mensagem={msg}
+        />
       </div>
     );
   }
@@ -145,15 +145,12 @@ export default function CronogramaPublico() {
       <main className="flex-1 p-2 md:p-3 overflow-hidden flex flex-col min-h-0">
         <div className="relative flex-1 bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col min-h-0">
           {dadosFormatados.length === 0 && (
-            <div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center p-8 text-center gap-2 animate-fade-in">
-              <CalendarX2 className="w-10 h-10 text-slate-300" />
-              <p className="text-sm font-semibold text-slate-700">
-                Nenhuma alocação encontrada para este período
-              </p>
-              <p className="text-xs text-slate-400">
-                Ajuste os filtros de data na barra superior para expandir a busca.
-              </p>
-            </div>
+            <EmptyState
+              className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
+              icone={CalendarX2}
+              titulo="Nenhuma alocação encontrada para este período"
+              descricao="Ajuste os filtros de data na barra superior para expandir a busca."
+            />
           )}
 
           <GanttDhtmlxWrapper

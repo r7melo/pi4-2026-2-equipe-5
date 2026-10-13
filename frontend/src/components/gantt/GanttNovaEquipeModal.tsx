@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { Users, UserCheck, X, Loader2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Users, UserCheck, Loader2 } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
 import { useCriarEquipe, useInstaladoresDisponiveis } from "@/hooks/api/useEquipes";
 import { toast } from "sonner";
 
@@ -27,16 +27,7 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !salvando) handleLimparEFechar();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, salvando, handleLimparEFechar]);
 
-  if (!isOpen || typeof document === "undefined") return null;
 
   const handleToggleInstalador = (id: number) => {
     setSelecionados((prev) => {
@@ -76,46 +67,22 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
 
   const instaladoresAptos = instaladoresDisponiveis.filter((i) => selecionados.includes(i.id));
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-equipe-titulo"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in select-none"
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (e.target === e.currentTarget && !salvando) {
-          handleLimparEFechar();
-        }
-      }}
-    >
-      <div 
-        className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full p-6 space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 id="modal-equipe-titulo" className="text-base font-semibold text-slate-900">Nova Equipe de Campo</h3>
-              <p className="text-xs text-slate-500">Cadastro de equipe e líder</p>
-            </div>
-          </div>
-          <button 
-            type="button"
-            onClick={handleLimparEFechar} 
-            disabled={salvando}
-            aria-label="Fechar modal"
-            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer disabled:opacity-50"
-          >
-            <X className="w-4 h-4" />
-          </button>
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={handleLimparEFechar}
+      fecharBloqueado={salvando}
+      titulo="Nova Equipe de Campo"
+      subtitulo="Cadastro de equipe e líder"
+      icone={
+        <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <Users className="w-5 h-5" />
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+      }
+      className="max-w-lg"
+      ariaLabelledBy="modal-equipe-titulo"
+    >
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label htmlFor="equipe-nome" className="text-xs font-semibold text-slate-700 block mb-1">Nome da Equipe *</label>
             <input
@@ -207,8 +174,6 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
             </button>
           </div>
         </form>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

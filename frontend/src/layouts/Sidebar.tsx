@@ -17,7 +17,6 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { NomePerfil } from "@/types";
 
-// Botão Hambúrguer para acionar a Sidebar no Mobile
 export function SidebarTrigger({ className }: { className?: string }) {
   const { toggleMobile, isMobileOpen } = useSidebar();
 
@@ -100,9 +99,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ============================================================ */}
-      {/* 1. SIDEBAR DESKTOP (md:flex)                                  */}
-      {/* ============================================================ */}
       <aside
         role="navigation"
         aria-label="Menu principal de navegação"
@@ -111,7 +107,6 @@ export default function Sidebar() {
           isCollapsed ? "w-16" : "w-64"
         )}
       >
-        {/* Toggle Button (Desktop) */}
         <button
           onClick={(e) => {
             toggleCollapse();
@@ -126,14 +121,12 @@ export default function Sidebar() {
         </button>
 
         <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Logo */}
           <div className={cn("mb-8 flex shrink-0", isCollapsed ? "px-0 justify-center" : "px-8")}>
             <div className="bg-slate-200 rounded-full px-4 py-1.5 inline-flex justify-center items-center text-micro font-bold text-slate-500 tracking-wider h-7">
               {isCollapsed ? "ZL" : "LOGO"}
             </div>
           </div>
 
-          {/* 6. Isolamento de Scroll na lista de links */}
           <nav className="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
             {allowedItems.map((item) => {
               const isActive = checkIsActive(item.path);
@@ -162,7 +155,6 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        {/* Rodapé / Sair */}
         <div className="px-3 shrink-0 pt-4 border-t border-slate-100">
           <button
             onClick={() => {
@@ -185,9 +177,6 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* ============================================================ */}
-      {/* 2. SIDEBAR MOBILE (Gaveta / Drawer com Overlay Backdrop)      */}
-      {/* ============================================================ */}
       <div
         className={cn(
           "md:hidden fixed inset-0 z-50 transition-visibility duration-300",
@@ -195,7 +184,6 @@ export default function Sidebar() {
         )}
         inert={!isMobileOpen ? true : undefined}
       >
-        {/* Backdrop escuro com blur sutil */}
         <div
           onClick={() => {
             (document.activeElement as HTMLElement)?.blur();
@@ -208,7 +196,6 @@ export default function Sidebar() {
           aria-label="Fechar menu"
         />
 
-        {/* Drawer Lateral */}
         <div
           role="dialog"
           aria-modal="true"
@@ -219,7 +206,6 @@ export default function Sidebar() {
           )}
         >
           <div className="flex flex-col flex-1 overflow-hidden">
-            {/* Header do Drawer Mobile */}
             <div className="px-6 mb-6 flex items-center justify-between shrink-0">
               <div className="bg-slate-200 rounded-full px-4 py-1.5 inline-flex justify-center items-center text-micro font-bold text-slate-600 tracking-wider h-7">
                 ZL ENGENHARIA
@@ -236,7 +222,6 @@ export default function Sidebar() {
               </button>
             </div>
 
-            {/* Lista de Navegação Mobile com Isolamento de Scroll */}
             <nav className="px-4 space-y-1.5 flex-1 overflow-y-auto custom-scrollbar">
               {allowedItems.map((item) => {
                 const isActive = checkIsActive(item.path);
@@ -263,7 +248,6 @@ export default function Sidebar() {
             </nav>
           </div>
 
-          {/* Sair Mobile */}
           <div className="px-4 shrink-0 pt-4 border-t border-slate-100">
             <button
               onClick={() => {
@@ -279,7 +263,6 @@ export default function Sidebar() {
           </div>
         </div>
       </div>
-
     </>
   );
 }

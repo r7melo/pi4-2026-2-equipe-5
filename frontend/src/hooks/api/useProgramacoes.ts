@@ -1,4 +1,3 @@
-// frontend/src/hooks/api/useProgramacoes.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -6,9 +5,8 @@ import {
   reordenarProgramacao,
   criarProgramacao,
   deletarProgramacao,
-  type Programacao,
-  type ReordenarProgramacaoResposta,
 } from "@/services/programacoes";
+import type { Programacao, ReordenarProgramacaoResposta } from "@/types";
 import { calcularDiasUteisEntre } from "@/lib/formatters";
 
 export function useProgramacoes() {
@@ -58,37 +56,59 @@ export function useReordenarProgramacao() {
     onSuccess: (resposta: ReordenarProgramacaoResposta) => {
       queryClient.setQueryData<Programacao[]>(["programacoes"], (old) => {
         if (!old) return old;
-        return old.map((p) => {
-          if (p.id === resposta.id) {
+
+        let atualizadas = old.map((p) => {
+          if (p.id !== resposta.id) return p;
+          const novaDuracao = Math.max(
+            1,
+            calcularDiasUteisEntre(resposta.novaDataInicio, resposta.novaDataFim)
+          );
+          return {
+            ...p,
+            dataInicio: resposta.novaDataInicio,
+            dataFim: resposta.novaDataFim,
+            duracaoEstimadaDias: novaDuracao,
+          };
+        });
+
+        if (resposta.programacoesAfetadas && resposta.programacoesAfetadas.length > 0) {
+          const mapaAfetadas = new Map(
+            resposta.programacoesAfetadas.map((a) => [a.id, a])
+          );
+          atualizadas = atualizadas.map((p) => {
+            const afetada = mapaAfetadas.get(p.id);
+            if (!afetada) return p;
             const novaDuracao = Math.max(
               1,
-              calcularDiasUteisEntre(resposta.novaDataInicio, resposta.novaDataFim)
+              calcularDiasUteisEntre(afetada.novaDataInicio, afetada.novaDataFim)
             );
-            return {
-              ...p,
-              dataInicio: resposta.novaDataInicio,
-              dataFim: resposta.novaDataFim,
-              duracaoEstimadaDias: novaDuracao,
-            };
-          }
-          const afetada = resposta.programacoesAfetadas?.find((a) => a.id === p.id);
-          if (afetada) {
             return {
               ...p,
               dataInicio: afetada.novaDataInicio,
               dataFim: afetada.novaDataFim,
+              duracaoEstimadaDias: novaDuracao,
             };
-          }
-          return p;
-        });
+          });
+        }
+
+        return atualizadas;
       });
+
+      const totalAfetadas = resposta.programacoesAfetadas?.length || 0;
+      if (totalAfetadas > 0) {
+        toast.info(
+          `Cronograma atualizado. ${totalAfetadas} alocação(ões) subsequente(s) ajustada(s) automaticamente.`
+        );
+      } else {
+        toast.success("Alocação reagendada com sucesso");
+      }
     },
 
-    onError: (_err, _variables, context) => {
+    onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(["programacoes"], context.previous);
       }
-      toast.error("Erro ao reordenar alocação no cronograma.");
+      toast.error("Erro ao reordenar alocação. Posição revertida.");
     },
 
     onSettled: () => {

@@ -6,8 +6,7 @@ import {
   X,
   Filter,
 } from "lucide-react";
-
-export type NivelZoom = "day" | "week" | "month";
+import type { NivelZoom } from "@/types";
 
 interface GanttToolbarProps {
   nivelAtual: NivelZoom;
@@ -52,7 +51,6 @@ export function GanttToolbar({
 
   return (
     <div className="gantt-toolbar flex items-center gap-1 sm:gap-2 min-w-0 max-w-full overflow-x-auto scrollbar-none py-1">
-      {/* Grupo 1: Hoje & Zoom por Nível */}
       <button
         onClick={onHoje}
         className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
@@ -80,7 +78,6 @@ export function GanttToolbar({
 
       <div className="h-4 w-px bg-slate-200 hidden sm:block shrink-0" />
 
-      {/* Grupo 2: Alternar Grade Lateral (Toggle Grid) */}
       {onToggleGrade && (
         <button
           onClick={onToggleGrade}
@@ -96,7 +93,6 @@ export function GanttToolbar({
         </button>
       )}
 
-      {/* Botão de Filtros Avançados (Gap G-03) */}
       {onAbrirFiltros && (
         <button
           onClick={onAbrirFiltros}
@@ -117,8 +113,6 @@ export function GanttToolbar({
         </button>
       )}
 
-
-      {/* Grupo 3: Filtro de Período Opcional */}
       {onDataInicioChange && onDataFimChange && (
         <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-2 py-1 text-xs shrink-0">
           <span className="text-slate-400 font-medium text-[11px]">De:</span>
@@ -149,7 +143,6 @@ export function GanttToolbar({
 
       <div className="h-4 w-px bg-slate-200 hidden sm:block shrink-0" />
 
-      {/* Grupo 4: Ações (Imprimir e Compartilhar) */}
       {onImprimir && (
         <button
           onClick={onImprimir}

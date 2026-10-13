@@ -20,7 +20,6 @@ export class ApiErro extends Error {
   }
 }
 
-// Instância Singleton do Axios
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
@@ -52,7 +51,8 @@ api.interceptors.response.use(
 );
 
 /**
- * Adapter retrocompatível de fetch para serviços existentes
+ * @deprecated Utilize diretamente a instância Axios singleton `api` (`api.get`, `api.post`, etc.).
+ * Mantido exclusivamente para resguardo de retrocompatibilidade de baixo nível.
  */
 export async function apiFetch<T>(
   caminho: string,

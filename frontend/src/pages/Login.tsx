@@ -1,18 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogIn, Loader2, AlertCircle } from "lucide-react";
-import { fazerLogin } from "@/services/auth";
+import { fazerLogin, mapearRespostaParaUsuario } from "@/services/auth";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { token, usuario } = useAuthStore();
-  const [email, setEmail] = useState("admin@zl.com.br");
-  const [senha, setSenha] = useState("SenhaForte123");
+  const { token, usuario, login } = useAuthStore();
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Redirecionamento automático para usuários já autenticados
+  useEffect(() => {
+    console.info("🔑 [ZL Engenharia] Usuários para teste e homologação (Senha padrão: Senha123!):");
+    console.table([
+      { Perfil: "Administrador", "E-mail": "admin@zl.com.br", Senha: "Senha123!" },
+      { Perfil: "EngenhariaObras", "E-mail": "engenharia@zlengenharia.com", Senha: "Senha123!" },
+      { Perfil: "Financeiro", "E-mail": "financeiro@zl.com.br", Senha: "Senha123!" },
+      { Perfil: "InstaladorCampo", "E-mail": "instalador@zl.com.br", Senha: "Senha123!" },
+    ]);
+  }, []);
+
   useEffect(() => {
     if (token && usuario) {
       if (usuario.perfil?.nomePerfil === "InstaladorCampo") {
@@ -29,9 +38,11 @@ export default function Login() {
     setErro(null);
 
     try {
-      await fazerLogin(email, senha);
-      const perfilLogado = useAuthStore.getState().usuario?.perfil?.nomePerfil;
-      if (perfilLogado === "InstaladorCampo") {
+      const resposta = await fazerLogin(email, senha);
+      const usuarioFormatado = mapearRespostaParaUsuario(resposta.usuario);
+      login(resposta.token, usuarioFormatado);
+
+      if (usuarioFormatado.perfil?.nomePerfil === "InstaladorCampo") {
         void navigate("/linkparainstaladores");
       } else {
         void navigate("/kanban");
@@ -112,7 +123,6 @@ export default function Login() {
               </>
             )}
           </button>
-
 
           <button
             type="button"

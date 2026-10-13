@@ -243,8 +243,6 @@ export default function KanbanBoard({
     const card = activeCard;
     const containerOrigem = initialContainer;
 
-    console.log("[DRAG_END] active.id:", event.active.id, "over.id:", over?.id);
-
     setActiveCard(null);
     setInitialContainer(null);
 
@@ -282,8 +280,6 @@ export default function KanbanBoard({
       setItensColunas(mapa);
       return;
     }
-
-    console.log("[DRAG_END] overContainer resolvido:", overContainer, "origem:", containerOrigem);
 
     if (overContainer !== containerOrigem) {
       const transicoesPermitidas = TRANSICOES_VALIDAS[containerOrigem] || [];

@@ -1,20 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { NomePerfil } from "@/types";
-
-export interface UsuarioPerfil {
-  id: number;
-  nomePerfil: NomePerfil;
-  permissoes: string[];
-}
-
-export interface Usuario {
-  id: number;
-  nome: string;
-  email: string;
-  perfil: UsuarioPerfil;
-  equipeId: number | null;
-}
+import type { Usuario } from "@/types";
 
 interface AuthState {
   token: string | null;
@@ -23,14 +9,11 @@ interface AuthState {
   logout: () => void;
 }
 
-// Migração defensiva ativa: se houver chave nova, garante precedência e expurga resíduos;
-// se houver apenas chaves legadas, migra estruturado para "auth-storage" imediatamente.
 function migrarEstadoLegado(): void {
   if (typeof window === "undefined") return;
   try {
     const authStorage = localStorage.getItem("auth-storage");
     if (authStorage) {
-      // Chave moderna já existe: expurga qualquer resíduo legado antigo
       localStorage.removeItem("token");
       localStorage.removeItem("usuario");
       return;
@@ -44,10 +27,9 @@ function migrarEstadoLegado(): void {
         try {
           usuarioLegado = JSON.parse(usuarioLegadoStr) as Usuario;
         } catch {
-          // Ignora JSON legado se corrompido
+          // Ignora JSON corrompido
         }
       }
-      // Cria a estrutura canônica do Zustand persist
       localStorage.setItem(
         "auth-storage",
         JSON.stringify({
@@ -59,7 +41,7 @@ function migrarEstadoLegado(): void {
       localStorage.removeItem("usuario");
     }
   } catch {
-    // Silencia eventuais restrições de storage em modo anônimo estrito
+    // Silencia restrições de storage
   }
 }
 
@@ -75,7 +57,9 @@ export const useAuthStore = create<AuthState>()(
       },
       logout: () => {
         set({ token: null, usuario: null });
-        window.location.href = "/login";
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       },
     }),
     {

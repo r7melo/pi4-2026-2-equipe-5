@@ -1,83 +1,84 @@
-import { useEffect, useRef } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 
 export interface ConfirmDialogProps {
-  /** Controla visibilidade do dialog */
-  aberto: boolean;
-  /** Título principal */
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
   titulo: string;
-  /** Descrição opcional abaixo do título */
   descricao?: string;
-  /** Texto do botão de confirmação (default: "Confirmar") */
   labelConfirmar?: string;
-  /** Estilo do botão de confirmação */
-  variant?: "danger" | "default";
-  /** Callback ao confirmar */
-  onConfirmar: () => void;
-  /** Callback ao cancelar ou fechar */
-  onCancelar: () => void;
+  labelCancelar?: string;
+  variant?: "danger" | "warning" | "info";
+  isLoading?: boolean;
 }
 
-/**
- * Modal de confirmação reutilizável.
- * Uso: "Tem certeza que deseja mover para Concluído?", "Excluir obra?", etc.
- */
 export function ConfirmDialog({
-  aberto,
+  isOpen,
+  onClose,
+  onConfirm,
   titulo,
   descricao,
   labelConfirmar = "Confirmar",
-  variant = "default",
-  onConfirmar,
-  onCancelar,
+  labelCancelar = "Cancelar",
+  variant = "danger",
+  isLoading = false,
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const el = dialogRef.current;
-    if (!el) return;
-    if (aberto && !el.open) el.showModal();
-    if (!aberto && el.open) el.close();
-  }, [aberto]);
-
-  if (!aberto) return null;
-
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onCancelar}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop:bg-slate-900/50 backdrop:backdrop-blur-xs p-0 m-auto rounded-xl border-0"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      zIndex="z-[70]"
+      fecharBloqueado={isLoading}
+      className="max-w-md p-6"
     >
-      <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+      <div className="flex flex-col items-center text-center">
         {variant === "danger" && (
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4 mx-auto">
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4">
             <AlertTriangle className="w-6 h-6" />
           </div>
         )}
-
-        <h3 className="text-lg font-bold text-slate-800 text-center mb-1">{titulo}</h3>
-        {descricao && (
-          <p className="text-sm text-slate-500 text-center mb-6">{descricao}</p>
+        {variant === "warning" && (
+          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mb-4">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+        )}
+        {variant === "info" && (
+          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-4">
+            <Info className="w-6 h-6" />
+          </div>
         )}
 
-        <div className="flex gap-3 justify-end mt-6">
-          <Button variant="outline" onClick={onCancelar}>
-            Cancelar
+        <h3 className="text-lg font-bold text-slate-800 mb-1">{titulo}</h3>
+        {descricao && (
+          <p className="text-sm text-slate-500 mb-6">{descricao}</p>
+        )}
+
+        <div className="flex gap-3 justify-end w-full mt-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex-1"
+          >
+            {labelCancelar}
           </Button>
           <Button
             variant={variant === "danger" ? "danger" : "primary"}
-            onClick={onConfirmar}
+            onClick={onConfirm}
+            disabled={isLoading}
             className={cn(
+              "flex-1",
               variant === "danger" && "bg-red-600 hover:bg-red-700 text-white"
             )}
           >
-            {labelConfirmar}
+            {isLoading ? "Processando..." : labelConfirmar}
           </Button>
         </div>
       </div>
-    </dialog>
+    </Modal>
   );
 }
 

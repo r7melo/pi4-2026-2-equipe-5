@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { RoleGate } from "@/components/auth/RoleGate";
 import FeedbackLoading from "@/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/components/feedback/FeedbackErro";
-import FeedbackVazio from "@/components/feedback/FeedbackVazio";
+import { EmptyState } from "@/components/feedback/EmptyState";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useObras } from "@/hooks/api/useObras";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
 import KanbanQuickFilters from "@/components/kanban/KanbanQuickFilters";
@@ -14,6 +16,8 @@ import { useKanbanFilterStore } from "@/stores/useKanbanFilterStore";
 
 export default function Kanban() {
   const navigate = useNavigate();
+  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const canCriarObra = perfil === "Administrador" || perfil === "EngenhariaObras";
   const { data, isLoading, isError, refetch } = useObras();
 
   const busca = useKanbanFilterStore((s) => s.busca);
@@ -58,11 +62,17 @@ export default function Kanban() {
     if (obras.length === 0) {
       return (
         <div className="flex-1 flex items-center justify-center min-h-[400px]">
-          <FeedbackVazio
+          <EmptyState
             titulo="Nenhuma obra cadastrada"
-            mensagem="Comece cadastrando uma nova obra para alimentar o funil operacional."
-            textoBotao="Nova Obra"
-            onAcao={() => navigate("/cadastrarobra")}
+            descricao="Comece cadastrando uma nova obra para alimentar o funil operacional."
+            acao={
+              canCriarObra
+                ? {
+                    label: "Nova Obra",
+                    onClick: () => navigate("/cadastrarobra"),
+                  }
+                : undefined
+            }
           />
         </div>
       );
@@ -87,33 +97,23 @@ export default function Kanban() {
         <div className="flex items-center gap-2">
           {/* Busca Expansível Inline Suave */}
           {buscaAberta ? (
-            <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2.5 py-1 shadow-2xs animate-in fade-in duration-150">
-              <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
-              <input
-                type="text"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setBusca("");
-                    setBuscaAberta(false);
-                  }
-                }}
-                placeholder="Buscar cliente ou ID..."
-                className="text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden w-40 md:w-52"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setBusca("");
-                  setBuscaAberta(false);
-                }}
-                className="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <SearchInput
+              valor={busca}
+              onChange={setBusca}
+              onLimpar={() => {
+                setBusca("");
+                setBuscaAberta(false);
+              }}
+              onEscape={() => {
+                setBusca("");
+                setBuscaAberta(false);
+              }}
+              placeholder="Buscar cliente ou ID..."
+              tamanho="sm"
+              autoFocus
+              exibirLimparSempre
+              className="w-48 md:w-56"
+            />
           ) : (
             <Button
               variant="outline"

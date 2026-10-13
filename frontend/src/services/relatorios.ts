@@ -1,21 +1,5 @@
-// Serviço de Relatórios (Rotas #18, #19 do contrato)
 import { api } from "./api";
-
-export interface BalancoMaterial {
-  tipo: string;
-  unidade: string;
-  quantidadeComprada: number;
-  quantidadeUtilizada: number;
-}
-
-export interface RelatorioCusto {
-  obraId: number;
-  custoTotal: number;
-  receita: number;
-  lucro: number;
-  itens: { descricao: string; valor: number }[];
-  balancoMateriais?: BalancoMaterial[];
-}
+import type { RelatorioCusto } from "@/types";
 
 /** GET /api/obras/{obraId}/relatorio-custo */
 export async function buscarRelatorioCusto(obraId: number): Promise<RelatorioCusto> {

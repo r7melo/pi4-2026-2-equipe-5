@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listarMateriais, registrarMaterial, type Material } from "@/services/materiais";
+import { listarMateriais, registrarMaterial } from "@/services/materiais";
+import type { Material } from "@/types";
 import { toast } from "sonner";
 
 export function useMateriais(obraId: number) {

@@ -1,9 +1,8 @@
-// frontend/src/components/gantt/GanttNovaAlocacaoModal.tsx
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, Calendar, Clock, Sun, AlertTriangle } from "lucide-react";
-import type { ObraCard } from "@/types";
-import type { Equipe } from "@/services/equipes";
+import { Calendar, Clock, Sun, AlertTriangle } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import type { ObraCard, Equipe } from "@/types";
 import {
   formatarDiasUteis,
   formatarDataBR,
@@ -55,7 +54,6 @@ export function GanttNovaAlocacaoModal({
   const duracaoEstimadaDias = Math.max(1, Math.ceil(paineis / 9));
   const potenciaEstimadaKwp = (paineis * 0.55).toFixed(1);
 
-  // Calcula a data de término sugerida automaticamente por ~9 painéis/dia útil
   const dataFimSugeridaISO = useMemo(() => {
     if (!dataInicio) return "";
     const inicioSanitizado = proximoDiaUtil(normalizarDataMeioDiaUTC(dataInicio));
@@ -79,15 +77,6 @@ export function GanttNovaAlocacaoModal({
     setEditouFimManualmente(false);
     onClose();
   }, [isLoading, onClose]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isLoading) handleFechar();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isLoading, handleFechar]);
 
   if (!isOpen) return null;
 
@@ -116,34 +105,20 @@ export function GanttNovaAlocacaoModal({
       });
       handleFechar();
     } catch {
-      // Toast disparado na mutação do React Query
+      /* noop */
     }
   };
 
   return (
-    <div
-      onClick={handleFechar}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in"
+    <Modal
+      isOpen={isOpen}
+      onClose={handleFechar}
+      fecharBloqueado={isLoading}
+      titulo="Nova Alocação no Cronograma"
+      subtitulo="Agende uma equipe para execução de obra"
+      className="max-w-lg"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden animate-zoom-in-95"
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-          <div>
-            <h3 className="font-semibold text-slate-800 text-base">Nova Alocação no Cronograma</h3>
-            <p className="text-xs text-slate-500">Agende uma equipe para execução de obra</p>
-          </div>
-          <button
-            onClick={handleFechar}
-            disabled={isLoading}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={(e) => { void handleSubmit(e); }} className="p-5 flex flex-col gap-4">
+      <form onSubmit={(e) => { void handleSubmit(e); }} className="p-5 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-slate-700">
               Obra a ser executada *
@@ -220,7 +195,6 @@ export function GanttNovaAlocacaoModal({
                   setDataInicio("");
                   return;
                 }
-                // Se for sábado ou domingo, avança automaticamente para a próxima segunda-feira
                 const dataObj = normalizarDataMeioDiaUTC(valor);
                 const dataAjustada = proximoDiaUtil(dataObj);
                 setDataInicio(formatarDataISO(dataAjustada));
@@ -309,7 +283,6 @@ export function GanttNovaAlocacaoModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

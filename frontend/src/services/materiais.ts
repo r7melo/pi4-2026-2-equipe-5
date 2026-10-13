@@ -1,15 +1,5 @@
-// Serviço de Materiais (Rotas #8, #9 do contrato)
 import { api } from "./api";
-
-export interface Material {
-  id: number;
-  obraId: number;
-  descricao: string;
-  quantidade: number;
-  unidade: string;
-  tipo?: string;
-  statusLogistico?: string;
-}
+import type { Material } from "@/types";
 
 /** GET /api/obras/{obraId}/materiais */
 export async function listarMateriais(obraId: number): Promise<Material[]> {

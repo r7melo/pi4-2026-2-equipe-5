@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { useGanttStore, type GanttFiltrosAvancados } from "@/stores/useGanttStore";
+import { useGanttStore } from "@/stores/useGanttStore";
+import type { GanttFiltrosAvancados } from "@/types";
 import { useAuthStore } from "@/stores/useAuthStore";
 import {
   GanttDhtmlxWrapper,
@@ -21,23 +22,20 @@ import {
   useCriarProgramacao,
   useDeletarProgramacao,
 } from "@/hooks/api/useProgramacoes";
-import {
-  deletarProgramacao as deletarProgramacaoService,
-  criarProgramacao as criarProgramacaoService,
-} from "@/services/programacoes";
 import { useObras, useHomologacoesObras } from "@/hooks/api/useObras";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useEquipes } from "@/hooks/api/useEquipes";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Loader2, AlertCircle, CalendarX2, Plus, Search } from "lucide-react";
+import FeedbackLoading from "@/components/feedback/FeedbackLoading";
+import FeedbackErro from "@/components/feedback/FeedbackErro";
+import { EmptyState } from "@/components/feedback/EmptyState";
+import { CalendarX2, Search } from "lucide-react";
 import { dataFimExclusivaParaUltimoDiaUtil } from "@/lib/formatters";
 import "@/components/gantt/gantt.css";
 
 const HOJE_ISO = new Date().toISOString().split("T")[0];
 
 export default function Equipes() {
-  const queryClient = useQueryClient();
   const nivelZoom = useGanttStore((s) => s.nivelZoom);
   const setNivelZoom = useGanttStore((s) => s.setNivelZoom);
   const filtrosSalvos = useGanttStore((s) => s.filtrosSalvos);
@@ -76,6 +74,7 @@ export default function Equipes() {
     isLoading: loadingProg,
     isError: erroProg,
     error: errorProg,
+    refetch: refetchProg,
   } = useProgramacoes();
   const { data: obras, isLoading: loadingObras } = useObras({ pageSize: 1000 });
   const { data: equipes, isLoading: loadingEquipes } = useEquipes();
@@ -352,8 +351,8 @@ export default function Equipes() {
     const nomeNovaEquipe = novaEquipe?.nome || `Equipe ${novaEquipeId}`;
 
     try {
-      await deletarProgramacaoService(id);
-      const novaProg = await criarProgramacaoService({
+      await deletarAlocacao(id);
+      const novaProg = await criarAlocacao({
         obraId: progAtual.obraId,
         equipeId: novaEquipeId,
         dataInicio: progAtual.dataInicio,
@@ -361,10 +360,8 @@ export default function Equipes() {
       });
 
       setTarefaSelecionadaId(novaProg.id);
-      await queryClient.invalidateQueries({ queryKey: ["programacoes"] });
       toast.success(`Obra reatribuída com sucesso para ${nomeNovaEquipe}!`);
     } catch {
-      await queryClient.invalidateQueries({ queryKey: ["programacoes"] });
       toast.error("Erro ao reatribuir equipe para a obra.");
     }
   };
@@ -381,12 +378,7 @@ export default function Equipes() {
           subtitle="Gestão de alocações e cronograma de obras (Gantt)"
         />
         <div className="flex-1 flex items-center justify-center bg-slate-50">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-            <p className="text-sm font-medium text-slate-500">
-              Carregando cronograma...
-            </p>
-          </div>
+          <FeedbackLoading mensagem="Carregando cronograma..." />
         </div>
       </div>
     );
@@ -399,16 +391,11 @@ export default function Equipes() {
           title="Cronograma de Equipes"
           subtitle="Gestão de alocações e cronograma de obras (Gantt)"
         />
-        <div className="flex-1 flex items-center justify-center bg-slate-50">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center flex flex-col items-center gap-3 max-w-md">
-            <AlertCircle className="w-8 h-8 text-red-500" />
-            <p className="text-red-700 font-semibold">
-              Erro ao carregar cronograma
-            </p>
-            <p className="text-red-500 text-sm">
-              {errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
-            </p>
-          </div>
+        <div className="flex-1 flex items-center justify-center bg-slate-50 p-4">
+          <FeedbackErro
+            mensagem={errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
+            onTentarNovamente={() => void refetchProg()}
+          />
         </div>
       </div>
     );
@@ -422,26 +409,19 @@ export default function Equipes() {
           subtitle="Gestão de alocações e cronograma de obras (Gantt)"
         />
         <div className="flex-1 flex items-center justify-center bg-slate-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center flex flex-col items-center gap-4 max-w-md shadow-xs">
-            <CalendarX2 className="w-12 h-12 text-slate-300" />
-            <div>
-              <p className="text-slate-800 font-semibold text-base">
-                Nenhuma programação encontrada
-              </p>
-              <p className="text-slate-500 text-xs mt-1">
-                Aloque equipes a obras cadastradas para inicializar o cronograma.
-              </p>
-            </div>
-            {canEdit && (
-              <button
-                onClick={() => setModalNovaAlocacaoAberto(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nova Alocação</span>
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icone={CalendarX2}
+            titulo="Nenhuma programação encontrada"
+            descricao="Aloque equipes a obras cadastradas para inicializar o cronograma."
+            acao={
+              canEdit
+                ? {
+                    label: "Nova Alocação",
+                    onClick: () => setModalNovaAlocacaoAberto(true),
+                  }
+                : undefined
+            }
+          />
         </div>
 
         <GanttNovaAlocacaoModal
@@ -512,24 +492,16 @@ export default function Equipes() {
         {/* Container do Gantt com Empty State unificado: */}
         <div className="relative flex-1 bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col min-h-0">
           {programacoesFiltradas.length === 0 && (
-            <div className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex flex-col items-center justify-center p-8 text-center gap-3 animate-fade-in">
-              <Search className="w-8 h-8 text-slate-300" />
-              <div>
-                <p className="text-sm font-semibold text-slate-700">
-                  Nenhuma alocação encontrada para os filtros aplicados
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Tente alterar os filtros na gaveta lateral ou na barra rápida.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFiltros({})}
-                className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 transition-colors cursor-pointer"
-              >
-                Limpar Todos os Filtros
-              </button>
-            </div>
+            <EmptyState
+              className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
+              icone={Search}
+              titulo="Nenhuma alocação encontrada para os filtros aplicados"
+              descricao="Tente alterar os filtros na gaveta lateral ou na barra rápida."
+              acao={{
+                label: "Limpar Todos os Filtros",
+                onClick: () => setFiltros({}),
+              }}
+            />
           )}
 
           <GanttDhtmlxWrapper
