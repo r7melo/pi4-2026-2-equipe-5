@@ -28,3 +28,11 @@
 | RSK-24 | Nome do perfil de Engenharia inconsistente entre documentos e API | Documentação | Alta | Baixa | Padronizar `Engenharia` como valor único |
 | RSK-25 | Diagrama de entidades em imagem desatualizado | Documentação | Alta | Baixa | Substituir por diagrama gerado a partir deste documento |
 | RSK-26 | Perfis que podem comentar divergem entre documentos | Escopo | Média | Baixa | Seguir a matriz de permissões em [regras de negócio](04-regras-negocio.md) |
+| RSK-27 | Programações de carga inicial incompatíveis com o status das obras, inclusive uma obra em duas programações ao mesmo tempo | Dados | Alta | Média | Revisar datas das programações com o status de cada obra e com a regra de dias úteis |
+| RSK-28 | Hash das senhas do seed não confirmado; testes autenticados ficam bloqueados se não corresponder | Dados | Média | Alta | Confirmar o hash com a biblioteca usada pela API antes da primeira rodada |
+| RSK-29 | Tempo de expiração do token não configurável no ambiente de teste | Técnico | Média | Baixa | Variável `JWT_EXPIRES_MINUTES` no arquivo de exemplo de ambiente; 2 minutos no ambiente de teste |
+| RSK-30 | Transição de status recusada sem indicar o motivo na interface | Usabilidade | Alta | Média | Usar as transições válidas no cliente e exibir a mensagem retornada pela API |
+| RSK-31 | Obra sem endereço no schema atual; link de rota sem dado real | Técnico | Alta | Média | Adicionar coluna `endereco` em `obra` |
+| RSK-32 | Testes de exclusão de comentário dependem da ordem de execução | Dados | Média | Baixa | Comentário exclusivo para cada teste |
+| RSK-33 | Complemento de dados de teste sem aprovação do Backend | Dados | Alta | Média | Decidir sobre o complemento antes da rodada de testes |
+| RSK-34 | Filtro por categoria em `GET /api/obras` sem confirmação na implementação | Documentação | Média | Baixa | Confirmar que o filtro existe na implementação e no contrato |

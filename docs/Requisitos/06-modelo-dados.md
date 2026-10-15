@@ -65,7 +65,8 @@ Relação N:N entre `equipe` e `usuario` (instaladores).
 | status | varchar | Sim | Valores em [domínios](#domínios) |
 | categoria | varchar | Não | Residencial, Comercial |
 | quantidade_paineis | int | Sim | Maior que zero |
-| endereco | varchar | Sim | Usado no link de navegação |
+| quantidade_inversores | int | Não | A adicionar ao schema |
+| endereco | varchar | Sim | Usado no link de navegação. A adicionar ao schema |
 | descricao | text | Não | |
 | data_inicio_estimada | date | Não | |
 | data_fim_estimada | date | Não | Não pode ser anterior à data de início |
@@ -90,9 +91,9 @@ Relação N:N entre `equipe` e `usuario` (instaladores).
 | id | serial | Sim | PK |
 | tipo | varchar | Sim | Ex.: painel, inversor, cabo, disjuntor |
 | quantidade | int | Sim | |
-| quantidade_utilizada | int | Não | Para balanço de materiais |
-| custo_unitario | numeric(12,2) | Não | |
-| status_logistico | varchar | Não | `Comprado`, `EmTransito`, `Disponivel` |
+| quantidade_utilizada | int | Não | Para balanço de materiais. A adicionar ao schema |
+| custo_unitario | numeric(12,2) | Não | A adicionar ao schema |
+| status_logistico | varchar | Não | `Comprado`, `EmTransito`, `Disponivel`, `Utilizado` |
 | id_obra | int | Sim | FK `obra` |
 
 ### programacao_obra
@@ -125,7 +126,7 @@ Registro de ações da timeline. Somente INSERT.
 | Coluna | Tipo | Obrigatório | Observação |
 | :---- | :---- | :---- | :---- |
 | id | bigserial | Sim | PK |
-| tipo_acao | varchar | Sim | `Cadastro`, `MudancaStatus`, `Comentario`, `ManutencaoConcluida`, `AlteracaoFinanceira` |
+| tipo_acao | varchar | Sim | `Cadastro`, `MudancaStatus`, `Comentario`, `ManutencaoConcluida`, `AlteracaoFinanceira`. A adicionar ao schema |
 | status_anterior | varchar | Não | |
 | status_novo | varchar | Não | |
 | observacao | text | Não | |
@@ -176,7 +177,7 @@ Log de auditoria. Somente INSERT. Sem UPDATE nem DELETE, nem para o Administrado
 | Campo | Valores |
 | :---- | :---- |
 | `obra.status` | `MaterialComprado`, `NoDeposito`, `Separado`, `EmAndamento`, `Concluido`, `Assistencia` |
-| `material.status_logistico` | `Comprado`, `EmTransito`, `Disponivel` |
+| `material.status_logistico` | `Comprado`, `EmTransito`, `Disponivel`, `Utilizado` |
 | `perfil_acesso.nome_perfil` | `Administrador`, `Engenharia`, `Financeiro`, `InstaladorCampo` |
 | `comentario.tipo` | `Cartao`, `Manutencao`, `Timeline` |
 | `manutencao.status` | `Pendente`, `Concluida` |

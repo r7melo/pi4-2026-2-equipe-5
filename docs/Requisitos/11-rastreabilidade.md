@@ -38,6 +38,7 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | RNF-03 | `AuthorizationMiddleware` | 401 sem token; 403 perfil errado; log em ambos | CT-RNF-03 | Pendente |
 | RNF-04 | `AuditLogService`, `audit_log` | Registro com usuário e timestamp; remoção bloqueada | CT-RNF-04 | Pendente |
 | RNF-05 | `ExportService` | P95 ≤ 5 s com 1.000 registros | CT-RNF-05 | Pendente |
+| RNF-06 | Layout e fluxos das telas | Sessões com usuários e avaliação heurística | CT-RNF-06 | Em andamento |
 
 ## Casos de uso
 

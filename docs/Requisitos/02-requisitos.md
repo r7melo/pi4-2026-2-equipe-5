@@ -36,6 +36,7 @@ O sistema autentica por e-mail e senha e emite um token de acesso (JWT) com o pe
 - Cinco falhas consecutivas bloqueiam novas tentativas por tempo determinado.
 - E-mail deve ser único.
 - Senhas são armazenadas somente como hash.
+- O tempo de expiração do token é configurável por `JWT_EXPIRES_MINUTES`.
 
 ### RF-02: Autorização por perfil (RBAC)
 
@@ -46,7 +47,8 @@ Matriz completa na seção 4 de [Regras de negócio](04-regras-negocio.md).
 ### RF-03: Cadastro de clientes e gestão de obras
 
 - Cliente tem nome e CPF/CNPJ obrigatórios. CPF/CNPJ é único.
-- Obra exige cliente vinculado.
+- Obra exige cliente vinculado, escolhido entre os clientes cadastrados ou criado na própria tela de obra.
+- O formulário de obra informa categoria (Residencial ou Comercial), quantidade de painéis, quantidade de inversores e dados de pagamento (data de confirmação e prazo contratual).
 - Ao cadastrar uma obra, o sistema cria o cartão no Kanban na primeira coluna e registra a ação na timeline.
 - Exclusão de obra é lógica: a obra some das listagens, o cartão é removido e o log registra usuário e data.
 - Obra em execução não pode ser excluída.
@@ -57,6 +59,9 @@ Matriz completa na seção 4 de [Regras de negócio](04-regras-negocio.md).
 - Mover um cartão altera o status da obra, grava a ação na timeline e grava log.
 - Transições fora do fluxo são recusadas, e o cartão volta para a coluna de origem com o motivo.
 - Edição do cartão e comentários: somente Administrador e Engenharia.
+- Ao arrastar um cartão, somente as colunas permitidas para aquela obra ficam destacadas.
+- Movimentação alternativa pelo menu do cartão ("Mover para..."), para teclado e celular.
+- Ao clicar no cartão, abre painel com as abas Dados, Materiais, Histórico e Comentários.
 - Financeiro e Instalador têm o quadro em modo leitura.
 
 ### RF-05: Raia de assistência e manutenção
@@ -69,7 +74,7 @@ Matriz completa na seção 4 de [Regras de negócio](04-regras-negocio.md).
 
 ### RF-06: Status de material
 
-- Cada material tem um status logístico: `Comprado`, `EmTransito` ou `Disponivel`.
+- Cada material tem um status logístico: `Comprado`, `EmTransito`, `Disponivel` ou `Utilizado` (material consumido na instalação).
 - O status aparece com rótulo e cor no cartão do Kanban e na barra do Gantt, nos dois lugares ao mesmo tempo.
 
 ### RF-07: Equipes e alocação no Gantt
@@ -78,6 +83,7 @@ Matriz completa na seção 4 de [Regras de negócio](04-regras-negocio.md).
 - Um instalador não pode estar em duas equipes no mesmo período.
 - Alocar equipe a uma obra define o período da instalação no Gantt.
 - Conflito de agenda da equipe é bloqueado, com mensagem informando o período ocupado.
+- A lista de equipes indica as equipes ocupadas no período antes da confirmação.
 - Obra só pode ser alocada se estiver apta (materiais separados).
 - Perfis Financeiro e Instalador não alocam equipes.
 
@@ -116,6 +122,7 @@ Matriz completa na seção 4 de [Regras de negócio](04-regras-negocio.md).
 ### RF-13: Notificação por e-mail
 
 - Ao mudar o status para `Concluido`, o sistema envia e-mail de conclusão.
+- Antes de confirmar a mudança para `Concluido`, o sistema pede confirmação do usuário.
 - Falha no envio não reverte a mudança de status e é registrada em log.
 
 ### RF-14: Custo total da obra
@@ -172,6 +179,7 @@ Fora do escopo desta fase. Não há rotas, tela ou entidade de homologação no 
 | RNF-03 | Segurança (controle de acesso) | 100% das rotas protegidas validam token e perfil no servidor | 401 sem token; 403 com perfil sem permissão; ambos com log | Pendente |
 | RNF-04 | Segurança (responsabilização) | Log irremovível para exclusões, mudanças de status e alterações financeiras | Registro com `userId` e `timestamp` após cada operação crítica | Pendente |
 | RNF-05 | Eficiência de desempenho | Exportação em até 5 s para 1.000 registros | P95 ≤ 5 s com 1.000 obras no banco | Pendente |
+| RNF-06 | Usabilidade (ISO/IEC 25010) | Usuário sem treinamento extenso conclui as tarefas principais do seu perfil | Taxa de sucesso ≥ 80% por tarefa; escala SUS ≥ 68; taxa de erro < 5%; primeiro uso concluído em menos de 2 h de treinamento | Em andamento |
 
 ## Interfaces externas
 

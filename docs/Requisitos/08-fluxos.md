@@ -39,6 +39,9 @@ sequenceDiagram
   participant D as PostgreSQL
   participant E as EmailService
 
+  opt statusNovo = Concluido
+    F->>F: pede confirmação do usuário
+  end
   F->>API: PATCH /api/obras/{id}/status
   API->>API: validar token e perfil
   API->>R: validar transição
@@ -51,7 +54,7 @@ sequenceDiagram
     end
   else transição inválida
     API-->>F: 400 INVALID_STATUS_TRANSITION
-    F->>F: devolve o cartão à coluna de origem
+    F->>F: devolve o cartão à coluna de origem e exibe o motivo retornado pela API
   end
 ```
 
@@ -65,6 +68,7 @@ sequenceDiagram
   participant GS as GanttService
   participant D as PostgreSQL
 
+  F->>F: marca as equipes ocupadas no período
   F->>G: POST /api/programacoes
   G->>D: buscar obra e verificar se está apta
   G->>DS: duração a partir de quantidade_paineis

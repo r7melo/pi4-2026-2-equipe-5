@@ -18,6 +18,8 @@ Situação por módulo. Atualize esta tabela a cada entrega.
 | Cronograma compartilhado | Pendente | Geração de token; visualização somente leitura |
 | Notificações | Pendente | E-mail de conclusão |
 | Modo display | Pendente | Tela cheia somente leitura |
+| Usabilidade | Em andamento | Avaliação heurística concluída; sessões com usuários pendentes; achados de severidade 4 a corrigir |
+| Dados de teste | Em andamento | Seed atual com inconsistências registradas; complemento aguardando aprovação do Backend |
 | Homologação | Fora do escopo | — |
 
 ## Critérios de conclusão
@@ -34,6 +36,7 @@ O projeto é considerado concluído quando todos os itens abaixo forem atendidos
 8. Usuários de cada perfil concluem as tarefas principais, com taxa de sucesso de pelo menos 80%.
 9. Pipeline de build, testes e análise de segurança em execução.
 10. Riscos de severidade alta com mitigação concluída ou aceita por escrito.
+11. Achados de usabilidade de severidade 4 corrigidos e verificados.
 
 ## Próximos passos
 
@@ -45,3 +48,7 @@ O projeto é considerado concluído quando todos os itens abaixo forem atendidos
 6. Implementar o módulo do instalador com login.
 7. Executar os casos de teste e registrar os resultados em [testes](10-testes.md).
 8. Definir provedor, RTO, RPO e pipeline de entrega.
+9. Confirmar o hash das senhas do seed.
+10. Aprovar ou recusar o complemento de dados de teste.
+11. Decidir o escopo de homologação (RF-17) e o acesso do instalador (RF-19).
+12. Corrigir os achados de usabilidade de severidade 4 e realizar as sessões com usuários.
