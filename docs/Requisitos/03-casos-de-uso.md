@@ -18,96 +18,96 @@
 
 | Caso de uso | Adm | Eng | Fin | Inst |
 | :---- | :---: | :---: | :---: | :---: |
-| [UC-01](#uc-UC-01) Login | ✔ | ✔ | ✔ | ✔ |
-| [UC-02](#uc-UC-02) Emitir token de acesso | ✔ | ✔ | ✔ | ✔ |
-| [UC-03](#uc-UC-03) Acessar recursos | ✔ | ✔ | ✔ | ✔ |
-| [UC-04](#uc-UC-04) Validar autorização | ✔ | ✔ | ✔ | ✔ |
-| [UC-05](#uc-UC-05) Cadastrar administrador | ✔ | | | |
-| [UC-06](#uc-UC-06) Cadastrar engenheiro | ✔ | | | |
-| [UC-07](#uc-UC-07) Cadastrar financeiro | ✔ | | | |
-| [UC-08](#uc-UC-08) Cadastrar clientes | ✔ | | | |
-| [UC-09](#uc-UC-09) Cadastrar instalador de campo | ✔ | | | |
-| [UC-10](#uc-UC-10) Cadastrar obra | ✔ | ✔ | | |
-| [UC-11](#uc-UC-11) Apagar obra | ✔ | ✔ | | |
-| [UC-12](#uc-UC-12) Alterar status da obra | ✔ | ✔ | | |
-| [UC-13](#uc-UC-13) Definir obra para instalação | ✔ | ✔ | | |
-| [UC-14](#uc-UC-14) Criar comentário sobre a manutenção | | | | ✔ |
-| [UC-15](#uc-UC-15) Inserir cartão no Kanban | ✔ | ✔ | | |
-| [UC-16](#uc-UC-16) Deletar cartão no Kanban | ✔ | ✔ | | |
-| [UC-17](#uc-UC-17) Editar cartão no Kanban | ✔ | ✔ | | |
-| [UC-18](#uc-UC-18) Mover cartão no Kanban | ✔ | ✔ | | |
-| [UC-19](#uc-UC-19) Adicionar comentário no cartão | ✔ | ✔ | | |
-| [UC-20](#uc-UC-20) Registrar ação | ✔ | ✔ | | |
-| [UC-21](#uc-UC-21) Criar equipe de campo | ✔ | ✔ | | |
-| [UC-22](#uc-UC-22) Alocar equipe | ✔ | ✔ | | |
-| [UC-23](#uc-UC-23) Exportar detalhes de instalação | ✔ | | | |
-| [UC-24](#uc-UC-24) Visualizar detalhes da instalação | ✔ | ✔ | | ✔ |
-| [UC-25](#uc-UC-25) Realizar manutenção | | | | ✔ |
-| [UC-26](#uc-UC-26) Abrir rota | ✔ | ✔ | | ✔ |
-| [UC-27](#uc-UC-27) Consultar obras e quadro Kanban | | | ✔ | |
-| [UC-28](#uc-UC-28) Consultar cronograma (Gantt) | | | ✔ | |
-| [UC-29](#uc-UC-29) Consultar linha do tempo | ✔ | ✔ | ✔ | |
-| [UC-30](#uc-UC-30) Incluir comentário na linha do tempo | | | ✔ | |
-| [UC-31](#uc-UC-31) Registrar custos e precificação | | | ✔ | |
-| [UC-32](#uc-UC-32) Apurar custo total | ✔ | | ✔ | |
-| [UC-33](#uc-UC-33) Emitir DRE | ✔ | | ✔ | |
-| [UC-34](#uc-UC-34) Exportar relatório financeiro | ✔ | | ✔ | |
+| [UC-01](#uc-01) Login | ✔ | ✔ | ✔ | ✔ |
+| [UC-02](#uc-02) Emitir token de acesso | ✔ | ✔ | ✔ | ✔ |
+| [UC-03](#uc-03) Acessar recursos | ✔ | ✔ | ✔ | ✔ |
+| [UC-04](#uc-04) Validar autorização | ✔ | ✔ | ✔ | ✔ |
+| [UC-05](#uc-05) Cadastrar administrador | ✔ | | | |
+| [UC-06](#uc-06) Cadastrar engenheiro | ✔ | | | |
+| [UC-07](#uc-07) Cadastrar financeiro | ✔ | | | |
+| [UC-08](#uc-08) Cadastrar clientes | ✔ | | | |
+| [UC-09](#uc-09) Cadastrar instalador de campo | ✔ | | | |
+| [UC-10](#uc-10) Cadastrar obra | ✔ | ✔ | | |
+| [UC-11](#uc-11) Apagar obra | ✔ | ✔ | | |
+| [UC-12](#uc-12) Alterar status da obra | ✔ | ✔ | | |
+| [UC-13](#uc-13) Definir obra para instalação | ✔ | ✔ | | |
+| [UC-14](#uc-14) Criar comentário sobre a manutenção | | | | ✔ |
+| [UC-15](#uc-15) Inserir cartão no Kanban | ✔ | ✔ | | |
+| [UC-16](#uc-16) Deletar cartão no Kanban | ✔ | ✔ | | |
+| [UC-17](#uc-17) Editar cartão no Kanban | ✔ | ✔ | | |
+| [UC-18](#uc-18) Mover cartão no Kanban | ✔ | ✔ | | |
+| [UC-19](#uc-19) Adicionar comentário no cartão | ✔ | ✔ | | |
+| [UC-20](#uc-20) Registrar ação | ✔ | ✔ | | |
+| [UC-21](#uc-21) Criar equipe de campo | ✔ | ✔ | | |
+| [UC-22](#uc-22) Alocar equipe | ✔ | ✔ | | |
+| [UC-23](#uc-23) Exportar detalhes de instalação | ✔ | | | |
+| [UC-24](#uc-24) Visualizar detalhes da instalação | ✔ | ✔ | | ✔ |
+| [UC-25](#uc-25) Realizar manutenção | | | | ✔ |
+| [UC-26](#uc-26) Abrir rota | ✔ | ✔ | | ✔ |
+| [UC-27](#uc-27) Consultar obras e quadro Kanban | | | ✔ | |
+| [UC-28](#uc-28) Consultar cronograma (Gantt) | | | ✔ | |
+| [UC-29](#uc-29) Consultar linha do tempo | ✔ | ✔ | ✔ | |
+| [UC-30](#uc-30) Incluir comentário na linha do tempo | | | ✔ | |
+| [UC-31](#uc-31) Registrar custos e precificação | | | ✔ | |
+| [UC-32](#uc-32) Apurar custo total | ✔ | | ✔ | |
+| [UC-33](#uc-33) Emitir DRE | ✔ | | ✔ | |
+| [UC-34](#uc-34) Exportar relatório financeiro | ✔ | | ✔ | |
 
 ## Descrição dos casos de uso
 
 | ID | Caso de uso | Ator principal | Fluxo principal (resumo) | Regras |
 | :---- | :---- | :---- | :---- | :---- |
-| [UC-01](#uc-UC-01) | Login | Usuário | Informa e-mail e senha; sistema valida e emite token; redireciona conforme o perfil | Credencial errada não revela qual campo; bloqueio após 5 falhas |
-| [UC-02](#uc-UC-02) | Emitir token de acesso | Sistema | Gera token com identificador, perfil e expiração, assinado | Token tem expiração e carrega o perfil |
-| [UC-03](#uc-UC-03) | Acessar recursos | Usuário | Solicita recurso; valida autorização (UC-04); exibe o recurso | Acesso depende do perfil; toda requisição exige token |
-| [UC-04](#uc-UC-04) | Validar autorização | Sistema | Extrai e valida token; compara perfil com o exigido | Recursos têm perfis definidos; negações são registradas |
-| [UC-05](#uc-UC-05) | Cadastrar administrador | Administrador | Informa nome, e-mail e senha inicial; sistema valida e salva | Somente Administrador cadastra Administrador |
-| [UC-06](#uc-UC-06) | Cadastrar engenheiro | Administrador | Seleciona perfil Engenharia; informa dados; salva | E-mail único |
-| [UC-07](#uc-UC-07) | Cadastrar financeiro | Administrador | Seleciona perfil Financeiro; informa dados; salva | E-mail único |
-| [UC-08](#uc-UC-08) | Cadastrar clientes | Administrador | Informa nome, CPF/CNPJ, telefone, e-mail e endereço; salva | CPF/CNPJ válido e único; nome e CPF/CNPJ obrigatórios |
-| [UC-09](#uc-UC-09) | Cadastrar instalador de campo | Administrador | Seleciona perfil InstaladorCampo; informa dados; salva | Instalador tem leitura da instalação e registro de manutenção |
-| [UC-10](#uc-UC-10) | Cadastrar obra | Administrador, Engenharia | Seleciona cliente; informa endereço, descrição e dados do projeto; salva; cria cartão e registra ação | Toda obra tem cliente; nasce no status inicial |
-| [UC-11](#uc-UC-11) | Apagar obra | Administrador, Engenharia | Seleciona obra; confirma; remove cartão; marca obra como excluída | Confirmação explícita; obra em execução não é apagada; exclusão lógica |
-| [UC-12](#uc-UC-12) | Alterar status da obra | Sistema | Recebe obra e novo status; valida transição; atualiza; registra ação | Status segue o fluxo; toda mudança é registrada |
-| [UC-13](#uc-UC-13) | Definir obra para instalação | Administrador, Engenharia | Seleciona obra; associa equipe e período; move cartão para a coluna de instalação | Obra apta; equipe sem conflito de período |
-| [UC-14](#uc-UC-14) | Criar comentário sobre a manutenção | Instalador | Escreve comentário durante a manutenção; sistema salva com autor, data e hora | Comentário é opcional e estende UC-25 |
-| [UC-15](#uc-UC-15) | Inserir cartão no Kanban | Sistema | Cria cartão com dados resumidos na primeira coluna | Um cartão por obra |
-| [UC-16](#uc-UC-16) | Deletar cartão no Kanban | Sistema | Remove o cartão da coluna | Só junto com a exclusão da obra |
-| [UC-17](#uc-UC-17) | Editar cartão no Kanban | Administrador, Engenharia | Altera título, descrição, responsável e datas; salva | Mudança de coluna só por UC-18 |
-| [UC-18](#uc-UC-18) | Mover cartão no Kanban | Administrador, Engenharia | Arrasta cartão; sistema valida; executa UC-12; atualiza posição | Respeita a ordem do fluxo; todo movimento altera status e gera registro |
-| [UC-19](#uc-UC-19) | Adicionar comentário no cartão | Administrador, Engenharia | Escreve comentário durante a edição; sistema salva | Comentário guarda autor, data e hora |
-| [UC-20](#uc-UC-20) | Registrar ação | Sistema | Recebe evento; adiciona data e hora; grava na timeline | Registros não podem ser editados nem removidos; identifica o usuário |
-| [UC-21](#uc-UC-21) | Criar equipe de campo | Administrador, Engenharia | Informa nome; seleciona instaladores e responsável; salva; pode definir obra | Equipe tem ao menos um instalador e um responsável; instalador em uma equipe por período |
-| [UC-22](#uc-UC-22) | Alocar equipe | Administrador, Engenharia | Seleciona obra, equipe e período; sistema verifica disponibilidade; salva; executa UC-13 | Sem dupla alocação; obra apta |
-| [UC-23](#uc-UC-23) | Exportar detalhes de instalação | Administrador | Seleciona obra; sistema reúne kit, endereço, equipe, período e instruções; gera arquivo | Somente dados da obra selecionada |
-| [UC-24](#uc-UC-24) | Visualizar detalhes da instalação | Instalador | Abre lista; seleciona instalação; vê kit, endereço, projeto e instruções | Somente instalações da própria equipe; somente leitura |
-| [UC-25](#uc-UC-25) | Realizar manutenção | Instalador | Abre manutenção; registra serviço; marca como concluída; sistema salva e registra ação | Somente manutenção da própria equipe; conclusão gera registro |
-| [UC-26](#uc-UC-26) | Abrir rota | Instalador | Seleciona instalação; aciona rota; sistema abre o aplicativo de mapas com o endereço | Usa o endereço da obra; só da própria equipe |
-| [UC-27](#uc-UC-27) | Consultar obras e quadro Kanban | Financeiro | Abre o quadro; vê cartões e status de material; abre detalhes | Somente leitura |
-| [UC-28](#uc-UC-28) | Consultar cronograma (Gantt) | Financeiro | Abre o Gantt; vê barras por equipe e período; abre detalhes | Somente leitura |
-| [UC-29](#uc-UC-29) | Consultar linha do tempo | Administrador, Engenharia, Financeiro | Seleciona obra; abre timeline; vê registros em ordem cronológica | Ordem cronológica; registros de ação são imutáveis |
-| [UC-30](#uc-UC-30) | Incluir comentário na linha do tempo | Financeiro | Escreve comentário; sistema salva com autor, data e hora | Somente Administrador edita ou exclui |
-| [UC-31](#uc-UC-31) | Registrar custos e precificação | Financeiro | Seleciona obra; informa itens de custo e valor da obra; salva; grava log | Precificação completa exige todos os itens e o valor |
-| [UC-32](#uc-UC-32) | Apurar custo total | Administrador, Financeiro | Seleciona obra; sistema verifica conclusão e precificação; soma itens | Só obra concluída com precificação completa |
-| [UC-33](#uc-UC-33) | Emitir DRE | Administrador, Financeiro | Solicita DRE; executa UC-32; calcula resultado; exibe | Somente obra concluída; somente leitura |
-| [UC-34](#uc-UC-34) | Exportar relatório financeiro | Financeiro | Seleciona tipo e período; escolhe PDF ou Excel; gera e disponibiliza | Formatos PDF e Excel; 5 s para 1.000 registros |
+| [UC-01](#uc-01) | Login | Usuário | Informa e-mail e senha; sistema valida e emite token; redireciona conforme o perfil | Credencial errada não revela qual campo; bloqueio após 5 falhas |
+| [UC-02](#uc-02) | Emitir token de acesso | Sistema | Gera token com identificador, perfil e expiração, assinado | Token tem expiração e carrega o perfil |
+| [UC-03](#uc-03) | Acessar recursos | Usuário | Solicita recurso; valida autorização (UC-04); exibe o recurso | Acesso depende do perfil; toda requisição exige token |
+| [UC-04](#uc-04) | Validar autorização | Sistema | Extrai e valida token; compara perfil com o exigido | Recursos têm perfis definidos; negações são registradas |
+| [UC-05](#uc-05) | Cadastrar administrador | Administrador | Informa nome, e-mail e senha inicial; sistema valida e salva | Somente Administrador cadastra Administrador |
+| [UC-06](#uc-06) | Cadastrar engenheiro | Administrador | Seleciona perfil Engenharia; informa dados; salva | E-mail único |
+| [UC-07](#uc-07) | Cadastrar financeiro | Administrador | Seleciona perfil Financeiro; informa dados; salva | E-mail único |
+| [UC-08](#uc-08) | Cadastrar clientes | Administrador | Informa nome, CPF/CNPJ, telefone, e-mail e endereço; salva | CPF/CNPJ válido e único; nome e CPF/CNPJ obrigatórios |
+| [UC-09](#uc-09) | Cadastrar instalador de campo | Administrador | Seleciona perfil InstaladorCampo; informa dados; salva | Instalador tem leitura da instalação e registro de manutenção |
+| [UC-10](#uc-10) | Cadastrar obra | Administrador, Engenharia | Seleciona cliente; informa endereço, descrição e dados do projeto; salva; cria cartão e registra ação | Toda obra tem cliente; nasce no status inicial |
+| [UC-11](#uc-11) | Apagar obra | Administrador, Engenharia | Seleciona obra; confirma; remove cartão; marca obra como excluída | Confirmação explícita; obra em execução não é apagada; exclusão lógica |
+| [UC-12](#uc-12) | Alterar status da obra | Sistema | Recebe obra e novo status; valida transição; atualiza; registra ação | Status segue o fluxo; toda mudança é registrada |
+| [UC-13](#uc-13) | Definir obra para instalação | Administrador, Engenharia | Seleciona obra; associa equipe e período; move cartão para a coluna de instalação | Obra apta; equipe sem conflito de período |
+| [UC-14](#uc-14) | Criar comentário sobre a manutenção | Instalador | Escreve comentário durante a manutenção; sistema salva com autor, data e hora | Comentário é opcional e estende UC-25 |
+| [UC-15](#uc-15) | Inserir cartão no Kanban | Sistema | Cria cartão com dados resumidos na primeira coluna | Um cartão por obra |
+| [UC-16](#uc-16) | Deletar cartão no Kanban | Sistema | Remove o cartão da coluna | Só junto com a exclusão da obra |
+| [UC-17](#uc-17) | Editar cartão no Kanban | Administrador, Engenharia | Altera título, descrição, responsável e datas; salva | Mudança de coluna só por UC-18 |
+| [UC-18](#uc-18) | Mover cartão no Kanban | Administrador, Engenharia | Arrasta cartão; sistema valida; executa UC-12; atualiza posição | Respeita a ordem do fluxo; todo movimento altera status e gera registro |
+| [UC-19](#uc-19) | Adicionar comentário no cartão | Administrador, Engenharia | Escreve comentário durante a edição; sistema salva | Comentário guarda autor, data e hora |
+| [UC-20](#uc-20) | Registrar ação | Sistema | Recebe evento; adiciona data e hora; grava na timeline | Registros não podem ser editados nem removidos; identifica o usuário |
+| [UC-21](#uc-21) | Criar equipe de campo | Administrador, Engenharia | Informa nome; seleciona instaladores e responsável; salva; pode definir obra | Equipe tem ao menos um instalador e um responsável; instalador em uma equipe por período |
+| [UC-22](#uc-22) | Alocar equipe | Administrador, Engenharia | Seleciona obra, equipe e período; sistema verifica disponibilidade; salva; executa UC-13 | Sem dupla alocação; obra apta |
+| [UC-23](#uc-23) | Exportar detalhes de instalação | Administrador | Seleciona obra; sistema reúne kit, endereço, equipe, período e instruções; gera arquivo | Somente dados da obra selecionada |
+| [UC-24](#uc-24) | Visualizar detalhes da instalação | Instalador | Abre lista; seleciona instalação; vê kit, endereço, projeto e instruções | Somente instalações da própria equipe; somente leitura |
+| [UC-25](#uc-25) | Realizar manutenção | Instalador | Abre manutenção; registra serviço; marca como concluída; sistema salva e registra ação | Somente manutenção da própria equipe; conclusão gera registro |
+| [UC-26](#uc-26) | Abrir rota | Instalador | Seleciona instalação; aciona rota; sistema abre o aplicativo de mapas com o endereço | Usa o endereço da obra; só da própria equipe |
+| [UC-27](#uc-27) | Consultar obras e quadro Kanban | Financeiro | Abre o quadro; vê cartões e status de material; abre detalhes | Somente leitura |
+| [UC-28](#uc-28) | Consultar cronograma (Gantt) | Financeiro | Abre o Gantt; vê barras por equipe e período; abre detalhes | Somente leitura |
+| [UC-29](#uc-29) | Consultar linha do tempo | Administrador, Engenharia, Financeiro | Seleciona obra; abre timeline; vê registros em ordem cronológica | Ordem cronológica; registros de ação são imutáveis |
+| [UC-30](#uc-30) | Incluir comentário na linha do tempo | Financeiro | Escreve comentário; sistema salva com autor, data e hora | Somente Administrador edita ou exclui |
+| [UC-31](#uc-31) | Registrar custos e precificação | Financeiro | Seleciona obra; informa itens de custo e valor da obra; salva; grava log | Precificação completa exige todos os itens e o valor |
+| [UC-32](#uc-32) | Apurar custo total | Administrador, Financeiro | Seleciona obra; sistema verifica conclusão e precificação; soma itens | Só obra concluída com precificação completa |
+| [UC-33](#uc-33) | Emitir DRE | Administrador, Financeiro | Solicita DRE; executa UC-32; calcula resultado; exibe | Somente obra concluída; somente leitura |
+| [UC-34](#uc-34) | Exportar relatório financeiro | Financeiro | Seleciona tipo e período; escolhe PDF ou Excel; gera e disponibiliza | Formatos PDF e Excel; 5 s para 1.000 registros |
 
 ## Relações entre casos de uso
 
 | Origem | Relação | Destino |
 | :---- | :---- | :---- |
-| [UC-01](#uc-UC-01) Login | include | UC-02 Emitir token |
-| [UC-03](#uc-UC-03) Acessar recursos | include | UC-04 Validar autorização |
-| [UC-10](#uc-UC-10) Cadastrar obra | include | UC-15 Inserir cartão; UC-20 Registrar ação |
-| [UC-11](#uc-UC-11) Apagar obra | include | UC-16 Deletar cartão |
-| [UC-12](#uc-UC-12) Alterar status | include | UC-20 Registrar ação |
-| [UC-18](#uc-UC-18) Mover cartão | include | UC-12 Alterar status |
-| [UC-13](#uc-UC-13) Definir obra | include | UC-18 Mover cartão |
-| [UC-25](#uc-UC-25) Realizar manutenção | include | UC-20 Registrar ação |
-| [UC-33](#uc-UC-33) Emitir DRE | include | UC-32 Apurar custo total |
-| [UC-14](#uc-UC-14) Comentário de manutenção | extend | UC-25 Realizar manutenção |
-| [UC-19](#uc-UC-19) Comentário no cartão | extend | UC-17 Editar cartão |
-| [UC-30](#uc-UC-30) Comentário na timeline | extend | UC-29 Consultar linha do tempo |
+| [UC-01](#uc-01) Login | include | UC-02 Emitir token |
+| [UC-03](#uc-03) Acessar recursos | include | UC-04 Validar autorização |
+| [UC-10](#uc-10) Cadastrar obra | include | UC-15 Inserir cartão; UC-20 Registrar ação |
+| [UC-11](#uc-11) Apagar obra | include | UC-16 Deletar cartão |
+| [UC-12](#uc-12) Alterar status | include | UC-20 Registrar ação |
+| [UC-18](#uc-18) Mover cartão | include | UC-12 Alterar status |
+| [UC-13](#uc-13) Definir obra | include | UC-18 Mover cartão |
+| [UC-25](#uc-25) Realizar manutenção | include | UC-20 Registrar ação |
+| [UC-33](#uc-33) Emitir DRE | include | UC-32 Apurar custo total |
+| [UC-14](#uc-14) Comentário de manutenção | extend | UC-25 Realizar manutenção |
+| [UC-19](#uc-19) Comentário no cartão | extend | UC-17 Editar cartão |
+| [UC-30](#uc-30) Comentário na timeline | extend | UC-29 Consultar linha do tempo |
 
 ## Casos de Uso - Textual
 
