@@ -1,88 +1,115 @@
-# Documento de Casos de Uso
+# Casos de Uso
 
-**ZL Engenharia — Especificação de Requisitos de Software v1.1**
+![](diagrams/casos-de-uso.png)
+[fonte PlantUML](diagrams/casos-de-uso.puml)
 
-## Controle do Documento
-
-| Campo | Valor |
-| --- | --- |
-| Versão do documento | 1.1 |
-| Data | 05/10/2026 |
-| Status | Vigente |
-| Projeto | Projeto Integrador IV (UFC) |
-| Cliente | ZL Engenharia |
-| Documento anterior | - |
-| Documentos relacionados | [Requisitos Funcionais e Não Funcionais](01_Requisitos_Funcionais_e_Nao_Funcionais.md) |
-
-### Templates Utilizados
-
-| Elemento | Template adotado |
-| --- | --- |
-| Estrutura do documento | ISO/IEC/IEEE 29148:2018 |
-| Casos de uso | Cockburn (*Writing Effective Use Cases*) |
-
-## 1. Atores do Sistema
+## Atores
 
 | Ator | Descrição |
-| --- | --- |
-| Administrador | Responsável pela gestão geral do sistema, incluindo utilizadores, clientes, obras, equipas, Kanban, Gantt, informações financeiras e demais recursos administrativos. |
-| Engenharia / Obras | Responsável pelo planeamento e execução das obras, incluindo gestão de obras, Kanban, equipas, alocação no Gantt e acompanhamento da linha do tempo. |
-| Financeiro | Responsável pelo controle de custos e resultado das obras, incluindo consulta em modo leitura a obras, Kanban, Gantt e linha do tempo, registro e apuração de custos, emissão do DRE da obra, exportação de relatórios financeiros e inclusão de comentários na linha do tempo. |
-| Instalador de Campo | Responsável pela execução e manutenção das instalações em campo, incluindo consulta às informações das instalações, abertura de rotas, realização de manutenções e inclusão de comentários de manutenção. |
+| :---- | :---- |
+| Usuário | Generalização de todos os atores autenticados |
+| Administrador | Gestão geral do sistema |
+| Engenharia | Planejamento e execução de obras |
+| Financeiro | Custos, DRE e relatórios |
+| Instalador de Campo | Execução e manutenção de instalações |
+| Sistema | Ator interno, acionado por inclusão de outros casos de uso |
 
-## 2. Matriz de Acesso aos Casos de Uso
+## Matriz de acesso
 
-| Ator | UC-01 | UC-02 | UC-03 | UC-04 | UC-05 | UC-06 | UC-07 | UC-08 | UC-09 | UC-10 | UC-11 | UC-12 | UC-13 | UC-14 | UC-15 | UC-16 | UC-17 | UC-18 | UC-19 | UC-20 | UC-21 | UC-22 | UC-23 | UC-24 | UC-25 | UC-26 | UC-27 | UC-28 | UC-29 | UC-30 | UC-31 | UC-32 | UC-33 | UC-34 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Administrador | X | X | X | X | X | X | X | X | X | X | X | | | | | | X | X | | | X | X | X | | | | | | X | | | X | X | |
-| Engenharia / Obras | X | X | X | X | | | | | | X | X | | | | | | X | X | | | X | X | | | | | | | X | | | | | |
-| Financeiro | X | X | X | X | | | | | | | | | | | | | | | | | | | | | | | X | X | X | X | X | X | X | X |
-| Instalador de Campo | X | X | X | X | | | | | | | | | | X | | | | | | | | | | X | X | X | | | | | | | | |
+| Caso de uso | Adm | Eng | Fin | Inst |
+| :---- | :---: | :---: | :---: | :---: |
+| [UC-01](#uc-UC-01) Login | ✔ | ✔ | ✔ | ✔ |
+| [UC-02](#uc-UC-02) Emitir token de acesso | ✔ | ✔ | ✔ | ✔ |
+| [UC-03](#uc-UC-03) Acessar recursos | ✔ | ✔ | ✔ | ✔ |
+| [UC-04](#uc-UC-04) Validar autorização | ✔ | ✔ | ✔ | ✔ |
+| [UC-05](#uc-UC-05) Cadastrar administrador | ✔ | | | |
+| [UC-06](#uc-UC-06) Cadastrar engenheiro | ✔ | | | |
+| [UC-07](#uc-UC-07) Cadastrar financeiro | ✔ | | | |
+| [UC-08](#uc-UC-08) Cadastrar clientes | ✔ | | | |
+| [UC-09](#uc-UC-09) Cadastrar instalador de campo | ✔ | | | |
+| [UC-10](#uc-UC-10) Cadastrar obra | ✔ | ✔ | | |
+| [UC-11](#uc-UC-11) Apagar obra | ✔ | ✔ | | |
+| [UC-12](#uc-UC-12) Alterar status da obra | ✔ | ✔ | | |
+| [UC-13](#uc-UC-13) Definir obra para instalação | ✔ | ✔ | | |
+| [UC-14](#uc-UC-14) Criar comentário sobre a manutenção | | | | ✔ |
+| [UC-15](#uc-UC-15) Inserir cartão no Kanban | ✔ | ✔ | | |
+| [UC-16](#uc-UC-16) Deletar cartão no Kanban | ✔ | ✔ | | |
+| [UC-17](#uc-UC-17) Editar cartão no Kanban | ✔ | ✔ | | |
+| [UC-18](#uc-UC-18) Mover cartão no Kanban | ✔ | ✔ | | |
+| [UC-19](#uc-UC-19) Adicionar comentário no cartão | ✔ | ✔ | | |
+| [UC-20](#uc-UC-20) Registrar ação | ✔ | ✔ | | |
+| [UC-21](#uc-UC-21) Criar equipe de campo | ✔ | ✔ | | |
+| [UC-22](#uc-UC-22) Alocar equipe | ✔ | ✔ | | |
+| [UC-23](#uc-UC-23) Exportar detalhes de instalação | ✔ | | | |
+| [UC-24](#uc-UC-24) Visualizar detalhes da instalação | ✔ | ✔ | | ✔ |
+| [UC-25](#uc-UC-25) Realizar manutenção | | | | ✔ |
+| [UC-26](#uc-UC-26) Abrir rota | ✔ | ✔ | | ✔ |
+| [UC-27](#uc-UC-27) Consultar obras e quadro Kanban | | | ✔ | |
+| [UC-28](#uc-UC-28) Consultar cronograma (Gantt) | | | ✔ | |
+| [UC-29](#uc-UC-29) Consultar linha do tempo | ✔ | ✔ | ✔ | |
+| [UC-30](#uc-UC-30) Incluir comentário na linha do tempo | | | ✔ | |
+| [UC-31](#uc-UC-31) Registrar custos e precificação | | | ✔ | |
+| [UC-32](#uc-UC-32) Apurar custo total | ✔ | | ✔ | |
+| [UC-33](#uc-UC-33) Emitir DRE | ✔ | | ✔ | |
+| [UC-34](#uc-UC-34) Exportar relatório financeiro | ✔ | | ✔ | |
 
-## 3. Diagrama de Casos de Uso
+## Descrição dos casos de uso
 
-![Diagrama de Casos de Uso](./diagrama-casos-de-uso.png)
+| ID | Caso de uso | Ator principal | Fluxo principal (resumo) | Regras |
+| :---- | :---- | :---- | :---- | :---- |
+| [UC-01](#uc-UC-01) | Login | Usuário | Informa e-mail e senha; sistema valida e emite token; redireciona conforme o perfil | Credencial errada não revela qual campo; bloqueio após 5 falhas |
+| [UC-02](#uc-UC-02) | Emitir token de acesso | Sistema | Gera token com identificador, perfil e expiração, assinado | Token tem expiração e carrega o perfil |
+| [UC-03](#uc-UC-03) | Acessar recursos | Usuário | Solicita recurso; valida autorização (UC-04); exibe o recurso | Acesso depende do perfil; toda requisição exige token |
+| [UC-04](#uc-UC-04) | Validar autorização | Sistema | Extrai e valida token; compara perfil com o exigido | Recursos têm perfis definidos; negações são registradas |
+| [UC-05](#uc-UC-05) | Cadastrar administrador | Administrador | Informa nome, e-mail e senha inicial; sistema valida e salva | Somente Administrador cadastra Administrador |
+| [UC-06](#uc-UC-06) | Cadastrar engenheiro | Administrador | Seleciona perfil Engenharia; informa dados; salva | E-mail único |
+| [UC-07](#uc-UC-07) | Cadastrar financeiro | Administrador | Seleciona perfil Financeiro; informa dados; salva | E-mail único |
+| [UC-08](#uc-UC-08) | Cadastrar clientes | Administrador | Informa nome, CPF/CNPJ, telefone, e-mail e endereço; salva | CPF/CNPJ válido e único; nome e CPF/CNPJ obrigatórios |
+| [UC-09](#uc-UC-09) | Cadastrar instalador de campo | Administrador | Seleciona perfil InstaladorCampo; informa dados; salva | Instalador tem leitura da instalação e registro de manutenção |
+| [UC-10](#uc-UC-10) | Cadastrar obra | Administrador, Engenharia | Seleciona cliente; informa endereço, descrição e dados do projeto; salva; cria cartão e registra ação | Toda obra tem cliente; nasce no status inicial |
+| [UC-11](#uc-UC-11) | Apagar obra | Administrador, Engenharia | Seleciona obra; confirma; remove cartão; marca obra como excluída | Confirmação explícita; obra em execução não é apagada; exclusão lógica |
+| [UC-12](#uc-UC-12) | Alterar status da obra | Sistema | Recebe obra e novo status; valida transição; atualiza; registra ação | Status segue o fluxo; toda mudança é registrada |
+| [UC-13](#uc-UC-13) | Definir obra para instalação | Administrador, Engenharia | Seleciona obra; associa equipe e período; move cartão para a coluna de instalação | Obra apta; equipe sem conflito de período |
+| [UC-14](#uc-UC-14) | Criar comentário sobre a manutenção | Instalador | Escreve comentário durante a manutenção; sistema salva com autor, data e hora | Comentário é opcional e estende UC-25 |
+| [UC-15](#uc-UC-15) | Inserir cartão no Kanban | Sistema | Cria cartão com dados resumidos na primeira coluna | Um cartão por obra |
+| [UC-16](#uc-UC-16) | Deletar cartão no Kanban | Sistema | Remove o cartão da coluna | Só junto com a exclusão da obra |
+| [UC-17](#uc-UC-17) | Editar cartão no Kanban | Administrador, Engenharia | Altera título, descrição, responsável e datas; salva | Mudança de coluna só por UC-18 |
+| [UC-18](#uc-UC-18) | Mover cartão no Kanban | Administrador, Engenharia | Arrasta cartão; sistema valida; executa UC-12; atualiza posição | Respeita a ordem do fluxo; todo movimento altera status e gera registro |
+| [UC-19](#uc-UC-19) | Adicionar comentário no cartão | Administrador, Engenharia | Escreve comentário durante a edição; sistema salva | Comentário guarda autor, data e hora |
+| [UC-20](#uc-UC-20) | Registrar ação | Sistema | Recebe evento; adiciona data e hora; grava na timeline | Registros não podem ser editados nem removidos; identifica o usuário |
+| [UC-21](#uc-UC-21) | Criar equipe de campo | Administrador, Engenharia | Informa nome; seleciona instaladores e responsável; salva; pode definir obra | Equipe tem ao menos um instalador e um responsável; instalador em uma equipe por período |
+| [UC-22](#uc-UC-22) | Alocar equipe | Administrador, Engenharia | Seleciona obra, equipe e período; sistema verifica disponibilidade; salva; executa UC-13 | Sem dupla alocação; obra apta |
+| [UC-23](#uc-UC-23) | Exportar detalhes de instalação | Administrador | Seleciona obra; sistema reúne kit, endereço, equipe, período e instruções; gera arquivo | Somente dados da obra selecionada |
+| [UC-24](#uc-UC-24) | Visualizar detalhes da instalação | Instalador | Abre lista; seleciona instalação; vê kit, endereço, projeto e instruções | Somente instalações da própria equipe; somente leitura |
+| [UC-25](#uc-UC-25) | Realizar manutenção | Instalador | Abre manutenção; registra serviço; marca como concluída; sistema salva e registra ação | Somente manutenção da própria equipe; conclusão gera registro |
+| [UC-26](#uc-UC-26) | Abrir rota | Instalador | Seleciona instalação; aciona rota; sistema abre o aplicativo de mapas com o endereço | Usa o endereço da obra; só da própria equipe |
+| [UC-27](#uc-UC-27) | Consultar obras e quadro Kanban | Financeiro | Abre o quadro; vê cartões e status de material; abre detalhes | Somente leitura |
+| [UC-28](#uc-UC-28) | Consultar cronograma (Gantt) | Financeiro | Abre o Gantt; vê barras por equipe e período; abre detalhes | Somente leitura |
+| [UC-29](#uc-UC-29) | Consultar linha do tempo | Administrador, Engenharia, Financeiro | Seleciona obra; abre timeline; vê registros em ordem cronológica | Ordem cronológica; registros de ação são imutáveis |
+| [UC-30](#uc-UC-30) | Incluir comentário na linha do tempo | Financeiro | Escreve comentário; sistema salva com autor, data e hora | Somente Administrador edita ou exclui |
+| [UC-31](#uc-UC-31) | Registrar custos e precificação | Financeiro | Seleciona obra; informa itens de custo e valor da obra; salva; grava log | Precificação completa exige todos os itens e o valor |
+| [UC-32](#uc-UC-32) | Apurar custo total | Administrador, Financeiro | Seleciona obra; sistema verifica conclusão e precificação; soma itens | Só obra concluída com precificação completa |
+| [UC-33](#uc-UC-33) | Emitir DRE | Administrador, Financeiro | Solicita DRE; executa UC-32; calcula resultado; exibe | Somente obra concluída; somente leitura |
+| [UC-34](#uc-UC-34) | Exportar relatório financeiro | Financeiro | Seleciona tipo e período; escolhe PDF ou Excel; gera e disponibiliza | Formatos PDF e Excel; 5 s para 1.000 registros |
 
-## 4. Índice dos Casos de Uso
+## Relações entre casos de uso
 
-| ID | Caso de Uso |
-| --- | --- |
-| [UC-01](#uc-01) | Login |
-| [UC-02](#uc-02) | Emitir Token de Acesso |
-| [UC-03](#uc-03) | Acessar Recursos |
-| [UC-04](#uc-04) | Validar Autorização de Acesso |
-| [UC-05](#uc-05) | Cadastrar Administrador |
-| [UC-06](#uc-06) | Cadastrar Engenheiro |
-| [UC-07](#uc-07) | Cadastrar Financeiro |
-| [UC-08](#uc-08) | Cadastrar Clientes |
-| [UC-09](#uc-09) | Cadastrar Instalador de Campo |
-| [UC-10](#uc-10) | Cadastrar Obra |
-| [UC-11](#uc-11) | Apagar Obra |
-| [UC-12](#uc-12) | Alterar Status da Obra |
-| [UC-13](#uc-13) | Definir Obra para Instalação |
-| [UC-14](#uc-14) | Criar Comentário sobre a Manutenção |
-| [UC-15](#uc-15) | Inserir Cartão de Obra no Kanban |
-| [UC-16](#uc-16) | Deletar Cartão de Obra no Kanban |
-| [UC-17](#uc-17) | Editar Cartão no Kanban |
-| [UC-18](#uc-18) | Mover Cartão no Kanban |
-| [UC-19](#uc-19) | Adicionar Comentario no Cartão |
-| [UC-20](#uc-20) | Registrar Ação |
-| [UC-21](#uc-21) | Criar Equipe de Campo |
-| [UC-22](#uc-22) | Alocar Equipe |
-| [UC-23](#uc-23) | Exportar Detalhes de Instalação |
-| [UC-24](#uc-24) | Visualizar Detalhes da Instalação |
-| [UC-25](#uc-25) | Realizar Manutenção |
-| [UC-26](#uc-26) | Abrir Rota |
-| [UC-27](#uc-27) | Consultar Obras e Quadro Kanban |
-| [UC-28](#uc-28) | Consultar Cronograma (Gantt) |
-| [UC-29](#uc-29) | Consultar Linha do Tempo da Obra |
-| [UC-30](#uc-30) | Incluir Comentário na Linha do Tempo |
-| [UC-31](#uc-31) | Registrar Custos e Precificação da Obra |
-| [UC-32](#uc-32) | Apurar Custo Total da Obra |
-| [UC-33](#uc-33) | Emitir DRE da Obra |
-| [UC-34](#uc-34) | Exportar Relatório Financeiro |
+| Origem | Relação | Destino |
+| :---- | :---- | :---- |
+| [UC-01](#uc-UC-01) Login | include | UC-02 Emitir token |
+| [UC-03](#uc-UC-03) Acessar recursos | include | UC-04 Validar autorização |
+| [UC-10](#uc-UC-10) Cadastrar obra | include | UC-15 Inserir cartão; UC-20 Registrar ação |
+| [UC-11](#uc-UC-11) Apagar obra | include | UC-16 Deletar cartão |
+| [UC-12](#uc-UC-12) Alterar status | include | UC-20 Registrar ação |
+| [UC-18](#uc-UC-18) Mover cartão | include | UC-12 Alterar status |
+| [UC-13](#uc-UC-13) Definir obra | include | UC-18 Mover cartão |
+| [UC-25](#uc-UC-25) Realizar manutenção | include | UC-20 Registrar ação |
+| [UC-33](#uc-UC-33) Emitir DRE | include | UC-32 Apurar custo total |
+| [UC-14](#uc-UC-14) Comentário de manutenção | extend | UC-25 Realizar manutenção |
+| [UC-19](#uc-UC-19) Comentário no cartão | extend | UC-17 Editar cartão |
+| [UC-30](#uc-UC-30) Comentário na timeline | extend | UC-29 Consultar linha do tempo |
 
-## 5. Casos de Uso (Textual)
+## Casos de Uso - Textual
 
 <a id="uc-01"></a>
 
@@ -118,8 +145,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-01](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-01), [RF-19](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-19)
-
 ---
 
 <a id="uc-02"></a>
@@ -151,8 +176,6 @@
 - RN2 - O token deve conter o perfil do usuário para uso na autorização.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-01](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-01)
 
 ---
 
@@ -186,8 +209,6 @@
 - RN2 - Toda requisição deve ser acompanhada de token válido.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-02](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-02), [RF-19](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-19)
 
 ---
 
@@ -223,8 +244,6 @@
 - RN2 - Tentativas de acesso negadas devem ser registradas.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-02](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-02)
 
 ---
 
@@ -263,8 +282,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-01](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-01)
-
 ---
 
 <a id="uc-06"></a>
@@ -301,8 +318,6 @@
 - RN2 - O e-mail deve ser único no sistema.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-01](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-01)
 
 ---
 
@@ -341,8 +356,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-01](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-01)
-
 ---
 
 <a id="uc-08"></a>
@@ -378,8 +391,6 @@
 - RN2 - Nome e CPF/CNPJ são obrigatórios.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-03](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-03)
 
 ---
 
@@ -417,8 +428,6 @@
 - RN2 - O Instalador de Campo possui acesso somente de leitura às informações da instalação, além do registro de manutenção.
 
 **Prioridade:** Média
-
-**RF relacionado:** [RF-01](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-01)
 
 ---
 
@@ -460,8 +469,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-03](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-03)
-
 ---
 
 <a id="uc-11"></a>
@@ -499,8 +506,6 @@
 
 **Prioridade:** Média
 
-**RF relacionado:** [RF-03](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-03)
-
 ---
 
 <a id="uc-12"></a>
@@ -532,8 +537,6 @@
 - RN2 - Toda mudança de status deve ser registrada com usuário, data e hora.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04), [RF-10](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-10)
 
 ---
 
@@ -570,8 +573,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-07](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-07), [RF-10](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-10)
-
 ---
 
 <a id="uc-14"></a>
@@ -607,8 +608,6 @@
 
 **Prioridade:** Média
 
-**RF relacionado:** [RF-05](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-05), [RF-19](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-19)
-
 ---
 
 <a id="uc-15"></a>
@@ -641,8 +640,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-03](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-03), [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04)
-
 ---
 
 <a id="uc-16"></a>
@@ -672,8 +669,6 @@
 - RN1 - O cartão só pode ser removido junto com a exclusão da obra.
 
 **Prioridade:** Média
-
-**RF relacionado:** [RF-03](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-03), [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04)
 
 ---
 
@@ -712,8 +707,6 @@
 
 **Prioridade:** Média
 
-**RF relacionado:** [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04), [RF-06](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-06)
-
 ---
 
 <a id="uc-18"></a>
@@ -747,8 +740,6 @@
 - RN2 - Todo movimento altera o status da obra e é registrado na linha do tempo.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04), [RF-10](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-10)
 
 ---
 
@@ -785,8 +776,6 @@
 
 **Prioridade:** Baixa
 
-**RF relacionado:** [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04), [RF-11](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-11)
-
 ---
 
 <a id="uc-20"></a>
@@ -818,8 +807,6 @@
 - RN3 - Cada registro deve identificar o usuário responsável.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-03](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-03), [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04), [RF-05](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-05), [RF-11](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-11), [RF-12](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-12)
 
 ---
 
@@ -858,8 +845,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-07](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-07)
-
 ---
 
 <a id="uc-22"></a>
@@ -896,8 +881,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-07](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-07), [RF-08](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-08), [RF-09](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-09)
-
 ---
 
 <a id="uc-23"></a>
@@ -932,8 +915,6 @@
 
 **Prioridade:** Baixa
 
-**RF relacionado:** [RF-15](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-15)
-
 ---
 
 <a id="uc-24"></a>
@@ -967,8 +948,6 @@
 - RN2 - O acesso é somente de leitura.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-19](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-19)
 
 ---
 
@@ -1007,8 +986,6 @@
 
 **Prioridade:** Média
 
-**RF relacionado:** [RF-05](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-05), [RF-19](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-19)
-
 ---
 
 <a id="uc-26"></a>
@@ -1041,8 +1018,6 @@
 - RN2 - O instalador só abre rota de instalações da sua equipe.
 
 **Prioridade:** Média
-
-**RF relacionado:** [RF-19](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-19)
 
 ---
 
@@ -1077,8 +1052,6 @@
 
 **Prioridade:** Média
 
-**RF relacionado:** [RF-04](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-04), [RF-06](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-06)
-
 ---
 
 <a id="uc-28"></a>
@@ -1112,8 +1085,6 @@
 
 **Prioridade:** Média
 
-**RF relacionado:** [RF-07](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-07), [RF-06](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-06)
-
 ---
 
 <a id="uc-29"></a>
@@ -1145,8 +1116,6 @@
 - RN2 - Os registros de ação não podem ser editados nem removidos por nenhum perfil.
 
 **Prioridade:** Média
-
-**RF relacionado:** [RF-11](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-11), [RF-12](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-12)
 
 ---
 
@@ -1183,8 +1152,6 @@
 - RN3 - O comentário é um item geral da linha do tempo: somente o Administrador pode editá-lo ou excluí-lo. Administrador e Engenharia comentam pelo [UC-19](#uc-19).
 
 **Prioridade:** Baixa
-
-**RF relacionado:** [RF-11](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-11), [RF-12](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-12)
 
 ---
 
@@ -1225,8 +1192,6 @@
 
 **Prioridade:** Alta
 
-**RF relacionado:** [RF-14](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-14)
-
 ---
 
 <a id="uc-32"></a>
@@ -1261,8 +1226,6 @@
 - RN3 - Engenharia e Instalador de Campo não têm acesso aos custos.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-14](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-14)
 
 ---
 
@@ -1299,8 +1262,6 @@
 - RN3 - Engenharia e Instalador de Campo não têm acesso ao DRE.
 
 **Prioridade:** Alta
-
-**RF relacionado:** [RF-20](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-20), [RF-14](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-14)
 
 ---
 
@@ -1339,5 +1300,3 @@
 - RN3 - Somente perfis autorizados exportam dados financeiros.
 
 **Prioridade:** Média
-
-**RF relacionado:** [RF-15](01_Requisitos_Funcionais_e_Nao_Funcionais.md#rf-15)
