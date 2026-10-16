@@ -17,7 +17,7 @@ import { useKanbanFilterStore } from "@/stores/useKanbanFilterStore";
 export default function Kanban() {
   const navigate = useNavigate();
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
-  const canCriarObra = perfil === "Administrador" || perfil === "EngenhariaObras";
+  const canCriarObra = perfil === "Administrador" || perfil === "Engenharia";
   const { data, isLoading, isError, refetch } = useObras();
 
   const busca = useKanbanFilterStore((s) => s.busca);
@@ -137,7 +137,7 @@ export default function Kanban() {
           />
 
           {/* Botão Nova Obra com RoleGate */}
-          <RoleGate allowedRoles={["Administrador", "EngenhariaObras"]}>
+          <RoleGate allowedRoles={["Administrador", "Engenharia"]}>
             <Button
               variant="primary"
               size="md"

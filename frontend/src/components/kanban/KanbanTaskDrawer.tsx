@@ -39,7 +39,7 @@ export default function KanbanTaskDrawer({ card, isOpen, onClose }: KanbanTaskDr
   const excluirObraMutation = useExcluirObra();
 
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
-  const canDelete = perfil === "Administrador" || perfil === "EngenhariaObras";
+  const canDelete = perfil === "Administrador" || perfil === "Engenharia";
 
   const { data: obrasData } = useObras();
   const cardAtualizado = useMemo(() => {

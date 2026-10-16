@@ -34,15 +34,17 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor de Response: Captura 401 para logout forçado, exceto em rotas públicas
+// Interceptor de Response: Captura 401 para logout forçado, exceto em rotas públicas e no login
 api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const url = error.config?.url || "";
+      const isRotaLogin = url.includes("/auth/login");
       const isRotaPublica =
         url.includes("/cronograma/compartilhado") || url.includes("/mobile");
-      if (!isRotaPublica) {
+
+      if (!isRotaLogin && !isRotaPublica) {
         useAuthStore.getState().logout();
       }
     }

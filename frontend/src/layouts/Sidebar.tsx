@@ -52,19 +52,19 @@ export default function Sidebar() {
       label: "Obras",
       path: "/kanban",
       icon: LayoutDashboard,
-      roles: ["Administrador", "EngenhariaObras", "Financeiro"],
+      roles: ["Administrador", "Engenharia", "Financeiro"],
     },
     {
       label: "Equipes",
       path: "/equipes",
       icon: Users,
-      roles: ["Administrador", "EngenhariaObras", "Financeiro"],
+      roles: ["Administrador", "Engenharia", "Financeiro"],
     },
     {
       label: "Homologação",
       path: "/acompanharhomologacao",
       icon: FileCheck,
-      roles: ["Administrador", "EngenhariaObras"],
+      roles: ["Administrador", "Engenharia"],
     },
     {
       label: "Financeiro",

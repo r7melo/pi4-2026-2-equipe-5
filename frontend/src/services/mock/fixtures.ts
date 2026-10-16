@@ -42,7 +42,7 @@ export const MOCK_USUARIOS: Record<string, MockUsuario> = {
     email: "engenharia@zlengenharia.com",
     perfil: {
       id: 2,
-      nomePerfil: "EngenhariaObras",
+      nomePerfil: "Engenharia",
       permissoes: ["obras:criar", "obras:mover", "programacoes:editar"],
     },
     equipeId: 3,

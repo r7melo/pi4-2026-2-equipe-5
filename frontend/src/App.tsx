@@ -52,28 +52,28 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               {/* Kanban: Visível para Admin, Engenharia e Financeiro */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro"]} />}>
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia", "Financeiro"]} />}>
                 <Route path="/kanban" element={<Kanban />} />
               </Route>
 
               {/* Equipes (Gantt): Visível para Admin, Engenharia e Financeiro */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro"]} />}>
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia", "Financeiro"]} />}>
                 <Route path="/equipes" element={<Equipes />} />
               </Route>
 
               {/* Gestão de Obras: Apenas Admin e Engenharia */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia"]} />}>
                 <Route path="/cadastrarobra" element={<CadastrarObra />} />
                 <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
               </Route>
 
               {/* Detalhe da Obra: Admin, Engenharia e Financeiro (RF-03/11) */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras", "Financeiro"]} />}>
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia", "Financeiro"]} />}>
                 <Route path="/obras/:id" element={<DetalheObra />} />
               </Route>
 
               {/* Materiais da Obra: Admin e Engenharia (RF-06) */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "EngenhariaObras"]} />}>
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia"]} />}>
                 <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
               </Route>
 

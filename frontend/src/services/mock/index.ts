@@ -83,13 +83,60 @@ console.log("🚧 [MOCK MODE] Backend simulado ativo com axios-mock-adapter (del
 
 // --- ROTAS DE AUTENTICAÇÃO ---
 
+// Contador volátil em memória de falhas de login por e-mail (RN-02 / UC-01 FA3)
+const tentativasFalhas: Record<string, number> = {};
+
 // POST /auth/login (suporta com/sem prefixo e com/sem barra)
 mock.onPost(/\/auth\/login\/?(\?.*)?$/).reply((config) => {
   try {
     const body = extrairDados<{ email?: string; senha?: string }>(config.data);
-    const email = body.email?.toLowerCase().trim();
-    const usuarioMock =
-      (email && MOCK_USUARIOS[email]) || MOCK_USUARIOS["engenharia@zlengenharia.com"];
+    const email = body.email?.toLowerCase().trim() || "";
+    const senha = body.senha || "";
+
+    // 1. Verificação de bloqueio por força bruta (RN-02: 5 falhas consecutivas)
+    if (tentativasFalhas[email] && tentativasFalhas[email] >= 5) {
+      return [
+        423,
+        {
+          error: {
+            code: "ACCOUNT_LOCKED",
+            message: "Conta bloqueada por excesso de tentativas de login",
+          },
+        },
+      ];
+    }
+
+    const usuarioMock = MOCK_USUARIOS[email];
+
+    // 2. Validação canônica de credenciais (Senha padrão: Senha123!)
+    if (!usuarioMock || senha !== "Senha123!") {
+      tentativasFalhas[email] = (tentativasFalhas[email] || 0) + 1;
+
+      if (tentativasFalhas[email] >= 5) {
+        return [
+          423,
+          {
+            error: {
+              code: "ACCOUNT_LOCKED",
+              message: "Conta bloqueada por excesso de tentativas de login",
+            },
+          },
+        ];
+      }
+
+      return [
+        401,
+        {
+          error: {
+            code: "INVALID_CREDENTIALS",
+            message: "E-mail ou senha incorretos",
+          },
+        },
+      ];
+    }
+
+    // 3. Sucesso: zera tentativas de falha
+    tentativasFalhas[email] = 0;
 
     const resposta = {
       token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}`,

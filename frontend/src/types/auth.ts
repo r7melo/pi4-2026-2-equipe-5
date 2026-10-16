@@ -1,7 +1,7 @@
 // Tipos do domínio de Autenticação e Perfis (RF-01, RF-02)
 export type NomePerfil =
   | "Administrador"
-  | "EngenhariaObras"
+  | "Engenharia"
   | "Financeiro"
   | "InstaladorCampo";
 

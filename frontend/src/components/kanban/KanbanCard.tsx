@@ -21,7 +21,7 @@ export default memo(function KanbanCard({ card, onSelect }: KanbanCardProps) {
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const isFinanceiro = perfil === "Financeiro";
-  const canDrag = !isFinanceiro && (perfil === "Administrador" || perfil === "EngenhariaObras");
+  const canDrag = !isFinanceiro && (perfil === "Administrador" || perfil === "Engenharia");
   const canDelete = !isFinanceiro && canDrag;
 
   const { data: programacoes } = useProgramacoes();

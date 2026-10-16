@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogIn, Loader2, AlertCircle } from "lucide-react";
+import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { fazerLogin, mapearRespostaParaUsuario } from "@/services/auth";
 import { useAuthStore } from "@/stores/useAuthStore";
 
@@ -9,17 +9,21 @@ export default function Login() {
   const { token, usuario, login } = useAuthStore();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    console.info("🔑 [ZL Engenharia] Usuários para teste e homologação (Senha padrão: Senha123!):");
-    console.table([
-      { Perfil: "Administrador", "E-mail": "admin@zl.com.br", Senha: "Senha123!" },
-      { Perfil: "EngenhariaObras", "E-mail": "engenharia@zlengenharia.com", Senha: "Senha123!" },
-      { Perfil: "Financeiro", "E-mail": "financeiro@zl.com.br", Senha: "Senha123!" },
-      { Perfil: "InstaladorCampo", "E-mail": "instalador@zl.com.br", Senha: "Senha123!" },
-    ]);
+    // Guia de credenciais restrito a ambiente de desenvolvimento local (RSK-04)
+    if (import.meta.env.DEV) {
+      console.info("🔑 [ZL Engenharia] Usuários para teste e homologação (Senha padrão: Senha123!):");
+      console.table([
+        { Perfil: "Administrador", "E-mail": "admin@zl.com.br", Senha: "Senha123!" },
+        { Perfil: "Engenharia", "E-mail": "engenharia@zlengenharia.com", Senha: "Senha123!" },
+        { Perfil: "Financeiro", "E-mail": "financeiro@zl.com.br", Senha: "Senha123!" },
+        { Perfil: "InstaladorCampo", "E-mail": "instalador@zl.com.br", Senha: "Senha123!" },
+      ]);
+    }
   }, []);
 
   useEffect(() => {
@@ -48,7 +52,7 @@ export default function Login() {
         void navigate("/kanban");
       }
     } catch (err) {
-      setErro(err instanceof Error ? err.message : "Erro ao efetuar login");
+      setErro(err instanceof Error ? err.message : "Erro ao efetuar login. Tente novamente.");
     } finally {
       setCarregando(false);
     }
@@ -61,7 +65,7 @@ export default function Login() {
       <div className="w-full max-w-[480px] bg-white rounded-xl shadow-lg border border-slate-200 p-8 sm:p-10">
         
         <div className="flex flex-col items-center text-center mb-10">
-          {/* Logo placeholder */}
+          {/* Logo placeholder preservado conforme diretriz */}
           <div className="w-16 h-8 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 mb-6">
             ZL
           </div>
@@ -71,7 +75,10 @@ export default function Login() {
         </div>
 
         {erro && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2">
+          <div 
+            role="alert" 
+            className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2"
+          >
             <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{erro}</span>
           </div>
@@ -80,8 +87,11 @@ export default function Login() {
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
           {/* Campo E-mail */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">E-mail corporativo</label>
+            <label htmlFor="email" className="text-sm font-semibold text-slate-700 block cursor-pointer">
+              E-mail corporativo
+            </label>
             <input
+              id="email"
               type="email"
               required
               value={email}
@@ -94,16 +104,30 @@ export default function Login() {
           {/* Campo Senha */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-semibold text-slate-700">Senha</label>
+              <label htmlFor="senha" className="text-sm font-semibold text-slate-700 block cursor-pointer">
+                Senha
+              </label>
             </div>
-            <input
-              type="password"
-              required
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
-              placeholder="••••••••"
-            />
+            <div className="relative flex items-center">
+              <input
+                id="senha"
+                type={mostrarSenha ? "text" : "password"}
+                required
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                className="w-full px-4 py-3 pr-11 rounded-lg border bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setMostrarSenha((prev) => !prev)}
+                className="absolute right-3 text-slate-400 hover:text-slate-600 p-1 focus:outline-none"
+                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {mostrarSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
 
           <button
@@ -124,6 +148,12 @@ export default function Login() {
             )}
           </button>
 
+          {/* 
+            Preservação de ações secundárias (UX-03) para resguardo de evolução futura:
+            - "Esqueci minha senha" aguarda especificação de rota de recuperação no backend.
+            - "Criar nova conta" foi desativado pois a criação de perfis é restrita ao Administrador via POST /api/usuarios.
+          */}
+          {/*
           <button
             type="button"
             className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98] mt-3"
@@ -143,6 +173,7 @@ export default function Login() {
           >
             Criar nova conta
           </button>
+          */}
         </form>
 
       </div>

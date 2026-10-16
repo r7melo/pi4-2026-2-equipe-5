@@ -1,9 +1,9 @@
-// Constantes de perfis RBAC (RF-02) — Fonte única de verdade
+// Constantes de perfis RBAC (RF-02)
 import type { NomePerfil } from "@/types";
 
 export const PERFIS = {
   ADMIN: "Administrador" as NomePerfil,
-  ENGENHARIA: "EngenhariaObras" as NomePerfil,
+  ENGENHARIA: "Engenharia" as NomePerfil,
   FINANCEIRO: "Financeiro" as NomePerfil,
   INSTALADOR: "InstaladorCampo" as NomePerfil,
 } as const;

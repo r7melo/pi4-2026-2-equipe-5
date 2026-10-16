@@ -66,7 +66,7 @@ export default function Equipes() {
 
   const nomePerfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const canEdit =
-    nomePerfil === "Administrador" || nomePerfil === "EngenhariaObras";
+    nomePerfil === "Administrador" || nomePerfil === "Engenharia";
   const canDrag = canEdit;
 
   const {
