@@ -1,15 +1,19 @@
 import MockAdapter from "axios-mock-adapter";
 import { api } from "@/services/api";
-import type { StatusObra } from "@/constants/kanbanStatus";
+import { COLUNAS_KANBAN, TRANSICOES_VALIDAS, type StatusObra } from "@/constants/kanbanStatus";
 import type {
   CriarProgramacaoPayload,
   CriarEquipePayload,
   RelatorioCusto,
   Material,
+  EditarObraPayload,
+  CategoriaObra,
+  ObraCard,
 } from "@/types";
 import {
   MOCK_USUARIOS,
   obterObrasArmazenadas,
+  salvarObrasArmazenadas,
   adicionarObraArmazenada,
   atualizarStatusObraArmazenada,
   obterProgramacoesArmazenadas,
@@ -31,6 +35,15 @@ import {
   adicionarEquipeArmazenada,
 } from "./fixtures";
 import { gerarPdfRelatorio, gerarExcelRelatorio } from "./pdfGenerator";
+import { verificarSobreposicaoPeriodos } from "@/lib/ganttCalculos";
+import {
+  proximoDiaUtil,
+  normalizarDataMeioDiaUTC,
+  adicionarDiasUteis,
+  formatarDataISO,
+  formatarDataBR,
+  dataFimExclusivaParaUltimoDiaUtil,
+} from "@/lib/formatters";
 
 /**
  * Função utilitária para extrair com segurança o corpo de requisições,
@@ -261,7 +274,28 @@ mock.onPatch(/\/obras\/\d+\/status\/?(\?.*)?$/).reply((config) => {
 
     const obrasAntes = obterObrasArmazenadas();
     const obraAntes = obrasAntes.find((o) => Number(o.id) === id);
-    const statusAnterior = obraAntes ? obraAntes.status : "";
+
+    if (!obraAntes) {
+      return [404, { error: { code: "OBRA_NOT_FOUND", message: `Obra ${id} não encontrada` } }];
+    }
+
+    const statusAnterior = obraAntes.status;
+
+    // Validação canônica estrita das transições permitidas (04-regras-negocio.md / Seção 2)
+    const permitidos = TRANSICOES_VALIDAS[statusAnterior] || [];
+    if (!permitidos.includes(statusNovo)) {
+      const getLabel = (s: StatusObra) => COLUNAS_KANBAN.find((c) => c.id === s)?.label || s;
+      const permitidosLabels = permitidos.map(getLabel).join(", ") || "Nenhum";
+      return [
+        400,
+        {
+          error: {
+            code: "INVALID_STATUS_TRANSITION",
+            message: `Transição não permitida: de "${getLabel(statusAnterior)}" para "${getLabel(statusNovo)}". Próximos status válidos: ${permitidosLabels}.`,
+          },
+        },
+      ];
+    }
 
     const obraAtualizada = atualizarStatusObraArmazenada(id, statusNovo);
 
@@ -325,6 +359,69 @@ mock.onGet(/\/obras\/\d+\/?(\?.*)?$/).reply((config) => {
       },
     },
   ];
+});
+
+// PUT /obras/:id (edição de dados cadastrais da obra - UC-17 / Rota #9)
+mock.onPut(/\/obras\/\d+\/?$/).reply((config) => {
+  try {
+    const match = config.url?.match(/\/obras\/(\d+)/);
+    const id = match ? Number(match[1]) : 0;
+    const payload = extrairDados<EditarObraPayload>(config.data);
+
+    const obras = obterObrasArmazenadas();
+    const index = obras.findIndex((o) => Number(o.id) === id);
+
+    if (index === -1) {
+      return [404, { error: { code: "OBRA_NOT_FOUND", message: `Obra ${id} não encontrada` } }];
+    }
+
+    const obraExistente = obras[index];
+    const potenciaKwp = payload.potenciaKwp ?? obraExistente.potenciaKwp ?? Number(((obraExistente.quantidadePaineis * 550) / 1000).toFixed(1));
+    const quantidadePaineis = payload.potenciaKwp
+      ? Math.round((payload.potenciaKwp * 1000) / 550)
+      : obraExistente.quantidadePaineis;
+
+    const obraAtualizada: ObraCard = {
+      ...obraExistente,
+      clienteNome: payload.clienteNome ?? obraExistente.clienteNome,
+      endereco: payload.endereco ?? obraExistente.endereco,
+      cidade: payload.cidade ?? obraExistente.cidade,
+      categoria: (payload.tipoInstalacao as CategoriaObra) ?? obraExistente.categoria,
+      valorTotal: payload.valorTotal ?? obraExistente.valorTotal,
+      potenciaKwp,
+      quantidadePaineis,
+      dataFimEstimada: payload.previsaoFim ?? obraExistente.dataFimEstimada,
+      observacoes: payload.observacoes ?? obraExistente.observacoes,
+    };
+
+    obras[index] = obraAtualizada;
+    salvarObrasArmazenadas(obras);
+
+    // Resposta compatível com ObraDetalhe (Contrato) e ObraCard
+    const respostaDetalhe = {
+      ...obraAtualizada,
+      id: obraAtualizada.id,
+      status: obraAtualizada.status,
+      dataInicioEstimada: "2026-10-01",
+      dataFimEstimada: obraAtualizada.dataFimEstimada,
+      dataInicioReal: null,
+      dataFimReal: null,
+      cliente: {
+        id: 1,
+        nome: obraAtualizada.clienteNome,
+        cidade: obraAtualizada.cidade || "Campinas",
+      },
+      pagamento: {
+        id: 88,
+        dataConfirmacao: "2026-09-15",
+        prazoContratualDias: obraAtualizada.prazoContratualDias || 45,
+      },
+    };
+
+    return [200, respostaDetalhe];
+  } catch {
+    return [400, { error: { code: "INVALID_BODY", message: "Erro ao atualizar dados da obra" } }];
+  }
 });
 
 // --- ROTAS DO GANTT ---
@@ -464,10 +561,62 @@ mock.onGet(/\/relatorios\/export\/?(\?.*)?$/).reply((config) => {
   return [200, blob];
 });
 
-// POST /programacoes (Rota #15)
+// POST /programacoes (Rota #23 do Contrato Canônico)
 mock.onPost(/\/programacoes\/?(\?.*)?$/).reply((config) => {
   try {
     const body = extrairDados<CriarProgramacaoPayload>(config.data);
+    if (!body.obraId || !body.equipeId || !body.dataInicio) {
+      return [400, { error: { code: "VALIDATION_ERROR", message: "Campos obrigatórios ausentes" } }];
+    }
+
+    const progs = obterProgramacoesArmazenadas();
+    const equipes = obterEquipesArmazenadas();
+
+    // 1. Identificar se há colisão temporal para a mesma equipe
+    const novaDataInicio = body.dataInicio;
+    let novaDataFim = body.dataFim;
+
+    if (!novaDataFim && body.obraId) {
+      const obras = obterObrasArmazenadas();
+      const obra = obras.find((o) => Number(o.id) === Number(body.obraId));
+      const paineis = obra?.quantidadePaineis || 9;
+      const duracaoDias = Math.max(1, Math.ceil(paineis / 9));
+      const iniSanitizado = proximoDiaUtil(normalizarDataMeioDiaUTC(novaDataInicio));
+      const fimCalculado = adicionarDiasUteis(iniSanitizado, duracaoDias);
+      novaDataFim = formatarDataISO(fimCalculado);
+    }
+
+    if (body.equipeId && novaDataInicio && novaDataFim) {
+      const colidente = progs.find((p) => {
+        if (Number(p.equipeId) !== Number(body.equipeId)) return false;
+        return verificarSobreposicaoPeriodos(
+          novaDataInicio,
+          novaDataFim,
+          p.dataInicio,
+          p.dataFim,
+          false,
+          false
+        );
+      });
+
+      if (colidente) {
+        const equipe = equipes.find((e) => e.id === Number(body.equipeId));
+        const nomeEquipe = equipe?.nome || `Equipe ${body.equipeId}`;
+        const fimFormatado = formatarDataBR(dataFimExclusivaParaUltimoDiaUtil(colidente.dataFim));
+        const iniFormatado = formatarDataBR(colidente.dataInicio);
+
+        return [
+          409,
+          {
+            error: {
+              code: "SCHEDULE_CONFLICT",
+              message: `A ${nomeEquipe} já possui a Obra #${colidente.obraId} agendada de ${iniFormatado} a ${fimFormatado} neste período.`,
+            },
+          },
+        ];
+      }
+    }
+
     const criada = criarProgramacaoArmazenada(body);
     return [201, criada];
   } catch {

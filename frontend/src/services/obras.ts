@@ -9,6 +9,7 @@ import type {
   ObraDetalhe,
   HistoricoObra,
   ComentarioObra,
+  EditarObraPayload,
 } from "@/types";
 import type { StatusObra } from "@/constants/kanbanStatus";
 
@@ -52,6 +53,12 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
 /** GET /api/obras/{id} — Rota #5 do Contrato */
 export async function buscarObra(id: number): Promise<ObraDetalhe> {
   const { data } = await api.get<ObraDetalhe>(`/obras/${id}`);
+  return data;
+}
+
+/** PUT /api/obras/{id} — Rota #9 do Contrato (UC-17) */
+export async function atualizarObra(id: number, payload: EditarObraPayload): Promise<ObraDetalhe> {
+  const { data } = await api.put<ObraDetalhe>(`/obras/${id}`, payload);
   return data;
 }
 

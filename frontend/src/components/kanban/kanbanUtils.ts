@@ -3,18 +3,18 @@ import type { StatusObra } from "@/constants/kanbanStatus";
 export function getCategoriaBadgeStyle(categoria: string) {
   switch (categoria.toLowerCase()) {
     case "residencial":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-info-light text-info border-info-border";
     case "comercial":
-      return "bg-indigo-50 text-indigo-700 border-indigo-200";
+      return "bg-accent-light text-accent border-accent-border";
     case "industrial":
-      return "bg-slate-100 text-slate-700 border-slate-300";
+      return "bg-muted text-foreground-muted border-border-strong";
     case "rural":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-success-light text-success border-success-border";
     case "manutenção":
     case "manutencao":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-warning-light text-warning border-warning-border";
     default:
-      return "bg-slate-100 text-slate-600 border-slate-200";
+      return "bg-muted text-foreground-muted border-border-subtle";
   }
 }
 

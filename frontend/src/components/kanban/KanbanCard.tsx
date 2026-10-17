@@ -1,8 +1,9 @@
 import { useState, useMemo, memo } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { Trash2 } from "lucide-react";
+import { Trash2, MoreVertical, ArrowRight, Lock } from "lucide-react";
 import axios from "axios";
-import type { ObraCard } from "@/types";
+import type { ObraCard, Material } from "@/types";
+import { TRANSICOES_VALIDAS, COLUNAS_KANBAN, type StatusObra } from "@/constants/kanbanStatus";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { cn } from "@/lib/utils";
 import ModalExcluirObra from "./ModalExcluirObra";
@@ -15,10 +16,19 @@ import { KanbanCardVisual } from "./KanbanCardVisual";
 interface KanbanCardProps {
   card: ObraCard;
   onSelect?: (card: ObraCard) => void;
+  onMover?: (card: ObraCard, novoStatus: StatusObra) => void;
+  materiaisObra?: Material[];
 }
 
-export default memo(function KanbanCard({ card, onSelect }: KanbanCardProps) {
+export default memo(function KanbanCard({
+  card,
+  onSelect,
+  onMover,
+  materiaisObra,
+}: KanbanCardProps) {
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
+  const [menuMoverAberto, setMenuMoverAberto] = useState(false);
+
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const isFinanceiro = perfil === "Financeiro";
   const canDrag = !isFinanceiro && (perfil === "Administrador" || perfil === "Engenharia");
@@ -73,6 +83,22 @@ export default memo(function KanbanCard({ card, onSelect }: KanbanCardProps) {
     }
   };
 
+  const statusMaterial = useMemo(() => {
+    if (!materiaisObra || materiaisObra.length === 0) {
+      if (card.status === "MaterialComprado") return "Comprado";
+      if (card.status === "NoDeposito") return "Disponivel";
+      return undefined;
+    }
+    if (materiaisObra.every((m) => m.statusLogistico === "Utilizado")) return "Utilizado";
+    if (materiaisObra.some((m) => m.statusLogistico === "Disponivel")) return "Disponivel";
+    if (materiaisObra.some((m) => m.statusLogistico === "EmTransito")) return "EmTransito";
+    return "Comprado";
+  }, [materiaisObra, card.status]);
+
+  const proximosStatusValidos = useMemo(() => {
+    return TRANSICOES_VALIDAS[card.status] || [];
+  }, [card.status]);
+
   return (
     <>
       <div
@@ -82,30 +108,88 @@ export default memo(function KanbanCard({ card, onSelect }: KanbanCardProps) {
         {...listeners}
         onClick={handleCardClick}
         className={cn(
-          "bg-white border border-slate-200/90 rounded-lg p-2.5 shadow-xs transition-all select-none group relative",
+          "bg-surface border border-border-subtle/90 rounded-lg p-2.5 shadow-xs transition-all select-none group relative",
           canDrag
-            ? "cursor-pointer hover:shadow-md hover:border-slate-300 active:cursor-grabbing hover:-translate-y-0.5"
+            ? "cursor-pointer hover:shadow-md hover:border-border-strong active:cursor-grabbing hover:-translate-y-0.5"
             : "cursor-default",
-          isDragging && "shadow-xl border-blue-400 ring-2 ring-blue-400/20"
+          isDragging && "shadow-xl border-info ring-2 ring-info/20"
         )}
       >
         <KanbanCardVisual
           card={card}
+          statusMaterial={statusMaterial}
           acaoDireita={
-            canDelete ? (
-              <button
-                type="button"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setModalExcluirAberto(true);
-                }}
-                title="Excluir obra"
-                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 rounded transition-opacity cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            ) : null
+            <div className="flex items-center gap-0.5">
+              {isFinanceiro && (
+                <span
+                  title="Somente leitura para o seu perfil"
+                  className="p-1 text-subtle-foreground"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                </span>
+              )}
+
+              {canDrag && proximosStatusValidos.length > 0 && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuMoverAberto((prev) => !prev);
+                    }}
+                    title="Mover para..."
+                    className="p-1 text-subtle-foreground hover:text-info hover:bg-info-light rounded transition-colors cursor-pointer"
+                  >
+                    <MoreVertical className="w-3.5 h-3.5" />
+                  </button>
+
+                  {menuMoverAberto && (
+                    <div
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-6 z-30 w-44 bg-surface border border-border-subtle rounded-lg shadow-lg py-1 text-xs"
+                    >
+                      <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border-subtle">
+                        Mover para
+                      </div>
+                      {proximosStatusValidos.map((st) => {
+                        const labelDest = COLUNAS_KANBAN.find((c) => c.id === st)?.label || st;
+                        return (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => {
+                              setMenuMoverAberto(false);
+                              onMover?.(card, st);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 hover:bg-info-light hover:text-info text-foreground-muted flex items-center justify-between transition-colors cursor-pointer"
+                          >
+                            <span>{labelDest}</span>
+                            <ArrowRight className="w-3 h-3 text-subtle-foreground" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {canDelete && (
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setModalExcluirAberto(true);
+                  }}
+                  title="Excluir obra"
+                  className="opacity-0 group-hover:opacity-100 p-1 text-subtle-foreground hover:text-destructive hover:bg-destructive-light rounded transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           }
         />
       </div>

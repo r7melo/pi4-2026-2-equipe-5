@@ -7,3 +7,4 @@ export * from "./materiais";
 export * from "./obras";
 export * from "./programacoes";
 export * from "./relatorios";
+export * from "./theme";

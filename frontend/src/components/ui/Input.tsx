@@ -17,16 +17,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-semibold text-slate-700"
+            className="block text-sm font-semibold text-foreground-muted"
           >
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
+            {props.required && <span className="text-destructive ml-1">*</span>}
           </label>
         )}
 
         <div className="relative">
           {icon && (
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center justify-center">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-subtle-foreground pointer-events-none flex items-center justify-center">
               {icon}
             </div>
           )}
@@ -37,9 +37,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             aria-invalid={!!error}
             className={cn(
-              "w-full rounded-lg border bg-slate-50 border-slate-200 px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all focus:bg-white focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:opacity-50 disabled:cursor-not-allowed",
+              "w-full rounded-lg border bg-surface-subtle border-border-subtle px-4 py-2.5 text-sm text-foreground-secondary placeholder-subtle-foreground outline-none transition-all focus:bg-surface focus:border-border-strong focus:ring-2 focus:ring-border-subtle disabled:opacity-50 disabled:cursor-not-allowed",
               icon ? "pl-10" : "px-4",
-              error && "border-red-300 bg-red-50/30 focus:border-red-500 focus:ring-red-100",
+              error && "border-destructive-border bg-destructive-light/30 focus:border-destructive focus:ring-destructive-border",
               className
             )}
             {...props}
@@ -47,9 +47,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {error ? (
-          <p className="text-xs text-red-600 font-medium mt-1 animate-fadeIn">{error}</p>
+          <p className="text-xs text-destructive font-medium mt-1 animate-fadeIn">{error}</p>
         ) : helperText ? (
-          <p className="text-xs text-slate-500 mt-1">{helperText}</p>
+          <p className="text-xs text-muted-foreground mt-1">{helperText}</p>
         ) : null}
       </div>
     );

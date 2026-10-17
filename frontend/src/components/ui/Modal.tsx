@@ -57,7 +57,7 @@ export function Modal({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200 select-none",
+        "fixed inset-0 flex items-center justify-center p-4 bg-surface-overlay backdrop-blur-xs animate-in fade-in duration-200 select-none",
         zIndex
       )}
       onPointerDown={(e) => e.stopPropagation()}
@@ -75,28 +75,28 @@ export function Modal({
         aria-labelledby={titulo ? ariaLabelledBy : undefined}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all",
+          "w-full max-w-lg bg-surface rounded-xl shadow-2xl border border-border-subtle overflow-hidden transform transition-all",
           className
         )}
       >
         {(titulo || icone) && (
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle bg-surface-subtle/50">
             <div className="flex items-center gap-2.5">
               {icone}
               <div>
                 {titulo && (
-                  <h3 id={ariaLabelledBy} className="text-base font-semibold text-slate-800">
+                  <h3 id={ariaLabelledBy} className="text-base font-semibold text-foreground-secondary">
                     {titulo}
                   </h3>
                 )}
-                {subtitulo && <p className="text-xs text-slate-500">{subtitulo}</p>}
+                {subtitulo && <p className="text-xs text-muted-foreground">{subtitulo}</p>}
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
               disabled={fecharBloqueado}
-              className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-subtle-foreground hover:text-muted-foreground p-1 rounded-md transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Fechar modal"
             >
               <X className="w-4 h-4" />

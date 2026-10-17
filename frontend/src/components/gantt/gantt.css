@@ -1,30 +1,43 @@
 /* ═══════════════════════════════════════════════════════
-   Gantt — Tema ZL Engenharia (Tailwind 4 compatível)
+   Gantt — Tema ZL Engenharia (Tailwind 4 & Theme-Ready)
    ═══════════════════════════════════════════════════════ */
 
-/* ─── Gap G-01: Código Semântico de Cores das Barras ─── */
+:root,
+.dark {
+  --dhx-gantt-base-colors-background: var(--surface);
+  --dhx-gantt-base-colors-background-alt: var(--surface-subtle);
+  --dhx-gantt-base-colors-border: var(--border-subtle);
+  --dhx-gantt-base-colors-border-light: var(--border-subtle);
+  --dhx-gantt-base-colors-text-base: var(--foreground-secondary);
+  --dhx-gantt-base-colors-text-light: var(--muted-foreground);
+  --dhx-gantt-base-colors-icons: var(--muted-foreground);
+  --dhx-gantt-base-colors-select: var(--muted);
+  --dhx-gantt-base-colors-hover-color: var(--muted);
+}
+
+/* ─── Gap G-01: Código Semântico de Cores das Barras (WCAG AA) ─── */
 /* 🟢 Kit Pronto / Separado / Liberado */
 .gantt_task_line.gantt-material-pronto {
-  background-color: #10b981 !important;
-  border-color: #059669 !important;
+  background-color: var(--success) !important;
+  border-color: var(--success-hover) !important;
   border-radius: 6px;
-  color: #fff;
+  color: var(--primary-foreground) !important;
 }
 
 /* 🔵 Aguardando Insumos / Em Trânsito / Compras Pendentes */
 .gantt_task_line.gantt-material-pendente {
-  background-color: #3b82f6 !important;
-  border-color: #2563eb !important;
+  background-color: var(--info) !important;
+  border-color: var(--info-hover) !important;
   border-radius: 6px;
-  color: #fff;
+  color: var(--primary-foreground) !important;
 }
 
 /* 🟡 Manutenção / Assistência Técnica */
 .gantt_task_line.gantt-material-assistencia {
-  background-color: #f59e0b !important;
-  border-color: #d97706 !important;
+  background-color: var(--warning) !important;
+  border-color: var(--warning-hover) !important;
   border-radius: 6px;
-  color: #fff;
+  color: var(--primary-foreground) !important;
 }
 
 /* ─── Gap G-08: Linhas e Barras de Nó Pai de Equipe (type: "project") ─── */
@@ -38,14 +51,6 @@
 .gantt_task_line.gantt-project-team .gantt_task_content {
   font-weight: 600;
   font-size: 11px;
-}
-
-/* Destaque sutil para as linhas de equipe na tabela esquerda e linha temporal */
-.gantt_row.gantt-row-project,
-.gantt_task_row.gantt-row-project {
-  background-color: #f8fafc !important;
-  font-weight: 600 !important;
-  color: #1e293b !important;
 }
 
 /* ─── Paleta de Equipes (8 cores legadas mantidas para telas públicas / fallback) ─── */
@@ -62,12 +67,36 @@
 .gantt_task_line .gantt_task_content {
   font-size: 12px;
   font-weight: 500;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  color: inherit !important;
+}
+
+/* Superfícies nativas do DHTMLX Gantt */
+.gantt_container,
+.gantt_grid,
+.gantt_task,
+.gantt_row,
+.gantt_task_row,
+.gantt_row.odd,
+.gantt_task_row.odd,
+.gantt_grid_scale,
+.gantt_task_scale,
+.gantt_task_vscroll {
+  background-color: var(--surface) !important;
+}
+
+/* Destaque sutil para as linhas de equipe na tabela esquerda e linha temporal (vence .odd) */
+.gantt_row.gantt-row-project,
+.gantt_task_row.gantt-row-project,
+.gantt_row.odd.gantt-row-project,
+.gantt_task_row.odd.gantt-row-project {
+  background-color: var(--surface-subtle) !important;
+  font-weight: 600 !important;
+  color: var(--foreground-secondary) !important;
 }
 
 /* Weekends */
-.gantt_task .weekend { background-color: #f1f5f9 !important; }
-.weekend { background-color: #f8fafc !important; }
+.gantt_task .weekend { background-color: var(--muted) !important; }
+.weekend { background-color: var(--surface-subtle) !important; }
 
 /* Marcador "Hoje" */
 .today-cell {
@@ -108,24 +137,30 @@
   font-weight: 500;
 }
 
-/* Grid headers */
+/* Grid headers e células */
 .gantt_grid_head_cell {
   font-weight: 600 !important;
-  color: #475569 !important;
+  color: var(--foreground-muted) !important;
   font-size: 12px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
 }
 .gantt_scale_cell {
   font-size: 12px !important;
-  color: #64748b !important;
+  color: var(--muted-foreground) !important;
   font-weight: 500 !important;
 }
-.gantt_row:hover, .gantt_task_row:hover { background-color: #f1f5f9 !important; }
-.gantt_cell { font-size: 13px !important; color: #334155 !important; }
+.gantt_row:hover,
+.gantt_task_row:hover,
+.gantt_row.odd:hover,
+.gantt_task_row.odd:hover {
+  background-color: var(--muted) !important;
+}
+.gantt_cell { font-size: 13px !important; color: var(--foreground-muted) !important; }
 .gantt_grid, .gantt_grid_head_cell, .gantt_grid_head_row,
-.gantt_cell, .gantt_row, .gantt_task_row, .gantt_scale_cell {
-  border-color: #e2e8f0 !important;
+.gantt_cell, .gantt_row, .gantt_task_row, .gantt_scale_cell,
+.gantt_scale_line, .gantt_task_cell, .gantt_layout_cell {
+  border-color: var(--border-subtle) !important;
 }
 
 /* Micro-ícones dentro das barras */
@@ -162,6 +197,31 @@
   @page {
     size: landscape;
     margin: 8mm;
+  }
+
+  :root,
+  .dark {
+    color-scheme: light !important;
+    --background-app: #ffffff !important;
+    --surface: #ffffff !important;
+    --surface-subtle: #f8fafc !important;
+    --muted: #f1f5f9 !important;
+    --foreground: #0f172a !important;
+    --foreground-secondary: #1e293b !important;
+    --foreground-muted: #334155 !important;
+    --muted-foreground: #64748b !important;
+    --border-subtle: #cbd5e1 !important;
+    --border-strong: #cbd5e1 !important;
+    --primary: #0f172a !important;
+    --primary-foreground: #ffffff !important;
+    --success: #047857 !important;
+    --success-hover: #065f46 !important;
+    --warning: #b45309 !important;
+    --warning-hover: #92400e !important;
+    --destructive: #b91c1c !important;
+    --destructive-hover: #991b1b !important;
+    --info: #2563eb !important;
+    --info-hover: #1d4ed8 !important;
   }
 
   /* Desativa cortes de scroll e containers h-screen para impressão contínua */

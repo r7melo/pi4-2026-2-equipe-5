@@ -74,7 +74,7 @@ export function Drawer({
   return createPortal(
     <div
       className={cn(
-        "fixed inset-0 flex justify-end bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200 select-none",
+        "fixed inset-0 flex justify-end bg-surface-overlay backdrop-blur-xs animate-in fade-in duration-200 select-none",
         zIndex
       )}
       onClick={(e) => {
@@ -91,35 +91,35 @@ export function Drawer({
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "w-full bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-250 select-text",
+          "w-full bg-surface h-full shadow-2xl border-l border-border-subtle flex flex-col animate-in slide-in-from-right duration-250 select-text",
           TAMANHOS[tamanho],
           className
         )}
       >
         {headerCustomizado ? (
-          <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+          <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface-subtle/50 shrink-0">
             {headerCustomizado}
             <button
               type="button"
               onClick={onClose}
               disabled={bloquearEscape}
               aria-label="Fechar painel"
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-1 text-subtle-foreground hover:text-muted-foreground rounded-lg hover:bg-muted cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-border-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         ) : (titulo || icone) ? (
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70 shrink-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle bg-surface-subtle/70 shrink-0">
             <div className="flex items-center gap-2.5">
               {icone}
               <div>
                 {titulo && (
-                  <h2 className="text-base font-bold text-slate-800 leading-snug">
+                  <h2 className="text-base font-bold text-foreground-secondary leading-snug">
                     {titulo}
                   </h2>
                 )}
-                {subtitulo && <p className="text-xs text-slate-500 mt-0.5">{subtitulo}</p>}
+                {subtitulo && <p className="text-xs text-muted-foreground mt-0.5">{subtitulo}</p>}
               </div>
             </div>
             <button
@@ -127,7 +127,7 @@ export function Drawer({
               onClick={onClose}
               disabled={bloquearEscape}
               aria-label="Fechar painel"
-              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="p-1 text-subtle-foreground hover:text-muted-foreground rounded-lg hover:bg-muted cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-border-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

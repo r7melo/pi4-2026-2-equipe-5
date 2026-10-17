@@ -16,7 +16,8 @@ import {
   Pencil,
   Check,
 } from "lucide-react";
-import type { ObraCard } from "@/types";
+import type { ObraCard, Programacao } from "@/types";
+import { obterConflitosEquipe } from "@/lib/ganttCalculos";
 import { COLUNAS_KANBAN } from "@/constants/kanbanStatus";
 import {
   formatarDiasUteis,
@@ -48,9 +49,12 @@ interface GanttTaskDrawerProps {
   canEdit: boolean;
   onDesalocar: (id: number) => void;
   equipes?: { id: number; nome: string }[];
+  programacoes?: Programacao[];
   onMudarEquipe?: (id: number, novaEquipeId: number) => Promise<void>;
   onReorder?: (id: number, novaDataInicio: string, novaDataFim: string) => void;
 }
+
+const DEFAULT_PROGRAMACOES: Programacao[] = [];
 
 export function GanttTaskDrawer({
   tarefa,
@@ -58,6 +62,7 @@ export function GanttTaskDrawer({
   canEdit,
   onDesalocar,
   equipes,
+  programacoes = DEFAULT_PROGRAMACOES,
   onMudarEquipe,
   onReorder,
 }: GanttTaskDrawerProps) {
@@ -140,10 +145,10 @@ export function GanttTaskDrawer({
         headerCustomizado={
           <div className="flex items-center justify-between flex-1 pr-2">
             <div>
-              <span className="text-[11px] font-semibold text-blue-600 tracking-wider uppercase">
+              <span className="text-[11px] font-semibold text-info tracking-wider uppercase">
                 {tarefa.nomeEquipe}
               </span>
-              <h2 className="text-base font-bold text-slate-800 leading-snug">
+              <h2 className="text-base font-bold text-foreground-secondary leading-snug">
                 {tarefa.nomeCliente}
               </h2>
             </div>
@@ -151,66 +156,66 @@ export function GanttTaskDrawer({
         }
       >
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
+          <div className="bg-surface-subtle rounded-xl p-4 border border-border-subtle space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-medium">Status da Obra</span>
-              <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 font-semibold rounded-full shadow-2xs">
+              <span className="text-muted-foreground font-medium">Status da Obra</span>
+              <span className="px-2.5 py-1 bg-surface border border-border-subtle text-foreground-muted font-semibold rounded-full shadow-2xs">
                 {statusObraLabel}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200/60">
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border-subtle/60">
               <div className="flex items-center gap-2 text-xs">
-                <Sun className="w-4 h-4 text-amber-500 shrink-0" />
+                <Sun className="w-4 h-4 text-warning shrink-0" />
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Painéis</span>
-                  <span className="font-bold text-slate-700">
+                  <span className="text-muted-foreground block text-[10px]">Painéis</span>
+                  <span className="font-bold text-foreground-muted">
                     {tarefa.paineis ?? "N/D"} un.
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 text-xs">
-                <Tag className="w-4 h-4 text-blue-500 shrink-0" />
+                <Tag className="w-4 h-4 text-info shrink-0" />
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Categoria</span>
-                  <span className="font-bold text-slate-700">
+                  <span className="text-muted-foreground block text-[10px]">Categoria</span>
+                  <span className="font-bold text-foreground-muted">
                     {obra?.categoria ?? "N/D"}
                   </span>
                 </div>
               </div>
 
               {obra?.dataFimEstimada && (
-                <div className="col-span-2 flex items-center justify-between text-xs pt-2 border-t border-slate-200/60 text-slate-600">
-                  <span className="text-[11px] text-slate-500">Término Contratual:</span>
-                  <strong className="text-slate-800 font-semibold">{formatarDataBR(obra.dataFimEstimada)}</strong>
+                <div className="col-span-2 flex items-center justify-between text-xs pt-2 border-t border-border-subtle/60 text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground">Término Contratual:</span>
+                  <strong className="text-foreground-secondary font-semibold">{formatarDataBR(obra.dataFimEstimada)}</strong>
                 </div>
               )}
             </div>
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-slate-500" />
+            <h3 className="text-xs font-bold text-foreground-secondary uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
               <span>Datas Programadas</span>
             </h3>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
-                <span className="text-slate-400 block text-[10px] mb-0.5">Início</span>
-                <span className="font-semibold text-slate-800 text-sm">
+              <div className="p-3 bg-surface border border-border-subtle rounded-xl shadow-2xs">
+                <span className="text-muted-foreground block text-[10px] mb-0.5">Início</span>
+                <span className="font-semibold text-foreground-secondary text-sm">
                   {formatarDataBR(tarefa.dataInicio)}
                 </span>
               </div>
 
-              <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs relative group">
+              <div className="p-3 bg-surface border border-border-subtle rounded-xl shadow-2xs relative group">
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-slate-400 block text-[10px]">Término (Último dia)</span>
+                  <span className="text-muted-foreground block text-[10px]">Término (Último dia)</span>
                   {canEdit && !editandoTermino && (
                     <button
                       type="button"
                       onClick={handleIniciarEdicaoTermino}
-                      className="text-slate-400 hover:text-blue-600 p-0.5 rounded transition-colors cursor-pointer"
+                      className="text-subtle-foreground hover:text-info p-0.5 rounded transition-colors cursor-pointer"
                       title="Editar término"
                       aria-label="Editar data de término"
                     >
@@ -225,12 +230,12 @@ export function GanttTaskDrawer({
                       type="date"
                       value={novoTerminoInput}
                       onChange={(e) => setNovoTerminoInput(e.target.value)}
-                      className="text-xs border border-blue-400 rounded px-1.5 py-0.5 font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 w-full"
+                      className="text-xs bg-surface border border-info rounded px-1.5 py-0.5 font-medium text-foreground-secondary focus:outline-none focus:ring-1 focus:ring-info w-full"
                     />
                     <button
                       type="button"
                       onClick={handleSalvarTermino}
-                      className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+                      className="p-1 bg-info text-primary-foreground rounded hover:bg-info-hover cursor-pointer"
                       title="Salvar término"
                     >
                       <Check className="w-3 h-3" />
@@ -238,23 +243,23 @@ export function GanttTaskDrawer({
                     <button
                       type="button"
                       onClick={handleCancelarEdicaoTermino}
-                      className="p-1 bg-slate-200 text-slate-600 rounded hover:bg-slate-300 cursor-pointer"
+                      className="p-1 bg-muted text-foreground-muted rounded hover:bg-border-subtle cursor-pointer"
                       title="Cancelar"
                     >
                       <span className="text-[10px] font-bold px-0.5">✕</span>
                     </button>
                   </div>
                 ) : (
-                  <span className="font-semibold text-slate-800 text-sm">
+                  <span className="font-semibold text-foreground-secondary text-sm">
                     {formatarDataBR(dataFimExclusivaParaUltimoDiaUtil(tarefa.dataFim))}
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-center justify-between text-xs text-blue-900">
+            <div className="p-3 bg-info-light/60 border border-info-border rounded-xl flex items-center justify-between text-xs text-info">
               <span className="flex items-center gap-1.5 font-medium">
-                <Clock className="w-4 h-4 text-blue-500" /> Duração Útil Estimada:
+                <Clock className="w-4 h-4 text-info" /> Duração Útil Estimada:
               </span>
               <span className="font-bold">{formatarDiasUteis(tarefa.duracaoDias)}</span>
             </div>
@@ -263,8 +268,8 @@ export function GanttTaskDrawer({
           {/* Troca Rápida de Equipe */}
           {canEdit && equipes && equipes.length > 0 && onMudarEquipe && (
             <div className="space-y-2">
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-slate-500" />
+              <h3 className="text-xs font-bold text-foreground-secondary uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-muted-foreground" />
                 <span>Reatribuir Equipe</span>
               </h3>
               <div className="flex items-center gap-2">
@@ -282,44 +287,50 @@ export function GanttTaskDrawer({
                       }
                     }
                   }}
-                  className="flex-1 text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-60"
+                  className="flex-1 text-xs border border-border-subtle rounded-lg px-3 py-2 bg-surface text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-info cursor-pointer disabled:opacity-60"
                 >
-                  {equipes.map((eq) => (
-                    <option key={eq.id} value={eq.id}>
-                      {eq.nome}
-                    </option>
-                  ))}
+                  {equipes.map((eq) => {
+                    const conflitos = programacoes
+                      ? obterConflitosEquipe(eq.id, tarefa.dataInicio, tarefa.dataFim, programacoes, tarefa.id, false)
+                      : [];
+                    const ocupada = conflitos.length > 0;
+                    return (
+                      <option key={eq.id} value={eq.id}>
+                        {eq.nome} {ocupada ? "— [Ocupada no período]" : ""}
+                      </option>
+                    );
+                  })}
                 </select>
-                {mudandoEquipe && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+                {mudandoEquipe && <Loader2 className="w-4 h-4 animate-spin text-info" />}
               </div>
             </div>
           )}
 
           {/* Prontidão para Execução */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <Package className="w-4 h-4 text-slate-500" />
+            <h3 className="text-xs font-bold text-foreground-secondary uppercase tracking-wider flex items-center gap-1.5">
+              <Package className="w-4 h-4 text-muted-foreground" />
               <span>Prontidão Operacional</span>
             </h3>
 
             <div className="space-y-2">
               {/* Card de Material */}
-              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
+              <div className="p-3 bg-surface border border-border-subtle rounded-xl space-y-1 shadow-2xs">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-slate-400" /> Insumos & Materiais
+                  <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-subtle-foreground" /> Insumos & Materiais
                   </span>
                   <span
                     className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
                       materialSeparado
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        ? "bg-success-light text-success border border-success-border"
                         : materialNoDeposito
-                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        ? "bg-info-light text-info border border-info-border"
                         : materialComprado
-                        ? "bg-purple-50 text-purple-700 border border-purple-200"
+                        ? "bg-warning-light text-warning border border-warning-border"
                         : materialAssistencia
-                        ? "bg-amber-50 text-amber-700 border border-amber-200"
-                        : "bg-red-50 text-red-700 border border-red-200"
+                        ? "bg-warning-light text-warning border border-warning-border"
+                        : "bg-destructive-light text-destructive border border-destructive-border"
                     }`}
                   >
                     {materialSeparado
@@ -333,7 +344,7 @@ export function GanttTaskDrawer({
                       : "Pendente"}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-muted-foreground">
                   {materialSeparado
                     ? "Todos os componentes estão prontos para saída a campo."
                     : materialNoDeposito
@@ -346,22 +357,22 @@ export function GanttTaskDrawer({
                 </p>
               </div>
 
-              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1 shadow-2xs">
+              <div className="p-3 bg-surface border border-border-subtle rounded-xl space-y-1 shadow-2xs">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                    <FileCheck className="w-3.5 h-3.5 text-slate-400" /> Parecer de Acesso
+                  <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                    <FileCheck className="w-3.5 h-3.5 text-subtle-foreground" /> Parecer de Acesso
                   </span>
                   <span
                     className={`font-semibold px-2 py-0.5 rounded text-[11px] flex items-center gap-1 ${
                       carregandoHomologacao
-                        ? "bg-slate-100 text-slate-500"
+                        ? "bg-muted text-foreground-muted"
                         : homologacaoAprovada
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        ? "bg-success-light text-success border border-success-border"
                         : homologacaoEmAnalise
-                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                        ? "bg-info-light text-info border border-info-border"
                         : homologacaoReprovada
-                        ? "bg-red-50 text-red-700 border border-red-200"
-                        : "bg-amber-50 text-amber-700 border border-amber-200"
+                        ? "bg-destructive-light text-destructive border border-destructive-border"
+                        : "bg-warning-light text-warning border border-warning-border"
                     }`}
                   >
                     {carregandoHomologacao ? (
@@ -370,14 +381,14 @@ export function GanttTaskDrawer({
                       </>
                     ) : homologacaoReprovada ? (
                       <>
-                        <AlertTriangle className="w-3 h-3 text-red-600" /> Reprovado
+                        <AlertTriangle className="w-3 h-3 text-destructive" /> Reprovado
                       </>
                     ) : (
                       parecerStatus
                     )}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-muted-foreground">
                   {carregandoHomologacao && "Consultando concessionária de energia..."}
                   {!carregandoHomologacao && homologacaoAprovada && (
                     "Projeto aprovado na concessionária. Instalação liberada para ligação."
@@ -393,17 +404,17 @@ export function GanttTaskDrawer({
                   )}
                 </p>
                 {(homologacao?.artTrt || homologacao?.prazoVistoria) && (
-                  <div className="pt-2 mt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="pt-2 mt-2 border-t border-border-subtle grid grid-cols-2 gap-2 text-[11px]">
                     {homologacao.artTrt && (
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Registro Técnico</span>
-                        <span className="font-mono font-semibold text-slate-700">{homologacao.artTrt}</span>
+                        <span className="text-muted-foreground block text-[10px]">Registro Técnico</span>
+                        <span className="font-mono font-semibold text-foreground-muted">{homologacao.artTrt}</span>
                       </div>
                     )}
                     {homologacao.prazoVistoria && (
                       <div>
-                        <span className="text-slate-400 block text-[10px]">Prazo de Vistoria</span>
-                        <span className="font-semibold text-slate-700">{formatarDataBR(homologacao.prazoVistoria)}</span>
+                        <span className="text-muted-foreground block text-[10px]">Prazo de Vistoria</span>
+                        <span className="font-semibold text-foreground-muted">{formatarDataBR(homologacao.prazoVistoria)}</span>
                       </div>
                     )}
                   </div>
@@ -413,7 +424,7 @@ export function GanttTaskDrawer({
           </div>
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between gap-2 shrink-0">
+        <div className="p-4 border-t border-border-subtle bg-surface-subtle/60 flex items-center justify-between gap-2 shrink-0">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -421,7 +432,7 @@ export function GanttTaskDrawer({
                 onClose();
                 void navigate(`/obras/${tarefa.obraId}`);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground-muted bg-surface border border-border-subtle rounded-lg hover:bg-surface-subtle transition-colors shadow-2xs cursor-pointer"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>Ver Obra</span>
@@ -434,7 +445,7 @@ export function GanttTaskDrawer({
                   onClose();
                   void navigate(`/acompanharhomologacao?obraId=${tarefa.obraId}`);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-info bg-info-light border border-info-border rounded-lg hover:bg-info-border/40 transition-colors cursor-pointer"
                 title="Acompanhar homologação na concessionária"
               >
                 <Zap className="w-3.5 h-3.5" />
@@ -447,7 +458,7 @@ export function GanttTaskDrawer({
             <button
               type="button"
               onClick={() => setConfirmarDesalocacao(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-destructive bg-destructive-light hover:bg-destructive-border/40 border border-destructive-border rounded-lg transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Desalocar</span>

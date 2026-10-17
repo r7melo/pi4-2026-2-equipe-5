@@ -1,5 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { buscarObra, listarHistorico, listarComentarios, adicionarComentario } from "@/services/obras";
+import {
+  buscarObra,
+  atualizarObra,
+  listarHistorico,
+  listarComentarios,
+  adicionarComentario,
+} from "@/services/obras";
+import type { EditarObraPayload } from "@/types";
 import { toast } from "sonner";
 
 export function useObraDetalhe(id: number) {
@@ -44,3 +51,21 @@ export function useAdicionarComentario() {
     },
   });
 }
+
+export function useEditarObra() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: EditarObraPayload }) =>
+      atualizarObra(id, payload),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({ queryKey: ["obras"] });
+      void queryClient.invalidateQueries({ queryKey: ["obra", variables.id] });
+      toast.success("Dados da obra atualizados com sucesso.");
+    },
+    onError: () => {
+      toast.error("Erro ao salvar alterações da obra.");
+    },
+  });
+}
+

@@ -18,11 +18,11 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps = {}) {
     if (!perfil || !allowedRoles.includes(perfil)) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center h-full p-6 text-center">
-          <div className="w-14 h-14 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4">
+          <div className="w-14 h-14 rounded-full bg-destructive-light text-destructive flex items-center justify-center mb-4">
             <ShieldAlert className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800">403 - Acesso Negado</h2>
-          <p className="text-slate-500 mt-2 max-w-md">
+          <h2 className="text-2xl font-bold text-foreground-secondary">403 - Acesso Negado</h2>
+          <p className="text-muted-foreground mt-2 max-w-md">
             Você não tem permissão para visualizar esta página.
           </p>
         </div>

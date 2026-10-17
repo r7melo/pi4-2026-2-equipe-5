@@ -75,7 +75,7 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
       titulo="Nova Equipe de Campo"
       subtitulo="Cadastro de equipe e líder"
       icone={
-        <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-lg bg-info-light text-info flex items-center justify-center shrink-0">
           <Users className="w-5 h-5" />
         </div>
       }
@@ -84,7 +84,7 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label htmlFor="equipe-nome" className="text-xs font-semibold text-slate-700 block mb-1">Nome da Equipe *</label>
+            <label htmlFor="equipe-nome" className="text-xs font-semibold text-foreground-muted block mb-1">Nome da Equipe *</label>
             <input
               id="equipe-nome"
               type="text"
@@ -92,47 +92,47 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
               placeholder="Ex: Equipe Norte, Equipe Alfa"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3 py-2 text-xs rounded-lg bg-surface text-foreground-secondary placeholder-subtle-foreground border border-border-subtle focus:outline-none focus:ring-2 focus:ring-info"
             />
           </div>
 
           <div>
-            <label htmlFor="equipe-especialidade" className="text-xs font-semibold text-slate-700 block mb-1">Especialidade (Opcional)</label>
+            <label htmlFor="equipe-especialidade" className="text-xs font-semibold text-foreground-muted block mb-1">Especialidade (Opcional)</label>
             <input
               id="equipe-especialidade"
               type="text"
               placeholder="Ex: Instalação Comercial, Alta Tensão"
               value={especialidade}
               onChange={(e) => setEspecialidade(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-3 py-2 text-xs rounded-lg bg-surface text-foreground-secondary placeholder-subtle-foreground border border-border-subtle focus:outline-none focus:ring-2 focus:ring-info"
             />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">Membros Instaladores (Mínimo 1) *</label>
-            <div className="space-y-1.5 max-h-36 overflow-y-auto p-2 border border-slate-100 bg-slate-50 rounded-lg custom-scrollbar">
+            <label className="text-xs font-semibold text-foreground-muted block mb-1">Membros Instaladores (Mínimo 1) *</label>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto p-2 border border-border-subtle bg-surface-subtle rounded-lg custom-scrollbar">
               {instaladoresDisponiveis.map((inst) => (
-                <label key={inst.id} className="flex items-center gap-2 p-1.5 hover:bg-white rounded text-xs text-slate-700 cursor-pointer">
+                <label key={inst.id} className="flex items-center gap-2 p-1.5 hover:bg-surface rounded text-xs text-foreground-muted cursor-pointer">
                   <input
                     type="checkbox"
                     checked={selecionados.includes(inst.id)}
                     onChange={() => handleToggleInstalador(inst.id)}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="rounded text-info accent-info focus:ring-info"
                   />
-                  <span>{inst.nome} <span className="text-[10px] text-slate-400">({inst.email})</span></span>
+                  <span>{inst.nome} <span className="text-[10px] text-muted-foreground">({inst.email})</span></span>
                 </label>
               ))}
             </div>
           </div>
 
           <div>
-            <label htmlFor="equipe-lider" className="text-xs font-semibold text-slate-700 block mb-1">Responsável / Líder da Equipe *</label>
+            <label htmlFor="equipe-lider" className="text-xs font-semibold text-foreground-muted block mb-1">Responsável / Líder da Equipe *</label>
             <select
               id="equipe-lider"
               value={responsavelId ?? ""}
               onChange={(e) => setResponsavelId(Number(e.target.value))}
               disabled={instaladoresAptos.length === 0}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100 disabled:text-slate-400"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-border-subtle bg-surface text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-info disabled:bg-muted disabled:text-muted-foreground"
             >
               {instaladoresAptos.length === 0 ? (
                 <option value="">Selecione ao menos um instalador acima</option>
@@ -146,19 +146,19 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
             </select>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border-subtle">
             <button
               type="button"
               onClick={handleLimparEFechar}
               disabled={salvando}
-              className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-lg border border-border-subtle transition-colors cursor-pointer disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={salvando}
-              className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-4 py-2 text-xs font-semibold text-primary-foreground bg-info hover:bg-info-hover disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
               {salvando ? (
                 <>

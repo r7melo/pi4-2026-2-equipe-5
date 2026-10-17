@@ -53,22 +53,22 @@ export function GanttToolbar({
     <div className="gantt-toolbar flex items-center gap-1 sm:gap-2 min-w-0 max-w-full overflow-x-auto scrollbar-none py-1">
       <button
         onClick={onHoje}
-        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
+        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-foreground-muted text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
         title="Focar na data de hoje"
       >
-        <Calendar className="w-3.5 h-3.5 text-slate-500" />
+        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
         <span className="hidden sm:inline">Hoje</span>
       </button>
 
-      <div className="flex items-center gap-0.5 bg-slate-100 rounded-md p-0.5 border border-slate-200 shrink-0">
+      <div className="flex items-center gap-0.5 bg-muted rounded-md p-0.5 border border-border-subtle shrink-0">
         {NIVEIS.map(({ valor, label }) => (
           <button
             key={valor}
             onClick={() => onMudarNivel(valor)}
             className={`px-1.5 sm:px-2.5 py-1 rounded-sm text-xs font-medium transition-all cursor-pointer ${
               nivelAtual === valor
-                ? "bg-white text-slate-800 shadow-xs border border-slate-200/50"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-surface text-foreground-secondary shadow-xs border border-border-subtle/50"
+                : "text-foreground-muted hover:text-foreground"
             }`}
           >
             {label}
@@ -76,15 +76,15 @@ export function GanttToolbar({
         ))}
       </div>
 
-      <div className="h-4 w-px bg-slate-200 hidden sm:block shrink-0" />
+      <div className="h-4 w-px bg-border-subtle hidden sm:block shrink-0" />
 
       {onToggleGrade && (
         <button
           onClick={onToggleGrade}
           className={`flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all cursor-pointer shrink-0 ${
             !mostrarGrade
-              ? "bg-amber-50 border-amber-300 text-amber-800"
-              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              ? "bg-warning-light border-warning-border text-warning"
+              : "bg-surface border-border-subtle text-foreground-muted hover:bg-surface-subtle"
           }`}
           title={mostrarGrade ? "Ocultar grade lateral (Modo Panorâmico)" : "Mostrar grade lateral"}
         >
@@ -98,15 +98,15 @@ export function GanttToolbar({
           onClick={onAbrirFiltros}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all cursor-pointer shrink-0 ${
             totalFiltrosAtivos > 0
-              ? "bg-blue-50 border-blue-300 text-blue-700 font-semibold"
-              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+              ? "bg-info-light border-info-border text-info font-semibold"
+              : "bg-surface border-border-subtle text-foreground-muted hover:bg-surface-subtle"
           }`}
           title="Abrir gaveta de filtros avançados"
         >
           <Filter className="w-3.5 h-3.5" />
           <span>Filtros</span>
           {totalFiltrosAtivos > 0 ? (
-            <span className="ml-0.5 px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-[10px] font-bold">
+            <span className="ml-0.5 px-1.5 py-0.5 bg-info text-primary-foreground rounded-full text-[10px] font-bold">
               {totalFiltrosAtivos}
             </span>
           ) : null}
@@ -114,25 +114,25 @@ export function GanttToolbar({
       )}
 
       {onDataInicioChange && onDataFimChange && (
-        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-md px-2 py-1 text-xs shrink-0">
-          <span className="text-slate-400 font-medium text-[11px]">De:</span>
+        <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-md px-2 py-1 text-xs shrink-0">
+          <span className="text-muted-foreground font-medium text-[11px]">De:</span>
           <input
             type="date"
             value={dataFiltroInicio}
             onChange={(e) => onDataInicioChange(e.target.value)}
-            className="border-none bg-transparent p-0 text-xs text-slate-700 focus:outline-none cursor-pointer w-24 sm:w-28"
+            className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
           />
-          <span className="text-slate-400 font-medium text-[11px] ml-1">Até:</span>
+          <span className="text-muted-foreground font-medium text-[11px] ml-1">Até:</span>
           <input
             type="date"
             value={dataFiltroFim}
             onChange={(e) => onDataFimChange(e.target.value)}
-            className="border-none bg-transparent p-0 text-xs text-slate-700 focus:outline-none cursor-pointer w-24 sm:w-28"
+            className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
           />
           {temFiltroData && onLimparDatas && (
             <button
               onClick={onLimparDatas}
-              className="text-slate-400 hover:text-red-600 p-0.5 transition-colors cursor-pointer"
+              className="text-subtle-foreground hover:text-destructive p-0.5 transition-colors cursor-pointer"
               title="Limpar filtro de período"
             >
               <X className="w-3 h-3" />
@@ -141,15 +141,15 @@ export function GanttToolbar({
         </div>
       )}
 
-      <div className="h-4 w-px bg-slate-200 hidden sm:block shrink-0" />
+      <div className="h-4 w-px bg-border-subtle hidden sm:block shrink-0" />
 
       {onImprimir && (
         <button
           onClick={onImprimir}
-          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-foreground-muted text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
           title="Imprimir ou Salvar em PDF (@media print)"
         >
-          <Printer className="w-3.5 h-3.5 text-slate-500" />
+          <Printer className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="hidden sm:inline">Imprimir</span>
         </button>
       )}
@@ -157,7 +157,7 @@ export function GanttToolbar({
       {onAbrirCompartilhar && (
         <button
           onClick={onAbrirCompartilhar}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-all active:scale-[0.97] cursor-pointer shrink-0"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-info hover:bg-info-hover text-primary-foreground text-xs font-semibold shadow-xs transition-all active:scale-[0.97] cursor-pointer shrink-0"
           title="Compartilhar cronograma público"
         >
           <Share2 className="w-3.5 h-3.5" />

@@ -48,7 +48,7 @@ export function SearchInput({
     <div className={cn("relative flex items-center", className)}>
       <Search
         className={cn(
-          "text-slate-400 absolute pointer-events-none shrink-0",
+          "text-subtle-foreground absolute pointer-events-none shrink-0",
           isSm ? "w-3.5 h-3.5 left-2.5" : "w-4 h-4 left-3"
         )}
       />
@@ -60,7 +60,7 @@ export function SearchInput({
         placeholder={placeholder}
         autoFocus={autoFocus}
         className={cn(
-          "w-full rounded-md bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500",
+          "w-full rounded-md bg-surface-subtle border border-border-subtle text-foreground-secondary placeholder-subtle-foreground transition-colors focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info",
           isSm ? "text-xs pl-8 pr-7 py-1.5" : "text-sm pl-9 pr-8 py-2"
         )}
       />
@@ -70,7 +70,7 @@ export function SearchInput({
           onClick={handleLimpar}
           aria-label="Limpar busca"
           className={cn(
-            "absolute text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-0.5 rounded",
+            "absolute text-subtle-foreground hover:text-muted-foreground transition-colors cursor-pointer p-0.5 rounded",
             isSm ? "right-2" : "right-2.5"
           )}
         >

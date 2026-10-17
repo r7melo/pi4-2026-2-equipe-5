@@ -31,6 +31,7 @@ import FeedbackErro from "@/components/feedback/FeedbackErro";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { CalendarX2, Search } from "lucide-react";
 import { dataFimExclusivaParaUltimoDiaUtil } from "@/lib/formatters";
+import { obterConflitosEquipe } from "@/lib/ganttCalculos";
 import "@/components/gantt/gantt.css";
 
 const HOJE_ISO = new Date().toISOString().split("T")[0];
@@ -350,6 +351,23 @@ export default function Equipes() {
     const novaEquipe = equipes?.find((e) => e.id === novaEquipeId);
     const nomeNovaEquipe = novaEquipe?.nome || `Equipe ${novaEquipeId}`;
 
+    // 1. Verificação prévia de conflito: impede perda da alocação existente caso haja sobreposição
+    const conflitos = obterConflitosEquipe(
+      novaEquipeId,
+      progAtual.dataInicio,
+      progAtual.dataFim,
+      programacoes || [],
+      id, // ignora a própria tarefa
+      false
+    );
+
+    if (conflitos.length > 0) {
+      toast.error(
+        `A ${nomeNovaEquipe} já possui a Obra #${conflitos[0].programacao.obraId} agendada de ${conflitos[0].periodoFormatado}. Reatribuição cancelada.`
+      );
+      return;
+    }
+
     try {
       await deletarAlocacao(id);
       const novaProg = await criarAlocacao({
@@ -377,7 +395,7 @@ export default function Equipes() {
           title="Cronograma de Equipes"
           subtitle="Gestão de alocações e cronograma de obras (Gantt)"
         />
-        <div className="flex-1 flex items-center justify-center bg-slate-50">
+        <div className="flex-1 flex items-center justify-center bg-background-app">
           <FeedbackLoading mensagem="Carregando cronograma..." />
         </div>
       </div>
@@ -391,7 +409,7 @@ export default function Equipes() {
           title="Cronograma de Equipes"
           subtitle="Gestão de alocações e cronograma de obras (Gantt)"
         />
-        <div className="flex-1 flex items-center justify-center bg-slate-50 p-4">
+        <div className="flex-1 flex items-center justify-center bg-background-app p-4">
           <FeedbackErro
             mensagem={errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
             onTentarNovamente={() => void refetchProg()}
@@ -408,7 +426,7 @@ export default function Equipes() {
           title="Cronograma de Equipes"
           subtitle="Gestão de alocações e cronograma de obras (Gantt)"
         />
-        <div className="flex-1 flex items-center justify-center bg-slate-50 p-4">
+        <div className="flex-1 flex items-center justify-center bg-background-app p-4">
           <EmptyState
             icone={CalendarX2}
             titulo="Nenhuma programação encontrada"
@@ -429,6 +447,7 @@ export default function Equipes() {
           onClose={() => setModalNovaAlocacaoAberto(false)}
           obrasElegiveis={obrasElegiveis}
           equipes={equipes || []}
+          programacoes={programacoes || []}
           onConfirmar={handleConfirmarAlocacao}
           isLoading={criandoAlocacao}
         />
@@ -455,7 +474,7 @@ export default function Equipes() {
         />
       </PageHeader>
 
-      <div className="flex-1 flex flex-col gap-2 w-full bg-slate-50 p-2 md:p-3 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-2 w-full bg-background-app p-2 md:p-3 overflow-hidden">
         {/* Barra Rápida conectada 100% à Fonte Única de Verdade 'filtros': */}
         <GanttKpiBar
           termoBusca={filtros.termoBusca || ""}
@@ -490,10 +509,10 @@ export default function Equipes() {
         />
 
         {/* Container do Gantt com Empty State unificado: */}
-        <div className="relative flex-1 bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col min-h-0">
+        <div className="relative flex-1 bg-surface rounded-xl shadow-xs border border-border-subtle overflow-hidden flex flex-col min-h-0">
           {programacoesFiltradas.length === 0 && (
             <EmptyState
-              className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
+              className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
               icone={Search}
               titulo="Nenhuma alocação encontrada para os filtros aplicados"
               descricao="Tente alterar os filtros na gaveta lateral ou na barra rápida."
@@ -521,6 +540,7 @@ export default function Equipes() {
         onClose={() => setModalNovaAlocacaoAberto(false)}
         obrasElegiveis={obrasElegiveis}
         equipes={equipes || []}
+        programacoes={programacoes || []}
         onConfirmar={handleConfirmarAlocacao}
         isLoading={criandoAlocacao}
       />
@@ -545,6 +565,7 @@ export default function Equipes() {
         canEdit={canEdit}
         onDesalocar={handleDesalocar}
         equipes={equipes || []}
+        programacoes={programacoes || []}
         onMudarEquipe={handleMudarEquipe}
         onReorder={handleReorder}
       />

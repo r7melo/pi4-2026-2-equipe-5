@@ -15,6 +15,8 @@ export interface ObraCard {
   nome?: string;
   cidade?: string;
   uf?: string;
+  endereco?: string;
+  observacoes?: string;
   potenciaKwp?: number;
   progressoGeral?: number;
   valorTotal?: number;
@@ -134,3 +136,22 @@ export interface ComentarioObra {
   dataRegistro: string;
   usuario: { id: number; nome: string };
 }
+
+/** Payload para edição de obra (PUT /api/obras/{id} - Rota #9 do Contrato / UC-17) */
+export interface EditarObraPayload {
+  clienteNome?: string;
+  clienteTelefone?: string;
+  clienteEmail?: string;
+  endereco?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
+  tipoInstalacao?: string;
+  potenciaKwp?: number;
+  valorTotal?: number;
+  responsavelId?: number;
+  dataInicio?: string;
+  previsaoFim?: string;
+  observacoes?: string;
+}
+
