@@ -95,6 +95,8 @@ public sealed partial class BancoDados
                 """, ("observacao", $"{nomeEquipe} alocada de {inicio:yyyy-MM-dd} a {fim:yyyy-MM-dd}."),
                 ("obra", obraId), ("usuario", usuarioId));
             inserirHistorico.ExecuteNonQuery();
+            Auditar(conexao, transacao, usuarioId, "MudancaStatus", "obra", obraId,
+                new { statusAnterior = "Separado", statusNovo = "EmAndamento", programacaoId = id });
         }
         transacao.Commit();
         return new ProgramacaoBanco(id, obraId, equipeId, inicio, fim, prioridade, dias);
