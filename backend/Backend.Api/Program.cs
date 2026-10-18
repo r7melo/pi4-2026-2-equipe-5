@@ -1,4 +1,5 @@
 using Backend.Api;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +7,11 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection não configurada.");
 builder.Services.AddSingleton(new BancoDados(connectionString));
+
+var autenticacao = new Autenticacao(builder.Configuration, builder.Environment);
+builder.Services.AddSingleton(autenticacao);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(autenticacao.Configurar);
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
 {
@@ -50,7 +56,10 @@ app.UseStatusCodePages(ctx =>
 });
 
 app.UseCors();
-app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
+// Toda rota exige token, a não ser que tenha [AllowAnonymous] (RF-02). Rota inexistente continua 404.
+app.MapControllers().RequireAuthorization();
 app.Run();
 
 static Task Responder(HttpContext ctx, int status, string code, string message)

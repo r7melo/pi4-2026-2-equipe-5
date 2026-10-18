@@ -6,6 +6,7 @@ public static class RegrasBase
         ["MaterialComprado", "NoDeposito", "Separado", "EmAndamento", "Concluido", "Assistencia"];
     public static readonly string[] StatusLogistico = ["Comprado", "EmTransito", "Disponivel", "Utilizado"];
 
+    // Transições do funil (04-regras-negocio.md, seção 2). Mudar para o status atual não está em nenhuma lista.
     public static readonly Dictionary<string, string[]> Transicoes = new()
     {
         ["MaterialComprado"] = ["NoDeposito"],
@@ -15,12 +16,6 @@ public static class RegrasBase
         ["Concluido"] = ["Assistencia"],
         ["Assistencia"] = ["EmAndamento"],
     };
-
-    const string PrefixoBearer = "Bearer token-fixo-";
-    public static string GerarToken(int usuarioId) => $"token-fixo-{usuarioId}";
-    public static int? IdDoToken(string? authorization) =>
-        authorization is not null && authorization.StartsWith(PrefixoBearer, StringComparison.Ordinal)
-        && int.TryParse(authorization[PrefixoBearer.Length..], out var id) && id > 0 ? id : null;
 
     public static DateTime Agora()
     {

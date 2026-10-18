@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Api.Controllers;
@@ -7,6 +8,7 @@ namespace Backend.Api.Controllers;
 public class EquipesController(BancoDados banco) : ControllerBase
 {
     // Rota 20 — RF-07
+    [Authorize(Roles = Perfis.Todos)]
     [HttpGet]
     public IActionResult Listar(DateOnly? dataInicio, DateOnly? dataFim)
     {

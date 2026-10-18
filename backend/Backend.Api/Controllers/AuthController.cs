@@ -1,14 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(BancoDados banco) : ControllerBase
+public class AuthController(BancoDados banco, Autenticacao autenticacao) : ControllerBase
 {
     public record LoginEntrada(string? Email, string? Senha);
 
     // Rota 1 — RF-01
+    [AllowAnonymous]
     [HttpPost("login")]
     public IActionResult Login(LoginEntrada e)
     {
@@ -34,10 +36,11 @@ public class AuthController(BancoDados banco) : ControllerBase
         }
         banco.ZerarTentativasLogin(usuario.Id);
 
+        var (token, expiraEm) = autenticacao.GerarToken(usuario);
         return Ok(new
         {
-            token = RegrasBase.GerarToken(usuario.Id),
-            expiresAt = RegrasBase.Agora().AddHours(8),
+            token,
+            expiresAt = expiraEm,
             usuario = new
             {
                 usuario.Id, usuario.Nome, usuario.Email,
@@ -51,8 +54,8 @@ public class AuthController(BancoDados banco) : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var id = RegrasBase.IdDoToken(Request.Headers.Authorization);
-        var usuario = id is int usuarioId ? banco.BuscarUsuarioPorId(usuarioId) : null;
+        var usuario = banco.BuscarUsuarioPorId(this.UsuarioAtualId());
+        // Token válido de um usuário que não existe mais.
         if (usuario is null)
             return Erro.Criar(401, "UNAUTHORIZED", "Token ausente ou inválido. Faça login em POST /api/auth/login.");
 

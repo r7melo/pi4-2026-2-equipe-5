@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Api.Controllers;
@@ -23,6 +24,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     public record MaterialEntrada(string? Tipo, int? Quantidade, decimal? CustoUnitario, string? StatusLogistico);
 
     // Rota 7 — UC-01, RF-03
+    [Authorize(Roles = Perfis.Gestao)]
     [HttpPost]
     public IActionResult Criar(CriarObraEntrada e)
     {
@@ -59,7 +61,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
             var obra = banco.CriarObra(e.ClienteId, clienteNovo, e.Categoria, e.QuantidadePaineis.Value,
                 e.QuantidadeInversores, e.Endereco.Trim(), Limpar(e.Descricao), e.DataInicioEstimada,
                 e.DataFimEstimada, e.Pagamento.DataConfirmacao.Value, e.Pagamento.PrazoContratualDias.Value,
-                banco.UsuarioAtualId(Request));
+                this.UsuarioAtualId());
             return Created($"/api/obras/{obra.Id}", obra);
         }
         catch (RegraVioladaException ex)
@@ -69,6 +71,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     }
 
     // Rota 6 — UC-02, RF-04
+    [Authorize(Roles = Perfis.Leitura)]
     [HttpGet]
     public IActionResult Listar(string? status, string? clienteNome, string? categoria, int page = 1, int pageSize = 20)
     {
@@ -79,15 +82,18 @@ public class ObrasController(BancoDados banco) : ControllerBase
         return Ok(banco.ListarObras(status, clienteNome, categoria, page, pageSize));
     }
 
-    // Rota 8 — UC-01
+    // Rota 8 — UC-01, RN-04
+    [Authorize(Roles = Perfis.Todos)]
     [HttpGet("{id:int}")]
     public IActionResult Detalhar(int id)
     {
         var obra = banco.BuscarObra(id);
-        return obra is null ? ObraNaoEncontrada(id) : Ok(Detalhe(obra));
+        if (obra is null) return ObraNaoEncontrada(id);
+        return this.PodeVerObra(banco, id) ? Ok(Detalhe(obra)) : this.ObraDeOutraEquipe(id);
     }
 
     // Rota 9 — UC-01, RF-03
+    [Authorize(Roles = Perfis.Gestao)]
     [HttpPut("{id:int}")]
     public IActionResult Editar(int id, EditarObraEntrada e)
     {
@@ -117,6 +123,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     }
 
     // Rota 11 — UC-02, RF-04, RF-06, RF-10, RF-13
+    [Authorize(Roles = Perfis.Gestao)]
     [HttpPatch("{id:int}/status")]
     public IActionResult MoverStatus(int id, MoverStatusEntrada e)
     {
@@ -125,7 +132,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
         if (!RegrasBase.StatusObra.Contains(e.StatusNovo))
             return StatusInvalido(e.StatusNovo);
 
-        var movimento = banco.MoverStatus(id, e.StatusNovo, e.Observacao, banco.UsuarioAtualId(Request));
+        var movimento = banco.MoverStatus(id, e.StatusNovo, e.Observacao, this.UsuarioAtualId());
         if (movimento is null) return ObraNaoEncontrada(id);
         if (!movimento.Alterado)
             return Erro.Criar(400, "INVALID_STATUS_TRANSITION",
@@ -138,11 +145,13 @@ public class ObrasController(BancoDados banco) : ControllerBase
         });
     }
 
-    // Rota 12 — RF-06
+    // Rota 12 — RF-06, RN-04
+    [Authorize(Roles = Perfis.Todos)]
     [HttpGet("{id:int}/materiais")]
     public IActionResult ListarMateriais(int id)
     {
         if (banco.BuscarObra(id) is null) return ObraNaoEncontrada(id);
+        if (!this.PodeVerObra(banco, id)) return this.ObraDeOutraEquipe(id);
         return Ok(banco.ListarMateriais(id).Select(m => new
         {
             m.Id, m.Tipo, m.Quantidade, m.QuantidadeUtilizada, m.CustoUnitario, m.StatusLogistico,
@@ -150,6 +159,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     }
 
     // Rota 13 — RF-06
+    [Authorize(Roles = Perfis.Gestao)]
     [HttpPost("{id:int}/materiais")]
     public IActionResult RegistrarMaterial(int id, MaterialEntrada e)
     {
@@ -169,6 +179,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     }
 
     // Rota 15 — RF-11
+    [Authorize(Roles = Perfis.Leitura)]
     [HttpGet("{id:int}/historico")]
     public IActionResult ListarHistorico(int id)
     {
