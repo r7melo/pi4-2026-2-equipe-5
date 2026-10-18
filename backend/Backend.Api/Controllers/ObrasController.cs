@@ -205,6 +205,8 @@ public class ObrasController(BancoDados banco) : ControllerBase
             return Validacao("cliente.nome é obrigatório e deve ter no máximo 200 caracteres.");
         if (!Regex.IsMatch(cpfCnpj, "^[0-9]{11}([0-9]{3})?$"))
             return Validacao("cliente.cpfCnpj é obrigatório e deve ter 11 (CPF) ou 14 (CNPJ) dígitos.");
+        if (!Validacoes.CpfCnpjValido(cpfCnpj))
+            return Validacao("cliente.cpfCnpj inválido: os dígitos verificadores não conferem.");
         if (c.Cidade?.Trim().Length > 100)
             return Validacao("cliente.cidade deve ter no máximo 100 caracteres.");
         if (c.Endereco?.Trim().Length > 255)
@@ -213,6 +215,8 @@ public class ObrasController(BancoDados banco) : ControllerBase
             return Validacao("cliente.telefone deve ter no máximo 30 caracteres.");
         if (c.Email?.Trim().Length > 200)
             return Validacao("cliente.email deve ter no máximo 200 caracteres.");
+        if (!string.IsNullOrWhiteSpace(c.Email) && !Validacoes.EmailValido(c.Email.Trim()))
+            return Validacao("cliente.email não está num formato válido (ex.: contato@empresa.com.br).");
         cliente = new ClienteNovoBanco(c.Nome.Trim(), cpfCnpj, Limpar(c.Cidade), Limpar(c.Endereco),
             Limpar(c.Telefone), Limpar(c.Email), Limpar(c.DadosContrato));
         return null;
