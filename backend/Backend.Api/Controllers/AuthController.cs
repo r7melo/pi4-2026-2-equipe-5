@@ -16,8 +16,23 @@ public class AuthController(BancoDados banco) : ControllerBase
             return Erro.Criar(400, "INVALID_BODY", "Informe email e senha.");
 
         var usuario = banco.BuscarUsuarioPorEmail(e.Email.Trim());
-        if (usuario is null || !BCrypt.Net.BCrypt.Verify(e.Senha, usuario.SenhaHash))
-            return Erro.Criar(401, "INVALID_CREDENTIALS", "E-mail ou senha inválidos.");
+        if (usuario is null) return CredenciaisInvalidas();
+
+        var situacao = banco.BuscarSituacaoLogin(usuario.Id);
+        if (situacao.BloqueadoAte > DateTime.UtcNow)
+        {
+            var minutos = (int)Math.Ceiling((situacao.BloqueadoAte.Value - DateTime.UtcNow).TotalMinutes);
+            return Erro.Criar(423, "ACCOUNT_LOCKED",
+                $"Conta bloqueada após {BancoDados.FalhasParaBloquear} tentativas de login sem sucesso. " +
+                $"Tente novamente em {minutos} minuto(s).");
+        }
+        // Conta inativa recebe a mesma mensagem genérica, sem revelar que o e-mail existe.
+        if (!situacao.Ativo || !BCrypt.Net.BCrypt.Verify(e.Senha, usuario.SenhaHash))
+        {
+            if (situacao.Ativo) banco.RegistrarFalhaLogin(usuario.Id);
+            return CredenciaisInvalidas();
+        }
+        banco.ZerarTentativasLogin(usuario.Id);
 
         return Ok(new
         {
@@ -53,4 +68,7 @@ public class AuthController(BancoDados banco) : ControllerBase
             equipeId = usuario.EquipeId,
         });
     }
+
+    static ObjectResult CredenciaisInvalidas() =>
+        Erro.Criar(401, "INVALID_CREDENTIALS", "E-mail ou senha incorretos.");
 }
