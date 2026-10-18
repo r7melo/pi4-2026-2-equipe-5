@@ -29,13 +29,15 @@ public class ComentariosController(BancoDados banco) : ControllerBase
     {
         if (e.Tipo == "Manutencao")
             return Validacao("Comentário de manutenção é criado em POST /api/manutencoes/{id}/comentarios.");
-        if (e.Tipo is null || !TiposCriaveis.Contains(e.Tipo))
-            return Validacao($"tipo é obrigatório. Valores aceitos: {string.Join(", ", TiposCriaveis)}.");
+        // Sem tipo, vale comentário no cartão (o front ainda envia só a descrição).
+        var tipo = e.Tipo ?? "Cartao";
+        if (!TiposCriaveis.Contains(tipo))
+            return Validacao($"tipo '{tipo}' inválido. Valores aceitos: {string.Join(", ", TiposCriaveis)}.");
         if (string.IsNullOrWhiteSpace(e.Descricao))
             return Validacao("descricao é obrigatória e não pode ser vazia.");
         if (banco.BuscarObra(id) is null) return ObraNaoEncontrada(id);
 
-        var comentario = banco.CriarComentario(id, e.Tipo, e.Descricao.Trim(), banco.UsuarioAtualId(Request));
+        var comentario = banco.CriarComentario(id, tipo, e.Descricao.Trim(), banco.UsuarioAtualId(Request));
         return Created($"/api/obras/{id}/comentarios", comentario);
     }
 
