@@ -22,7 +22,7 @@ public sealed record AutorBanco(int Id, string Nome);
 public sealed record HistoricoBanco(long Id, int ObraId, string? StatusAnterior, string? StatusNovo,
     DateTime DataAlteracao, string? Observacao, AutorBanco Usuario);
 
-public sealed class BancoDados(string connectionString)
+public sealed partial class BancoDados(string connectionString)
 {
     // Uma conexão é aberta para cada operação e fechada pelo using do chamador.
     NpgsqlConnection Abrir()
