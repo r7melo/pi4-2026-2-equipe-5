@@ -16,12 +16,22 @@ Content-Type: application/json
 GET {{api}}/auth/me
 Authorization: Bearer token-fixo-2
 
-### 3. Criar obra (clienteId inexistente -> cria cliente novo)
+### 7. Criar obra para cliente existente (clienteId inexistente -> 404 CLIENTE_NOT_FOUND)
 POST {{api}}/obras
 Content-Type: application/json
 
-{ "clienteId": 45, "clienteNome": "Cliente Novo", "cidade": "Campinas", "quantidadePaineis": 45,
-  "dataInicioEstimada": "2026-10-01", "dataFimEstimada": "2026-10-06", "pagamento": { "prazoContratualDias": 45 } }
+{ "clienteId": 1, "categoria": "Comercial", "quantidadePaineis": 45, "quantidadeInversores": 2,
+  "endereco": "Av. das Palmeiras, 500 - Campinas/SP", "descricao": "Telhado metálico, acesso pela doca.",
+  "dataInicioEstimada": "2026-10-01", "dataFimEstimada": "2026-10-06",
+  "pagamento": { "dataConfirmacao": "2026-09-15", "prazoContratualDias": 45 } }
+
+### 7. Criar obra com cliente novo (CPF/CNPJ repetido -> 409 CPF_CNPJ_ALREADY_EXISTS)
+POST {{api}}/obras
+Content-Type: application/json
+
+{ "cliente": { "nome": "Rede Beta", "cpfCnpj": "12.345.678/0001-90", "cidade": "Campinas" },
+  "quantidadePaineis": 10, "endereco": "Rua X, 1",
+  "pagamento": { "dataConfirmacao": "2026-09-15", "prazoContratualDias": 45 } }
 
 ### 3. Criar obra com data inválida -> 400 INVALID_BODY
 POST {{api}}/obras
