@@ -26,7 +26,7 @@ export function SidebarTrigger({ className }: { className?: string }) {
       aria-label="Abrir menu lateral"
       aria-expanded={isMobileOpen}
       className={cn(
-        "shrink-0 p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer",
+        "shrink-0 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-border-strong cursor-pointer",
         className
       )}
     >
@@ -103,7 +103,7 @@ export default function Sidebar() {
         role="navigation"
         aria-label="Menu principal de navegação"
         className={cn(
-          "hidden md:flex flex-col justify-between shrink-0 pt-8 pb-4 transition-all duration-300 relative border-r border-slate-200 bg-white group",
+          "hidden md:flex flex-col justify-between shrink-0 pt-8 pb-4 transition-all duration-300 relative border-r border-border-subtle bg-surface group",
           isCollapsed ? "w-16" : "w-64"
         )}
       >
@@ -115,14 +115,14 @@ export default function Sidebar() {
           aria-expanded={!isCollapsed}
           aria-label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
           title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-          className="absolute -right-3 top-6 bg-white border border-slate-200 rounded-full p-1 text-slate-400 hover:text-slate-700 shadow-sm z-10 transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer"
+          className="absolute -right-3 top-6 bg-surface border border-border-subtle rounded-full p-1 text-subtle-foreground hover:text-foreground-muted shadow-sm z-10 transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-strong cursor-pointer"
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
 
         <div className="flex flex-col flex-1 overflow-hidden">
           <div className={cn("mb-8 flex shrink-0", isCollapsed ? "px-0 justify-center" : "px-8")}>
-            <div className="bg-slate-200 rounded-full px-4 py-1.5 inline-flex justify-center items-center text-micro font-bold text-slate-500 tracking-wider h-7">
+            <div className="bg-muted rounded-full px-4 py-1.5 inline-flex justify-center items-center text-micro font-bold text-foreground-muted tracking-wider h-7">
               {isCollapsed ? "ZL" : "LOGO"}
             </div>
           </div>
@@ -140,8 +140,8 @@ export default function Sidebar() {
                     "w-full flex items-center py-2.5 rounded-lg font-medium text-sm transition-colors cursor-pointer",
                     isCollapsed ? "justify-center px-0" : "px-4",
                     isActive
-                      ? "bg-slate-100 text-slate-900 font-semibold"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "bg-muted text-foreground font-semibold"
+                      : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground"
                   )}
                 >
                   {isCollapsed ? (
@@ -155,7 +155,7 @@ export default function Sidebar() {
           </nav>
         </div>
 
-        <div className="px-3 shrink-0 pt-4 border-t border-slate-100">
+        <div className="px-3 shrink-0 pt-4 border-t border-border-subtle">
           <button
             onClick={() => {
               (document.activeElement as HTMLElement)?.blur();
@@ -164,7 +164,7 @@ export default function Sidebar() {
             title={isCollapsed ? "Sair" : ""}
             aria-label="Sair do sistema"
             className={cn(
-              "w-full flex items-center py-2.5 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium text-sm transition-colors cursor-pointer",
+              "w-full flex items-center py-2.5 text-muted-foreground hover:bg-destructive-light hover:text-destructive rounded-lg font-medium text-sm transition-colors cursor-pointer",
               isCollapsed ? "justify-center px-0" : "px-4"
             )}
           >
@@ -190,7 +190,7 @@ export default function Sidebar() {
             closeMobile();
           }}
           className={cn(
-            "absolute inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-300",
+            "absolute inset-0 bg-surface-overlay backdrop-blur-xs transition-opacity duration-300",
             isMobileOpen ? "opacity-100" : "opacity-0"
           )}
           aria-label="Fechar menu"
@@ -201,13 +201,13 @@ export default function Sidebar() {
           aria-modal="true"
           aria-label="Menu de Navegação Mobile"
           className={cn(
-            "absolute inset-y-0 left-0 w-72 max-w-[80vw] bg-white shadow-2xl flex flex-col justify-between pt-6 pb-4 transition-transform duration-300 ease-in-out",
+            "absolute inset-y-0 left-0 w-72 max-w-[80vw] bg-surface shadow-2xl flex flex-col justify-between pt-6 pb-4 transition-transform duration-300 ease-in-out",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
           <div className="flex flex-col flex-1 overflow-hidden">
             <div className="px-6 mb-6 flex items-center justify-between shrink-0">
-              <div className="bg-slate-200 rounded-full px-4 py-1.5 inline-flex justify-center items-center text-micro font-bold text-slate-600 tracking-wider h-7">
+              <div className="bg-muted rounded-full px-4 py-1.5 inline-flex justify-center items-center text-micro font-bold text-foreground-muted tracking-wider h-7">
                 ZL ENGENHARIA
               </div>
               <button
@@ -216,7 +216,7 @@ export default function Sidebar() {
                   closeMobile();
                 }}
                 aria-label="Fechar menu lateral"
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-subtle-foreground hover:text-foreground-muted hover:bg-muted rounded-lg transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -236,11 +236,11 @@ export default function Sidebar() {
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-colors text-left cursor-pointer",
                       isActive
-                        ? "bg-slate-100 text-slate-900 font-bold"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        ? "bg-muted text-foreground font-bold"
+                        : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground"
                     )}
                   >
-                    <item.icon className="w-5 h-5 shrink-0 text-slate-500" />
+                    <item.icon className="w-5 h-5 shrink-0 text-muted-foreground" />
                     <span>{item.label}</span>
                   </button>
                 );
@@ -248,14 +248,14 @@ export default function Sidebar() {
             </nav>
           </div>
 
-          <div className="px-4 shrink-0 pt-4 border-t border-slate-100">
+          <div className="px-4 shrink-0 pt-4 border-t border-border-subtle">
             <button
               onClick={() => {
                 (document.activeElement as HTMLElement)?.blur();
                 closeMobile();
                 useAuthStore.getState().logout();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl font-medium text-sm transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-destructive-light hover:text-destructive rounded-xl font-medium text-sm transition-colors cursor-pointer"
             >
               <LogOut className="w-5 h-5 shrink-0" />
               <span>Sair</span>

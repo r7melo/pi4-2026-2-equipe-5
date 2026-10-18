@@ -36,24 +36,24 @@ export function ConfirmDialog({
     >
       <div className="flex flex-col items-center text-center">
         {variant === "danger" && (
-          <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-destructive-light text-destructive flex items-center justify-center mb-4">
             <AlertTriangle className="w-6 h-6" />
           </div>
         )}
         {variant === "warning" && (
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-warning-light text-warning flex items-center justify-center mb-4">
             <AlertCircle className="w-6 h-6" />
           </div>
         )}
         {variant === "info" && (
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-info-light text-info flex items-center justify-center mb-4">
             <Info className="w-6 h-6" />
           </div>
         )}
 
-        <h3 className="text-lg font-bold text-slate-800 mb-1">{titulo}</h3>
+        <h3 className="text-lg font-bold text-foreground-secondary mb-1">{titulo}</h3>
         {descricao && (
-          <p className="text-sm text-slate-500 mb-6">{descricao}</p>
+          <p className="text-sm text-muted-foreground mb-6">{descricao}</p>
         )}
 
         <div className="flex gap-3 justify-end w-full mt-2">
@@ -66,12 +66,12 @@ export function ConfirmDialog({
             {labelCancelar}
           </Button>
           <Button
-            variant={variant === "danger" ? "danger" : "primary"}
+            variant="primary"
             onClick={onConfirm}
             disabled={isLoading}
             className={cn(
               "flex-1",
-              variant === "danger" && "bg-red-600 hover:bg-red-700 text-white"
+              variant === "danger" && "bg-destructive hover:bg-destructive-hover text-primary-foreground"
             )}
           >
             {isLoading ? "Processando..." : labelConfirmar}

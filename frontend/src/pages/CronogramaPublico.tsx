@@ -80,7 +80,7 @@ export default function CronogramaPublico() {
 
   if (loadingProg) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-background-app flex flex-col items-center justify-center p-4">
         <FeedbackLoading mensagem="Carregando cronograma..." />
       </div>
     );
@@ -92,7 +92,7 @@ export default function CronogramaPublico() {
         ?.response?.data?.error?.message ||
       "O link informado não é válido ou foi desativado pelo administrador.";
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-background-app flex flex-col items-center justify-center p-4">
         <FeedbackErro
           titulo="Acesso não autorizado ou expirado"
           mensagem={msg}
@@ -102,22 +102,22 @@ export default function CronogramaPublico() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-100">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background-app">
       {/* Header Público Limpo */}
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 no-print">
+      <header className="bg-surface border-b border-border-subtle px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 no-print">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-info text-primary-foreground flex items-center justify-center shadow-xs">
             <Sun className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-slate-800">ZL Engenharia Solar</h1>
-              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <h1 className="text-sm font-bold text-foreground-secondary">ZL Engenharia Solar</h1>
+              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-success-light text-success border border-success-border">
                 <Shield className="w-2.5 h-2.5" />
                 Visualização Pública
               </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Cronograma Executivo de Instalações e Obras
             </p>
           </div>
@@ -143,10 +143,10 @@ export default function CronogramaPublico() {
 
       {/* Conteúdo do Cronograma */}
       <main className="flex-1 p-2 md:p-3 overflow-hidden flex flex-col min-h-0">
-        <div className="relative flex-1 bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden flex flex-col min-h-0">
+        <div className="relative flex-1 bg-surface rounded-xl shadow-xs border border-border-subtle overflow-hidden flex flex-col min-h-0">
           {dadosFormatados.length === 0 && (
             <EmptyState
-              className="absolute inset-0 z-20 bg-white/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
+              className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
               icone={CalendarX2}
               titulo="Nenhuma alocação encontrada para este período"
               descricao="Ajuste os filtros de data na barra superior para expandir a busca."
@@ -164,7 +164,7 @@ export default function CronogramaPublico() {
       </main>
 
       {/* Rodapé Informativo */}
-      <footer className="bg-white border-t border-slate-200 px-4 py-2 flex items-center justify-between text-[11px] text-slate-400 shrink-0 no-print">
+      <footer className="bg-surface border-t border-border-subtle px-4 py-2 flex items-center justify-between text-[11px] text-muted-foreground shrink-0 no-print">
         <span>© {ANO_ATUAL} ZL Engenharia Solar · Todos os direitos reservados</span>
         <span>Acesso com permissões restritas (somente-leitura)</span>
       </footer>

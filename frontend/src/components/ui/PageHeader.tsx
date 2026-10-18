@@ -29,11 +29,11 @@ export function PageHeader({ title, subtitle, backTo, backState, onBack, childre
       <div className="flex items-center gap-2 md:gap-3 shrink-0 max-w-[55%] sm:max-w-none min-w-0">
         <SidebarTrigger className="md:hidden shrink-0" />
         <div className="min-w-0">
-          <h1 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight leading-tight truncate">
+          <h1 className="text-base sm:text-lg font-bold text-foreground-secondary tracking-tight leading-tight truncate">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[11px] text-slate-500 font-medium truncate hidden md:block leading-none mt-0.5">
+            <p className="text-[11px] text-muted-foreground font-medium truncate hidden md:block leading-none mt-0.5">
               {subtitle}
             </p>
           )}
@@ -55,7 +55,7 @@ export function PageHeader({ title, subtitle, backTo, backState, onBack, childre
                 void navigate(backTo, { state: backState });
               }
             }}
-            className="shrink-0 cursor-pointer px-3 md:px-4 gap-2 text-slate-700 hover:text-slate-900"
+            className="shrink-0 cursor-pointer px-3 md:px-4 gap-2 text-foreground-muted hover:text-foreground"
             title="Voltar"
           >
             <ArrowLeft className="w-4 h-4" />

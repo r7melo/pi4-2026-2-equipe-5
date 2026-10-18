@@ -1,217 +1,214 @@
---  01_schema.sql
---  Sistema de Gestão de Obras — ZL Engenharia Solar
---
---  Ordem de criação respeita dependências de FK:
---    1. perfil_acesso
---    2. equipe
---    3. cliente
---    4. usuario          (depende de perfil_acesso, equipe)
---    5. obra             (depende de cliente)
---    6. pagamento        (depende de obra)
---    7. homologacao      (depende de obra)
---    8. material         (depende de obra)
---    9. comentario       (depende de obra, usuario)
---   10. historico_obra   (depende de obra, usuario)
---   11. programacao_obra (depende de obra, equipe)
---   12. relatorio_custo  (depende de obra)
-
 SET client_encoding = 'UTF8';
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
+-- Tipos usados nas validações do banco.
+CREATE TYPE status_obra_enum AS ENUM ('MaterialComprado', 'NoDeposito', 'Separado', 'EmAndamento', 'Concluido', 'Assistencia');
+CREATE TYPE status_logistico_enum AS ENUM ('Comprado', 'EmTransito', 'Disponivel', 'Utilizado');
+CREATE TYPE nome_perfil_enum AS ENUM ('Administrador', 'EngenhariaObras', 'Financeiro', 'VisualizadorLeitor', 'InstaladorCampo');
+CREATE TYPE tipo_comentario_enum AS ENUM ('Cartao', 'Manutencao', 'Timeline');
+CREATE TYPE tipo_acao_historico_enum AS ENUM ('Cadastro', 'MudancaStatus', 'Comentario', 'ManutencaoConcluida', 'AlteracaoFinanceira');
+CREATE TYPE status_manutencao_enum AS ENUM ('Pendente', 'Concluida');
 
--- ENUMs
--- Etapas do funil Kanban
-DO $$ BEGIN
-    CREATE TYPE status_obra_enum AS ENUM (
-        'MaterialComprado',
-        'NoDeposito',
-        'Separado',
-        'EmAndamento',
-        'Concluido',
-        'Assistencia'
-    );
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- Situação logística dos materiais
-DO $$ BEGIN
-    CREATE TYPE status_logistico_enum AS ENUM (
-        'Comprado',
-        'EmTransito',
-        'Disponivel',
-        'Utilizado'
-    );
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- Perfis de acesso (RBAC)
-DO $$ BEGIN
-    CREATE TYPE nome_perfil_enum AS ENUM (
-        'Administrador',
-        'EngenhariaObras',
-        'Financeiro',
-        'VisualizadorLeitor',
-        'InstaladorCampo'
-    );
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- Status do processo de homologação junto à concessionária
-DO $$ BEGIN
-    CREATE TYPE parecer_enum AS ENUM (
-        'Pendente',
-        'EmAnalise',
-        'Aprovado',
-        'Reprovado'
-    );
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-
--- 1. PERFIL_ACESSO
-CREATE TABLE IF NOT EXISTS perfil_acesso (
-    id          SERIAL           PRIMARY KEY,
+-- Perfis e equipes.
+CREATE TABLE perfil_acesso (
+    id SERIAL PRIMARY KEY,
     nome_perfil nome_perfil_enum NOT NULL UNIQUE,
-    permissoes  TEXT  -- ex: 'obras:criar,obras:mover,programacoes:editar'
+    permissoes TEXT
 );
 
-
-
--- 2. EQUIPE
-CREATE TABLE IF NOT EXISTS equipe (
-    id            SERIAL       PRIMARY KEY,
-    nome          VARCHAR(100) NOT NULL,
-    especialidade VARCHAR(100)  -- ex: 'Instalação Residencial', 'Industrial'
+CREATE TABLE equipe (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    especialidade VARCHAR(100),
+    id_responsavel INT NOT NULL
 );
 
-
--- 3. CLIENTE
-CREATE TABLE IF NOT EXISTS cliente (
-    id             SERIAL       PRIMARY KEY,
-    nome           VARCHAR(200) NOT NULL,
-    cidade         VARCHAR(100),
-    dados_contrato TEXT          -- informações extras do contrato, se necessário
+-- Clientes e usuários.
+CREATE TABLE cliente (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(200) NOT NULL,
+    cidade VARCHAR(100),
+    dados_contrato TEXT,
+    cpf_cnpj VARCHAR(14) NOT NULL UNIQUE,
+    endereco VARCHAR(255),
+    telefone VARCHAR(30),
+    email VARCHAR(200),
+    CONSTRAINT ck_cliente_cpf_cnpj CHECK (cpf_cnpj ~ '^[0-9]{11}([0-9]{3})?$')
 );
 
-
--- 4. USUARIO
-CREATE TABLE IF NOT EXISTS usuario (
-    id        SERIAL       PRIMARY KEY,
-    nome      VARCHAR(200) NOT NULL,
-    email     VARCHAR(200) NOT NULL UNIQUE,
-    senha     VARCHAR(255) NOT NULL, 
-    id_perfil INT          NOT NULL REFERENCES perfil_acesso(id) ON DELETE RESTRICT,
-    id_equipe INT                   REFERENCES equipe(id)         ON DELETE SET NULL
+CREATE TABLE usuario (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(200) NOT NULL,
+    email VARCHAR(200) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    id_perfil INT NOT NULL REFERENCES perfil_acesso(id) ON DELETE RESTRICT,
+    id_equipe INT REFERENCES equipe(id) ON DELETE SET NULL,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    tentativas_login INT NOT NULL DEFAULT 0 CHECK (tentativas_login >= 0),
+    bloqueado_ate TIMESTAMP
 );
 
+CREATE TABLE equipe_instalador (
+    id_equipe INT NOT NULL REFERENCES equipe(id) ON DELETE RESTRICT,
+    id_usuario INT NOT NULL REFERENCES usuario(id) ON DELETE RESTRICT,
+    CONSTRAINT pk_equipe_instalador PRIMARY KEY (id_equipe, id_usuario)
+);
 
--- 5. OBRA
--- Entidade central do sistema — alimenta o Kanban e o Gantt
-CREATE TABLE IF NOT EXISTS obra (
-    id                   SERIAL           PRIMARY KEY,
-    status               status_obra_enum NOT NULL DEFAULT 'MaterialComprado',
-    categoria            VARCHAR(50),      -- Residencial, Comercial, Industrial, Rural, Manutenção
-    quantidade_paineis   INT              NOT NULL CHECK (quantidade_paineis > 0),
+ALTER TABLE equipe ADD CONSTRAINT fk_equipe_responsavel_usuario
+    FOREIGN KEY (id_responsavel) REFERENCES usuario(id) ON DELETE RESTRICT
+    DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE equipe ADD CONSTRAINT fk_equipe_responsavel_membro
+    FOREIGN KEY (id, id_responsavel) REFERENCES equipe_instalador(id_equipe, id_usuario)
+    ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED;
+
+-- Obras e pagamentos.
+CREATE TABLE obra (
+    id SERIAL PRIMARY KEY,
+    status status_obra_enum NOT NULL DEFAULT 'MaterialComprado',
+    categoria VARCHAR(50),
+    quantidade_paineis INT NOT NULL CHECK (quantidade_paineis > 0),
+    quantidade_inversores INT CHECK (quantidade_inversores >= 0),
+    endereco VARCHAR(255) NOT NULL CHECK (btrim(endereco) <> ''),
+    descricao TEXT,
+    projeto_arquivo VARCHAR(500),
+    instrucoes TEXT,
+    excluida_em TIMESTAMP,
     data_inicio_estimada DATE,
-    data_fim_estimada    DATE,
-    data_inicio_real     DATE,
-    data_fim_real        DATE,
-    id_cliente           INT              NOT NULL REFERENCES cliente(id) ON DELETE RESTRICT,
-
-    CONSTRAINT ck_obra_datas_estimadas CHECK (
-        data_fim_estimada    IS NULL OR data_inicio_estimada IS NULL
-        OR data_fim_estimada >= data_inicio_estimada
-    ),
-    CONSTRAINT ck_obra_datas_reais CHECK (
-        data_fim_real    IS NULL OR data_inicio_real IS NULL
-        OR data_fim_real >= data_inicio_real
-    )
+    data_fim_estimada DATE,
+    data_inicio_real DATE,
+    data_fim_real DATE,
+    id_cliente INT NOT NULL REFERENCES cliente(id) ON DELETE RESTRICT,
+    CONSTRAINT ck_obra_datas_estimadas CHECK (data_fim_estimada IS NULL OR data_inicio_estimada IS NULL OR data_fim_estimada >= data_inicio_estimada),
+    CONSTRAINT ck_obra_datas_reais CHECK (data_fim_real IS NULL OR data_inicio_real IS NULL OR data_fim_real >= data_inicio_real)
 );
 
-
--- 6. PAGAMENTO
--- 1:1 com Obra — dados do contrato financeiro
-CREATE TABLE IF NOT EXISTS pagamento (
-    id                    SERIAL PRIMARY KEY,
-    data_confirmacao      DATE,
-    prazo_contratual_dias INT    NOT NULL CHECK (prazo_contratual_dias > 0),
-    id_obra               INT    NOT NULL UNIQUE REFERENCES obra(id) ON DELETE CASCADE
+CREATE TABLE pagamento (
+    id SERIAL PRIMARY KEY,
+    data_confirmacao DATE NOT NULL,
+    prazo_contratual_dias INT NOT NULL CHECK (prazo_contratual_dias > 0),
+    id_obra INT NOT NULL UNIQUE REFERENCES obra(id) ON DELETE CASCADE
 );
 
--- 7. HOMOLOGACAO
--- 1:1 com Obra — acompanhamento junto à concessionária
-CREATE TABLE IF NOT EXISTS homologacao (
-    id             SERIAL       PRIMARY KEY,
-    parecer_acesso parecer_enum NOT NULL DEFAULT 'Pendente',
-    art_trt        VARCHAR(100),  -- número ou situação do registro ART/TRT
-    prazo_vistoria DATE,
-    atualizado_em  TIMESTAMP    NOT NULL DEFAULT NOW(),
-    id_obra        INT          NOT NULL UNIQUE REFERENCES obra(id) ON DELETE CASCADE
-);
-
-
--- 8. MATERIAL
--- Kits e insumos vinculados a uma obra
-CREATE TABLE IF NOT EXISTS material (
-    id               SERIAL                PRIMARY KEY,
-    tipo             VARCHAR(200)          NOT NULL, -- ex: 'Painel Solar 550W', 'Inversor 5kW'
-    quantidade       INT                   NOT NULL CHECK (quantidade >= 0),
+-- Materiais, comentários e histórico da obra.
+CREATE TABLE material (
+    id SERIAL PRIMARY KEY,
+    tipo VARCHAR(200) NOT NULL,
+    quantidade INT NOT NULL CHECK (quantidade >= 0),
+    quantidade_utilizada INT CHECK (quantidade_utilizada IS NULL OR quantidade_utilizada BETWEEN 0 AND quantidade),
+    custo_unitario NUMERIC(12,2) CHECK (custo_unitario >= 0),
     status_logistico status_logistico_enum,
-    id_obra          INT                   NOT NULL REFERENCES obra(id) ON DELETE CASCADE
+    id_obra INT NOT NULL REFERENCES obra(id) ON DELETE CASCADE
 );
 
-
--- 9. COMENTARIO
--- Anotações dos usuários em uma obra
-CREATE TABLE IF NOT EXISTS comentario (
-    id            SERIAL    PRIMARY KEY,
-    descricao     TEXT      NOT NULL,
+CREATE TABLE comentario (
+    id SERIAL PRIMARY KEY,
+    descricao TEXT NOT NULL CHECK (btrim(descricao) <> ''),
+    tipo tipo_comentario_enum NOT NULL,
+    id_manutencao INT,
     data_registro TIMESTAMP NOT NULL DEFAULT NOW(),
-    id_obra       INT       NOT NULL REFERENCES obra(id)    ON DELETE CASCADE,
-    id_usuario    INT       NOT NULL REFERENCES usuario(id) ON DELETE RESTRICT
+    id_obra INT NOT NULL REFERENCES obra(id) ON DELETE CASCADE,
+    id_usuario INT NOT NULL REFERENCES usuario(id) ON DELETE RESTRICT
 );
 
-
--- 10. HISTORICO_OBRA
--- Toda mudança de status gera um registro aqui 
-CREATE TABLE IF NOT EXISTS historico_obra (
-    id              SERIAL      PRIMARY KEY,
-    status_anterior VARCHAR(50),  -- null na criação da obra
-    status_novo     VARCHAR(50) NOT NULL,
-    data_alteracao  TIMESTAMP   NOT NULL DEFAULT NOW(),
-    observacao      TEXT,
-    id_obra         INT         NOT NULL REFERENCES obra(id)    ON DELETE CASCADE,
-    id_usuario      INT         NOT NULL REFERENCES usuario(id) ON DELETE RESTRICT
+CREATE TABLE historico_obra (
+    id BIGSERIAL PRIMARY KEY,
+    tipo_acao tipo_acao_historico_enum NOT NULL,
+    status_anterior VARCHAR(50),
+    status_novo VARCHAR(50),
+    data_alteracao TIMESTAMP NOT NULL DEFAULT NOW(),
+    observacao TEXT,
+    id_obra INT NOT NULL REFERENCES obra(id) ON DELETE RESTRICT,
+    id_usuario INT NOT NULL REFERENCES usuario(id) ON DELETE RESTRICT
 );
 
-
--- 11. PROGRAMACAO_OBRA
--- Alocação de equipe num período — base do Gantt
-CREATE TABLE IF NOT EXISTS programacao_obra (
-    id                    SERIAL      PRIMARY KEY,
-    data_inicio           DATE        NOT NULL,
-    data_fim              DATE        NOT NULL,
-    prioridade            INT         DEFAULT 1 CHECK (prioridade > 0),
-    duracao_estimada_dias DECIMAL(5,1), -- calculado via quantidade_paineis da obra (RF-08)
-    id_obra               INT         NOT NULL REFERENCES obra(id)   ON DELETE CASCADE,
-    id_equipe             INT         NOT NULL REFERENCES equipe(id)  ON DELETE RESTRICT,
-
-    CONSTRAINT ck_programacao_datas CHECK (data_fim >= data_inicio)
+CREATE TABLE programacao_obra (
+    id SERIAL PRIMARY KEY,
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL,
+    prioridade INT DEFAULT 1 CHECK (prioridade > 0),
+    duracao_estimada_dias DECIMAL(5,1),
+    id_obra INT NOT NULL REFERENCES obra(id) ON DELETE CASCADE,
+    id_equipe INT NOT NULL REFERENCES equipe(id) ON DELETE RESTRICT,
+    CONSTRAINT ck_programacao_datas CHECK (data_fim >= data_inicio),
+    CONSTRAINT ex_programacao_equipe_periodo EXCLUDE USING gist
+        (id_equipe WITH =, daterange(data_inicio, data_fim, '[]') WITH &&)
 );
 
-
--- 12. RELATORIO_CUSTO
--- 1:1 com Obra — custo_total é calculado automaticamente pelo banco
-CREATE TABLE IF NOT EXISTS relatorio_custo (
-    id             SERIAL         PRIMARY KEY,
-    custo_mao_obra DECIMAL(12, 2) DEFAULT 0.00,
-    custo_insumos  DECIMAL(12, 2) DEFAULT 0.00,
-    custo_total    DECIMAL(12, 2) GENERATED ALWAYS AS (custo_mao_obra + custo_insumos) STORED,
-    id_obra        INT            NOT NULL UNIQUE REFERENCES obra(id) ON DELETE CASCADE
+-- Custos e manutenção.
+CREATE TABLE relatorio_custo (
+    id SERIAL PRIMARY KEY,
+    custo_mao_obra NUMERIC(12,2) DEFAULT 0.00 CHECK (custo_mao_obra >= 0),
+    custo_insumos NUMERIC(12,2) DEFAULT 0.00 CHECK (custo_insumos >= 0),
+    custo_total NUMERIC(12,2) GENERATED ALWAYS AS (custo_mao_obra + custo_insumos) STORED,
+    valor_obra NUMERIC(12,2) CHECK (valor_obra >= 0),
+    id_obra INT NOT NULL UNIQUE REFERENCES obra(id) ON DELETE CASCADE
 );
 
+CREATE TABLE manutencao (
+    id SERIAL PRIMARY KEY,
+    descricao TEXT NOT NULL CHECK (btrim(descricao) <> ''),
+    status status_manutencao_enum NOT NULL DEFAULT 'Pendente',
+    data_conclusao TIMESTAMP,
+    id_obra INT NOT NULL REFERENCES obra(id) ON DELETE RESTRICT,
+    id_equipe INT NOT NULL REFERENCES equipe(id) ON DELETE RESTRICT,
+    CONSTRAINT ck_manutencao_conclusao CHECK
+        ((status = 'Pendente' AND data_conclusao IS NULL) OR (status = 'Concluida' AND data_conclusao IS NOT NULL))
+);
 
--- ÍNDICES
-CREATE INDEX IF NOT EXISTS idx_obra_status        ON obra(status);
-CREATE INDEX IF NOT EXISTS idx_obra_cliente       ON obra(id_cliente);
-CREATE INDEX IF NOT EXISTS idx_material_obra      ON material(id_obra);
-CREATE INDEX IF NOT EXISTS idx_comentario_obra    ON comentario(id_obra);
-CREATE INDEX IF NOT EXISTS idx_historico_obra     ON historico_obra(id_obra);
-CREATE INDEX IF NOT EXISTS idx_programacao_obra   ON programacao_obra(id_obra);
-CREATE INDEX IF NOT EXISTS idx_programacao_equipe ON programacao_obra(id_equipe);
-CREATE INDEX IF NOT EXISTS idx_usuario_email      ON usuario(email);
+ALTER TABLE comentario ADD CONSTRAINT fk_comentario_manutencao
+    FOREIGN KEY (id_manutencao) REFERENCES manutencao(id) ON DELETE RESTRICT
+    DEFERRABLE INITIALLY DEFERRED;
+
+-- Auditoria e compartilhamento de cronograma.
+CREATE TABLE audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    id_usuario INT REFERENCES usuario(id) ON DELETE RESTRICT,
+    acao VARCHAR(100) NOT NULL,
+    entidade VARCHAR(100) NOT NULL,
+    entidade_id INT,
+    detalhes JSONB,
+    "timestamp" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE cronograma_compartilhado (
+    id SERIAL PRIMARY KEY,
+    token VARCHAR(128) NOT NULL UNIQUE,
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL,
+    expira_em TIMESTAMPTZ NOT NULL,
+    id_usuario INT NOT NULL REFERENCES usuario(id) ON DELETE RESTRICT,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT ck_cronograma_datas CHECK (data_fim >= data_inicio)
+);
+
+-- Histórico e auditoria só aceitam novos registros.
+CREATE FUNCTION impedir_alteracao_log() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION '% aceita somente INSERT', TG_TABLE_NAME USING ERRCODE = 'P0001';
+END;
+$$;
+
+CREATE TRIGGER trg_historico_somente_insert BEFORE UPDATE OR DELETE ON historico_obra
+    FOR EACH ROW EXECUTE FUNCTION impedir_alteracao_log();
+CREATE TRIGGER trg_audit_somente_insert BEFORE UPDATE OR DELETE ON audit_log
+    FOR EACH ROW EXECUTE FUNCTION impedir_alteracao_log();
+
+-- Índices usados pelos filtros e relacionamentos consultados pelas rotas.
+CREATE INDEX idx_obra_ativas_status ON obra(status) WHERE excluida_em IS NULL;
+CREATE INDEX idx_obra_ativas_categoria_status ON obra(categoria, status) WHERE excluida_em IS NULL;
+CREATE INDEX idx_obra_cliente ON obra(id_cliente);
+CREATE INDEX idx_material_obra ON material(id_obra);
+CREATE INDEX idx_comentario_obra ON comentario(id_obra);
+CREATE INDEX idx_comentario_manutencao ON comentario(id_manutencao) WHERE id_manutencao IS NOT NULL;
+CREATE INDEX idx_programacao_obra ON programacao_obra(id_obra);
+CREATE INDEX idx_programacao_equipe_inicio ON programacao_obra(id_equipe, data_inicio);
+CREATE INDEX idx_programacao_datas ON programacao_obra(data_inicio, data_fim);
+CREATE INDEX idx_historico_obra_data ON historico_obra(id_obra, data_alteracao DESC, id DESC);
+CREATE INDEX idx_cliente_nome_busca ON cliente USING GIN (nome gin_trgm_ops);
+CREATE UNIQUE INDEX idx_usuario_email_busca ON usuario(lower(email));
+CREATE INDEX idx_equipe_instalador_usuario ON equipe_instalador(id_usuario);
+CREATE INDEX idx_manutencao_obra_status ON manutencao(id_obra, status);
+CREATE INDEX idx_manutencao_equipe_status ON manutencao(id_equipe, status);
+CREATE INDEX idx_audit_entidade ON audit_log(entidade, entidade_id);
+CREATE INDEX idx_cronograma_expira_em ON cronograma_compartilhado(expira_em);

@@ -10,9 +10,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { toast } from "sonner";
 import type { ObraCard } from "@/types";
 import {
@@ -23,10 +21,11 @@ import {
 import KanbanColumn from "./KanbanColumn";
 import KanbanCardOverlay from "./KanbanCardOverlay";
 import KanbanTaskDrawer from "./KanbanTaskDrawer";
-import { useAuthStore } from "@/stores/useAuthStore";
+import ModalConfirmarConclusao from "./ModalConfirmarConclusao";
 import { useMoverCard } from "@/hooks/api/useMoverCard";
 import { useMateriaisObras } from "@/hooks/api/useMateriaisObras";
 import { isObraConcluidaArquivada } from "./kanbanUtils";
+import { cn } from "@/lib/utils";
 
 interface KanbanBoardProps {
   obras: ObraCard[];
@@ -46,13 +45,13 @@ export default function KanbanBoard({
   const [activeCard, setActiveCard] = useState<ObraCard | null>(null);
   const [initialContainer, setInitialContainer] = useState<StatusObra | null>(null);
   const [drawerCard, setDrawerCard] = useState<ObraCard | null>(null);
+  const [obraParaConcluir, setObraParaConcluir] = useState<ObraCard | null>(null);
+  const [colunaMobileAtiva, setColunaMobileAtiva] = useState<StatusObra>("MaterialComprado");
+  const [exibirArquivadas, setExibirArquivadas] = useState(false);
 
   const handleSelectCard = useCallback((card: ObraCard) => {
     setDrawerCard(card);
   }, []);
-
-  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
-  const isAdmin = perfil === "Administrador";
 
   const moverCardMutation = useMoverCard();
 
@@ -68,7 +67,11 @@ export default function KanbanBoard({
   const obraIds = useMemo(() => obras.map((o) => Number(o.id)), [obras]);
   const { mapaMateriais } = useMateriaisObras(obraIds);
 
-  const [exibirArquivadas, setExibirArquivadas] = useState(false);
+  // Destinos válidos calculados dinamicamente durante o arraste (UX-07)
+  const destinosValidos = useMemo(() => {
+    if (!activeCard) return [];
+    return TRANSICOES_VALIDAS[activeCard.status] || [];
+  }, [activeCard]);
 
   // Total de obras arquivadas na coluna Concluído (> 30 dias da data de término)
   const totalArquivadasConcluidas = useMemo(() => {
@@ -81,7 +84,7 @@ export default function KanbanBoard({
   // Filtragem composta em tempo real com auto-ordenação
   const obrasFiltradas = useMemo(() => {
     const list = obras.filter((obra) => {
-      // 1. Busca textual global (pesquisa em ativas e arquivadas)
+      // 1. Busca textual global
       if (busca.trim()) {
         const termo = busca.toLowerCase();
         const matchCliente = obra.clienteNome.toLowerCase().includes(termo);
@@ -138,7 +141,7 @@ export default function KanbanBoard({
     });
   }, [obras, busca, categoriaFiltro, materialFiltro, mapaMateriais, exibirArquivadas]);
 
-  // Estado local reativo de itens por coluna para permitir preview dinâmico no onDragOver
+  // Estado local reativo de itens por coluna
   const [itensColunas, setItensColunas] = useState<Record<StatusObra, ObraCard[]>>(() => {
     const mapa: Record<StatusObra, ObraCard[]> = {
       MaterialComprado: [],
@@ -156,6 +159,24 @@ export default function KanbanBoard({
     return mapa;
   });
 
+  // Função centralizada para restaurar itensColunas para o snapshot oficial
+  const restaurarEstadoOficial = useCallback(() => {
+    const mapa: Record<StatusObra, ObraCard[]> = {
+      MaterialComprado: [],
+      NoDeposito: [],
+      Separado: [],
+      EmAndamento: [],
+      Concluido: [],
+      Assistencia: [],
+    };
+    for (const item of obrasFiltradas) {
+      if (mapa[item.status]) {
+        mapa[item.status].push(item);
+      }
+    }
+    setItensColunas(mapa);
+  }, [obrasFiltradas]);
+
   // Flag anti-flicker: impede que activeCard === null reverta itensColunas antes do cache otimista resolver
   const isDroppingRef = useRef(false);
 
@@ -164,15 +185,27 @@ export default function KanbanBoard({
     if (activeCard || isDroppingRef.current) return;
 
     setItensColunas((prev) => {
-      // Bailout: verifica se houve alteração real nos cards de cada coluna
       const mudou = STATUS_TODOS.some((status) => {
         const novosCards = obrasFiltradas.filter((o) => o.status === status);
         const cardsAtuais = prev[status] || [];
         if (novosCards.length !== cardsAtuais.length) return true;
-        return novosCards.some((c, i) => c.id !== cardsAtuais[i]?.id);
+        return novosCards.some((c, i) => {
+          const atual = cardsAtuais[i];
+          if (!atual || c.id !== atual.id) return true;
+          return (
+            c !== atual ||
+            c.clienteNome !== atual.clienteNome ||
+            c.valorTotal !== atual.valorTotal ||
+            c.potenciaKwp !== atual.potenciaKwp ||
+            c.quantidadePaineis !== atual.quantidadePaineis ||
+            c.categoria !== atual.categoria ||
+            c.dataFimEstimada !== atual.dataFimEstimada ||
+            c.endereco !== atual.endereco ||
+            c.observacoes !== atual.observacoes
+          );
+        });
       });
 
-      // Se a composição for idêntica, retorna prev para abortar re-renders (evita loop infinito)
       if (!mudou) return prev;
 
       const mapa: Record<StatusObra, ObraCard[]> = {
@@ -222,21 +255,64 @@ export default function KanbanBoard({
     setActiveCard(null);
     setInitialContainer(null);
     isDroppingRef.current = false;
-
-    // Restaura para o estado oficial
-    const mapa: Record<StatusObra, ObraCard[]> = {
-      MaterialComprado: [],
-      NoDeposito: [],
-      Separado: [],
-      EmAndamento: [],
-      Concluido: [],
-      Assistencia: [],
-    };
-    for (const item of obrasFiltradas) {
-      if (mapa[item.status]) mapa[item.status].push(item);
-    }
-    setItensColunas(mapa);
+    restaurarEstadoOficial();
   };
+
+  // Execução da movimentação de status na API e no estado otimista
+  const executarMudancaStatus = useCallback(
+    (card: ObraCard, novoStatus: StatusObra) => {
+      setItensColunas((prev) => {
+        const next = { ...prev };
+        for (const status of Object.keys(next) as StatusObra[]) {
+          next[status] = (next[status] || []).filter((c) => String(c.id) !== String(card.id));
+        }
+        next[novoStatus] = [...(next[novoStatus] || []), { ...card, status: novoStatus }];
+        return next;
+      });
+
+      isDroppingRef.current = true;
+      moverCardMutation.mutate(
+        {
+          cardId: card.id,
+          novoStatus,
+        },
+        {
+          onError: () => {
+            restaurarEstadoOficial();
+          },
+          onSettled: () => {
+            isDroppingRef.current = false;
+          },
+        }
+      );
+    },
+    [moverCardMutation, restaurarEstadoOficial]
+  );
+
+  // Mover card acionado via menu acessível "Mover para..." (UX-09)
+  const handleMoverCard = useCallback(
+    (card: ObraCard, novoStatus: StatusObra) => {
+      if (novoStatus === "Concluido") {
+        setObraParaConcluir(card);
+        return;
+      }
+      executarMudancaStatus(card, novoStatus);
+    },
+    [executarMudancaStatus]
+  );
+
+  // Confirmação no diálogo de conclusão (RF-13 / UX-11)
+  const handleConfirmarConclusao = useCallback(() => {
+    if (!obraParaConcluir) return;
+    const card = obraParaConcluir;
+    setObraParaConcluir(null);
+    executarMudancaStatus(card, "Concluido");
+  }, [obraParaConcluir, executarMudancaStatus]);
+
+  const handleCancelarConclusao = useCallback(() => {
+    setObraParaConcluir(null);
+    restaurarEstadoOficial();
+  }, [restaurarEstadoOficial]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { over } = event;
@@ -247,37 +323,13 @@ export default function KanbanBoard({
     setInitialContainer(null);
 
     if (!over || !card || !containerOrigem) {
-      // Reverte para o estado oficial
-      const mapa: Record<StatusObra, ObraCard[]> = {
-        MaterialComprado: [],
-        NoDeposito: [],
-        Separado: [],
-        EmAndamento: [],
-        Concluido: [],
-        Assistencia: [],
-      };
-      for (const item of obrasFiltradas) {
-        if (mapa[item.status]) mapa[item.status].push(item);
-      }
-      setItensColunas(mapa);
+      restaurarEstadoOficial();
       return;
     }
 
     const overContainer = findContainer(over.id);
     if (!overContainer || overContainer === containerOrigem) {
-      // Solto na mesma coluna ou fora: garante limpeza de qualquer deslocamento temporário
-      const mapa: Record<StatusObra, ObraCard[]> = {
-        MaterialComprado: [],
-        NoDeposito: [],
-        Separado: [],
-        EmAndamento: [],
-        Concluido: [],
-        Assistencia: [],
-      };
-      for (const item of obrasFiltradas) {
-        if (mapa[item.status]) mapa[item.status].push(item);
-      }
-      setItensColunas(mapa);
+      restaurarEstadoOficial();
       return;
     }
 
@@ -288,82 +340,22 @@ export default function KanbanBoard({
       const getStatusLabel = (status: StatusObra) =>
         COLUNAS_KANBAN.find((c) => c.id === status)?.label || status;
 
-      if (!transicaoValida && !isAdmin) {
+      // Validação estrita sem bypass de Administrador (CT-03)
+      if (!transicaoValida) {
         toast.warning(
           `Transição não permitida: de "${getStatusLabel(containerOrigem)}" para "${getStatusLabel(overContainer)}".`
         );
-        // Reverte para o estado oficial
-        const mapa: Record<StatusObra, ObraCard[]> = {
-          MaterialComprado: [],
-          NoDeposito: [],
-          Separado: [],
-          EmAndamento: [],
-          Concluido: [],
-          Assistencia: [],
-        };
-        for (const item of obrasFiltradas) {
-          if (mapa[item.status]) mapa[item.status].push(item);
-        }
-        setItensColunas(mapa);
+        restaurarEstadoOficial();
         return;
       }
 
-      // SINCRONIZAÇÃO OTIMISTA IMEDIATA DO ESTADO LOCAL:
-      setItensColunas((prev) => {
-        const overItems = prev[overContainer] || [];
+      // Interceptação mandatória ao mover para Concluído (RF-13 / UX-11)
+      if (overContainer === "Concluido") {
+        setObraParaConcluir(card);
+        return;
+      }
 
-        // 1. Se o card já foi posicionado no destino pelo dragOver (colunas verticais normais),
-        // preserva o índice exato onde o usuário o posicionou
-        const jaEstaNoDestino = overItems.some((c) => String(c.id) === String(card.id));
-        if (jaEstaNoDestino) return prev;
-
-        // 2. Purga Atômica: Remove o card de qualquer coluna intermediária onde o dragOver o deixou
-        // e insere estritamente no container de destino (ex: Raia de Assistência Técnica)
-        const next = { ...prev };
-        let cardEncontrado: ObraCard | null = null;
-
-        for (const status of Object.keys(next) as StatusObra[]) {
-          const itemsDaColuna = next[status] || [];
-          const index = itemsDaColuna.findIndex((c) => String(c.id) === String(card.id));
-          if (index !== -1) {
-            if (!cardEncontrado) cardEncontrado = itemsDaColuna[index];
-            next[status] = itemsDaColuna.filter((_, idx) => idx !== index);
-          }
-        }
-
-        const cardParaInserir = { ...(cardEncontrado || card), status: overContainer };
-        next[overContainer] = [...(next[overContainer] || []), cardParaInserir];
-
-        return next;
-      });
-
-      isDroppingRef.current = true;
-      moverCardMutation.mutate(
-        {
-          cardId: card.id,
-          novoStatus: overContainer,
-        },
-        {
-          onError: () => {
-            // Em caso de erro na API, restaura itensColunas para o snapshot oficial
-            const mapa: Record<StatusObra, ObraCard[]> = {
-              MaterialComprado: [],
-              NoDeposito: [],
-              Separado: [],
-              EmAndamento: [],
-              Concluido: [],
-              Assistencia: [],
-            };
-            for (const item of obrasFiltradas) {
-              if (mapa[item.status]) mapa[item.status].push(item);
-            }
-            setItensColunas(mapa);
-          },
-          onSettled: () => {
-            isDroppingRef.current = false;
-          },
-        }
-      );
+      executarMudancaStatus(card, overContainer);
     }
   };
 
@@ -375,25 +367,55 @@ export default function KanbanBoard({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="w-full space-y-6">
-        {/* As 6 Colunas Operacionais Verticais com Layout Infinito */}
+      <div className="w-full space-y-4">
+        {/* Seletor de Colunas para Telas Mobile (RNF-01 / UX-09) */}
+        <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-2 mb-2 custom-scrollbar">
+          {COLUNAS_KANBAN.map((col) => (
+            <button
+              key={col.id}
+              type="button"
+              onClick={() => setColunaMobileAtiva(col.id)}
+              className={cn(
+                "px-2.5 py-1 text-xs font-semibold rounded-lg shrink-0 transition-colors cursor-pointer",
+                colunaMobileAtiva === col.id
+                  ? "bg-info text-primary-foreground font-bold shadow-xs"
+                  : "bg-muted text-foreground-muted hover:bg-border-subtle"
+              )}
+            >
+              {col.label}
+            </button>
+          ))}
+        </div>
+
+        {/* As 6 Colunas Operacionais Verticais com Grid Responsivo */}
         <div className="overflow-x-auto pb-4 custom-scrollbar">
-          <div className="grid grid-cols-6 gap-3 min-w-[1536px] items-start">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3 min-w-0 md:min-w-[1536px] items-start">
             {COLUNAS_KANBAN.map((col) => {
               const cardsDaColuna = itensColunas[col.id] || [];
+              const isDestinoValido = activeCard ? destinosValidos.includes(col.id) : false;
+              const isDestinoInvalido = Boolean(
+                activeCard && !destinosValidos.includes(col.id) && col.id !== activeCard.status
+              );
+
               return (
                 <KanbanColumn
                   key={col.id}
                   id={col.id}
                   title={col.label}
+                  badge={col.badge}
                   cards={cardsDaColuna}
                   onSelectCard={handleSelectCard}
+                  onMoverCard={handleMoverCard}
+                  isDestinoValido={isDestinoValido}
+                  isDestinoInvalido={isDestinoInvalido}
+                  mapaMateriais={mapaMateriais}
+                  isVisivelMobile={colunaMobileAtiva === col.id}
                   headerAction={
                     col.id === "Concluido" && totalArquivadasConcluidas > 0 && !busca.trim() ? (
                       <button
                         type="button"
                         onClick={() => setExibirArquivadas((prev) => !prev)}
-                        className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded-full border border-emerald-200 transition-colors cursor-pointer"
+                        className="text-[10px] font-semibold text-success bg-success-light hover:bg-success-border/40 px-1.5 py-0.5 rounded-full border border-success-border transition-colors cursor-pointer"
                         title="Alternar exibição de obras concluídas há mais de 30 dias"
                       >
                         {exibirArquivadas ? "Ocultar arquivadas" : `+${totalArquivadasConcluidas} arquivadas`}
@@ -415,6 +437,14 @@ export default function KanbanBoard({
         card={drawerCard}
         isOpen={Boolean(drawerCard)}
         onClose={() => setDrawerCard(null)}
+      />
+
+      <ModalConfirmarConclusao
+        obra={obraParaConcluir}
+        isOpen={Boolean(obraParaConcluir)}
+        onClose={handleCancelarConclusao}
+        onConfirmar={handleConfirmarConclusao}
+        isLoading={moverCardMutation.isPending}
       />
     </DndContext>
   );

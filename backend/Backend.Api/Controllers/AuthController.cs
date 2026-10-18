@@ -4,7 +4,7 @@ namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController : ControllerBase
+public class AuthController(BancoDados banco) : ControllerBase
 {
     public record LoginEntrada(string? Email, string? Senha);
 
@@ -15,17 +15,20 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(e.Email) || string.IsNullOrWhiteSpace(e.Senha))
             return Erro.Criar(400, "INVALID_BODY", "Informe email e senha.");
 
-        var u = DadosFixos.Usuarios.FirstOrDefault(x => x.Email.Equals(e.Email.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (u is null || u.Senha != e.Senha)
+        var usuario = banco.BuscarUsuarioPorEmail(e.Email.Trim());
+        if (usuario is null || !BCrypt.Net.BCrypt.Verify(e.Senha, usuario.SenhaHash))
             return Erro.Criar(401, "INVALID_CREDENTIALS", "E-mail ou senha inválidos.");
 
-        var perfil = DadosFixos.Perfis.First(p => p.Id == u.PerfilId);
         return Ok(new
         {
-            token = DadosFixos.GerarToken(u),
-            // ponytail: token fake não expira de verdade; validade real vem com o JWT
-            expiresAt = DadosFixos.Agora().AddHours(8),
-            usuario = new { u.Id, u.Nome, u.Email, perfil = perfil.NomePerfil, u.EquipeId },
+            token = RegrasBase.GerarToken(usuario.Id),
+            expiresAt = RegrasBase.Agora().AddHours(8),
+            usuario = new
+            {
+                usuario.Id, usuario.Nome, usuario.Email,
+                perfil = usuario.NomePerfil,
+                equipeId = usuario.EquipeId,
+            },
         });
     }
 
@@ -33,18 +36,21 @@ public class AuthController : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var u = DadosFixos.UsuarioDoToken(Request.Headers.Authorization);
-        if (u is null)
+        var id = RegrasBase.IdDoToken(Request.Headers.Authorization);
+        var usuario = id is int usuarioId ? banco.BuscarUsuarioPorId(usuarioId) : null;
+        if (usuario is null)
             return Erro.Criar(401, "UNAUTHORIZED", "Token ausente ou inválido. Faça login em POST /api/auth/login.");
 
-        var p = DadosFixos.Perfis.First(x => x.Id == u.PerfilId);
         return Ok(new
         {
-            u.Id,
-            u.Nome,
-            u.Email,
-            perfil = new { p.Id, p.NomePerfil, permissoes = p.Permissoes.Split(',') },
-            u.EquipeId,
+            usuario.Id, usuario.Nome, usuario.Email,
+            perfil = new
+            {
+                id = usuario.PerfilId,
+                nomePerfil = usuario.NomePerfil,
+                permissoes = usuario.Permissoes.Split(',', StringSplitOptions.RemoveEmptyEntries),
+            },
+            equipeId = usuario.EquipeId,
         });
     }
 }

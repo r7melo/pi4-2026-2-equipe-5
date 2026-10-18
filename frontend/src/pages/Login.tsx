@@ -59,25 +59,25 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-6 font-sans">
+    <div className="min-h-screen w-full bg-background-app flex items-center justify-center p-6 font-sans">
       
       {/* Card do Formulário */}
-      <div className="w-full max-w-[480px] bg-white rounded-xl shadow-lg border border-slate-200 p-8 sm:p-10">
+      <div className="w-full max-w-[480px] bg-surface rounded-xl shadow-lg border border-border-subtle p-8 sm:p-10">
         
         <div className="flex flex-col items-center text-center mb-10">
           {/* Logo placeholder preservado conforme diretriz */}
-          <div className="w-16 h-8 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 mb-6">
+          <div className="w-16 h-8 bg-muted rounded-full flex items-center justify-center text-[10px] font-bold text-foreground-muted mb-6">
             ZL
           </div>
           
-          <h2 className="text-2xl font-semibold text-slate-800 mb-2">Acessar o sistema</h2>
-          <p className="text-sm text-slate-500">Gestão de Obras Fotovoltaicas</p>
+          <h2 className="text-2xl font-semibold text-foreground-secondary mb-2">Acessar o sistema</h2>
+          <p className="text-sm text-muted-foreground">Gestão de Obras Fotovoltaicas</p>
         </div>
 
         {erro && (
           <div 
             role="alert" 
-            className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2"
+            className="mb-6 p-4 rounded-lg bg-destructive-light border border-destructive-border text-destructive text-sm flex items-center gap-2"
           >
             <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{erro}</span>
@@ -87,7 +87,7 @@ export default function Login() {
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
           {/* Campo E-mail */}
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-semibold text-slate-700 block cursor-pointer">
+            <label htmlFor="email" className="text-sm font-semibold text-foreground-muted block cursor-pointer">
               E-mail corporativo
             </label>
             <input
@@ -96,7 +96,7 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+              className="w-full px-4 py-3 rounded-lg border bg-surface-subtle border-border-subtle text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
               placeholder="seu.email@zlengenharia.com"
             />
           </div>
@@ -104,7 +104,7 @@ export default function Login() {
           {/* Campo Senha */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label htmlFor="senha" className="text-sm font-semibold text-slate-700 block cursor-pointer">
+              <label htmlFor="senha" className="text-sm font-semibold text-foreground-muted block cursor-pointer">
                 Senha
               </label>
             </div>
@@ -115,14 +115,14 @@ export default function Login() {
                 required
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full px-4 py-3 pr-11 rounded-lg border bg-slate-50 border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all text-sm"
+                className="w-full px-4 py-3 pr-11 rounded-lg border bg-surface-subtle border-border-subtle text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => setMostrarSenha((prev) => !prev)}
-                className="absolute right-3 text-slate-400 hover:text-slate-600 p-1 focus:outline-none"
+                className="absolute right-3 text-subtle-foreground hover:text-foreground-muted p-1 focus:outline-none cursor-pointer"
                 aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
               >
                 {mostrarSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -133,7 +133,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={carregando}
-            className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md mt-6 cursor-pointer"
+            className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md mt-6 cursor-pointer"
           >
             {carregando ? (
               <>

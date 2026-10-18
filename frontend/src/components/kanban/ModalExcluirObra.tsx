@@ -38,11 +38,11 @@ export default function ModalExcluirObra({
       className="max-w-md"
       icone={
         bloqueado ? (
-          <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+          <div className="p-2 bg-warning-light text-warning rounded-lg">
             <ShieldAlert className="w-5 h-5" />
           </div>
         ) : (
-          <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+          <div className="p-2 bg-destructive-light text-destructive rounded-lg">
             <AlertTriangle className="w-5 h-5" />
           </div>
         )
@@ -52,31 +52,31 @@ export default function ModalExcluirObra({
     >
       <div className="px-5 py-4 space-y-3">
         {bloqueadoPorStatus ? (
-          <p className="text-sm text-slate-600">
-            A obra <strong className="text-slate-800 font-semibold">{targetObra.clienteNome}</strong> está em andamento e não pode ser excluída. É necessário concluir ou suspender a execução antes.
+          <p className="text-sm text-muted-foreground">
+            A obra <strong className="text-foreground-secondary font-semibold">{targetObra.clienteNome}</strong> está em andamento e não pode ser excluída. É necessário concluir ou suspender a execução antes.
           </p>
         ) : temAlocacaoAtiva ? (
-          <p className="text-sm text-slate-600">
-            A obra <strong className="text-slate-800 font-semibold">{targetObra.clienteNome}</strong> possui equipe alocada no cronograma. Remova a alocação no Gantt antes de prosseguir com a exclusão.
+          <p className="text-sm text-muted-foreground">
+            A obra <strong className="text-foreground-secondary font-semibold">{targetObra.clienteNome}</strong> possui equipe alocada no cronograma. Remova a alocação no Gantt antes de prosseguir com a exclusão.
           </p>
         ) : (
           <>
-            <p className="text-sm text-slate-600">
-              Tem certeza que deseja remover a obra de <strong className="text-slate-800 font-semibold">{targetObra.clienteNome}</strong> do funil operacional?
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja remover a obra de <strong className="text-foreground-secondary font-semibold">{targetObra.clienteNome}</strong> do funil operacional?
             </p>
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-500 space-y-1">
-              <p><span className="font-medium text-slate-700">Categoria:</span> {targetObra.categoria}</p>
-              <p><span className="font-medium text-slate-700">Painéis:</span> {targetObra.quantidadePaineis} módulos</p>
-              <p><span className="font-medium text-slate-700">Status:</span> {targetObra.status}</p>
+            <div className="p-3 bg-surface-subtle rounded-lg border border-border-subtle text-xs text-muted-foreground space-y-1">
+              <p><span className="font-medium text-foreground-muted">Categoria:</span> {targetObra.categoria}</p>
+              <p><span className="font-medium text-foreground-muted">Painéis:</span> {targetObra.quantidadePaineis} módulos</p>
+              <p><span className="font-medium text-foreground-muted">Status:</span> {targetObra.status}</p>
             </div>
-            <p className="text-xs text-amber-600 font-medium">
+            <p className="text-xs text-warning font-medium">
               Esta ação removerá a obra do funil operacional.
             </p>
           </>
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-slate-100 bg-slate-50/50">
+      <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-border-subtle bg-surface-subtle/50">
         <Button
           variant="outline"
           size="sm"
@@ -87,10 +87,11 @@ export default function ModalExcluirObra({
         </Button>
         {!bloqueado && (
           <Button
-            variant="danger"
+            variant="primary"
             size="sm"
             onClick={onConfirm}
             disabled={isLoading}
+            className="bg-destructive hover:bg-destructive-hover text-primary-foreground"
           >
             {isLoading ? "Excluindo..." : "Excluir Obra"}
           </Button>

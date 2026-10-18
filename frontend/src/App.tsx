@@ -11,11 +11,13 @@ import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
 import RelatorioPublico from "./pages/RelatorioPublico";
 import CronogramaPublico from "./pages/CronogramaPublico";
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
+import { useThemeStore, aplicarTemaNoDOM } from "./stores/useThemeStore";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,9 +33,20 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const tema = useThemeStore((s) => s.tema);
+
+  useEffect(() => {
+    aplicarTemaNoDOM(tema);
+    if (tema !== "system" || typeof window === "undefined") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const listener = () => aplicarTemaNoDOM("system");
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [tema]);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-right" theme={tema} />
       <ReloadPrompt />
       <BrowserRouter>
         <Routes>

@@ -31,7 +31,7 @@ export default function DashboardLayout() {
           <header
             id="dashboard-header-slot"
             ref={setHeaderNode}
-            className="h-14 w-full bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between shrink-0 z-10 relative"
+            className="h-14 w-full bg-surface border-b border-border-subtle px-4 md:px-6 flex items-center justify-between shrink-0 z-10 relative"
           />
 
           <div className="flex flex-1 overflow-hidden">

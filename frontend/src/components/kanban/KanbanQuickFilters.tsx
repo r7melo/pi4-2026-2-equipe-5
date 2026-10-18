@@ -61,23 +61,23 @@ export default function KanbanQuickFilters({
         className={cn(
           "inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium rounded-lg border transition-all cursor-pointer shadow-2xs h-[38px]",
           temFiltroAtivo
-            ? "bg-blue-50 text-blue-700 border-blue-300 ring-2 ring-blue-300/30"
-            : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
+            ? "bg-info-light text-info border-info-border ring-2 ring-info-border/50"
+            : "bg-surface text-foreground-muted border-border-strong hover:bg-surface-subtle"
         )}
       >
-        <Filter className="w-4 h-4 text-slate-500" />
+        <Filter className="w-4 h-4 text-muted-foreground" />
         <span>Filtros</span>
         {temFiltroAtivo && (
-          <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center shrink-0">
+          <span className="w-4 h-4 rounded-full bg-info text-primary-foreground text-[9px] font-bold flex items-center justify-center shrink-0">
             {totalAtivos}
           </span>
         )}
       </button>
 
       {aberto && (
-        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-3 z-40 animate-in fade-in zoom-in-95 duration-150">
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
-            <span className="text-xs font-bold text-slate-800">Filtros Rápidos</span>
+        <div className="absolute right-0 mt-2 w-64 bg-surface rounded-xl shadow-xl border border-border-subtle p-3 z-40 animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-border-subtle">
+            <span className="text-xs font-bold text-foreground-secondary">Filtros Rápidos</span>
             {temFiltroAtivo && (
               <button
                 type="button"
@@ -85,7 +85,7 @@ export default function KanbanQuickFilters({
                   onLimparFiltros();
                   setAberto(false);
                 }}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 cursor-pointer"
+                className="text-[11px] font-semibold text-info hover:text-info-hover cursor-pointer"
               >
                 Limpar todos
               </button>
@@ -94,7 +94,7 @@ export default function KanbanQuickFilters({
 
           {/* Seção 1: Categoria */}
           <div className="mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
               Categoria
             </span>
             <div className="grid grid-cols-2 gap-1">
@@ -108,8 +108,8 @@ export default function KanbanQuickFilters({
                     className={cn(
                       "flex items-center justify-between px-2 py-1 text-xs rounded-md transition-colors text-left cursor-pointer",
                       ativo
-                        ? "bg-blue-50 text-blue-700 font-semibold"
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-info-light text-info font-semibold"
+                        : "text-foreground-muted hover:bg-surface-subtle"
                     )}
                   >
                     <span className="truncate">{cat}</span>
@@ -122,7 +122,7 @@ export default function KanbanQuickFilters({
 
           {/* Seção 2: Etapa do Material (sem siglas na UI) */}
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
               Etapa do Material
             </span>
             <div className="grid grid-cols-2 gap-1">
@@ -136,8 +136,8 @@ export default function KanbanQuickFilters({
                     className={cn(
                       "flex items-center justify-between px-2 py-1 text-xs rounded-md transition-colors text-left cursor-pointer",
                       ativo
-                        ? "bg-blue-50 text-blue-700 font-semibold"
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-info-light text-info font-semibold"
+                        : "text-foreground-muted hover:bg-surface-subtle"
                     )}
                   >
                     <span className="truncate">{mat}</span>

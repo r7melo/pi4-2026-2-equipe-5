@@ -6,6 +6,20 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f172a" />
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem("zl-theme-storage");
+          var tema = raw ? JSON.parse(raw)?.state?.tema : "light";
+          var isDark =
+            tema === "dark" ||
+            (tema === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", isDark);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", isDark ? "#090d16" : "#0f172a");
+        } catch (e) {}
+      })();
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="ZL Obras" />

@@ -3,6 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection não configurada.");
+builder.Services.AddSingleton(new BancoDados(connectionString));
+
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
 {
     // Erros sem corpo (415 etc.) caem no UseStatusCodePages abaixo em vez de virar ProblemDetails
