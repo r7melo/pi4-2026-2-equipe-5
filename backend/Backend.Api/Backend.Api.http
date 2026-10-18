@@ -65,5 +65,47 @@ Content-Type: application/json
 ### 10. Histórico (mais recente primeiro)
 GET {{api}}/obras/305/historico
 
+### 16. Comentários da obra (filtro opcional por tipo)
+GET {{api}}/obras/303/comentarios?tipo=Cartao
+
+### 17. Criar comentário / descrição vazia -> 400 VALIDATION_ERROR
+POST {{api}}/obras/303/comentarios
+Content-Type: application/json
+
+{ "tipo": "Cartao", "descricao": "Cliente confirmou acesso ao telhado para amanhã." }
+
+### 18. Editar comentário (grava audit_log)
+PUT {{api}}/comentarios/704
+Content-Type: application/json
+
+{ "descricao": "Equipe alocada para quinta-feira, ok com o cliente." }
+
+### 19. Excluir comentário (grava audit_log) -> 204
+DELETE {{api}}/comentarios/711
+
+### 20. Equipes com ocupação no período
+GET {{api}}/equipes?dataInicio=2026-10-02&dataFim=2026-10-02
+
+### 22. Cronograma da Equipe 01
+GET {{api}}/programacoes?equipeId=1
+
+### 23. Alocar equipe (304 está Separado: 80 painéis = 9 dias úteis; obra vai para EmAndamento)
+POST {{api}}/programacoes
+Content-Type: application/json
+
+{ "obraId": 304, "equipeId": 5, "dataInicio": "2026-10-19" }
+
+### 23. Equipe ocupada -> 409 SCHEDULE_CONFLICT
+POST {{api}}/programacoes
+Content-Type: application/json
+
+{ "obraId": 305, "equipeId": 1, "dataInicio": "2026-10-02" }
+
+### 24. Reordenar 601 e propagar para 602 e 607
+PUT {{api}}/programacoes/601/reordenar
+Content-Type: application/json
+
+{ "novaDataInicio": "2026-10-05" }
+
 ### Rota inexistente -> 404 ROUTE_NOT_FOUND
 GET {{api}}/xyz
