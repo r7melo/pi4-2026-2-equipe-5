@@ -1,6 +1,8 @@
 @api = http://localhost:8000/api
+@token = {{login.response.body.token}}
 
-### 1. Login OK
+### 1. Login OK (guarda o token para as outras requisições)
+# @name login
 POST {{api}}/auth/login
 Content-Type: application/json
 
@@ -12,58 +14,133 @@ Content-Type: application/json
 
 { "email": "admin@zl.com.br", "senha": "errada" }
 
-### 2. Me (token do login) / sem token -> 401 UNAUTHORIZED
+### 2. Me (token do login)
 GET {{api}}/auth/me
-Authorization: Bearer token-fixo-2
+Authorization: Bearer {{token}}
 
-### 3. Criar obra (clienteId inexistente -> cria cliente novo)
+### 2. Sem token -> 401 UNAUTHORIZED
+GET {{api}}/auth/me
+
+### 7. Criar obra para cliente existente (clienteId inexistente -> 404 CLIENTE_NOT_FOUND)
 POST {{api}}/obras
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "clienteId": 45, "clienteNome": "Cliente Novo", "cidade": "Campinas", "quantidadePaineis": 45,
-  "dataInicioEstimada": "2026-10-01", "dataFimEstimada": "2026-10-06", "pagamento": { "prazoContratualDias": 45 } }
+{ "clienteId": 1, "categoria": "Comercial", "quantidadePaineis": 45, "quantidadeInversores": 2,
+  "endereco": "Av. das Palmeiras, 500 - Campinas/SP", "descricao": "Telhado metálico, acesso pela doca.",
+  "dataInicioEstimada": "2026-10-01", "dataFimEstimada": "2026-10-06",
+  "pagamento": { "dataConfirmacao": "2026-09-15", "prazoContratualDias": 45 } }
+
+### 7. Criar obra com cliente novo (CPF/CNPJ repetido -> 409 CPF_CNPJ_ALREADY_EXISTS)
+POST {{api}}/obras
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "cliente": { "nome": "Rede Beta", "cpfCnpj": "11.222.333/0001-81", "cidade": "Campinas" },
+  "quantidadePaineis": 10, "endereco": "Rua X, 1",
+  "pagamento": { "dataConfirmacao": "2026-09-15", "prazoContratualDias": 45 } }
 
 ### 3. Criar obra com data inválida -> 400 INVALID_BODY
 POST {{api}}/obras
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "clienteId": 1, "quantidadePaineis": 10, "dataInicioEstimada": "abc", "pagamento": { "prazoContratualDias": 45 } }
 
 ### 4. Listar obras / status inválido -> 400 INVALID_STATUS
 GET {{api}}/obras?status=EmAndamento&clienteNome=hospital
+Authorization: Bearer {{token}}
 
 ### 5. Detalhar obra / inexistente -> 404 OBRA_NOT_FOUND
 GET {{api}}/obras/999
+Authorization: Bearer {{token}}
 
 ### 6. Editar obra
 PUT {{api}}/obras/301
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "cidade": "Campinas", "dataInicioEstimada": "2026-10-02", "dataFimEstimada": "2026-10-07", "pagamento": { "prazoContratualDias": 60 } }
 
 ### 7. Mover status OK (301: MaterialComprado -> NoDeposito)
 PATCH {{api}}/obras/301/status
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "statusNovo": "NoDeposito", "observacao": "Material chegou ao depósito" }
 
 ### 7. Pular etapa -> 400 INVALID_STATUS_TRANSITION
 PATCH {{api}}/obras/302/status
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "statusNovo": "EmAndamento" }
 
 ### 8. Materiais da obra
 GET {{api}}/obras/301/materiais
+Authorization: Bearer {{token}}
 
 ### 9. Registrar material / statusLogistico inválido -> 400 INVALID_STATUS_LOGISTICO
 POST {{api}}/obras/309/materiais
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "tipo": "Cabo Solar 6mm", "quantidade": 200, "statusLogistico": "Comprado" }
 
 ### 10. Histórico (mais recente primeiro)
 GET {{api}}/obras/305/historico
+Authorization: Bearer {{token}}
+
+### 16. Comentários da obra (filtro opcional por tipo)
+GET {{api}}/obras/303/comentarios?tipo=Cartao
+Authorization: Bearer {{token}}
+
+### 17. Criar comentário / descrição vazia -> 400 VALIDATION_ERROR
+POST {{api}}/obras/303/comentarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "tipo": "Cartao", "descricao": "Cliente confirmou acesso ao telhado para amanhã." }
+
+### 18. Editar comentário (grava audit_log)
+PUT {{api}}/comentarios/704
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "descricao": "Equipe alocada para quinta-feira, ok com o cliente." }
+
+### 19. Excluir comentário (grava audit_log) -> 204
+DELETE {{api}}/comentarios/711
+Authorization: Bearer {{token}}
+
+### 20. Equipes com ocupação no período
+GET {{api}}/equipes?dataInicio=2026-10-02&dataFim=2026-10-02
+Authorization: Bearer {{token}}
+
+### 22. Cronograma da Equipe 01
+GET {{api}}/programacoes?equipeId=1
+Authorization: Bearer {{token}}
+
+### 23. Alocar equipe (304 está Separado: 80 painéis = 9 dias úteis; obra vai para EmAndamento)
+POST {{api}}/programacoes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "obraId": 304, "equipeId": 5, "dataInicio": "2026-10-19" }
+
+### 23. Equipe ocupada -> 409 SCHEDULE_CONFLICT
+POST {{api}}/programacoes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "obraId": 305, "equipeId": 1, "dataInicio": "2026-10-02" }
+
+### 24. Reordenar 601 e propagar para 602 e 607
+PUT {{api}}/programacoes/601/reordenar
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "novaDataInicio": "2026-10-05" }
 
 ### Rota inexistente -> 404 ROUTE_NOT_FOUND
 GET {{api}}/xyz
