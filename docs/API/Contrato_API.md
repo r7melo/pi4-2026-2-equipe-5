@@ -801,7 +801,7 @@ O instalador faz login como qualquer usuário (JWT com perfil `InstaladorCampo`)
 
 ## 5. Status da implementação
 
-Implementadas em `backend/Backend.Api` (.NET 8), com **dados fixos em memória** espelhando `database/02_seed.sql` (alterações se perdem ao reiniciar a API): rotas **#1, #2, #6, #7, #8, #9, #11, #12, #13 e #15**. Exemplos de chamadas em `backend/Backend.Api/Backend.Api.http`.
+Implementadas em `backend/Backend.Api` (.NET 8), ligadas ao PostgreSQL pelo `BancoDados.cs` (schema e seed de `database/`): rotas **#1, #2, #6, #7, #8, #9, #11, #12, #13 e #15**. Exemplos de chamadas em `backend/Backend.Api/Backend.Api.http`.
 
 A numeração das rotas mudou nesta versão do contrato para seguir `docs/Requisitos/07-api.md`. Correspondência com a versão anterior:
 
@@ -830,26 +830,23 @@ A numeração das rotas mudou nesta versão do contrato para seguir `docs/Requis
 | 21 | 37 | `GET /api/cronograma/compartilhado/{token}` |
 
 Limitações desta etapa:
-- **Sem JWT/RBAC:** as rotas estão abertas (sem `403`). O login valida os usuários do seed (senha `Senha123!`) e retorna um token fixo `token-fixo-{idUsuario}`, aceito por `GET /api/auth/me` no header `Authorization: Bearer ...`.
+- **Sem JWT/RBAC:** as rotas estão abertas (sem `403`). O login valida os usuários do banco (senha do seed: `Senha123!`) e retorna um token fixo `token-fixo-{idUsuario}`, aceito por `GET /api/auth/me` no header `Authorization: Bearer ...`.
 - **Histórico:** registros criados sem token são atribuídos ao Administrador (id 1). `GET /api/obras/{id}/historico` retorna do mais recente para o mais antigo.
 - **`PATCH /api/obras/{id}/status`:** `emailNotificacaoEnviado` é sempre `false` (envio de e-mail ainda não implementado).
-- As rotas implementadas ainda seguem os campos da versão anterior do contrato; os campos novos desta versão (ex.: `endereco`, `quantidadeInversores`, `cpfCnpj`, `tipoAcao`) entram junto com a ligação ao banco.
+- As rotas implementadas já aceitam parte dos campos novos (`endereco`, `cpfCnpj`), mas ainda não seguem por completo esta versão do contrato (ex.: `quantidadeInversores`, `tipoAcao`). O ajuste fica na issue #65.
 
 ## 6. Divergências em aberto com o banco
 
-O contrato segue o modelo de dados dos requisitos (`06-modelo-dados.md`). O schema atual (`database/01_schema.sql`) ainda não tem tudo o que ele prevê:
+O contrato segue o modelo de dados dos requisitos (`06-modelo-dados.md`). O schema foi atualizado na migration `database/migrations/20261018_expansao_modelo.sql` (detalhes em `database/REPASSE_BACKEND2.md`) e já tem as colunas e tabelas que as rotas usam, incluindo `equipe_instalador`, `manutencao`, `audit_log`, `cronograma_compartilhado` e `obra.projeto_arquivo`/`instrucoes` (rota #32). A tabela `homologacao` foi removida.
 
-- **Nome do perfil de engenharia:** o schema e o seed usam `EngenhariaObras`; os requisitos usam `Engenharia`. Este contrato mantém `EngenhariaObras` até o schema mudar.
+Continuam diferentes dos requisitos:
+
+- **Nome do perfil de engenharia:** o schema e o seed usam `EngenhariaObras`; os requisitos usam `Engenharia`. Este contrato segue o banco e usa `EngenhariaObras`.
 - **Perfil `VisualizadorLeitor`:** existe no schema e no seed, mas saiu da matriz de permissões (questão Q4 em aberto). Nenhuma rota concede permissão a ele.
-- **Colunas a adicionar:** `cliente.cpf_cnpj`, `endereco`, `telefone`, `email`; `usuario.ativo`, `tentativas_login`, `bloqueado_ate`; `obra.quantidade_inversores`, `endereco`, `descricao`, `excluida_em`; `material.quantidade_utilizada`, `custo_unitario`; `comentario.tipo`; `historico_obra.tipo_acao`; `relatorio_custo.valor_obra`; `equipe.id_responsavel`.
-- **Tabelas a adicionar:** `equipe_instalador`, `manutencao`, `audit_log` e a tabela de tokens do cronograma compartilhado (ainda não modelada).
-- **Tabela a remover:** `homologacao` (RF-17 fora do escopo).
-- **Projeto e instruções da instalação** (rota #32): ainda sem coluna no modelo de dados.
 
 ## 7. Próximos passos
 
-- Alinhar `database/01_schema.sql` e `02_seed.sql` com a seção 6.
-- Ligar as rotas implementadas ao PostgreSQL, substituindo os dados fixos em memória.
+- Ajustar as rotas já implementadas aos campos desta versão do contrato e implementar as rotas novas da Sprint 3 (issue #65).
 - Implementar JWT, RBAC e `audit_log` em todas as rotas protegidas.
 - Resolver as questões Q1 (arredondamento da duração) e Q2 (feriados) antes de fechar as rotas #23 e #24.
 - Este documento deve ser atualizado sempre que um novo caso de uso ou requisito for adicionado/alterado.
