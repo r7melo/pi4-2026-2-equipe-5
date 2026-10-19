@@ -1,4 +1,13 @@
 SET client_encoding = 'UTF8';
+CREATE TABLE schema_migrations (
+    version VARCHAR(200) PRIMARY KEY,
+    checksum VARCHAR(64) NOT NULL,
+    aplicado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- O schema inicial já contém o estado final da migration de expansão.
+INSERT INTO schema_migrations (version, checksum)
+VALUES ('20261018_expansao_modelo.sql', 'baseline-schema-v1');
+
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 

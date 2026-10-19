@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection não configurada.");
+await SchemaMigrator.ApplyAndValidateAsync(connectionString);
 builder.Services.AddSingleton(new BancoDados(connectionString));
 
 var autenticacao = new Autenticacao(builder.Configuration, builder.Environment);

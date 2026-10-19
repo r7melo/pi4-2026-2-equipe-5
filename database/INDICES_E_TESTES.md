@@ -14,8 +14,11 @@
 | Manutenções por obra/status | `manutencao.id_obra, status` | `idx_manutencao_obra_status` |
 | Auditoria por registro | `audit_log.entidade, entidade_id` | `idx_audit_entidade` |
 
-`tests/database/testes_integridade.sql` testa rejeições de dados inválidos
-nas 21 FKs e 6 restrições `UNIQUE` atuais.
+`tests/database/testes_integridade.sql` verifica a presença do log e dos
+artefatos de auditoria, rejeita constraints não validadas e testa rejeições de
+dados inválidos nas 21 FKs e 6 restrições `UNIQUE` atuais. A API também aplica
+migrations pendentes em uma transação serializada no startup e valida `audit_log`
+antes de aceitar requisições.
 
 ```sh
 docker compose cp tests/database/testes_integridade.sql db:/tmp/testes_integridade.sql

@@ -3,11 +3,15 @@
 O schema novo está em `database/01_schema.sql` e o seed em
 `database/02_seed.sql`. Em volume novo, os dois rodam automaticamente.
 
-Para volume antigo, executar uma vez:
+Para volume antigo, a API aplica a migration pendente no startup e registra a
+versão e o checksum em `schema_migrations`. Bancos em que a migration já foi
+aplicada manualmente são reconhecidos e adotados pelo controle de versão. A
+migration preserva as antigas tabelas/tipos `homologacao` e `parecer_enum`.
 
-```sh
-docker compose exec -T db psql -v ON_ERROR_STOP=1 -U pi4_user -d pi4_db \
-  -f /docker-entrypoint-initdb.d/migrations/20261018_expansao_modelo.sql
+Para conferir a versão aplicada:
+
+```sql
+SELECT version, checksum, aplicado_em FROM schema_migrations ORDER BY aplicado_em;
 ```
 
 Disponível para as rotas:
