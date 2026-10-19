@@ -1,16 +1,16 @@
 import { useEffect, useRef } from "react";
 import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
-import { gantt } from "dhtmlx-gantt";
+import { gantt, type Task, type SerializedTask } from "dhtmlx-gantt";
 import type { NivelZoom } from "@/types";
 import {
   formatarDiasUteis,
   formatarDataBR,
-  dataFimExclusivaParaUltimoDiaUtil,
   normalizarDataMeioDiaUTC,
   formatarDataISO,
-  calcularDiasUteisEntre,
   proximoDiaUtil,
-  adicionarDiasUteis,
+  dataFimInclusivaParaDhtmlx,
+  dhtmlxFimParaDataInclusiva,
+  calcularDiasUteisInclusivos,
 } from "@/lib/formatters";
 
 export interface GanttTask {
@@ -19,8 +19,9 @@ export interface GanttTask {
   type?: "project" | "task";
   open?: boolean;
   text: string;
-  start_date: string;
-  end_date: string;
+  start_date: string | Date;
+  end_date: string | Date;
+  dataFimInclusiva?: string;
   duration?: number;
   equipeId?: number;
   nomeEquipe?: string;
@@ -136,8 +137,7 @@ export function GanttDhtmlxWrapper({
         template: (rawTask: unknown) => {
           const task = rawTask as GanttTask;
           if (!task.end_date) return "—";
-          const ultimoDia = dataFimExclusivaParaUltimoDiaUtil(task.end_date);
-          return formatarDataBR(ultimoDia);
+          return formatarDataBR(task.dataFimInclusiva ?? dhtmlxFimParaDataInclusiva(task.end_date));
         },
       },
     ];
@@ -210,8 +210,7 @@ export function GanttDhtmlxWrapper({
     gantt.templates.tooltip_text = (start: Date, end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
       const dataIni = formatarDataBR(formatarDataISO(start));
-      const ultimoDiaUtil = dataFimExclusivaParaUltimoDiaUtil(end);
-      const dataFim = formatarDataBR(ultimoDiaUtil);
+      const dataFim = formatarDataBR(task.dataFimInclusiva ?? dhtmlxFimParaDataInclusiva(end));
 
       if (task.type === "project") {
         return `<div class="tooltip-title">${task.text}</div><div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`;
@@ -237,12 +236,7 @@ export function GanttDhtmlxWrapper({
       linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`);
 
       if (task.duracaoDias !== undefined || task.duration !== undefined) {
-        const dur = Math.max(
-          1,
-          task.duracaoDias ||
-            calcularDiasUteisEntre(start, end) ||
-            1
-        );
+        const dur = calcularDiasUteisInclusivos(start, dhtmlxFimParaDataInclusiva(end));
         linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(dur)}</span></div>`);
       }
 
@@ -324,7 +318,7 @@ export function GanttDhtmlxWrapper({
     // Guard onBeforeRowDragMove: bloqueia categoricamente reordenação vertical entre linhas
     const rowDragMoveEventId = gantt.attachEvent("onBeforeRowDragMove", () => false);
 
-    const dragEventId = gantt.attachEvent("onAfterTaskDrag", (id, mode) => {
+    const dragEventId = gantt.attachEvent("onAfterTaskDrag", (id, _mode) => {
       dragEmAndamentoRef.current = true;
       setTimeout(() => {
         dragEmAndamentoRef.current = false;
@@ -332,7 +326,7 @@ export function GanttDhtmlxWrapper({
 
       const task = gantt.getTask(id) as Omit<GanttTask, "start_date" | "end_date"> & {
         start_date: Date;
-        end_date: Date;
+        end_date: string | Date;
         duracaoDias?: number;
         duration?: number;
       };
@@ -342,41 +336,20 @@ export function GanttDhtmlxWrapper({
         return;
       }
 
-      if (mode === "resize") {
-        const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
-        const dataFimObjBruta = normalizarDataMeioDiaUTC(task.end_date);
-        const diasCalculados = calcularDiasUteisEntre(dataInicioObj, dataFimObjBruta);
-        const duracaoFinal = Math.max(1, diasCalculados);
-        const dataFimObj = adicionarDiasUteis(dataInicioObj, duracaoFinal);
+      const inicio = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
+      const inicioISO = formatarDataISO(inicio);
+      let fimInclusivo = dhtmlxFimParaDataInclusiva(task.end_date);
+      if (fimInclusivo < inicioISO) fimInclusivo = inicioISO; // clamp string × string
+      const duracao = calcularDiasUteisInclusivos(inicio, fimInclusivo);
 
-        task.start_date = dataInicioObj;
-        task.end_date = dataFimObj;
-        task.duracaoDias = duracaoFinal;
-        task.duration = duracaoFinal;
+      task.start_date = inicio;
+      task.dataFimInclusiva = fimInclusivo;
+      task.end_date = normalizarDataMeioDiaUTC(dataFimInclusivaParaDhtmlx(fimInclusivo)); // Date obrigatório em runtime
+      task.duracaoDias = duracao;
+      task.duration = duracao;
 
-        const novaDataInicioStr = formatarDataISO(dataInicioObj);
-        const novaDataFimStr = formatarDataISO(dataFimObj);
-
-        onReorderRef.current?.(Number(id), novaDataInicioStr, novaDataFimStr);
-      } else {
-        const duracaoOriginal =
-          task.duracaoDias ||
-          calcularDiasUteisEntre(task.start_date, task.end_date) ||
-          1;
-        const duracao = Math.max(1, duracaoOriginal);
-        const dataInicioObj = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
-        const dataFimObj = adicionarDiasUteis(dataInicioObj, duracao);
-
-        task.start_date = dataInicioObj;
-        task.end_date = dataFimObj;
-        task.duracaoDias = duracao;
-        task.duration = duracao;
-
-        const novaDataInicioStr = formatarDataISO(dataInicioObj);
-        const novaDataFimStr = formatarDataISO(dataFimObj);
-
-        onReorderRef.current?.(Number(id), novaDataInicioStr, novaDataFimStr);
-      }
+      gantt.refreshTask(id);
+      onReorderRef.current?.(Number(id), inicioISO, fimInclusivo); // 3º argumento = fim INCLUSIVO
     });
 
     // Guard onTaskClick com alternância segura de expansão para nós de projeto
@@ -479,7 +452,7 @@ export function GanttDhtmlxWrapper({
     const scrollState = gantt.getScrollState();
 
     const openStates = new Map<string | number, boolean>();
-    gantt.eachTask((t) => {
+    gantt.eachTask((t: { id: string | number; type?: string; open?: boolean }) => {
       if (t.type === "project") {
         openStates.set(
           t.id,
@@ -489,7 +462,7 @@ export function GanttDhtmlxWrapper({
     });
 
     gantt.clearAll();
-    gantt.parse({ data: tarefas });
+    gantt.parse({ data: tarefas as unknown as (Task | SerializedTask)[] });
 
     openStates.forEach((isOpen, id) => {
       if (gantt.isTaskExists(id)) {

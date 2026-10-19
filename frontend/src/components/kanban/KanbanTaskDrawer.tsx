@@ -8,11 +8,12 @@ import {
   MessageSquare,
   Send,
   Save,
+  AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import axios from "axios";
-import type { ObraCard, EditarObraPayload, Equipe } from "@/types";
+import type { ObraCard, EditarObraPayload, Equipe, ObraDetalhe } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { getCategoriaBadgeStyle, obterHojeLocalISO, obterValorObra } from "./kanbanUtils";
@@ -23,6 +24,7 @@ import { useEquipes } from "@/hooks/api/useEquipes";
 import { useMateriais } from "@/hooks/api/useMateriais";
 import { useObras, useExcluirObra } from "@/hooks/api/useObras";
 import {
+  useObraDetalhe,
   useHistoricoObra,
   useComentariosObra,
   useAdicionarComentario,
@@ -41,37 +43,52 @@ interface KanbanTaskDrawerProps {
 
 interface FormAbaDadosProps {
   card: ObraCard;
+  detalhe: ObraDetalhe | undefined;
   canEdit: boolean;
   equipeAlocada: Equipe | null;
+  loadingDetalhe: boolean;
   onSalvar: (dados: EditarObraPayload) => Promise<void>;
   isSalvando: boolean;
 }
 
-function FormAbaDados({ card, canEdit, equipeAlocada, onSalvar, isSalvando }: FormAbaDadosProps) {
+function FormAbaDados({
+  card,
+  detalhe,
+  canEdit,
+  equipeAlocada,
+  loadingDetalhe,
+  onSalvar,
+  isSalvando,
+}: FormAbaDadosProps) {
   const [formDados, setFormDados] = useState({
-    clienteNome: card.clienteNome || "",
-    endereco: card.endereco || "",
-    valorTotal: obterValorObra(card),
-    potenciaKwp:
-      card.potenciaKwp != null
-        ? card.potenciaKwp
-        : Number(((card.quantidadePaineis * 550) / 1000).toFixed(1)),
-    previsaoFim: card.dataFimEstimada ? String(card.dataFimEstimada).split("T")[0] : "",
-    observacoes: card.observacoes || "",
+    endereco: detalhe?.endereco ?? card.endereco ?? "",
+    quantidadePaineis: detalhe?.quantidadePaineis ?? card.quantidadePaineis,
+    previsaoFim: detalhe?.dataFimEstimada
+      ? String(detalhe.dataFimEstimada).split("T")[0]
+      : card.dataFimEstimada
+      ? String(card.dataFimEstimada).split("T")[0]
+      : "",
+    observacoes: detalhe?.descricao ?? card.observacoes ?? "",
   });
+
+  const [erroEndereco, setErroEndereco] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canEdit) return;
+    if (!canEdit || loadingDetalhe) return;
+
+    if (!formDados.endereco.trim()) {
+      setErroEndereco(true);
+      toast.error("O endereço da obra é obrigatório.");
+      return;
+    }
 
     try {
       await onSalvar({
-        clienteNome: formDados.clienteNome,
-        endereco: formDados.endereco,
-        valorTotal: Number(formDados.valorTotal),
-        potenciaKwp: Number(formDados.potenciaKwp),
-        previsaoFim: formDados.previsaoFim || undefined,
-        observacoes: formDados.observacoes || undefined,
+        endereco: formDados.endereco.trim(),
+        quantidadePaineis: Number(formDados.quantidadePaineis),
+        dataFimEstimada: formDados.previsaoFim || undefined,
+        descricao: formDados.observacoes.trim() || undefined,
       });
     } catch {
       // Erro gerenciado no onError do hook
@@ -82,46 +99,37 @@ function FormAbaDados({ card, canEdit, equipeAlocada, onSalvar, isSalvando }: Fo
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-semibold text-foreground-muted mb-1 block">Nome do Cliente</label>
-          <input
-            type="text"
-            value={formDados.clienteNome}
-            onChange={(e) => setFormDados({ ...formDados, clienteNome: e.target.value })}
-            disabled={!canEdit}
-            className="w-full text-xs px-2.5 py-1.5 bg-surface text-foreground border border-border-strong rounded-lg focus:outline-none focus:ring-1 focus:ring-info disabled:bg-muted disabled:text-muted-foreground"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-foreground-muted mb-1 block">Endereço</label>
+          <label className="text-xs font-semibold text-foreground-muted mb-1 block">
+            Endereço <span className="text-destructive">*</span>
+          </label>
           <input
             type="text"
             value={formDados.endereco}
-            onChange={(e) => setFormDados({ ...formDados, endereco: e.target.value })}
-            disabled={!canEdit}
-            className="w-full text-xs px-2.5 py-1.5 bg-surface text-foreground border border-border-strong rounded-lg focus:outline-none focus:ring-1 focus:ring-info disabled:bg-muted disabled:text-muted-foreground"
+            onChange={(e) => {
+              setFormDados({ ...formDados, endereco: e.target.value });
+              if (erroEndereco) setErroEndereco(false);
+            }}
+            disabled={!canEdit || loadingDetalhe}
+            aria-invalid={erroEndereco}
+            className={cn(
+              "w-full text-xs px-2.5 py-1.5 bg-surface text-foreground border rounded-lg focus:outline-none focus:ring-1 disabled:bg-muted disabled:text-muted-foreground",
+              erroEndereco
+                ? "border-destructive focus:ring-destructive"
+                : "border-border-strong focus:ring-info"
+            )}
+            placeholder="Endereço da instalação..."
           />
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-foreground-muted mb-1 block">Potência (kWp)</label>
+          <label className="text-xs font-semibold text-foreground-muted mb-1 block">Quantidade de Painéis</label>
           <input
             type="number"
-            step="0.1"
-            value={formDados.potenciaKwp}
-            onChange={(e) => setFormDados({ ...formDados, potenciaKwp: Number(e.target.value) })}
-            disabled={!canEdit}
-            className="w-full text-xs px-2.5 py-1.5 bg-surface text-foreground border border-border-strong rounded-lg focus:outline-none focus:ring-1 focus:ring-info disabled:bg-muted disabled:text-muted-foreground"
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-foreground-muted mb-1 block">Valor Total (R$)</label>
-          <input
-            type="number"
-            value={formDados.valorTotal}
-            onChange={(e) => setFormDados({ ...formDados, valorTotal: Number(e.target.value) })}
-            disabled={!canEdit}
+            min="1"
+            step="1"
+            value={formDados.quantidadePaineis}
+            onChange={(e) => setFormDados({ ...formDados, quantidadePaineis: Number(e.target.value) })}
+            disabled={!canEdit || loadingDetalhe}
             className="w-full text-xs px-2.5 py-1.5 bg-surface text-foreground border border-border-strong rounded-lg focus:outline-none focus:ring-1 focus:ring-info disabled:bg-muted disabled:text-muted-foreground"
           />
         </div>
@@ -132,7 +140,7 @@ function FormAbaDados({ card, canEdit, equipeAlocada, onSalvar, isSalvando }: Fo
             type="date"
             value={formDados.previsaoFim}
             onChange={(e) => setFormDados({ ...formDados, previsaoFim: e.target.value })}
-            disabled={!canEdit}
+            disabled={!canEdit || loadingDetalhe}
             className="w-full text-xs px-2.5 py-1.5 bg-surface text-foreground border border-border-strong rounded-lg focus:outline-none focus:ring-1 focus:ring-info disabled:bg-muted disabled:text-muted-foreground"
           />
         </div>
@@ -151,7 +159,7 @@ function FormAbaDados({ card, canEdit, equipeAlocada, onSalvar, isSalvando }: Fo
           rows={3}
           value={formDados.observacoes}
           onChange={(e) => setFormDados({ ...formDados, observacoes: e.target.value })}
-          disabled={!canEdit}
+          disabled={!canEdit || loadingDetalhe}
           className="w-full text-xs px-2.5 py-1.5 bg-surface text-foreground border border-border-strong rounded-lg focus:outline-none focus:ring-1 focus:ring-info disabled:bg-muted disabled:text-muted-foreground placeholder-subtle-foreground"
           placeholder="Adicione observações relevantes sobre o projeto..."
         />
@@ -163,7 +171,7 @@ function FormAbaDados({ card, canEdit, equipeAlocada, onSalvar, isSalvando }: Fo
             type="submit"
             variant="primary"
             size="sm"
-            disabled={isSalvando}
+            disabled={isSalvando || loadingDetalhe}
             className="flex items-center gap-1.5"
           >
             <Save className="w-3.5 h-3.5" />
@@ -195,6 +203,7 @@ export default function KanbanTaskDrawer({ card, isOpen, onClose }: KanbanTaskDr
 
   // Hooks de Dados Especializados
   const obraId = cardEfetivo?.id ? Number(cardEfetivo.id) : 0;
+  const { data: detalhe, isLoading: loadingDetalhe, isError: erroDetalhe } = useObraDetalhe(obraId);
   const { data: programacoes } = useProgramacoes();
   const { data: equipes } = useEquipes();
   const { data: materiais, isLoading: loadingMateriais } = useMateriais(obraId);
@@ -292,7 +301,7 @@ export default function KanbanTaskDrawer({ card, isOpen, onClose }: KanbanTaskDr
               </div>
             </div>
             <div className="text-right">
-              <span className="text-xs text-muted-foreground block">Valor da Obra</span>
+              <span className="text-xs text-muted-foreground block">Valor Estimado</span>
               <span className="text-sm font-bold text-foreground-secondary">
                 {formatarMoeda(obterValorObra(cardEfetivo), { semCentavos: true })}
               </span>
@@ -372,14 +381,24 @@ export default function KanbanTaskDrawer({ card, isOpen, onClose }: KanbanTaskDr
           <div className="flex-1 min-h-0 overflow-y-auto pr-1">
             {/* ABA 1: DADOS */}
             {abaAtiva === "dados" && (
-              <FormAbaDados
-                key={`${cardEfetivo.id}-${cardEfetivo.clienteNome}-${cardEfetivo.potenciaKwp}-${cardEfetivo.valorTotal}-${cardEfetivo.dataFimEstimada}-${cardEfetivo.endereco}-${isOpen}`}
-                card={cardEfetivo}
-                canEdit={canEdit}
-                equipeAlocada={equipeAlocada}
-                onSalvar={handleSalvarObra}
-                isSalvando={editarObraMutation.isPending}
-              />
+              <>
+                {erroDetalhe && (
+                  <div className="flex items-center gap-2 p-2.5 mb-3 bg-warning/10 border border-warning/20 rounded-lg text-xs text-warning">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>Não foi possível carregar os detalhes complementares da obra.</span>
+                  </div>
+                )}
+                <FormAbaDados
+                  key={`${cardEfetivo.id}-${detalhe?.id ?? "carregando"}-${isOpen}`}
+                  card={cardEfetivo}
+                  detalhe={detalhe}
+                  canEdit={canEdit}
+                  equipeAlocada={equipeAlocada}
+                  loadingDetalhe={loadingDetalhe}
+                  onSalvar={handleSalvarObra}
+                  isSalvando={editarObraMutation.isPending}
+                />
+              </>
             )}
 
             {/* ABA 2: MATERIAIS */}

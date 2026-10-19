@@ -69,7 +69,7 @@ export default function Kanban() {
               canCriarObra
                 ? {
                     label: "Nova Obra",
-                    onClick: () => navigate("/cadastrarobra"),
+                    onClick: () => { void navigate("/cadastrarobra"); },
                   }
                 : undefined
             }
@@ -141,7 +141,7 @@ export default function Kanban() {
             <Button
               variant="primary"
               size="md"
-              onClick={() => navigate("/cadastrarobra")}
+              onClick={() => { void navigate("/cadastrarobra"); }}
               className="px-3 md:px-4"
             >
               <Plus className="w-4 h-4" />

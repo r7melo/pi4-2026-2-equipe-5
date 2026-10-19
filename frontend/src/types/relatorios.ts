@@ -17,7 +17,7 @@ export interface RelatorioCusto {
   balancoMateriais?: BalancoMaterial[];
 }
 
-/** Rota #21 do Contrato de API — GET /api/cronograma/compartilhado/{token} (RF-16) */
+/** Rota #37 do Contrato de API (07-api.md) — GET /api/cronograma/compartilhado/{token} (RF-16) */
 export interface RelatorioPublicoDados {
   periodoInicio: string;
   periodoFim: string;
@@ -26,7 +26,6 @@ export interface RelatorioPublicoDados {
   totalObras: number;
   obrasConcluidas: number;
   totalPaineis: number;
-  potenciaTotalKwp: number;
 }
 
 export interface FiltroCronogramaPublico {

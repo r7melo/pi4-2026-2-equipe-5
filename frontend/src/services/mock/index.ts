@@ -7,7 +7,6 @@ import type {
   RelatorioCusto,
   Material,
   EditarObraPayload,
-  CategoriaObra,
   ObraCard,
 } from "@/types";
 import {
@@ -39,10 +38,10 @@ import { verificarSobreposicaoPeriodos } from "@/lib/ganttCalculos";
 import {
   proximoDiaUtil,
   normalizarDataMeioDiaUTC,
-  adicionarDiasUteis,
+  calcularUltimoDiaUtil,
   formatarDataISO,
   formatarDataBR,
-  dataFimExclusivaParaUltimoDiaUtil,
+  normalizarDataFimInclusiva,
 } from "@/lib/formatters";
 
 /**
@@ -357,6 +356,10 @@ mock.onGet(/\/obras\/\d+\/?(\?.*)?$/).reply((config) => {
         dataConfirmacao: "2026-09-15",
         prazoContratualDias: 45,
       },
+      categoria: obra.categoria || "Residencial",
+      quantidadePaineis: obra.quantidadePaineis,
+      endereco: obra.endereco ?? "",
+      descricao: obra.observacoes ?? "",
     },
   ];
 });
@@ -376,22 +379,15 @@ mock.onPut(/\/obras\/\d+\/?$/).reply((config) => {
     }
 
     const obraExistente = obras[index];
-    const potenciaKwp = payload.potenciaKwp ?? obraExistente.potenciaKwp ?? Number(((obraExistente.quantidadePaineis * 550) / 1000).toFixed(1));
-    const quantidadePaineis = payload.potenciaKwp
-      ? Math.round((payload.potenciaKwp * 1000) / 550)
-      : obraExistente.quantidadePaineis;
 
     const obraAtualizada: ObraCard = {
       ...obraExistente,
-      clienteNome: payload.clienteNome ?? obraExistente.clienteNome,
       endereco: payload.endereco ?? obraExistente.endereco,
       cidade: payload.cidade ?? obraExistente.cidade,
-      categoria: (payload.tipoInstalacao as CategoriaObra) ?? obraExistente.categoria,
-      valorTotal: payload.valorTotal ?? obraExistente.valorTotal,
-      potenciaKwp,
-      quantidadePaineis,
-      dataFimEstimada: payload.previsaoFim ?? obraExistente.dataFimEstimada,
-      observacoes: payload.observacoes ?? obraExistente.observacoes,
+      categoria: payload.categoria ?? obraExistente.categoria,
+      quantidadePaineis: payload.quantidadePaineis ?? obraExistente.quantidadePaineis,
+      dataFimEstimada: payload.dataFimEstimada ?? obraExistente.dataFimEstimada,
+      observacoes: payload.descricao ?? obraExistente.observacoes,
     };
 
     obras[index] = obraAtualizada;
@@ -416,6 +412,10 @@ mock.onPut(/\/obras\/\d+\/?$/).reply((config) => {
         dataConfirmacao: "2026-09-15",
         prazoContratualDias: obraAtualizada.prazoContratualDias || 45,
       },
+      categoria: obraAtualizada.categoria || "Residencial",
+      quantidadePaineis: obraAtualizada.quantidadePaineis,
+      endereco: obraAtualizada.endereco ?? "",
+      descricao: payload.descricao ?? obraAtualizada.observacoes ?? "",
     };
 
     return [200, respostaDetalhe];
@@ -432,7 +432,7 @@ mock.onGet(/\/equipes\/?(\?.*)?$/).reply(() => [200, obterEquipesArmazenadas()])
 // GET /programacoes
 mock.onGet(/\/programacoes\/?(\?.*)?$/).reply(() => [200, obterProgramacoesArmazenadas()]);
 
-// PUT /programacoes/:id/reordenar (Contrato Rota #16 — com programacoesAfetadas)
+// PUT /programacoes/:id/reordenar (Contrato Rota #24 — com programacoesAfetadas)
 mock.onPut(/\/programacoes\/\d+\/reordenar\/?(\?.*)?$/).reply((config) => {
   try {
     const match = config.url?.match(/\/programacoes\/(\d+)\/reordenar/);
@@ -444,7 +444,7 @@ mock.onPut(/\/programacoes\/\d+\/reordenar\/?(\?.*)?$/).reply((config) => {
     const resultado = atualizarProgramacaoDataArmazenada(id, body.novaDataInicio, body.novaDataFim);
     if (!resultado) return [404, { error: { message: "Não encontrada" } }];
 
-    // Resposta espelhando fielmente o contrato da API (Rota #16)
+    // Resposta espelhando fielmente o contrato da API (Rota #24)
     return [
       200,
       {
@@ -582,7 +582,7 @@ mock.onPost(/\/programacoes\/?(\?.*)?$/).reply((config) => {
       const paineis = obra?.quantidadePaineis || 9;
       const duracaoDias = Math.max(1, Math.ceil(paineis / 9));
       const iniSanitizado = proximoDiaUtil(normalizarDataMeioDiaUTC(novaDataInicio));
-      const fimCalculado = adicionarDiasUteis(iniSanitizado, duracaoDias);
+      const fimCalculado = calcularUltimoDiaUtil(iniSanitizado, duracaoDias);
       novaDataFim = formatarDataISO(fimCalculado);
     }
 
@@ -593,16 +593,14 @@ mock.onPost(/\/programacoes\/?(\?.*)?$/).reply((config) => {
           novaDataInicio,
           novaDataFim,
           p.dataInicio,
-          p.dataFim,
-          false,
-          false
+          p.dataFim
         );
       });
 
       if (colidente) {
         const equipe = equipes.find((e) => e.id === Number(body.equipeId));
         const nomeEquipe = equipe?.nome || `Equipe ${body.equipeId}`;
-        const fimFormatado = formatarDataBR(dataFimExclusivaParaUltimoDiaUtil(colidente.dataFim));
+        const fimFormatado = formatarDataBR(normalizarDataFimInclusiva(colidente.dataFim));
         const iniFormatado = formatarDataBR(colidente.dataInicio);
 
         return [
@@ -624,7 +622,7 @@ mock.onPost(/\/programacoes\/?(\?.*)?$/).reply((config) => {
   }
 });
 
-// DELETE /programacoes/:id (Rota #22 — Desalocação)
+// DELETE /programacoes/:id (dívida restrita ao mock (sem rota no contrato canônico))
 mock.onDelete(/\/programacoes\/\d+\/?(\?.*)?$/).reply((config) => {
   const match = config.url?.match(/\/programacoes\/(\d+)/);
   if (!match) return [400, { error: { code: "BAD_REQUEST", message: "ID inválido" } }];
@@ -665,7 +663,6 @@ mock.onGet(/\/cronograma\/compartilhado\/[^/]+/).reply((config) => {
       });
 
       const totalPaineis = obrasFiltradas.reduce((acc, o) => acc + (o.quantidadePaineis || 0), 0);
-      const potenciaTotalKwp = obrasFiltradas.reduce((acc, o) => acc + (o.potenciaKwp || 0), 0);
 
       return [
         200,
@@ -677,7 +674,6 @@ mock.onGet(/\/cronograma\/compartilhado\/[^/]+/).reply((config) => {
           totalObras: obrasFiltradas.length,
           obrasConcluidas: obrasFiltradas.filter((o) => o.status === "Concluido").length,
           totalPaineis,
-          potenciaTotalKwp,
         },
       ];
     }

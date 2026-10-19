@@ -1,5 +1,5 @@
 // frontend/src/services/mock/fixtures.ts
-// Fixtures sincronizadas 100% com database/02_seed.sql e database/GUIA_QA.md
+// Fixtures sincronizadas com database/02_seed.sql e database/GUIA_QA.md, com términos normalizados para o último dia útil
 import type {
   ObraCard,
   DadosHomologacao,
@@ -14,11 +14,12 @@ import type {
 import type { StatusObra } from "@/constants/kanbanStatus";
 import {
   proximoDiaUtil,
-  adicionarDiasUteis,
+  adicionarDiasCivis,
   formatarDataISO,
-  calcularDiasUteisEntre,
+  calcularDiasUteisInclusivos,
+  calcularUltimoDiaUtil,
   normalizarDataMeioDiaUTC,
-  dataFimExclusivaParaUltimoDiaUtil,
+  normalizarDataFimInclusiva,
 } from "@/lib/formatters";
 
 export type MockUsuario = Usuario;
@@ -181,7 +182,7 @@ export function excluirObraArmazenada(id: number): boolean {
       const progs = obterProgramacoesArmazenadas();
       const filtradas = progs.filter((p) => Number(p.obraId) !== Number(id));
       if (filtradas.length !== progs.length) {
-        sessionStorage.setItem("mock_programacoes_v3", JSON.stringify(filtradas));
+        sessionStorage.setItem(STORAGE_KEY_PROG, JSON.stringify(filtradas));
       }
     } catch {
       // Silencia erro no storage
@@ -205,21 +206,21 @@ export const MOCK_EQUIPES_FIXTURE: Equipe[] = [
   { id: 10, nome: "Equipe 10", especialidade: "Manutenção e Assistência" },
 ];
 
-/** 10 Programações sincronizadas estritamente com database/02_seed.sql e QA (607 com prioridade 3 na Eq 1, 608 com prioridade 3 na Eq 2, 609 em dia útil) */
+/** 10 Programações sincronizadas estritamente com database/02_seed.sql e QA (com términos normalizados para sexta-feira) */
 export const MOCK_PROGRAMACOES_FIXTURE: Programacao[] = [
-  { id: 601, obraId: 301, equipeId: 1, dataInicio: "2026-10-01", dataFim: "2026-10-03", prioridade: 1, duracaoEstimadaDias: 2 },
-  { id: 602, obraId: 302, equipeId: 1, dataInicio: "2026-10-06", dataFim: "2026-10-10", prioridade: 2, duracaoEstimadaDias: 4 },
+  { id: 601, obraId: 301, equipeId: 1, dataInicio: "2026-10-01", dataFim: "2026-10-02", prioridade: 1, duracaoEstimadaDias: 2 },
+  { id: 602, obraId: 302, equipeId: 1, dataInicio: "2026-10-06", dataFim: "2026-10-09", prioridade: 2, duracaoEstimadaDias: 4 },
   { id: 603, obraId: 303, equipeId: 2, dataInicio: "2026-10-02", dataFim: "2026-10-06", prioridade: 1, duracaoEstimadaDias: 2 },
-  { id: 604, obraId: 305, equipeId: 2, dataInicio: "2026-10-07", dataFim: "2026-10-10", prioridade: 2, duracaoEstimadaDias: 3 },
+  { id: 604, obraId: 305, equipeId: 2, dataInicio: "2026-10-07", dataFim: "2026-10-09", prioridade: 2, duracaoEstimadaDias: 3 },
   { id: 605, obraId: 304, equipeId: 3, dataInicio: "2026-10-01", dataFim: "2026-10-07", prioridade: 1, duracaoEstimadaDias: 4 },
-  { id: 606, obraId: 306, equipeId: 3, dataInicio: "2026-10-08", dataFim: "2026-10-10", prioridade: 2, duracaoEstimadaDias: 2 },
-  { id: 607, obraId: 309, equipeId: 1, dataInicio: "2026-10-13", dataFim: "2026-10-17", prioridade: 3, duracaoEstimadaDias: 4.5 },
-  { id: 608, obraId: 310, equipeId: 2, dataInicio: "2026-10-20", dataFim: "2026-11-07", prioridade: 3, duracaoEstimadaDias: 14.0 },
-  { id: 609, obraId: 308, equipeId: 7, dataInicio: "2026-10-09", dataFim: "2026-10-10", prioridade: 1, duracaoEstimadaDias: 1.0 },
-  { id: 610, obraId: 302, equipeId: 4, dataInicio: "2026-10-14", dataFim: "2026-10-18", prioridade: 3, duracaoEstimadaDias: 3.5 },
+  { id: 606, obraId: 306, equipeId: 3, dataInicio: "2026-10-08", dataFim: "2026-10-09", prioridade: 2, duracaoEstimadaDias: 2 },
+  { id: 607, obraId: 309, equipeId: 1, dataInicio: "2026-10-13", dataFim: "2026-10-16", prioridade: 3, duracaoEstimadaDias: 4.5 },
+  { id: 608, obraId: 310, equipeId: 2, dataInicio: "2026-10-20", dataFim: "2026-11-06", prioridade: 3, duracaoEstimadaDias: 14.0 },
+  { id: 609, obraId: 308, equipeId: 7, dataInicio: "2026-10-09", dataFim: "2026-10-09", prioridade: 1, duracaoEstimadaDias: 1.0 },
+  { id: 610, obraId: 302, equipeId: 4, dataInicio: "2026-10-14", dataFim: "2026-10-16", prioridade: 3, duracaoEstimadaDias: 3.5 },
 ];
 
-const STORAGE_KEY_PROG = "mock_programacoes_v3";
+const STORAGE_KEY_PROG = "mock_programacoes_v4";
 
 export interface MockInstalador {
   id: number;
@@ -326,26 +327,32 @@ export function atualizarProgramacaoDataArmazenada(
 
   if (novaDataInicio && novaDataFim) {
     const ini = proximoDiaUtil(normalizarDataMeioDiaUTC(novaDataInicio));
-    let fim = normalizarDataMeioDiaUTC(novaDataFim);
-    if (fim <= ini) {
-      fim = adicionarDiasUteis(ini, 1);
-    }
-    novaDataInicioStr = formatarDataISO(ini);
-    novaDataFimStr = formatarDataISO(fim);
-    duracao = Math.max(1, calcularDiasUteisEntre(ini, fim));
+    const iniISO = formatarDataISO(ini);
+    let fim = normalizarDataFimInclusiva(novaDataFim);
+    if (fim < iniISO) fim = iniISO;
+    duracao = Math.max(1, calcularDiasUteisInclusivos(ini, fim));
+    novaDataInicioStr = iniISO;
+    novaDataFimStr = fim;
   } else if (novaDataInicio) {
     const ini = proximoDiaUtil(normalizarDataMeioDiaUTC(novaDataInicio));
-    const fim = adicionarDiasUteis(ini, duracao);
+    const duracaoOriginal = Math.max(
+      1,
+      calcularDiasUteisInclusivos(
+        progOriginal.dataInicio,
+        normalizarDataFimInclusiva(progOriginal.dataFim)
+      )
+    );
+    duracao = duracaoOriginal;
     novaDataInicioStr = formatarDataISO(ini);
-    novaDataFimStr = formatarDataISO(fim);
+    novaDataFimStr = formatarDataISO(calcularUltimoDiaUtil(ini, duracaoOriginal));
   } else if (novaDataFim) {
-    const ini = normalizarDataMeioDiaUTC(progOriginal.dataInicio);
-    let fim = normalizarDataMeioDiaUTC(novaDataFim);
-    if (fim <= ini) {
-      fim = adicionarDiasUteis(ini, 1);
-    }
-    novaDataFimStr = formatarDataISO(fim);
-    duracao = Math.max(1, calcularDiasUteisEntre(ini, fim));
+    const inicioOriginal = proximoDiaUtil(normalizarDataMeioDiaUTC(progOriginal.dataInicio));
+    const inicioOriginalISO = formatarDataISO(inicioOriginal);
+    let fim = normalizarDataFimInclusiva(novaDataFim);
+    if (fim < inicioOriginalISO) fim = inicioOriginalISO;
+    duracao = Math.max(1, calcularDiasUteisInclusivos(inicioOriginal, fim));
+    novaDataInicioStr = inicioOriginalISO;
+    novaDataFimStr = fim;
   }
 
   const progAtualizada: Programacao = {
@@ -377,17 +384,23 @@ export function atualizarProgramacaoDataArmazenada(
     const item = equipeProgs[i];
     item.prioridade = i + 1; // Sincroniza prioridade sequencial
 
-    if (cursorFim && item.dataInicio < cursorFim) {
-      // Conflito/sobreposição: encadeia o início exatamente no término útil da anterior
-      const dataInicioAjustada = proximoDiaUtil(normalizarDataMeioDiaUTC(cursorFim));
-      const durItem = item.duracaoEstimadaDias || 1;
-      const dataFimAjustada = adicionarDiasUteis(dataInicioAjustada, durItem);
+    if (cursorFim && item.dataInicio <= cursorFim) {
+      // Conflito/sobreposição: encadeia o início exatamente no próximo dia útil após o término inclusivo da anterior
+      const dataInicioAjustada = proximoDiaUtil(
+        normalizarDataMeioDiaUTC(adicionarDiasCivis(cursorFim, 1))
+      );
+      const durItem = Math.max(
+        1,
+        calcularDiasUteisInclusivos(item.dataInicio, normalizarDataFimInclusiva(item.dataFim))
+      );
+      const dataFimAjustada = calcularUltimoDiaUtil(dataInicioAjustada, durItem);
 
       const novoIniStr = formatarDataISO(dataInicioAjustada);
       const novoFimStr = formatarDataISO(dataFimAjustada);
 
       item.dataInicio = novoIniStr;
       item.dataFim = novoFimStr;
+      item.duracaoEstimadaDias = durItem;
 
       if (item.id !== id) {
         afetadas.push({ id: item.id, novaDataInicio: novoIniStr, novaDataFim: novoFimStr });
@@ -958,27 +971,29 @@ export function criarProgramacaoArmazenada(payload: CriarProgramacaoPayload): Pr
   const obra = obras.find((o) => Number(o.id) === Number(payload.obraId));
 
   const novoInicio = proximoDiaUtil(normalizarDataMeioDiaUTC(payload.dataInicio));
+  const novoInicioISO = formatarDataISO(novoInicio);
   let duracaoDias: number;
-  let novoFim: Date;
+  let novoFimISO: string;
 
   if (payload.dataFim) {
-    novoFim = normalizarDataMeioDiaUTC(payload.dataFim);
-    if (novoFim <= novoInicio) {
-      novoFim = adicionarDiasUteis(novoInicio, 1);
+    let fim = normalizarDataFimInclusiva(payload.dataFim);
+    if (fim < novoInicioISO) {
+      fim = novoInicioISO;
     }
-    duracaoDias = Math.max(1, calcularDiasUteisEntre(novoInicio, novoFim));
+    duracaoDias = Math.max(1, calcularDiasUteisInclusivos(novoInicio, fim));
+    novoFimISO = fim;
   } else {
     const paineis = obra?.quantidadePaineis || 9;
     duracaoDias = Math.max(1, Math.ceil(paineis / 9));
-    novoFim = adicionarDiasUteis(novoInicio, duracaoDias);
+    novoFimISO = formatarDataISO(calcularUltimoDiaUtil(novoInicio, duracaoDias));
   }
 
   const novaProg: Programacao = {
     id: progs.length > 0 ? Math.max(...progs.map((p) => Number(p.id) || 0)) + 1 : 601,
     obraId: Number(payload.obraId),
     equipeId: Number(payload.equipeId),
-    dataInicio: formatarDataISO(novoInicio),
-    dataFim: formatarDataISO(novoFim),
+    dataInicio: novoInicioISO,
+    dataFim: novoFimISO,
     prioridade:
       payload.prioridade ||
       progs.filter((p) => p.equipeId === Number(payload.equipeId)).length + 1,
@@ -1015,7 +1030,7 @@ export function obterCronogramaCompartilhadoFixture(
 
   if (filtro?.dataInicio) {
     progs = progs.filter(
-      (p) => dataFimExclusivaParaUltimoDiaUtil(p.dataFim) >= filtro.dataInicio!
+      (p) => normalizarDataFimInclusiva(p.dataFim) >= filtro.dataInicio!
     );
   }
   if (filtro?.dataFim) {

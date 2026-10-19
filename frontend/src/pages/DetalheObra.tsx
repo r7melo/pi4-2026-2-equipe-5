@@ -1,8 +1,24 @@
+import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useObraDetalhe, useHistoricoObra, useComentariosObra, useAdicionarComentario } from "@/hooks/api/useObraDetalhe";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Loader2, AlertCircle, Calendar, MapPin, CreditCard, Send, Clock, User, MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import FeedbackLoading from "@/components/feedback/FeedbackLoading";
+import FeedbackErro from "@/components/feedback/FeedbackErro";
+import { EmptyState } from "@/components/feedback/EmptyState";
+import {
+  Calendar,
+  MapPin,
+  CreditCard,
+  Send,
+  Clock,
+  User,
+  MessageSquare,
+  Package,
+  Zap,
+  FileQuestion,
+} from "lucide-react";
+import { formatarDataBR } from "@/lib/formatters";
 
 export default function DetalheObra() {
   const { id } = useParams<{ id: string }>();
@@ -10,12 +26,11 @@ export default function DetalheObra() {
   const location = useLocation();
   const obraId = Number(id);
 
-  // Recupera a página de origem e o estado para o botão Voltar funcionar corretamente
   const stateFrom = location.state as { from?: string; selectedObraId?: number } | null;
   const paginaOrigem = stateFrom?.from ?? "/kanban";
   const backState = paginaOrigem === "/financeiro" ? { selectedObraId: obraId } : undefined;
 
-  const { data: obra, isLoading: loadingObra, isError: errorObra } = useObraDetalhe(obraId);
+  const { data: obra, isLoading: loadingObra, isError: errorObra, error, refetch } = useObraDetalhe(obraId);
   const { data: historico, isLoading: loadingHist } = useHistoricoObra(obraId);
   const { data: comentarios, isLoading: loadingComent } = useComentariosObra(obraId);
   const addComentario = useAdicionarComentario();
@@ -25,167 +40,266 @@ export default function DetalheObra() {
   const handleComentar = (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoComentario.trim()) return;
-    addComentario.mutate({ obraId, descricao: novoComentario }, {
-      onSuccess: () => setNovoComentario("")
-    });
+    addComentario.mutate(
+      { obraId, descricao: novoComentario.trim() },
+      {
+        onSuccess: () => setNovoComentario(""),
+      }
+    );
   };
 
+  // 1. ESTADO DE CARREGAMENTO
   if (loadingObra) {
     return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Detalhes da Obra" subtitle="Carregando dados..." backTo={paginaOrigem} backState={backState} />
-        <div className="flex-1 flex items-center justify-center bg-slate-50">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-        </div>
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
+        <PageHeader title="Detalhes da Obra" subtitle="Consultando informações no servidor..." backTo={paginaOrigem} backState={backState} />
+        <FeedbackLoading mensagem="Carregando dados da obra e cliente no banco de dados..." />
       </div>
     );
   }
 
-  if (errorObra || !obra) {
+  // 2. ESTADO DE ERRO
+  if (errorObra) {
     return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader title="Erro" subtitle="Falha ao carregar obra" backTo={paginaOrigem} backState={backState} />
-        <div className="flex-1 flex items-center justify-center bg-red-50 text-red-700">
-          <AlertCircle className="w-6 h-6 mr-2" />
-          <span>Não foi possível carregar os detalhes da obra. Verifique a conexão ou o ID.</span>
-        </div>
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
+        <PageHeader title="Detalhes da Obra" subtitle="Falha de conexão" backTo={paginaOrigem} backState={backState} />
+        <FeedbackErro
+          titulo="Falha ao carregar detalhes da obra"
+          mensagem={(error as Error)?.message || "Não foi possível buscar as informações da obra. Verifique se o servidor está ativo."}
+          onTentarNovamente={() => void refetch()}
+        />
       </div>
     );
   }
 
+  // 3. ESTADO VAZIO (Obra inexistente / 404)
+  if (!obra) {
+    return (
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
+        <PageHeader title="Detalhes da Obra" subtitle="Obra não encontrada" backTo={paginaOrigem} backState={backState} />
+        <EmptyState
+          icone={FileQuestion}
+          titulo="Obra não encontrada"
+          descricao={`Não encontramos nenhum registro de obra com o identificador #${obraId} no banco de dados.`}
+          acao={{
+            label: "Voltar para o Funil Kanban",
+            onClick: () => navigate("/kanban"),
+          }}
+        />
+      </div>
+    );
+  }
+
+  const clienteNome = obra.cliente?.nome || "Cliente sem identificação";
+
+  // 4. ESTADO COM DADOS (SUCESSO)
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
-      {/* Título e botão Voltar renderizados no header do Dashboard via portal */}
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
       <PageHeader
-        title={`Obra: ${obra.cliente.nome}`}
-        subtitle={`#${obra.id} • ${obra.status}`}
+        title={`Obra: ${clienteNome}`}
+        subtitle={`#${obra.id} • Status: ${obra.status}`}
         backTo={paginaOrigem}
         backState={backState}
       />
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* COLUNA ESQUERDA: Detalhes */}
+          {/* COLUNA ESQUERDA: Dados Técnicos e Contratuais */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Contrato e Local</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 text-slate-700">
-                  <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Cidade</p>
-                    <p className="text-sm font-semibold">{obra.cliente.cidade}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 text-slate-700">
-                  <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Prazos Estimados</p>
-                    <p className="text-sm font-semibold">Início: {obra.dataInicioEstimada}</p>
-                    <p className="text-sm font-semibold">Fim: {obra.dataFimEstimada}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 text-slate-700">
-                  <CreditCard className="w-5 h-5 text-slate-400 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Pagamento</p>
-                    <p className="text-sm font-semibold">Prazo: {obra.pagamento.prazoContratualDias} dias</p>
-                    <p className="text-sm text-slate-500">Confirmado em: {obra.pagamento.dataConfirmacao}</p>
-                  </div>
-                </div>
+            <div className="bg-surface p-5 rounded-xl border border-border-subtle shadow-xs space-y-5">
+              <div className="flex items-center justify-between border-b border-border-subtle pb-3">
+                <h2 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
+                  Dados do Contrato e Local
+                </h2>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-surface-subtle font-semibold border border-border-subtle text-foreground-secondary">
+                  {obra.categoria || "Residencial"}
+                </span>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <button
-                  onClick={() => navigate(`/obras/${obra.id}/materiais`, { state: { from: paginaOrigem, selectedObraId: obraId } })}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition-colors text-sm shadow-sm cursor-pointer"
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-surface-subtle text-foreground-muted shrink-0">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Localização</p>
+                    <p className="text-sm font-semibold text-foreground">{obra.cliente?.cidade || "Cidade não informada"}</p>
+                    {obra.endereco && <p className="text-xs text-muted-foreground mt-0.5">{obra.endereco}</p>}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-surface-subtle text-foreground-muted shrink-0">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Capacidade Instalada</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {obra.quantidadePaineis} módulos solares
+                    </p>
+                    {obra.quantidadeInversores ? (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {obra.quantidadeInversores} inversor(es)
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-surface-subtle text-foreground-muted shrink-0">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Cronograma Previsto</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      Início: {obra.dataInicioEstimada ? formatarDataBR(obra.dataInicioEstimada) : "A definir"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Conclusão: {obra.dataFimEstimada ? formatarDataBR(obra.dataFimEstimada) : "A definir"}
+                    </p>
+                  </div>
+                </div>
+
+                {obra.pagamento && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-surface-subtle text-foreground-muted shrink-0">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium">Faturamento e Prazos</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        Prazo: {obra.pagamento.prazoContratualDias} dias
+                      </p>
+                      {obra.pagamento.dataConfirmacao && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Confirmado em: {formatarDataBR(obra.pagamento.dataConfirmacao)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-border-subtle">
+                <Button
+                  onClick={() =>
+                    navigate(`/obras/${obra.id}/materiais`, {
+                      state: { from: paginaOrigem, selectedObraId: obraId },
+                    })
+                  }
+                  className="w-full flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                 >
+                  <Package className="w-4 h-4" />
                   Gerenciar Materiais da Obra
-                </button>
+                </Button>
               </div>
             </div>
           </div>
 
           {/* COLUNA DIREITA: Feed (Histórico e Comentários) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[600px]">
-              <div className="p-4 border-b border-slate-100 flex items-center gap-2 shrink-0">
-                <MessageSquare className="w-5 h-5 text-slate-400" />
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Feed e Histórico</h2>
+            <div className="bg-surface rounded-xl border border-border-subtle shadow-xs flex flex-col h-[620px]">
+              <div className="p-4 border-b border-border-subtle flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-foreground-muted" />
+                  <h2 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
+                    Linha do Tempo e Comentários
+                  </h2>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {(historico?.length || 0) + (comentarios?.length || 0)} eventos
+                </span>
               </div>
-              
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {(loadingHist || loadingComent) ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-                  </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+                {loadingHist || loadingComent ? (
+                  <FeedbackLoading mensagem="Atualizando eventos da obra..." />
                 ) : (
                   <>
-                    {/* Lista mesclada visualmente: Primeiro exibe comentários, depois histórico. Numa app real, ordenaríamos por data. */}
-                    {historico?.map((h) => (
-                      <div key={`h-${h.id}`} className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                          <Clock className="w-4 h-4 text-slate-500" />
-                        </div>
-                        <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                          <p className="text-xs text-slate-500 mb-1 font-medium">{h.usuario.nome} • {new Date(h.dataAlteracao).toLocaleString()}</p>
-                          <p className="text-sm text-slate-700">
-                            Moveu a obra de <span className="font-semibold text-slate-900">{h.statusAnterior}</span> para <span className="font-semibold text-blue-600">{h.statusNovo}</span>
-                          </p>
-                          {h.observacao && <p className="text-sm text-slate-600 mt-2 italic">"{h.observacao}"</p>}
-                        </div>
-                      </div>
-                    ))}
-
+                    {/* Exibe comentários */}
                     {comentarios?.map((c) => (
-                      <div key={`c-${c.id}`} className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200">
-                          <User className="w-4 h-4 text-emerald-600" />
+                      <div key={`c-${c.id}`} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-info-light text-info flex items-center justify-center shrink-0 border border-info-border">
+                          <User className="w-4 h-4" />
                         </div>
-                        <div className="flex-1 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                          <p className="text-xs text-slate-500 mb-1 font-medium">{c.usuario.nome} • {new Date(c.dataRegistro).toLocaleString()}</p>
-                          <p className="text-sm text-slate-800">{c.descricao}</p>
+                        <div className="flex-1 bg-surface-subtle p-3 rounded-xl border border-border-subtle">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-bold text-foreground">
+                              {c.usuario?.nome || "Colaborador"}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(c.dataRegistro).toLocaleDateString()} {new Date(c.dataRegistro).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground-secondary leading-relaxed">{c.descricao}</p>
                         </div>
                       </div>
                     ))}
 
-                    {(!historico?.length && !comentarios?.length) && (
-                      <div className="text-center py-8 text-slate-400 text-sm">Nenhum registro encontrado.</div>
+                    {/* Exibe histórico de movimentações */}
+                    {historico?.map((h) => (
+                      <div key={`h-${h.id}`} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-muted text-subtle-foreground flex items-center justify-center shrink-0 border border-border-subtle">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 bg-surface-subtle/60 p-3 rounded-xl border border-border-subtle">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold text-foreground-muted">
+                              {h.usuario?.nome || "Sistema"}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {new Date(h.dataAlteracao).toLocaleDateString()} {new Date(h.dataAlteracao).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-foreground-secondary">
+                            Status alterado de <span className="font-semibold text-foreground">{h.statusAnterior || "Início"}</span> para{" "}
+                            <span className="font-semibold text-info">{h.statusNovo}</span>
+                          </p>
+                          {h.observacao && (
+                            <p className="text-xs text-muted-foreground mt-1.5 italic bg-surface/60 p-2 rounded-lg border border-border-subtle">
+                              "{h.observacao}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {!historico?.length && !comentarios?.length && (
+                      <EmptyState
+                        icone={MessageSquare}
+                        titulo="Nenhum evento registrado"
+                        descricao="Ainda não existem comentários ou alterações gravadas para esta obra."
+                      />
                     )}
                   </>
                 )}
               </div>
 
-              {/* Form de Comentário */}
-              <div className="p-4 border-t border-slate-100 bg-slate-50 shrink-0 rounded-b-xl">
+              {/* Formulário de Envio de Comentário */}
+              <div className="p-4 border-t border-border-subtle bg-surface-subtle/50 shrink-0 rounded-b-xl">
                 <form onSubmit={handleComentar} className="flex gap-2">
                   <input
                     type="text"
                     value={novoComentario}
                     onChange={(e) => setNovoComentario(e.target.value)}
-                    placeholder="Adicionar um comentário ou observação..."
-                    className="flex-1 bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                    placeholder="Adicionar um comentário ou observação na obra..."
+                    className="flex-1 bg-surface border border-border-subtle rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info transition-colors"
                     disabled={addComentario.isPending}
                   />
-                  <button
+                  <Button
                     type="submit"
                     disabled={!novoComentario.trim() || addComentario.isPending}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white p-2.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+                    className="px-4"
                   >
-                    {addComentario.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                  </button>
+                    {addComentario.isPending ? "Enviando..." : <Send className="w-4 h-4" />}
+                  </Button>
                 </form>
               </div>
-
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
 }
+

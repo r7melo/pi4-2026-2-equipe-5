@@ -54,23 +54,22 @@ export function calcularUltimoDiaUtil(dataInicio: Date, duracaoDias: number): Da
   }
   return atual;
 }
-
-/** 
- * Calcula a data de término exclusiva do cronograma (DHTMLX Gantt e PostgreSQL).
- * A data exclusiva é o dia de calendário imediatamente seguinte ao último dia trabalhado.
- * Exemplo: 3 dias úteis a partir de Quarta-feira (07/10):
- * - Dias trabalhados: Quarta (07), Quinta (08), Sexta (09).
- * - Último dia trabalhado: Sexta (09).
- * - Data fim exclusiva retornada: Sábado (10/10 00:00:00).
- * No Gantt, a barra ocupa quarta, quinta e sexta, terminando na divisa de sábado,
- * sem invadir nem colorir o final de semana.
- */
-export function adicionarDiasUteis(dataInicio: Date, duracaoDias: number): Date {
-  const ultimoDia = calcularUltimoDiaUtil(dataInicio, duracaoDias);
-  const dataFimExclusiva = new Date(ultimoDia);
-  dataFimExclusiva.setDate(dataFimExclusiva.getDate() + 1);
-  return dataFimExclusiva;
+/** Soma N dias civis de calendário (sem pular fins de semana) e retorna string ISO local. */
+export function adicionarDiasCivis(dataInput: string | Date, dias: number): string {
+  const data = normalizarDataMeioDiaUTC(dataInput);
+  data.setDate(data.getDate() + dias);
+  return formatarDataISO(data);
 }
+
+/** Normaliza a data final inclusiva (string ISO ou Date — superset do item #3 da spec): sábado/domingo recuam para a sexta-feira imediatamente anterior. */
+export function normalizarDataFimInclusiva(dataFim: string | Date): string {
+  const data = normalizarDataMeioDiaUTC(dataFim);
+  while (data.getDay() === 0 || data.getDay() === 6) {
+    data.setDate(data.getDate() - 1);
+  }
+  return formatarDataISO(data);
+}
+
 
 /** Retorna a data de hoje ajustada para dia útil em formato YYYY-MM-DD */
 export function obterProximoDiaUtilISO(dataBase: Date = new Date()): string {
@@ -92,65 +91,37 @@ export function normalizarDataMeioDiaUTC(dataEntrada: string | Date): Date {
   const dataLimpa = String(dataEntrada).split(/[T ]/)[0];
   return new Date(`${dataLimpa}T12:00:00Z`);
 }
-
-/**
- * Converte a data do último dia trabalhado (inclusiva, selecionada pelo usuário)
- * para a data de término exclusiva esperada pelo DHTMLX Gantt e PostgreSQL.
- * Caso o usuário selecione um fim de semana (Sábado ou Domingo), recua para a Sexta-feira
- * imediatamente anterior antes de somar +1 dia, garantindo término exclusivo sempre no Sábado imediato.
- * Exemplo: Sexta-feira 09/10/2026 -> Sábado 10/10/2026.
- */
-export function ultimoDiaUtilParaDataFimExclusiva(dataFimInclusiva: string | Date): string {
-  const data = normalizarDataMeioDiaUTC(dataFimInclusiva);
-  while (data.getDay() === 0 || data.getDay() === 6) {
-    data.setDate(data.getDate() - 1);
-  }
+/** Boundary Adapter de entrada: fim inclusivo civil → ponteiro exclusivo do DHTMLX (+1 dia civil). */
+export function dataFimInclusivaParaDhtmlx(dataIso: string): string {
+  const data = normalizarDataMeioDiaUTC(dataIso);
   data.setDate(data.getDate() + 1);
   return formatarDataISO(data);
 }
 
-/**
- * Converte a data de término exclusiva do banco/Gantt para o último dia útil trabalhado (inclusivo),
- * ideal para exibição legível e edição em campos <input type="date">.
- * Exemplo: Sábado 10/10/2026 -> Sexta-feira 09/10/2026.
- */
-export function dataFimExclusivaParaUltimoDiaUtil(dataFimExclusiva: string | Date): string {
-  const data = normalizarDataMeioDiaUTC(dataFimExclusiva);
+/** Boundary Adapter de saída: ponteiro de término do DHTMLX → fim inclusivo civil (−1 dia civil). */
+export function dhtmlxFimParaDataInclusiva(dateInput: string | Date): string {
+  const data = normalizarDataMeioDiaUTC(dateInput);
   data.setDate(data.getDate() - 1);
-  while (data.getDay() === 0 || data.getDay() === 6) {
-    data.setDate(data.getDate() - 1);
-  }
   return formatarDataISO(data);
 }
 
-/**
- * Calcula a quantidade de dias úteis trabalhados entre dataInicio (inclusiva) e dataFimExclusiva (exclusiva).
- * Retorna 0 se a data de fim for menor ou igual à data de início, permitindo validação de integridade.
- */
-export function calcularDiasUteisEntre(
-  dataInicio: string | Date,
-  dataFimExclusiva: string | Date
-): number {
-  const ini = normalizarDataMeioDiaUTC(dataInicio);
-  const fim = normalizarDataMeioDiaUTC(dataFimExclusiva);
+/** Contagem inclusiva de dias úteis em [ini, fim]: 0 se fim < ini; 1 se fim === ini (dia útil). */
+export function calcularDiasUteisInclusivos(ini: string | Date, fim: string | Date): number {
+  const inicioISO = formatarDataISO(proximoDiaUtil(normalizarDataMeioDiaUTC(ini)));
+  const fimISO = normalizarDataFimInclusiva(fim);
+  if (fimISO < inicioISO) return 0;
 
-  if (fim <= ini) return 0;
-
-  let cursor = proximoDiaUtil(ini);
+  const cursor = normalizarDataMeioDiaUTC(inicioISO);
+  const limite = normalizarDataMeioDiaUTC(fimISO);
   let dias = 0;
-
-  while (cursor.getTime() < fim.getTime()) {
+  while (cursor.getTime() <= limite.getTime()) {
     const diaSemana = cursor.getDay();
-    if (diaSemana !== 0 && diaSemana !== 6) {
-      dias++;
-    }
-    const proxima = new Date(cursor);
-    proxima.setDate(proxima.getDate() + 1);
-    cursor = proxima;
+    if (diaSemana !== 0 && diaSemana !== 6) dias++;
+    cursor.setDate(cursor.getDate() + 1);
   }
-
   return dias;
 }
+
 
 /**
  * Formata um valor numérico para o padrão de moeda brasileiro (BRL).

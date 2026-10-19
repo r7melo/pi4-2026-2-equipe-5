@@ -4,7 +4,7 @@ export interface Programacao {
   obraId: number;
   equipeId: number;
   dataInicio: string; // ISO (yyyy-MM-dd)
-  dataFim: string;    // ISO (yyyy-MM-dd)
+  dataFim: string;    // ISO inclusiva (yyyy-MM-dd) — último dia útil trabalhado
   prioridade: number;
   duracaoEstimadaDias?: number;
 }
@@ -16,7 +16,7 @@ export interface ProgramacaoAfetada {
   novaDataFim: string;
 }
 
-/** Resposta do PUT /api/programacoes/{id}/reordenar — Contrato Rota #16 */
+/** Resposta do PUT /api/programacoes/{id}/reordenar — Contrato Rota #24 */
 export interface ReordenarProgramacaoResposta {
   id: number;
   novaDataInicio: string;
@@ -24,11 +24,12 @@ export interface ReordenarProgramacaoResposta {
   programacoesAfetadas: ProgramacaoAfetada[];
 }
 
-/** Payload para alocar equipe a uma obra (Contrato Rota #15 / RF-08) */
+/** Payload para alocar equipe a uma obra (Contrato Rota #23 / RF-08) */
 export interface CriarProgramacaoPayload {
   obraId: number;
   equipeId: number;
   dataInicio: string; // ISO (yyyy-MM-dd)
-  dataFim?: string;    // ISO exclusiva (yyyy-MM-dd) — opcional; se omitida, calcula por ~9 painéis/dia
+  dataFim?: string;    // ISO inclusiva (yyyy-MM-dd) — opcional; mantida para paridade de mock
   prioridade?: number;
 }
+

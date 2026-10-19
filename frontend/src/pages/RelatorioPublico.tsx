@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Inbox,
-  Zap,
   MapPin,
   Clock,
   Printer,
@@ -64,7 +63,6 @@ export default function RelatorioPublico() {
     totalObras,
     obrasConcluidas,
     totalPaineis,
-    potenciaTotalKwp,
   } = data;
 
   const handleImprimir = () => {
@@ -129,7 +127,7 @@ export default function RelatorioPublico() {
         </div>
 
         {/* Métricas Principais */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total de Obras</span>
@@ -163,17 +161,6 @@ export default function RelatorioPublico() {
             </div>
             <p className="text-3xl font-extrabold text-amber-400">{totalPaineis.toLocaleString("pt-BR")}</p>
             <p className="text-xs text-slate-500 mt-1">módulos solares</p>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Potência Total</span>
-              <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
-                <Zap className="w-4 h-4" />
-              </div>
-            </div>
-            <p className="text-3xl font-extrabold text-cyan-400">{potenciaTotalKwp.toFixed(2)} <span className="text-lg font-semibold">kWp</span></p>
-            <p className="text-xs text-slate-500 mt-1">capacidade geradora</p>
           </div>
         </div>
 
@@ -234,7 +221,7 @@ export default function RelatorioPublico() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Sun className="w-3.5 h-3.5 text-amber-400" />
-                            {obra.quantidadePaineis} painéis {obra.potenciaKwp ? `(${obra.potenciaKwp} kWp)` : ""}
+                            {obra.quantidadePaineis} painéis
                           </span>
                         </div>
                       </div>

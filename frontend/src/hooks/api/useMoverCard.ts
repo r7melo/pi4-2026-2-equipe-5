@@ -14,6 +14,7 @@ export function useMoverCard() {
   const queryClient = useQueryClient();
 
   const moverMutation = useMutation({
+    mutationKey: ["obras"],
     mutationFn: async ({ cardId, novoStatus, observacao }: MoverCardVariables) => {
       return moverStatusObra(Number(cardId), novoStatus, observacao);
     },
@@ -54,6 +55,7 @@ export function useMoverCard() {
     onSettled: (data) => {
       // Revalida tanto obras quanto programações (sincronização Kanban <-> Gantt RF-10)
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
+      void queryClient.invalidateQueries({ queryKey: ["obra"] });
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
       if (data?.emailNotificacaoEnviado) {
         toast.info("Obra marcada como concluída! Notificação enviada por e-mail.");

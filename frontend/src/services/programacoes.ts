@@ -5,13 +5,13 @@ import type {
   CriarProgramacaoPayload,
 } from "@/types";
 
-/** GET /api/programacoes — Rota #14 */
+/** GET /api/programacoes — Rota #22 */
 export async function listarProgramacoes(): Promise<Programacao[]> {
   const { data } = await api.get<Programacao[]>("/programacoes");
   return data;
 }
 
-/** POST /api/programacoes — Rota #15 */
+/** POST /api/programacoes — Rota #23 */
 export async function criarProgramacao(
   payload: CriarProgramacaoPayload
 ): Promise<Programacao> {
@@ -19,7 +19,7 @@ export async function criarProgramacao(
   return data;
 }
 
-/** PUT /api/programacoes/{id}/reordenar — Rota #16 */
+/** PUT /api/programacoes/{id}/reordenar — Rota #24 */
 export async function reordenarProgramacao(
   id: number,
   payload: { novaDataInicio?: string; novaDataFim?: string }
@@ -31,7 +31,8 @@ export async function reordenarProgramacao(
   return data;
 }
 
-/** DELETE /api/programacoes/{id} — Rota #22 */
+/** Dívida técnica restrita ao mock: não existe rota DELETE /api/programacoes/{id} no contrato canônico */
 export async function deletarProgramacao(id: number): Promise<void> {
   await api.delete(`/programacoes/${id}`);
 }
+
