@@ -68,6 +68,10 @@ export default defineConfig({
   server: {
     host: true,
     port: 3000,
+    proxy: {
+      "/api": { target: process.env.VITE_API_PROXY_TARGET || "http://localhost:8000", changeOrigin: true },
+      "/hubs": { target: process.env.VITE_API_PROXY_TARGET || "http://localhost:8000", changeOrigin: true, ws: true },
+    },
     watch: {
       usePolling: true,
     },

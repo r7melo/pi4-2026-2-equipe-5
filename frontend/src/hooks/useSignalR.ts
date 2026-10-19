@@ -16,7 +16,9 @@ export function useSignalR() {
     if (!token) return;
     if (import.meta.env.VITE_USE_MOCK === "true") return;
 
-    const baseUrl = (import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:8000";
+    const baseUrl = window.location.protocol === "https:"
+      ? window.location.origin
+      : (import.meta.env.VITE_API_URL as string | undefined) || `${window.location.protocol}//${window.location.hostname}:8000`;
     const hubUrl = `${baseUrl}/hubs/obras`;
 
     const connection = new signalR.HubConnectionBuilder()
