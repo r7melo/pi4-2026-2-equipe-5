@@ -1,6 +1,25 @@
 BEGIN;
 SET CONSTRAINTS ALL IMMEDIATE;
 
+DO $$
+BEGIN
+    IF to_regclass('public.audit_log') IS NULL THEN
+        RAISE EXCEPTION 'Integridade: public.audit_log não existe';
+    END IF;
+    IF to_regclass('public.schema_migrations') IS NULL THEN
+        RAISE EXCEPTION 'Integridade: public.schema_migrations não existe';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_audit_somente_insert' AND NOT tgisinternal) THEN
+        RAISE EXCEPTION 'Integridade: trigger de auditoria append-only ausente';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_audit_entidade') THEN
+        RAISE EXCEPTION 'Integridade: índice idx_audit_entidade ausente';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE connamespace = 'public'::regnamespace AND NOT convalidated) THEN
+        RAISE EXCEPTION 'Integridade: existem constraints não validadas';
+    END IF;
+END $$;
+
 CREATE FUNCTION pg_temp.deve_rejeitar(nome text, comando text, estado text)
 RETURNS void LANGUAGE plpgsql AS $$
 DECLARE estado_obtido text;

@@ -1,5 +1,3 @@
-BEGIN;
-
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE TYPE tipo_comentario_enum AS ENUM ('Cartao', 'Manutencao', 'Timeline');
@@ -137,8 +135,8 @@ CREATE TRIGGER trg_historico_somente_insert BEFORE UPDATE OR DELETE ON historico
 CREATE TRIGGER trg_audit_somente_insert BEFORE UPDATE OR DELETE ON audit_log
     FOR EACH ROW EXECUTE FUNCTION impedir_alteracao_log();
 
-DROP TABLE homologacao;
-DROP TYPE parecer_enum;
+-- Objetos legados são preservados; removê-los não é necessário para a expansão
+-- e poderia apagar dados de instalações existentes.
 DROP INDEX idx_obra_status;
 DROP INDEX idx_historico_obra;
 DROP INDEX idx_programacao_equipe;
@@ -155,5 +153,3 @@ CREATE INDEX idx_manutencao_obra_status ON manutencao(id_obra, status);
 CREATE INDEX idx_manutencao_equipe_status ON manutencao(id_equipe, status);
 CREATE INDEX idx_audit_entidade ON audit_log(entidade, entidade_id);
 CREATE INDEX idx_cronograma_expira_em ON cronograma_compartilhado(expira_em);
-
-COMMIT;

@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      - "127.0.0.1:${DB_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./database:/docker-entrypoint-initdb.d   # roda 01_schema.sql e 02_seed.sql na primeira subida
@@ -23,7 +23,9 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:${BACKEND_PORT}
+      - VITE_API_URL=http://${HOST_IP:-localhost}:${BACKEND_PORT}
+      - VITE_API_PROXY_TARGET=http://backend:8000
+      - USE_SSL=${USE_SSL:-false}
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -32,11 +34,13 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "${BACKEND_PORT}:8000"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - JWT_SECRET=${JWT_SECRET:?Configure um JWT_SECRET unico com pelo menos 32 caracteres no .env}
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
     volumes:
       - ./backend:/app
