@@ -10,6 +10,7 @@ import type {
   HistoricoObra,
   ComentarioObra,
   EditarObraPayload,
+  CategoriaObra,
 } from "@/types";
 import type { StatusObra } from "@/constants/kanbanStatus";
 
@@ -44,7 +45,7 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
     id: resposta.id,
     clienteNome: payload.clienteNome,
     status: (resposta.status as StatusObra) || "MaterialComprado",
-    categoria: "Residencial",
+    categoria: (payload.categoria as CategoriaObra) || "Residencial",
     quantidadePaineis: payload.quantidadePaineis,
     dataFimEstimada: resposta.dataFimEstimada || payload.dataFimEstimada,
   };

@@ -59,11 +59,14 @@ export default function CadastrarObra() {
       const payload: CriarObraPayload = {
         clienteNome: dados.clienteNome.trim(),
         cidade: dados.cidade.trim(),
+        endereco: `${dados.cidade.trim()} - Centro`,
+        categoria: "Residencial",
         quantidadePaineis: Number(dados.quantidadePaineis),
         dataInicioEstimada: dados.dataInicioEstimada,
         dataFimEstimada: dados.dataFimEstimada,
         pagamento: {
           prazoContratualDias: Number(dados.pagamento.prazoContratualDias),
+          dataConfirmacao: dados.dataInicioEstimada || new Date().toISOString().split("T")[0],
         },
       };
 

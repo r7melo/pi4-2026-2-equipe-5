@@ -76,7 +76,10 @@ export interface CriarObraPayload {
   dataFimEstimada: string;
   pagamento: {
     prazoContratualDias: number;
+    dataConfirmacao?: string;
   };
+  endereco?: string;
+  categoria?: string;
 }
 
 export interface ObraCriadaResposta {
@@ -117,6 +120,12 @@ export interface ObraDetalhe {
     dataConfirmacao: string;
     prazoContratualDias: number;
   };
+  categoria?: string;
+  endereco?: string;
+  quantidadePaineis?: number;
+  quantidadeInversores?: number;
+  potenciaKwp?: number;
+  valorTotal?: number;
 }
 
 export interface HistoricoObra {
