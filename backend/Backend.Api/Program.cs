@@ -13,6 +13,8 @@ var autenticacao = new Autenticacao(builder.Configuration, builder.Environment);
 builder.Services.AddSingleton(autenticacao);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(autenticacao.Configurar);
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ObrasNotificador>();
 
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
 {
@@ -35,8 +37,16 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
     };
 });
 
-// Front (porta 3000) chama a API (porta 8000)
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+// SignalR envia credenciais por padrão; CORS não permite combinar credenciais com '*'.
+// Origens adicionais podem ser configuradas em Cors:AllowedOrigins (ou
+// Cors__AllowedOrigins__0, Cors__AllowedOrigins__1 no ambiente).
+var origensCors = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:3000", "http://127.0.0.1:3000"];
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
+    .WithOrigins(origensCors)
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials()));
 
 var app = builder.Build();
 
@@ -61,6 +71,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 // Toda rota exige token, a não ser que tenha [AllowAnonymous] (RF-02). Rota inexistente continua 404.
 app.MapControllers().RequireAuthorization();
+app.MapHub<ObrasHub>("/hubs/obras").RequireAuthorization();
 app.Run();
 
 static Task Responder(HttpContext ctx, int status, string code, string message)

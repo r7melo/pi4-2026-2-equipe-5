@@ -28,19 +28,38 @@ export function useSignalR() {
       .withAutomaticReconnect()
       .build();
 
-    connection
-      .start()
-      .catch((err) => {
-        // Log preventivo caso o backend ASP.NET Core esteja offline em desenvolvimento local
-        console.warn("[SignalR] Não foi possível conectar ao hub em tempo real:", err);
-      });
-
-    connection.on("ObraAtualizada", () => {
-      // Invalida o cache e o React Query refaz o fetch automaticamente
+    connection.on("ObraAtualizada", (evento?: { obraId?: number | null }) => {
+      // Eventos gerais renovam Kanban/Gantt; quando há ID, renova também o detalhe da obra.
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
+      void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+      if (evento?.obraId != null) {
+        void queryClient.invalidateQueries({ queryKey: ["obra", evento.obraId] });
+        void queryClient.invalidateQueries({ queryKey: ["materiais", evento.obraId] });
+        void queryClient.invalidateQueries({ queryKey: ["relatorio-custo", evento.obraId] });
+      }
+    });
+
+    let encerrado = false;
+    let temporizadorReconexao: number | undefined;
+    const agendarReconexao = () => {
+      if (encerrado || temporizadorReconexao !== undefined) return;
+      temporizadorReconexao = window.setTimeout(() => {
+        temporizadorReconexao = undefined;
+        void connection.start().catch((err) => {
+          console.warn("[SignalR] Nao foi possivel conectar ao hub em tempo real:", err);
+          agendarReconexao();
+        });
+      }, 5000);
+    };
+    connection.onclose(() => agendarReconexao());
+    void connection.start().catch((err) => {
+      console.warn("[SignalR] Nao foi possivel conectar ao hub em tempo real:", err);
+      agendarReconexao();
     });
 
     return () => {
+      encerrado = true;
+      if (temporizadorReconexao !== undefined) window.clearTimeout(temporizadorReconexao);
       void connection.stop();
     };
   }, [token, queryClient]);

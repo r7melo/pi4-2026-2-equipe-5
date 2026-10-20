@@ -5,7 +5,7 @@ namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/programacoes")]
-public class ProgramacoesController(BancoDados banco) : ControllerBase
+public class ProgramacoesController(BancoDados banco, ObrasNotificador notificador) : ControllerBase
 {
     public record AlocarEntrada(int? ObraId, int? EquipeId, DateOnly? DataInicio, int? Prioridade);
     public record ReordenarEntrada(DateOnly? NovaDataInicio);
@@ -31,7 +31,7 @@ public class ProgramacoesController(BancoDados banco) : ControllerBase
     // Rota 23 — RF-07, RF-08, RF-10
     [Authorize(Roles = Perfis.Gestao)]
     [HttpPost]
-    public IActionResult Alocar(AlocarEntrada e)
+    public async Task<IActionResult> Alocar(AlocarEntrada e)
     {
         if (e.ObraId is null || e.EquipeId is null || e.DataInicio is null)
             return Validacao("obraId, equipeId e dataInicio são obrigatórios.");
@@ -43,6 +43,7 @@ public class ProgramacoesController(BancoDados banco) : ControllerBase
         {
             var programacao = banco.CriarProgramacao(e.ObraId.Value, e.EquipeId.Value, e.DataInicio.Value,
                 e.Prioridade ?? 1, this.UsuarioAtualId());
+            await notificador.NotificarAtualizacaoAsync(programacao.ObraId);
             return Created($"/api/programacoes/{programacao.Id}", programacao);
         }
         catch (RegraVioladaException ex)
@@ -54,7 +55,7 @@ public class ProgramacoesController(BancoDados banco) : ControllerBase
     // Rota 24 — RF-09
     [Authorize(Roles = Perfis.Gestao)]
     [HttpPut("{id:int}/reordenar")]
-    public IActionResult Reordenar(int id, ReordenarEntrada e)
+    public async Task<IActionResult> Reordenar(int id, ReordenarEntrada e)
     {
         if (e.NovaDataInicio is null)
             return Validacao("novaDataInicio é obrigatória.");
@@ -63,6 +64,7 @@ public class ProgramacoesController(BancoDados banco) : ControllerBase
         try
         {
             var reordenacao = banco.Reordenar(id, e.NovaDataInicio.Value);
+            if (reordenacao is not null) await notificador.NotificarAgendaAtualizadaAsync();
             return reordenacao is null
                 ? Erro.Criar(404, "PROGRAMACAO_NOT_FOUND", $"Programação {id} não encontrada.")
                 : Ok(reordenacao);
