@@ -12,11 +12,10 @@ import {
   formatarDataBR,
   formatarDataISO,
   proximoDiaUtil,
-  adicionarDiasUteis,
+  calcularUltimoDiaUtil,
   obterProximoDiaUtilISO,
   normalizarDataMeioDiaUTC,
-  ultimoDiaUtilParaDataFimExclusiva,
-  dataFimExclusivaParaUltimoDiaUtil,
+  normalizarDataFimInclusiva,
 } from "@/lib/formatters";
 import { toast } from "sonner";
 
@@ -60,13 +59,12 @@ export function GanttNovaAlocacaoModal({
 
   const paineis = obraSelecionada?.quantidadePaineis || 9;
   const duracaoEstimadaDias = Math.max(1, Math.ceil(paineis / 9));
-  const potenciaEstimadaKwp = (paineis * 0.55).toFixed(1);
 
   const dataFimSugeridaISO = useMemo(() => {
     if (!dataInicio) return "";
     const inicioSanitizado = proximoDiaUtil(normalizarDataMeioDiaUTC(dataInicio));
-    const fimCalculado = adicionarDiasUteis(inicioSanitizado, duracaoEstimadaDias);
-    return dataFimExclusivaParaUltimoDiaUtil(fimCalculado);
+    const fimCalculado = calcularUltimoDiaUtil(inicioSanitizado, duracaoEstimadaDias);
+    return formatarDataISO(fimCalculado);
   }, [dataInicio, duracaoEstimadaDias]);
 
   // Formata o término sugerido ou manual para exibição sincronizada no card de produtividade
@@ -84,8 +82,7 @@ export function GanttNovaAlocacaoModal({
       equipes,
       programacoes,
       dataInicio,
-      dataFimEfetiva,
-      true // dataFimEfetiva no input do form é inclusiva (último dia útil)
+      dataFimEfetiva
     );
     return new Map(lista.map((item) => [item.equipe.id, item]));
   }, [equipes, programacoes, dataInicio, dataFimEfetiva]);
@@ -120,15 +117,11 @@ export function GanttNovaAlocacaoModal({
 
     try {
       const inicioAjustado = proximoDiaUtil(normalizarDataMeioDiaUTC(dataInicioLimpa));
-      const dataFimExclusiva = dataFimAlvo
-        ? ultimoDiaUtilParaDataFimExclusiva(dataFimAlvo)
-        : undefined;
-
       await onConfirmar({
         obraId: Number(obraId),
         equipeId: Number(equipeId),
         dataInicio: formatarDataISO(inicioAjustado),
-        dataFim: dataFimExclusiva,
+        dataFim: dataFimAlvo || undefined,
       });
       handleFechar();
     } catch {
@@ -296,8 +289,13 @@ export function GanttNovaAlocacaoModal({
               min={String(dataInicio).split(/[T ]/)[0]}
               value={dataFimEfetiva}
               onChange={(e) => {
+                const valor = e.target.value;
                 setEditouFimManualmente(true);
-                setDataFimManual(e.target.value);
+                if (!valor) {
+                  setDataFimManual("");
+                  return;
+                }
+                setDataFimManual(normalizarDataFimInclusiva(valor));
               }}
               className="w-full px-3 py-2 text-xs bg-surface-subtle border border-border-subtle text-foreground-secondary rounded-lg focus:bg-surface focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info transition-colors"
             />
@@ -320,7 +318,7 @@ export function GanttNovaAlocacaoModal({
                 </div>
               </div>
               <p className="text-[11px] text-info leading-relaxed">
-                Estimado com base em {obraSelecionada.quantidadePaineis} painéis (~{potenciaEstimadaKwp} kWp a ~9 painéis/dia útil). Finais de semana desconsiderados.
+                Estimado com base em {obraSelecionada.quantidadePaineis} painéis (~9 painéis/dia útil). Finais de semana desconsiderados.
               </p>
             </div>
           )}

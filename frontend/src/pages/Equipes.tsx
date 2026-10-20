@@ -30,11 +30,16 @@ import FeedbackLoading from "@/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/components/feedback/FeedbackErro";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { CalendarX2, Search } from "lucide-react";
-import { dataFimExclusivaParaUltimoDiaUtil } from "@/lib/formatters";
+import {
+  normalizarDataFimInclusiva,
+  dataFimInclusivaParaDhtmlx,
+  calcularDiasUteisInclusivos,
+  formatarDataISO,
+} from "@/lib/formatters";
 import { obterConflitosEquipe } from "@/lib/ganttCalculos";
 import "@/components/gantt/gantt.css";
 
-const HOJE_ISO = new Date().toISOString().split("T")[0];
+const HOJE_ISO = formatarDataISO(new Date());
 
 export default function Equipes() {
   const nivelZoom = useGanttStore((s) => s.nivelZoom);
@@ -137,12 +142,12 @@ export default function Equipes() {
     // 3. Período de Término
     if (filtros.dataFimDe) {
       lista = lista.filter(
-        (p) => dataFimExclusivaParaUltimoDiaUtil(p.dataFim) >= filtros.dataFimDe!
+        (p) => normalizarDataFimInclusiva(p.dataFim) >= filtros.dataFimDe!
       );
     }
     if (filtros.dataFimAte) {
       lista = lista.filter(
-        (p) => dataFimExclusivaParaUltimoDiaUtil(p.dataFim) <= filtros.dataFimAte!
+        (p) => normalizarDataFimInclusiva(p.dataFim) <= filtros.dataFimAte!
       );
     }
 
@@ -206,8 +211,7 @@ export default function Equipes() {
     if (filtros.apenasAtrasadas) {
       lista = lista.filter((p) => {
         const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        const ultimoDiaUtil = dataFimExclusivaParaUltimoDiaUtil(p.dataFim);
-        return ultimoDiaUtil < HOJE_ISO && obra?.status !== "Concluido";
+        return normalizarDataFimInclusiva(p.dataFim) < HOJE_ISO && obra?.status !== "Concluido";
       });
     }
 
@@ -251,11 +255,13 @@ export default function Equipes() {
       );
 
       // 1. Nó Pai de Equipe (Projeto)
+      const maiorFimNormalizado = normalizarDataFimInclusiva(maiorFim);
       resultado.push({
         id: `equipe-${equipe.id}`,
         text: `${equipe.nome} — ${equipe.especialidade || "Instalação"}`,
         start_date: menorInicio,
-        end_date: maiorFim,
+        end_date: dataFimInclusivaParaDhtmlx(maiorFimNormalizado),
+        dataFimInclusiva: maiorFimNormalizado,
         type: "project",
         open: true,
         equipeId: equipe.id,
@@ -273,6 +279,8 @@ export default function Equipes() {
 
         const homologacao = homologacoesMap?.[p.obraId];
         const homologacaoOk = homologacao?.parecerAcesso === "Aprovado";
+        const fimNormalizado = normalizarDataFimInclusiva(p.dataFim);
+        const duracaoCalculada = calcularDiasUteisInclusivos(p.dataInicio, fimNormalizado);
 
         resultado.push({
           id: p.id,
@@ -280,13 +288,14 @@ export default function Equipes() {
           type: "task",
           text: obra?.clienteNome || `Obra ${p.obraId}`,
           start_date: p.dataInicio,
-          end_date: p.dataFim,
-          duration: p.duracaoEstimadaDias,
+          end_date: dataFimInclusivaParaDhtmlx(fimNormalizado),
+          dataFimInclusiva: fimNormalizado,
+          duration: duracaoCalculada,
           equipeId: p.equipeId,
           nomeEquipe: equipe.nome,
           nomeCliente: obra?.clienteNome,
           paineis: obra?.quantidadePaineis,
-          duracaoDias: p.duracaoEstimadaDias,
+          duracaoDias: duracaoCalculada,
           statusObra: obra?.status,
           materialPronto,
           homologacaoOk,
@@ -313,7 +322,7 @@ export default function Equipes() {
       nomeCliente: obra?.clienteNome || `Obra ID: ${prog.obraId}`,
       dataInicio: prog.dataInicio,
       dataFim: prog.dataFim,
-      duracaoDias: prog.duracaoEstimadaDias || 1,
+      duracaoDias: calcularDiasUteisInclusivos(prog.dataInicio, normalizarDataFimInclusiva(prog.dataFim)),
       paineis: obra?.quantidadePaineis,
       obra,
     };
@@ -357,8 +366,7 @@ export default function Equipes() {
       progAtual.dataInicio,
       progAtual.dataFim,
       programacoes || [],
-      id, // ignora a própria tarefa
-      false
+      id // ignora a própria tarefa
     );
 
     if (conflitos.length > 0) {
@@ -567,7 +575,6 @@ export default function Equipes() {
         equipes={equipes || []}
         programacoes={programacoes || []}
         onMudarEquipe={handleMudarEquipe}
-        onReorder={handleReorder}
       />
 
       {/* Gaveta de Filtros Avançados: */}

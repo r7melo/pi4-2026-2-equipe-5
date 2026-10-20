@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   buscarObra,
@@ -63,8 +64,12 @@ export function useEditarObra() {
       void queryClient.invalidateQueries({ queryKey: ["obra", variables.id] });
       toast.success("Dados da obra atualizados com sucesso.");
     },
-    onError: () => {
-      toast.error("Erro ao salvar alterações da obra.");
+    onError: (err: unknown) => {
+      let mensagem = "Erro ao atualizar dados da obra. Tente novamente.";
+      if (axios.isAxiosError<{ error?: { message?: string } }>(err) && err.response?.data?.error?.message) {
+        mensagem = String(err.response.data.error.message);
+      }
+      toast.error(mensagem);
     },
   });
 }

@@ -12,4 +12,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="../../database/migrations/20261018_expansao_modelo.sql"
+                      LogicalName="Backend.Api.Migrations.20261018_expansao_modelo.sql" />
+  </ItemGroup>
+
 </Project>

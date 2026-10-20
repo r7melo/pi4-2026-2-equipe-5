@@ -1,5 +1,5 @@
 // frontend/src/pages/CronogramaPublico.tsx
-// RF-16 & Rota #21: Tela de Visualização Pública Somente-Leitura do Cronograma Gantt
+// RF-16 & Rota #37: Tela de Visualização Pública Somente-Leitura do Cronograma Gantt
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +10,11 @@ import {
 } from "@/components/gantt/GanttDhtmlxWrapper";
 import { GanttToolbar } from "@/components/gantt/GanttToolbar";
 import type { NivelZoom } from "@/types";
+import {
+  normalizarDataFimInclusiva,
+  dataFimInclusivaParaDhtmlx,
+  calcularDiasUteisInclusivos,
+} from "@/lib/formatters";
 import FeedbackLoading from "@/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/components/feedback/FeedbackErro";
 import { EmptyState } from "@/components/feedback/EmptyState";
@@ -55,17 +60,20 @@ export default function CronogramaPublico() {
     return programacoes.map((p) => {
       const nomeEquipe = `Equipe ${p.equipeId}`;
       const nomeCliente = `Obra #${p.obraId}`;
+      const fimNormalizado = normalizarDataFimInclusiva(p.dataFim);
+      const duracaoCalculada = calcularDiasUteisInclusivos(p.dataInicio, fimNormalizado);
 
       return {
         id: p.id,
         text: `${nomeEquipe} — ${nomeCliente}`,
         start_date: p.dataInicio,
-        end_date: p.dataFim,
-        duration: p.duracaoEstimadaDias,
+        end_date: dataFimInclusivaParaDhtmlx(fimNormalizado),
+        dataFimInclusiva: fimNormalizado,
+        duration: duracaoCalculada,
         equipeId: p.equipeId,
         nomeEquipe,
         nomeCliente,
-        duracaoDias: p.duracaoEstimadaDias,
+        duracaoDias: duracaoCalculada,
       };
     });
   }, [programacoes]);

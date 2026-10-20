@@ -17,7 +17,6 @@ export interface ObraCard {
   uf?: string;
   endereco?: string;
   observacoes?: string;
-  potenciaKwp?: number;
   progressoGeral?: number;
   valorTotal?: number;
   atualizadoPor?: string;
@@ -189,20 +188,21 @@ export interface ObraDetalhe {
   status: StatusObra;
   dataInicioEstimada: string;
   dataFimEstimada: string;
-  dataInicioReal: string | null;
-  dataFimReal: string | null;
+  dataInicioReal?: string | null;
+  dataFimReal?: string | null;
   cliente: {
     id: number;
     nome: string;
-    cidade: string;
+    cidade?: string | null;
   };
   pagamento: {
     id: number;
-    dataConfirmacao: string;
+    dataConfirmacao?: string | null;
     prazoContratualDias: number;
   };
   categoria?: string;
   endereco?: string;
+  descricao?: string | null;
   quantidadePaineis?: number;
   quantidadeInversores?: number;
   potenciaKwp?: number;
@@ -229,19 +229,17 @@ export interface ComentarioObra {
 
 /** Payload para edição de obra (PUT /api/obras/{id} - Rota #9 do Contrato / UC-17) */
 export interface EditarObraPayload {
-  clienteNome?: string;
-  clienteTelefone?: string;
-  clienteEmail?: string;
-  endereco?: string;
   cidade?: string;
-  estado?: string;
-  cep?: string;
-  tipoInstalacao?: string;
-  potenciaKwp?: number;
-  valorTotal?: number;
-  responsavelId?: number;
-  dataInicio?: string;
-  previsaoFim?: string;
-  observacoes?: string;
+  categoria?: "Residencial" | "Comercial";
+  quantidadePaineis?: number;
+  quantidadeInversores?: number;
+  endereco?: string;
+  descricao?: string;
+  dataInicioEstimada?: string;
+  dataFimEstimada?: string;
+  pagamento?: {
+    prazoContratualDias?: number;
+    dataConfirmacao?: string;
+  };
 }
 

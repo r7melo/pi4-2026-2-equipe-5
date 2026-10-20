@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -7,7 +8,7 @@ import {
   deletarProgramacao,
 } from "@/services/programacoes";
 import type { Programacao, ReordenarProgramacaoResposta } from "@/types";
-import { calcularDiasUteisEntre } from "@/lib/formatters";
+import { calcularDiasUteisInclusivos } from "@/lib/formatters";
 
 export function useProgramacoes() {
   return useQuery({
@@ -40,7 +41,7 @@ export function useReordenarProgramacao() {
           if (p.id !== id) return p;
           const dataIni = novaDataInicio || p.dataInicio;
           const dataFim = novaDataFim || p.dataFim;
-          const novaDuracao = Math.max(1, calcularDiasUteisEntre(dataIni, dataFim));
+          const novaDuracao = Math.max(1, calcularDiasUteisInclusivos(dataIni, dataFim));
           return {
             ...p,
             dataInicio: dataIni,
@@ -61,7 +62,7 @@ export function useReordenarProgramacao() {
           if (p.id !== resposta.id) return p;
           const novaDuracao = Math.max(
             1,
-            calcularDiasUteisEntre(resposta.novaDataInicio, resposta.novaDataFim)
+            calcularDiasUteisInclusivos(resposta.novaDataInicio, resposta.novaDataFim)
           );
           return {
             ...p,
@@ -80,7 +81,7 @@ export function useReordenarProgramacao() {
             if (!afetada) return p;
             const novaDuracao = Math.max(
               1,
-              calcularDiasUteisEntre(afetada.novaDataInicio, afetada.novaDataFim)
+              calcularDiasUteisInclusivos(afetada.novaDataInicio, afetada.novaDataFim)
             );
             return {
               ...p,
@@ -104,12 +105,20 @@ export function useReordenarProgramacao() {
       }
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(["programacoes"], context.previous);
       }
-      toast.error("Erro ao reordenar alocação. Posição revertida.");
+      let mensagem = "Erro ao reordenar alocação. Posição revertida.";
+      if (axios.isAxiosError(err)) {
+        const dados = err.response?.data as
+          | { message?: string; error?: { message?: string } }
+          | undefined;
+        mensagem = dados?.message || dados?.error?.message || mensagem;
+      }
+      toast.error(mensagem);
     },
+
 
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });

@@ -13,8 +13,6 @@ import {
   Loader2,
   AlertTriangle,
   Users,
-  Pencil,
-  Check,
 } from "lucide-react";
 import type { ObraCard, Programacao } from "@/types";
 import { obterConflitosEquipe } from "@/lib/ganttCalculos";
@@ -22,13 +20,12 @@ import { COLUNAS_KANBAN } from "@/constants/kanbanStatus";
 import {
   formatarDiasUteis,
   formatarDataBR,
-  dataFimExclusivaParaUltimoDiaUtil,
-  ultimoDiaUtilParaDataFimExclusiva,
+  normalizarDataFimInclusiva,
+  calcularDiasUteisInclusivos,
 } from "@/lib/formatters";
 import { useHomologacao } from "@/hooks/api/useObras";
 import { ConfirmDialog } from "@/components/feedback/ConfirmDialog";
 import { Drawer } from "@/components/ui/Drawer";
-import { toast } from "sonner";
 
 export interface TarefaDetalhes {
   id: number;
@@ -51,7 +48,6 @@ interface GanttTaskDrawerProps {
   equipes?: { id: number; nome: string }[];
   programacoes?: Programacao[];
   onMudarEquipe?: (id: number, novaEquipeId: number) => Promise<void>;
-  onReorder?: (id: number, novaDataInicio: string, novaDataFim: string) => void;
 }
 
 const DEFAULT_PROGRAMACOES: Programacao[] = [];
@@ -64,44 +60,10 @@ export function GanttTaskDrawer({
   equipes,
   programacoes = DEFAULT_PROGRAMACOES,
   onMudarEquipe,
-  onReorder,
 }: GanttTaskDrawerProps) {
   const navigate = useNavigate();
   const [confirmarDesalocacao, setConfirmarDesalocacao] = useState(false);
   const [mudandoEquipe, setMudandoEquipe] = useState(false);
-  const [editandoTermino, setEditandoTermino] = useState(false);
-  const [novoTerminoInput, setNovoTerminoInput] = useState("");
-
-  // Limpa o modo de edição se a tarefa selecionada mudar
-  const [prevTarefaId, setPrevTarefaId] = useState<number | undefined>(tarefa?.id);
-  if (tarefa?.id !== prevTarefaId) {
-    setPrevTarefaId(tarefa?.id);
-    setEditandoTermino(false);
-    setNovoTerminoInput("");
-  }
-
-  const handleIniciarEdicaoTermino = () => {
-    if (!tarefa) return;
-    setNovoTerminoInput(dataFimExclusivaParaUltimoDiaUtil(tarefa.dataFim));
-    setEditandoTermino(true);
-  };
-
-  const handleSalvarTermino = () => {
-    if (!tarefa || !novoTerminoInput) return;
-    const dataInicioLimpa = String(tarefa.dataInicio).split(/[T ]/)[0];
-    if (novoTerminoInput < dataInicioLimpa) {
-      toast.error("Data de término não pode ser anterior à data de início.");
-      return;
-    }
-    const dataFimExclusiva = ultimoDiaUtilParaDataFimExclusiva(novoTerminoInput);
-    onReorder?.(tarefa.id, tarefa.dataInicio, dataFimExclusiva);
-    setEditandoTermino(false);
-  };
-
-  const handleCancelarEdicaoTermino = () => {
-    setEditandoTermino(false);
-    setNovoTerminoInput("");
-  };
 
   const { data: homologacao, isLoading: carregandoHomologacao } = useHomologacao(
     tarefa?.obraId
@@ -208,52 +170,11 @@ export function GanttTaskDrawer({
                 </span>
               </div>
 
-              <div className="p-3 bg-surface border border-border-subtle rounded-xl shadow-2xs relative group">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-muted-foreground block text-[10px]">Término (Último dia)</span>
-                  {canEdit && !editandoTermino && (
-                    <button
-                      type="button"
-                      onClick={handleIniciarEdicaoTermino}
-                      className="text-subtle-foreground hover:text-info p-0.5 rounded transition-colors cursor-pointer"
-                      title="Editar término"
-                      aria-label="Editar data de término"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-
-                {editandoTermino ? (
-                  <div className="flex items-center gap-1 mt-1">
-                    <input
-                      type="date"
-                      value={novoTerminoInput}
-                      onChange={(e) => setNovoTerminoInput(e.target.value)}
-                      className="text-xs bg-surface border border-info rounded px-1.5 py-0.5 font-medium text-foreground-secondary focus:outline-none focus:ring-1 focus:ring-info w-full"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSalvarTermino}
-                      className="p-1 bg-info text-primary-foreground rounded hover:bg-info-hover cursor-pointer"
-                      title="Salvar término"
-                    >
-                      <Check className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancelarEdicaoTermino}
-                      className="p-1 bg-muted text-foreground-muted rounded hover:bg-border-subtle cursor-pointer"
-                      title="Cancelar"
-                    >
-                      <span className="text-[10px] font-bold px-0.5">✕</span>
-                    </button>
-                  </div>
-                ) : (
-                  <span className="font-semibold text-foreground-secondary text-sm">
-                    {formatarDataBR(dataFimExclusivaParaUltimoDiaUtil(tarefa.dataFim))}
-                  </span>
-                )}
+              <div className="p-3 bg-surface border border-border-subtle rounded-xl shadow-2xs">
+                <span className="text-muted-foreground block text-[10px] mb-0.5">Término (Último dia)</span>
+                <span className="font-semibold text-foreground-secondary text-sm">
+                  {formatarDataBR(normalizarDataFimInclusiva(tarefa.dataFim))}
+                </span>
               </div>
             </div>
 
@@ -261,7 +182,11 @@ export function GanttTaskDrawer({
               <span className="flex items-center gap-1.5 font-medium">
                 <Clock className="w-4 h-4 text-info" /> Duração Útil Estimada:
               </span>
-              <span className="font-bold">{formatarDiasUteis(tarefa.duracaoDias)}</span>
+              <span className="font-bold">
+                {formatarDiasUteis(
+                  calcularDiasUteisInclusivos(tarefa.dataInicio, normalizarDataFimInclusiva(tarefa.dataFim))
+                )}
+              </span>
             </div>
           </div>
 
@@ -291,7 +216,7 @@ export function GanttTaskDrawer({
                 >
                   {equipes.map((eq) => {
                     const conflitos = programacoes
-                      ? obterConflitosEquipe(eq.id, tarefa.dataInicio, tarefa.dataFim, programacoes, tarefa.id, false)
+                      ? obterConflitosEquipe(eq.id, tarefa.dataInicio, tarefa.dataFim, programacoes, tarefa.id)
                       : [];
                     const ocupada = conflitos.length > 0;
                     return (

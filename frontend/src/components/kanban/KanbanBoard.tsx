@@ -196,7 +196,6 @@ export default function KanbanBoard({
             c !== atual ||
             c.clienteNome !== atual.clienteNome ||
             c.valorTotal !== atual.valorTotal ||
-            c.potenciaKwp !== atual.potenciaKwp ||
             c.quantidadePaineis !== atual.quantidadePaineis ||
             c.categoria !== atual.categoria ||
             c.dataFimEstimada !== atual.dataFimEstimada ||

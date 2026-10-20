@@ -1,4 +1,4 @@
-  import { Zap, Calendar, User } from "lucide-react";
+import { Sun, Calendar, User } from "lucide-react";
 import type { ObraCard } from "@/types";
 import { cn } from "@/lib/utils";
 import {
@@ -74,10 +74,10 @@ export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCa
         </span>
         <span
           className="text-[10px] text-muted-foreground font-medium flex items-center gap-1"
-          title={`${card.quantidadePaineis} painéis (${card.potenciaKwp || Number(((card.quantidadePaineis * 550) / 1000).toFixed(1))} kWp)`}
+          title={`${card.quantidadePaineis} painéis`}
         >
-          <Zap className="w-3 h-3 text-subtle-foreground shrink-0" />
-          {card.potenciaKwp ? `${card.potenciaKwp} kWp` : `${card.quantidadePaineis} painéis`}
+          <Sun className="w-3 h-3 text-subtle-foreground shrink-0" />
+          {`${card.quantidadePaineis} painéis`}
         </span>
       </div>
 

@@ -123,3 +123,6 @@ Thumbs.db
 *.bak
 *.tmp
 *.temp
+
+# Backup local do banco de dados
+/pi4_db_backup.sql

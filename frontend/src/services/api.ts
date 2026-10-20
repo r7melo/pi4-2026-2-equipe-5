@@ -1,9 +1,18 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-const rawBaseUrl = ((import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:8000")
+// VITE_API_URL é a raiz do backend (sem /api), compartilhada com o hub do SignalR
+const rawBaseUrl = (
+  typeof window !== "undefined" && window.location.protocol === "https:"
+    ? window.location.origin
+    : (import.meta.env.VITE_API_URL as string | undefined) ||
+      (typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.hostname}:8000`
+        : "http://localhost:8000")
+)
   .replace(/\/api\/?$/, "")
   .replace(/\/+$/, "");
+
 const API_BASE_URL = `${rawBaseUrl}/api`;
 
 /**
