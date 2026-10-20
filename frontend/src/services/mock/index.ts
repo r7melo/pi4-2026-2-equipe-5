@@ -234,21 +234,32 @@ mock.onGet(/\/obras\/?(\?.*)?$/).reply((config) => {
 mock.onPost(/\/obras\/?(\?.*)?$/).reply((config) => {
   try {
     const payload = extrairDados<{
-      clienteNome: string;
+      clienteId?: number;
+      cliente?: { nome: string; cidade?: string };
+      clienteNome?: string;
       cidade?: string;
       quantidadePaineis: number;
       dataInicioEstimada: string;
       dataFimEstimada: string;
     }>(config.data);
 
-    const novaObra = adicionarObraArmazenada(payload);
+    const nomeCliente =
+      payload.cliente?.nome ||
+      payload.clienteNome ||
+      (payload.clienteId ? `Cliente #${payload.clienteId}` : "Cliente Cadastrado");
+
+    const novaObra = adicionarObraArmazenada({
+      ...payload,
+      clienteNome: nomeCliente,
+      cidade: payload.cliente?.cidade || payload.cidade,
+    });
 
     return [
       201,
       {
         id: novaObra.id,
         status: novaObra.status,
-        clienteId: 1,
+        clienteId: payload.clienteId || 1,
         dataInicioEstimada: payload.dataInicioEstimada,
         dataFimEstimada: payload.dataFimEstimada,
         dataInicioReal: null,
@@ -260,6 +271,7 @@ mock.onPost(/\/obras\/?(\?.*)?$/).reply((config) => {
     return [400, { error: { code: "INVALID_PAYLOAD", message: "Erro ao cadastrar obra mockada" } }];
   }
 });
+
 
 // PATCH /obras/:id/status (atualiza status e persiste no sessionStorage)
 mock.onPatch(/\/obras\/\d+\/status\/?(\?.*)?$/).reply((config) => {

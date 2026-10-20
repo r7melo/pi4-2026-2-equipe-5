@@ -40,35 +40,61 @@ export async function moverStatusObra(
 
 /** POST /api/obras — Rota #7 do Contrato (RF-03) */
 export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
-  // O backend C# rejeita se clienteId e clienteNome forem enviados juntos:
+  // O backend C# rejeita se clienteId e cliente forem enviados juntos:
   // "Informe clienteId (cliente existente) ou cliente (cliente novo), não os dois."
-  const clienteIdEfetivo = payload.clienteId || 1;
-  const corpo = {
-    clienteId: clienteIdEfetivo,
-    categoria: payload.categoria || "Residencial",
-    quantidadePaineis: payload.quantidadePaineis,
-    quantidadeInversores: payload.quantidadeInversores ?? 1,
-    endereco: payload.endereco || `${payload.cidade || "Campinas"} - Centro`,
-    dataInicioEstimada: payload.dataInicioEstimada,
-    dataFimEstimada: payload.dataFimEstimada,
-    pagamento: {
-      prazoContratualDias: payload.pagamento.prazoContratualDias,
-      dataConfirmacao:
-        payload.pagamento.dataConfirmacao ||
-        new Date().toISOString().split("T")[0],
-    },
+  const pagamento = {
+    prazoContratualDias: payload.pagamento.prazoContratualDias,
+    dataConfirmacao:
+      payload.pagamento.dataConfirmacao ||
+      new Date().toISOString().split("T")[0],
   };
+
+  const enderecoEfetivo =
+    payload.endereco ||
+    (payload.cliente?.endereco ? `${payload.cliente.endereco}` : undefined) ||
+    `${payload.cidade || "Campinas"} - Centro`;
+
+  const corpo = payload.cliente
+    ? {
+        cliente: {
+          nome: payload.cliente.nome.trim(),
+          cpfCnpj: payload.cliente.cpfCnpj.replace(/\D/g, ""),
+          cidade: payload.cliente.cidade?.trim() || payload.cidade?.trim(),
+          endereco: payload.cliente.endereco?.trim() || enderecoEfetivo,
+          telefone: payload.cliente.telefone?.trim() || undefined,
+          email: payload.cliente.email?.trim() || undefined,
+          dadosContrato: payload.cliente.dadosContrato || undefined,
+        },
+        categoria: payload.categoria || "Residencial",
+        quantidadePaineis: payload.quantidadePaineis,
+        quantidadeInversores: payload.quantidadeInversores ?? 1,
+        endereco: enderecoEfetivo,
+        dataInicioEstimada: payload.dataInicioEstimada,
+        dataFimEstimada: payload.dataFimEstimada,
+        pagamento,
+      }
+    : {
+        clienteId: payload.clienteId || 1,
+        categoria: payload.categoria || "Residencial",
+        quantidadePaineis: payload.quantidadePaineis,
+        quantidadeInversores: payload.quantidadeInversores ?? 1,
+        endereco: enderecoEfetivo,
+        dataInicioEstimada: payload.dataInicioEstimada,
+        dataFimEstimada: payload.dataFimEstimada,
+        pagamento,
+      };
 
   const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", corpo);
   return {
     id: resposta.id,
-    clienteNome: payload.clienteNome || "Cliente Cadastrado",
+    clienteNome: payload.cliente?.nome || payload.clienteNome || "Cliente Cadastrado",
     status: (resposta.status as StatusObra) || "MaterialComprado",
     categoria: (payload.categoria as CategoriaObra) || "Residencial",
     quantidadePaineis: payload.quantidadePaineis,
     dataFimEstimada: resposta.dataFimEstimada || payload.dataFimEstimada,
   };
 }
+
 
 /** GET /api/obras/{id} — Rota #5 do Contrato */
 export async function buscarObra(id: number): Promise<ObraDetalhe> {
