@@ -38,12 +38,31 @@ export async function moverStatusObra(
   return data;
 }
 
-/** POST /api/obras — Rota #3 do Contrato (Retorna ObraCard para preservar CadastrarObra.tsx) */
+/** POST /api/obras — Rota #7 do Contrato (RF-03) */
 export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
-  const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", payload);
+  // O backend C# rejeita se clienteId e clienteNome forem enviados juntos:
+  // "Informe clienteId (cliente existente) ou cliente (cliente novo), não os dois."
+  const clienteIdEfetivo = payload.clienteId || 1;
+  const corpo = {
+    clienteId: clienteIdEfetivo,
+    categoria: payload.categoria || "Residencial",
+    quantidadePaineis: payload.quantidadePaineis,
+    quantidadeInversores: payload.quantidadeInversores ?? 1,
+    endereco: payload.endereco || `${payload.cidade || "Campinas"} - Centro`,
+    dataInicioEstimada: payload.dataInicioEstimada,
+    dataFimEstimada: payload.dataFimEstimada,
+    pagamento: {
+      prazoContratualDias: payload.pagamento.prazoContratualDias,
+      dataConfirmacao:
+        payload.pagamento.dataConfirmacao ||
+        new Date().toISOString().split("T")[0],
+    },
+  };
+
+  const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", corpo);
   return {
     id: resposta.id,
-    clienteNome: payload.clienteNome,
+    clienteNome: payload.clienteNome || "Cliente Cadastrado",
     status: (resposta.status as StatusObra) || "MaterialComprado",
     categoria: (payload.categoria as CategoriaObra) || "Residencial",
     quantidadePaineis: payload.quantidadePaineis,

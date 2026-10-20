@@ -29,22 +29,36 @@ interface ToastState {
   mensagem: string;
 }
 
+const CLIENTES_BASE = [
+  { id: 1, nome: "Rede Alfa Supermercados", cidade: "Campinas" },
+  { id: 2, nome: "Indústria Metalúrgica Ramos", cidade: "Sorocaba" },
+  { id: 3, nome: "Residencial Vista Verde — Bloco A", cidade: "Campinas" },
+  { id: 4, nome: "Fazenda Santa Maria", cidade: "Itapetininga" },
+  { id: 5, nome: "Hospital São Lucas", cidade: "Santos" },
+  { id: 6, nome: "Condomínio Solar das Flores", cidade: "São Paulo" },
+  { id: 7, nome: "Posto Alvorada Combustíveis", cidade: "Guarulhos" },
+  { id: 8, nome: "Granja Silva", cidade: "Itu" },
+  { id: 9, nome: "Escola Estadual Dom Pedro II", cidade: "Campinas" },
+  { id: 10, nome: "Shopping Bela Vista", cidade: "São Bernardo do Campo" },
+];
+
 export default function CadastrarObra() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<ToastState | null>(null);
-
+  const [clienteIdSelecionado, setClienteIdSelecionado] = useState<number | undefined>(1);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<NovaObraInput, unknown, NovaObraFormData>({
     resolver: zodResolver(novaObraSchema),
     mode: "onBlur",
     defaultValues: {
-      clienteNome: "",
-      cidade: "",
+      clienteNome: CLIENTES_BASE[0].nome,
+      cidade: CLIENTES_BASE[0].cidade,
       dataInicioEstimada: "",
       dataFimEstimada: "",
       quantidadePaineis: undefined,
@@ -57,6 +71,7 @@ export default function CadastrarObra() {
   const onSubmit = async (dados: NovaObraFormData) => {
     try {
       const payload: CriarObraPayload = {
+        clienteId: clienteIdSelecionado,
         clienteNome: dados.clienteNome.trim(),
         cidade: dados.cidade.trim(),
         endereco: `${dados.cidade.trim()} - Centro`,
@@ -93,12 +108,17 @@ export default function CadastrarObra() {
       setTimeout(() => {
         void navigate("/kanban");
       }, 700);
-    } catch (erro) {
+    } catch (erro: unknown) {
       console.error("Falha ao criar obra:", erro);
+      const errObj = erro as { response?: { data?: { error?: { message?: string } } } };
+      const mensagem =
+        errObj?.response?.data?.error?.message ||
+        (erro instanceof Error ? erro.message : "Erro ao cadastrar obra. Tente novamente.");
       setToast({
         tipo: "erro",
-        mensagem: erro instanceof Error ? erro.message : "Erro ao cadastrar obra. Tente novamente.",
+        mensagem,
       });
+      sonnerToast.error(mensagem);
     }
   };
 
@@ -149,6 +169,30 @@ export default function CadastrarObra() {
                 <User className="w-5 h-5 text-slate-400" /> Dados do Cliente
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="md:col-span-2 flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-slate-700">
+                    Cliente Vinculado <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={clienteIdSelecionado || ""}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      setClienteIdSelecionado(id || undefined);
+                      const c = CLIENTES_BASE.find((item) => item.id === id);
+                      if (c) {
+                        setValue("clienteNome", c.nome, { shouldValidate: true });
+                        setValue("cidade", c.cidade, { shouldValidate: true });
+                      }
+                    }}
+                    className="w-full text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition-colors"
+                  >
+                    {CLIENTES_BASE.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome} — {c.cidade}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="md:col-span-2">
                   <Input
                     label="Nome / Razão Social"
