@@ -65,8 +65,8 @@ export default function DetalheObra() {
         <PageHeader title="Detalhes da Obra" subtitle="Falha de conexão" backTo={paginaOrigem} backState={backState} />
         <FeedbackErro
           titulo="Falha ao carregar detalhes da obra"
-          mensagem={(error as Error)?.message || "Não foi possível buscar as informações da obra. Verifique se o servidor está ativo."}
-          onTentarNovamente={() => void refetch()}
+          mensagem={error instanceof Error ? error.message : "Não foi possível buscar as informações da obra. Verifique se o servidor está ativo."}
+          onTentarNovamente={() => { void refetch(); }}
         />
       </div>
     );
@@ -83,7 +83,7 @@ export default function DetalheObra() {
           descricao={`Não encontramos nenhum registro de obra com o identificador #${obraId} no banco de dados.`}
           acao={{
             label: "Voltar para o Funil Kanban",
-            onClick: () => navigate("/kanban"),
+            onClick: () => { void navigate("/kanban"); },
           }}
         />
       </div>
@@ -91,6 +91,8 @@ export default function DetalheObra() {
   }
 
   const clienteNome = obra.cliente?.nome || "Cliente sem identificação";
+  const paineis = obra.quantidadePaineis ?? 0;
+  const potenciaCalculada = obra.potenciaKwp ?? Number(((paineis * 550) / 1000).toFixed(1));
 
   // 4. ESTADO COM DADOS (SUCESSO)
   return (
@@ -135,7 +137,7 @@ export default function DetalheObra() {
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Capacidade Instalada</p>
                     <p className="text-sm font-semibold text-foreground">
-                      {obra.quantidadePaineis} módulos solares
+                      {obra.quantidadePaineis} módulos solares ({potenciaCalculada} kWp)
                     </p>
                     {obra.quantidadeInversores ? (
                       <p className="text-xs text-muted-foreground mt-0.5">
