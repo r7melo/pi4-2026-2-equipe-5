@@ -1,23 +1,23 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import Kanban from "./pages/Kanban";
-import CadastrarObra from "./pages/CadastrarObra";
-import AndamentoHomologacao from "./pages/AndamentoHomologacao";
-import LinkInstaladores from "./pages/LinkInstaladores";
-import Equipes from "./pages/Equipes";
-import DetalheObra from "./pages/DetalheObra";
-import MateriaisObra from "./pages/MateriaisObra";
-import Relatorios from "./pages/Relatorios";
-import Financeiro from "./pages/Financeiro";
-import RelatorioPublico from "./pages/RelatorioPublico";
-import CronogramaPublico from "./pages/CronogramaPublico";
+import Login from "@/features/auth/pages/Login";
+import Kanban from "@/features/kanban/pages/Kanban";
+import CadastrarObra from "@/features/obras/pages/CadastrarObra";
+import AndamentoHomologacao from "@/features/homologacao/pages/AndamentoHomologacao";
+import LinkInstaladores from "@/features/materiais/pages/LinkInstaladores";
+import Equipes from "@/features/cronograma/pages/Equipes";
+import DetalheObra from "@/features/obras/pages/DetalheObra";
+import MateriaisObra from "@/features/materiais/pages/MateriaisObra";
+import Relatorios from "@/features/financeiro/pages/Relatorios";
+import Financeiro from "@/features/financeiro/pages/Financeiro";
+import RelatorioPublico from "@/features/financeiro/pages/RelatorioPublico";
+import CronogramaPublico from "@/features/cronograma/pages/CronogramaPublico";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
-import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import DashboardLayout from "./layouts/DashboardLayout";
-import { useThemeStore, aplicarTemaNoDOM } from "./stores/useThemeStore";
+import { ReloadPrompt } from "@/shared/components/pwa/ReloadPrompt";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
+import DashboardLayout from "@/shared/layouts/DashboardLayout";
+import { useThemeStore, aplicarTemaNoDOM } from "@/shared/stores/useThemeStore";
 
 const queryClient = new QueryClient({
   defaultOptions: {

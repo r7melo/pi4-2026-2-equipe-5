@@ -1,10 +1,13 @@
-// Barramento canônico de tipos da aplicação ZL Engenharia
-export * from "./auth";
-export * from "./common";
-export * from "./equipes";
-export * from "./gantt";
-export * from "./materiais";
-export * from "./obras";
-export * from "./programacoes";
-export * from "./relatorios";
-export * from "./theme";
+// frontend/src/types/index.ts
+// Fachada central de agregação e retrocompatibilidade para importações de @/types
+export * from "@/shared/types/common";
+export * from "@/shared/types/theme";
+export * from "@/features/auth/types/auth";
+export * from "@/features/kanban/types/kanban";
+export * from "@/features/cronograma/types/equipes";
+export * from "@/features/cronograma/types/gantt";
+export * from "@/features/cronograma/types/programacoes";
+export * from "@/features/obras/types/obras";
+export * from "@/features/obras/types/obrasCadastro";
+export * from "@/features/financeiro/types/relatorios";
+export * from "@/features/materiais/types/materiais";

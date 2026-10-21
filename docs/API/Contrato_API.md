@@ -829,12 +829,11 @@ A numeração das rotas mudou nesta versão do contrato para seguir `docs/Requis
 | 20 | 31, 32 | `GET /api/mobile/{token}` **substituída** pelas rotas do instalador com login (ADR-007, questão Q3) |
 | 21 | 37 | `GET /api/cronograma/compartilhado/{token}` |
 
-Status de implementação (Sprint 3 — PR #73):
-- **JWT & RBAC:** Implementados e ativos em todas as rotas protegidas (`Autenticacao.cs`, `Sessao.cs`, `Perfis.cs`). O login em `POST /api/auth/login` gera token JWT assinado e valida os perfis canônicos (`Administrador`, `EngenhariaObras`, `Financeiro`, `InstaladorCampo`). Bloqueio automático de conta após 5 tentativas consecutivas de senha incorreta (`423 ACCOUNT_LOCKED`).
-- **Auditoria (`audit_log`):** Gravação transacional implementada para transições de status de obra, desalocações e alterações financeiras.
-- **Rotas de Comentários, Equipes e Gantt:** Rotas #16 a #19 (comentários), #20 e #21 (equipes com ocupação) e #22 a #24 (programações/Gantt) plenamente implementadas nos controllers backend.
-- **Validações:** Validação de dígitos de CPF/CNPJ e formato de e-mail implementadas em `Validacoes.cs`.
-- **`PATCH /api/obras/{id}/status`:** `emailNotificacaoEnviado` é retornado como `false` quando o envio de e-mail externo estiver desacoplado/pendente de fila.
+Limitações desta etapa:
+- **Sem JWT/RBAC:** as rotas estão abertas (sem `403`). O login valida os usuários do banco (senha do seed: `Senha123!`) e retorna um token fixo `token-fixo-{idUsuario}`, aceito por `GET /api/auth/me` no header `Authorization: Bearer ...`.
+- **Histórico:** registros criados sem token são atribuídos ao Administrador (id 1). `GET /api/obras/{id}/historico` retorna do mais recente para o mais antigo.
+- **`PATCH /api/obras/{id}/status`:** `emailNotificacaoEnviado` é sempre `false` (envio de e-mail ainda não implementado).
+- As rotas implementadas já aceitam parte dos campos novos (`endereco`, `cpfCnpj`), mas ainda não seguem por completo esta versão do contrato (ex.: `quantidadeInversores`, `tipoAcao`). O ajuste fica na issue #65.
 
 ## 6. Divergências em aberto com o banco
 
@@ -847,6 +846,7 @@ Continuam diferentes dos requisitos:
 
 ## 7. Próximos passos
 
-- Manter testes de integração ponta a ponta e auditoria com o frontend via Docker (`docker compose up --build`).
-- Resolver as questões Q1 (arredondamento da duração) e Q2 (feriados) nas regras de propagação de cronograma.
+- Ajustar as rotas já implementadas aos campos desta versão do contrato e implementar as rotas novas da Sprint 3 (issue #65).
+- Implementar JWT, RBAC e `audit_log` em todas as rotas protegidas.
+- Resolver as questões Q1 (arredondamento da duração) e Q2 (feriados) antes de fechar as rotas #23 e #24.
 - Este documento deve ser atualizado sempre que um novo caso de uso ou requisito for adicionado/alterado.
