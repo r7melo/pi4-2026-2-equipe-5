@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { fazerLogin, mapearRespostaParaUsuario } from "@/features/auth/services/auth";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token, usuario, login } = useAuthStore();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -26,15 +28,17 @@ export default function Login() {
     }
   }, []);
 
+  // Fonte única de redirecionamento canônico: acionada tanto para usuários já autenticados quanto pós-login
   useEffect(() => {
     if (token && usuario) {
-      if (usuario.perfil?.nomePerfil === "InstaladorCampo") {
-        void navigate("/linkparainstaladores");
-      } else {
-        void navigate("/kanban");
-      }
+      const perfilNome = usuario.perfil?.nomePerfil;
+      const destino = obterELimparRotaRetorno(
+        perfilNome,
+        (location.state as { from?: string } | null)?.from
+      );
+      void navigate(destino, { replace: true });
     }
-  }, [token, usuario, navigate]);
+  }, [token, usuario, navigate, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,13 +48,8 @@ export default function Login() {
     try {
       const resposta = await fazerLogin(email, senha);
       const usuarioFormatado = mapearRespostaParaUsuario(resposta.usuario);
-      login(resposta.token, usuarioFormatado);
-
-      if (usuarioFormatado.perfil?.nomePerfil === "InstaladorCampo") {
-        void navigate("/linkparainstaladores");
-      } else {
-        void navigate("/kanban");
-      }
+      // Injeta token, usuario e expiresAt no Zustand; o redirecionamento ocorre via useEffect de forma reativa
+      login(resposta.token, usuarioFormatado, resposta.expiresAt);
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao efetuar login. Tente novamente.");
     } finally {

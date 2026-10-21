@@ -1,5 +1,7 @@
 import axios from "axios";
+import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { salvarRotaRetorno, TOAST_ID_SESSAO_EXPIRADA } from "@/shared/lib/rotasSessao";
 
 // VITE_API_URL é a raiz do backend (sem /api), compartilhada com o hub do SignalR
 export const BACKEND_ROOT_URL = (
@@ -45,7 +47,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor de Response: Captura 401 para logout forçado, exceto em rotas públicas e no login
+// Interceptor de Response: Captura 401 para logout forçado com proteção anti-thundering herd
 api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
@@ -53,10 +55,21 @@ api.interceptors.response.use(
       const url = error.config?.url || "";
       const isRotaLogin = url.includes("/auth/login");
       const isRotaPublica =
-        url.includes("/cronograma/compartilhado") || url.includes("/mobile");
+        url.includes("/cronograma/compartilhado") ||
+        url.includes("/relatorio-publico") ||
+        url.includes("/mobile");
 
       if (!isRotaLogin && !isRotaPublica) {
-        useAuthStore.getState().logout();
+        // Guarda anti-thundering herd: só processa o salvamento e emissão se o operador ainda constar logado
+        if (useAuthStore.getState().token !== null) {
+          if (typeof window !== "undefined") {
+            salvarRotaRetorno(window.location.pathname + window.location.search);
+          }
+          useAuthStore.getState().logout();
+          toast.error("Sua sessão expirou. Faça login novamente para continuar.", {
+            id: TOAST_ID_SESSAO_EXPIRADA,
+          });
+        }
       }
     }
     return Promise.reject(error instanceof Error ? error : new Error(String(error)));

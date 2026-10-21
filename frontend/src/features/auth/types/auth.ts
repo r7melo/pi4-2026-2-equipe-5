@@ -30,3 +30,11 @@ export interface LoginResposta {
     equipeId: number | null;
   };
 }
+
+export interface AuthState {
+  token: string | null;
+  usuario: Usuario | null;
+  expiresAt: string | null;
+  login: (token: string, usuario: Usuario, expiresAt?: string) => void;
+  logout: () => void;
+}

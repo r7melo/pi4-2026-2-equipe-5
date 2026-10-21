@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
 import type { NomePerfil } from "@/types";
@@ -10,8 +10,17 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps = {}) {
   const token = useAuthStore((s) => s.token);
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const location = useLocation();
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) {
+    return (
+      <Navigate
+        to="/login"
+        state={{ from: location.pathname + location.search }}
+        replace
+      />
+    );
+  }
 
   // Segurança (Fail Closed): Se exige role, mas o perfil é indefinido ou não autorizado -> Bloqueia.
   if (allowedRoles) {
@@ -21,7 +30,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps = {}) {
           <div className="w-14 h-14 rounded-full bg-destructive-light text-destructive flex items-center justify-center mb-4">
             <ShieldAlert className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground-secondary">403 - Acesso Negado</h2>
+          <h2 className="text-2xl font-bold text-foreground-secondary">Acesso Negado</h2>
           <p className="text-muted-foreground mt-2 max-w-md">
             Você não tem permissão para visualizar esta página.
           </p>

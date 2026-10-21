@@ -18,6 +18,7 @@ import { ReloadPrompt } from "@/shared/components/pwa/ReloadPrompt";
 import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import DashboardLayout from "@/shared/layouts/DashboardLayout";
 import { useThemeStore, aplicarTemaNoDOM } from "@/shared/stores/useThemeStore";
+import SessionLifecycleSentinel from "@/features/auth/components/SessionLifecycleSentinel";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +50,7 @@ function App() {
       <Toaster richColors position="top-right" theme={tema} />
       <ReloadPrompt />
       <BrowserRouter>
+        <SessionLifecycleSentinel />
         <Routes>
           {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
           <Route path="/" element={<Login />} />

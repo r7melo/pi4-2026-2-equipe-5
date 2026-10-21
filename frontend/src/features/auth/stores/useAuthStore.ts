@@ -1,12 +1,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Usuario } from "@/types";
+import type { AuthState } from "../types/auth";
 
-interface AuthState {
-  token: string | null;
-  usuario: Usuario | null;
-  login: (token: string, usuario: Usuario) => void;
-  logout: () => void;
+function calcularFallback480Min(): string {
+  return new Date(Date.now() + 480 * 60 * 1000).toISOString();
 }
 
 function migrarEstadoLegado(): void {
@@ -14,6 +12,18 @@ function migrarEstadoLegado(): void {
   try {
     const authStorage = localStorage.getItem("auth-storage");
     if (authStorage) {
+      try {
+        const parsed = JSON.parse(authStorage) as {
+          state?: { token?: string | null; usuario?: Usuario | null; expiresAt?: string | null };
+        };
+        // Se existir sessão com token mas sem expiresAt, injeta deterministamente o fallback
+        if (parsed?.state && parsed.state.token && !parsed.state.expiresAt) {
+          parsed.state.expiresAt = calcularFallback480Min();
+          localStorage.setItem("auth-storage", JSON.stringify(parsed));
+        }
+      } catch {
+        // Ignora JSON corrompido
+      }
       localStorage.removeItem("token");
       localStorage.removeItem("usuario");
       return;
@@ -33,7 +43,11 @@ function migrarEstadoLegado(): void {
       localStorage.setItem(
         "auth-storage",
         JSON.stringify({
-          state: { token: tokenLegado || null, usuario: usuarioLegado },
+          state: {
+            token: tokenLegado || null,
+            usuario: usuarioLegado,
+            expiresAt: calcularFallback480Min(),
+          },
           version: 0,
         })
       );
@@ -52,20 +66,28 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       usuario: null,
-      login: (token, usuario) => {
-        set({ token, usuario });
+      expiresAt: null,
+      login: (token, usuario, expiresAt) => {
+        const expiracaoValida =
+          expiresAt && !Number.isNaN(new Date(expiresAt).getTime())
+            ? expiresAt
+            : calcularFallback480Min();
+
+        set({ token, usuario, expiresAt: expiracaoValida });
       },
       logout: () => {
-        set({ token: null, usuario: null });
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
-        }
+        // Encerramento puramente em estado (SPA); sem recarga imperativa de window.location.href
+        set({ token: null, usuario: null, expiresAt: null });
       },
     }),
     {
       name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ token: state.token, usuario: state.usuario }),
+      partialize: (state) => ({
+        token: state.token,
+        usuario: state.usuario,
+        expiresAt: state.expiresAt,
+      }),
     }
   )
 );

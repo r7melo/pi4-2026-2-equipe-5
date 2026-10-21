@@ -152,7 +152,7 @@ mock.onPost(/\/auth\/login\/?(\?.*)?$/).reply((config) => {
 
     const resposta = {
       token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}`,
-      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      expiresAt: new Date(Date.now() + 480 * 60 * 1000).toISOString(),
       usuario: {
         id: usuarioMock.id,
         nome: usuarioMock.nome,
