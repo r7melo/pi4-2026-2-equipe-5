@@ -205,7 +205,6 @@ export interface ObraDetalhe {
   descricao?: string | null;
   quantidadePaineis?: number;
   quantidadeInversores?: number;
-  potenciaKwp?: number;
   valorTotal?: number;
 }
 

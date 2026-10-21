@@ -8,7 +8,7 @@ Abaixo é apresentado o modelo textual atualizado, refletindo o fluxo de gestão
 - **PROGRAMACAO_OBRA**: campo `duracao_estimada_dias` (Decimal) — usado na lógica de reordenação com propagação de atrasos em dias úteis (RF-09).
 - **MATERIAL**: campos `quantidade_utilizada` (Int, opcional), `custo_unitario` (Decimal(12,2), opcional) e status logístico (`Comprado`, `EmTransito`, `Disponivel`, `Utilizado`).
 - **HISTORICO_OBRA**: campo `tipo_acao` (String: `Cadastro`, `MudancaStatus`, `Comentario`, `ManutencaoConcluida`, `AlteracaoFinanceira`).
-- **HOMOLOGAÇÃO (RF-17)**: A entidade `HOMOLOGACAO` e seu relacionamento 1:1 foram retirados do escopo ativo da fase atual, em conformidade com [docs/Requisitos/02-requisitos.md](file:///c:/Users/jakel/Music/Ciência%20da%20Computação/CC%202026.2/PI%20-%20IV/pi4-2026-2-equipe-5/docs/Requisitos/02-requisitos.md).
+- **HOMOLOGAÇÃO (RF-17)**: A entidade `HOMOLOGACAO` e seu relacionamento 1:1 foram retirados do escopo ativo da fase atual.
 
 ## 5.1. Relacionamentos principais
 

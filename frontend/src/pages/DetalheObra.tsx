@@ -91,8 +91,6 @@ export default function DetalheObra() {
   }
 
   const clienteNome = obra.cliente?.nome || "Cliente sem identificação";
-  const paineis = obra.quantidadePaineis ?? 0;
-  const potenciaCalculada = obra.potenciaKwp ?? Number(((paineis * 550) / 1000).toFixed(1));
 
   // 4. ESTADO COM DADOS (SUCESSO)
   return (
@@ -137,7 +135,7 @@ export default function DetalheObra() {
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Capacidade Instalada</p>
                     <p className="text-sm font-semibold text-foreground">
-                      {obra.quantidadePaineis} módulos solares ({potenciaCalculada} kWp)
+                      {obra.quantidadePaineis ?? 0} módulos solares
                     </p>
                     {obra.quantidadeInversores ? (
                       <p className="text-xs text-muted-foreground mt-0.5">
