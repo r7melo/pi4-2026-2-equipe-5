@@ -26,6 +26,7 @@ Prioridades seguem MoSCoW (Must, Should, Could, Won't). A coluna **Situação** 
 | RF-18 | Modo display | Could | Pendente |
 | RF-19 | Módulo do instalador de campo | Must | Em andamento |
 | RF-20 | DRE da obra | Must | Pendente |
+| RF-21 | Recuperação e atualização de senha | Should | Pendente |
 
 ### RF-01: Autenticação e gestão de perfis
 
@@ -836,6 +837,67 @@ Funcionalidade: Relatório financeiro da obra (DRE da obra)
     E que o DRE de uma obra concluída está emitido
     Quando ele exporta o DRE em PDF ou Excel
     Então o sistema gera e disponibiliza o arquivo para download
+```
+
+### RF-21: Recuperação e atualização de senha
+
+- O usuário solicita a recuperação de senha informando seu e-mail cadastrado.
+- O sistema envia um e-mail com link de redefinição de senha de uso único e com validade de 1 hora.
+- O link expirado ou já utilizado retorna mensagem de link inválido ou expirado.
+- O sistema não confirma nem nega se o e-mail existe, sempre exibindo a mesma mensagem de envio (proteção contra enumeração).
+- A nova senha deve atender à política mínima de segurança: ao menos 8 caracteres, uma letra maiúscula, uma minúscula e um número.
+- Após a redefinição, todos os tokens de acesso do usuário são invalidados.
+- Usuário autenticado pode alterar a própria senha informando a senha atual e a nova senha.
+
+**Critérios de aceite:**
+
+```gherkin
+# language: pt
+@RF-21 @UC-35 @UC-36
+Funcionalidade: Recuperação e atualização de senha
+
+  Cenário: Solicitação de recuperação de senha com e-mail cadastrado
+    Dado que existe um usuário cadastrado com o e-mail "engenharia@zlengenharia.com"
+    Quando ele solicita a recuperação de senha informando esse e-mail
+    Então o sistema envia um e-mail com link de redefinição de senha
+    E exibe a mensagem "Se o e-mail informado estiver cadastrado, você receberá as instruções de redefinição"
+
+  Cenário: Solicitação de recuperação de senha com e-mail não cadastrado
+    Dado que o e-mail "naoexiste@zl.com.br" não está cadastrado
+    Quando o usuário solicita recuperação de senha informando esse e-mail
+    Então o sistema exibe a mesma mensagem "Se o e-mail informado estiver cadastrado, você receberá as instruções de redefinição"
+    E não revela se o e-mail existe ou não no sistema
+
+  Cenário: Redefinição de senha com link válido
+    Dado que o usuário recebeu um link de redefinição de senha válido
+    Quando ele acessa o link e define uma nova senha que atende à política de segurança
+    Então o sistema atualiza a senha do usuário
+    E invalida todos os tokens de acesso ativos do usuário
+    E exibe mensagem de sucesso
+
+  Cenário: Redefinição de senha com link expirado
+    Dado que o link de redefinição de senha expirou ou já foi utilizado
+    Quando o usuário tenta acessar esse link
+    Então o sistema exibe a mensagem "Link inválido ou expirado"
+    E não permite a redefinição da senha
+
+  Cenário: Nova senha não atende à política de segurança
+    Dado que o usuário está na tela de redefinição de senha com link válido
+    Quando ele define uma nova senha que não atende à política mínima de segurança
+    Então o sistema exibe mensagem informando os requisitos mínimos da senha
+    E não atualiza a senha
+
+  Cenário: Usuário autenticado altera a própria senha
+    Dado que o usuário está autenticado no sistema
+    Quando ele informa a senha atual correta e uma nova senha que atende à política de segurança
+    Então o sistema atualiza a senha
+    E invalida todos os tokens de acesso ativos do usuário
+
+  Cenário: Usuário autenticado informa senha atual incorreta
+    Dado que o usuário está autenticado no sistema
+    Quando ele tenta alterar a senha informando a senha atual incorreta
+    Então o sistema rejeita a alteração
+    E exibe a mensagem "Senha atual incorreta"
 ```
 
 ## Requisitos não funcionais
