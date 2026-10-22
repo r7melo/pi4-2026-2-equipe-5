@@ -1,54 +1,52 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:16-alpine
+    restart: always
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "127.0.0.1:${DB_PORT}:5432"
+    # Mantém a porta acessível APENAS dentro da rede interna dos containers
+    expose:
+      - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./database:/docker-entrypoint-initdb.d   # roda 01_schema.sql e 02_seed.sql na primeira subida
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
       timeout: 5s
       retries: 5
-
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://${HOST_IP:-localhost}:${BACKEND_PORT}
-      - VITE_API_PROXY_TARGET=http://backend:8000
-      - USE_SSL=${USE_SSL:-false}
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    ports:
-      - "${BACKEND_PORT}:8000"
+    restart: always
+    expose:
+      - "8000"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - JWT_SECRET=${JWT_SECRET:?Configure um JWT_SECRET unico com pelo menos 32 caracteres no .env}
+      - ASPNETCORE_ENVIRONMENT=Production
+      - JWT_SECRET=${JWT_SECRET}
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
-    volumes:
-      - ./backend:/app
-      - /app/Backend.Api/bin
-      - /app/Backend.Api/obj
     depends_on:
       db:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: prod # Força o build final do Nginx/produção
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=${VITE_API_URL}
+    depends_on:
+      - backend
 
 volumes:
   pgdata:

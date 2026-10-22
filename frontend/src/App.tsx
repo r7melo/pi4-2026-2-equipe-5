@@ -18,6 +18,7 @@ import { ReloadPrompt } from "@/shared/components/pwa/ReloadPrompt";
 import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import DashboardLayout from "@/shared/layouts/DashboardLayout";
 import { useThemeStore, aplicarTemaNoDOM } from "@/shared/stores/useThemeStore";
+import { ApiModeSwitcher } from "@/shared/components/dev/ApiModeSwitcher";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +49,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Toaster richColors position="top-right" theme={tema} />
       <ReloadPrompt />
+      {/* Popup de seleção de API — visível somente em desenvolvimento */}
+      <ApiModeSwitcher />
       <BrowserRouter>
         <Routes>
           {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
