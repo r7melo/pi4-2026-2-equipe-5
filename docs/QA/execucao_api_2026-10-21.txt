@@ -1,0 +1,73 @@
+== CT-01 Autenticação
+OK      | CT-01 p5 login admin | esperado 200 | obtido 200
+OK      | CT-01 p5 perfil | esperado Administrador | obtido Administrador
+OK      | CT-01 p5 sem senha na resposta | esperado False | obtido False
+OK      | CT-01 p6 senha errada | esperado 401 | obtido 401
+OK      | CT-01 p4 email inexistente | esperado 401 | obtido 401
+OK      | CT-01 p7 me sem token | esperado 401 | obtido 401
+== CT-02 RBAC
+OK      | CT-02 p3 leitor cria obra | esperado 403 | obtido 403
+OK      | CT-02 p4 instalador move card | esperado 403 | obtido 403
+FALHOU  | CT-02 p5 engenharia relatorio-custo | esperado 403 | obtido 404 | {"error":{"code":"ROUTE_NOT_FOUND","message":"A rota GET /api/obras/307/relatorio-custo não existe."}}
+FALHOU  | CT-02 p6 financeiro relatorio-custo | esperado 200 | obtido 404 | {"error":{"code":"ROUTE_NOT_FOUND","message":"A rota GET /api/obras/307/relatorio-custo não existe."}}
+OK      | CT-02 p7 engenharia exclui comentario | esperado 403 | obtido 403
+OK      | CT-02 p8 admin exclui comentario (711) | esperado 204 | obtido 204
+== CT-03 Kanban
+OK      | CT-03 p2 pular etapa | esperado 400 | obtido 400
+OK      | CT-03 p2 codigo | esperado INVALID_STATUS_TRANSITION | obtido INVALID_STATUS_TRANSITION
+OK      | CT-03 p3 concluido para inicio | esperado 400 | obtido 400
+OK      | CT-03 p4 transicao valida | esperado 200 | obtido 200
+OK      | CT-03 p6 historico 301 | esperado 2 | obtido 2
+OK      | CT-03 p7 filtro EmAndamento | esperado [305, 306] | obtido [305, 306]
+== CT-04 Gantt
+OK      | CT-04 p2 equipe 01 | esperado [601, 602, 607] | obtido [601, 602, 607]
+FALHOU  | CT-04 p4 alocar obra 310 | esperado 201 | obtido 400 | {"error":{"code":"VALIDATION_ERROR","message":"A obra 310 ainda não está apta para instalação (status atual: MaterialComprado). Os materiais precisam estar separados (status Separado)."}}
+OK      | CT-04 p5 conflito equipe 01 | esperado 409 | obtido 409
+== CT-05 Custo
+FALHOU  | CT-05 p2 financeiro | esperado 200 | obtido 404 | {"error":{"code":"ROUTE_NOT_FOUND","message":"A rota GET /api/obras/307/relatorio-custo não existe."}}
+FALHOU  | CT-05 p2 custoTotal | esperado 31700.0 | obtido  | {"error":{"code":"ROUTE_NOT_FOUND","message":"A rota GET /api/obras/307/relatorio-custo não existe."}}
+FALHOU  | CT-05 p3 admin | esperado 200 | obtido 404 | {"error":{"code":"ROUTE_NOT_FOUND","message":"A rota GET /api/obras/307/relatorio-custo não existe."}}
+FALHOU  | CT-05 p6 obra nao concluida | esperado 400 | obtido 404 | {"error":{"code":"ROUTE_NOT_FOUND","message":"A rota GET /api/obras/301/relatorio-custo não existe."}}
+== CT-06 Cadastro com cliente
+OK      | CT-06 p1 cliente existente | esperado 201 | obtido 201
+OK      | CT-06 p1 status inicial | esperado MaterialComprado | obtido MaterialComprado
+OK      | CT-06 p2 sem cliente | esperado 400 | obtido 400
+OK      | CT-06 p3 cliente inexistente | esperado 404 | obtido 404
+OK      | CT-06 p3 codigo | esperado CLIENTE_NOT_FOUND | obtido CLIENTE_NOT_FOUND
+OK      | CT-06 p4 cnpj invalido | esperado 400 | obtido 400
+OK      | CT-06 p5 cnpj duplicado | esperado 409 | obtido 409
+OK      | CT-06 p6 cliente novo | esperado 201 | obtido 201
+OK      | CT-06 p7 historico obra nova | esperado 1 | obtido 1
+== CT-08 Instalador
+OK      | CT-08 p1 login | esperado 200 | obtido 200
+OK      | CT-08 p1 equipe | esperado 3 | obtido 3
+OK      | CT-08 p2 so a propria equipe | esperado [605, 606] | obtido [605, 606]
+OK      | CT-08 p3 obra da equipe | esperado 200 | obtido 200
+OK      | CT-08 p4 obra de outra equipe | esperado 403 | obtido 403
+OK      | CT-08 p5 lista geral | esperado 403 | obtido 403
+OK      | CT-08 p6 mover card | esperado 403 | obtido 403
+OK      | CT-08 p7 historico | esperado 403 | obtido 403
+== CT-09 Propagação (depende do CT-04 nao ter mexido na equipe 01)
+OK      | CT-09 p2 reordenar 601 | esperado 200 | obtido 200
+OK      | CT-09 p2 601 | esperado 2026-10-05 2026-10-06 | obtido 2026-10-05 2026-10-06
+OK      | CT-09 p3 afetadas | esperado [(602, '2026-10-08', '2026-10-13'), (607, '2026-10-15', '2026-10-20')] | obtido [(602, '2026-10-08', '2026-10-13'), (607, '2026-10-15', '2026-10-20')]
+OK      | CT-09 p4 sabado | esperado 400 | obtido 400
+OK      | CT-09 p5 financeiro | esperado 403 | obtido 403
+== CT-10 Alocação de obra apta
+OK      | CT-10 p1 obra nao apta (310) | esperado 400 | obtido 400
+OK      | CT-10 p2 alocar 304 | esperado 201 | obtido 201
+OK      | CT-10 p2 termino | esperado 2026-11-12 | obtido 2026-11-12
+OK      | CT-10 p3 status 304 | esperado EmAndamento | obtido EmAndamento
+OK      | CT-10 p4 ultimo historico | esperado Separado EmAndamento | obtido Separado EmAndamento
+OK      | CT-10 p5 conflito | esperado 409 | obtido 409
+OK      | CT-10 p6 sabado | esperado 400 | obtido 400
+== CT-15 Comentários
+OK      | CT-15 p1 vazio | esperado 400 | obtido 400
+OK      | CT-15 p2 engenharia comenta | esperado 201 | obtido 201
+OK      | CT-15 p3 financeiro no cartao | esperado 403 | obtido 403
+OK      | CT-15 p4 financeiro na timeline | esperado 201 | obtido 201
+OK      | CT-15 p5 engenharia edita | esperado 403 | obtido 403
+OK      | CT-15 p6 admin edita | esperado 200 | obtido 200
+OK      | CT-15 p7 admin exclui | esperado 204 | obtido 204
+
+Passou: 54 | Falhou: 7
