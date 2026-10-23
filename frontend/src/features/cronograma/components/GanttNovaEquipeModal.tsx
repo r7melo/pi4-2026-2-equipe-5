@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useLayoutEffect, useRef } from "react";
 import { Users, UserCheck, Loader2 } from "lucide-react";
 import { Modal } from "@/shared/components/ui/Modal";
 import { useCriarEquipe, useInstaladoresDisponiveis } from "@/features/cronograma/hooks/useEquipes";
@@ -8,9 +8,15 @@ interface GanttNovaEquipeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEquipeCriada?: (equipeId: number) => void;
+  podeInteragir: () => boolean;
 }
 
-export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttNovaEquipeModalProps) {
+export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada, podeInteragir }: GanttNovaEquipeModalProps) {
+  const montadoRef = useRef(false);
+  useLayoutEffect(() => {
+    montadoRef.current = true;
+    return () => { montadoRef.current = false; };
+  }, []);
   const [nome, setNome] = useState("");
   const [especialidade, setEspecialidade] = useState("");
   const [selecionados, setSelecionados] = useState<number[]>([]);
@@ -20,12 +26,13 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
   const { mutateAsync: cadastrarEquipe, isPending: salvando } = useCriarEquipe();
 
   const handleLimparEFechar = useCallback(() => {
+    if (!montadoRef.current || !podeInteragir()) return;
     setNome("");
     setEspecialidade("");
     setSelecionados([]);
     setResponsavelId(null);
     onClose();
-  }, [onClose]);
+  }, [onClose, podeInteragir]);
 
 
 
@@ -41,6 +48,7 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!montadoRef.current || !podeInteragir() || salvando) return;
     if (!nome.trim()) return toast.warning("Informe o nome da equipe.");
     if (selecionados.length === 0) return toast.warning("Selecione ao menos um instalador para a equipe.");
     if (!responsavelId) return toast.warning("Defina o responsável da equipe.");
@@ -55,9 +63,8 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada }: GanttN
       toast.success(`Equipe "${nome}" cadastrada com sucesso!`, {
         description: "Equipe pronta para alocação no cronograma Gantt.",
       });
-      if (onEquipeCriada) {
-        onEquipeCriada(novaEquipe.id);
-      }
+      if (!montadoRef.current || !podeInteragir()) return;
+      onEquipeCriada?.(novaEquipe.id);
       handleLimparEFechar();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao cadastrar equipe.";

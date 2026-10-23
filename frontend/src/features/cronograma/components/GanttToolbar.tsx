@@ -23,6 +23,7 @@ interface GanttToolbarProps {
   onAbrirCompartilhar?: () => void;
   onAbrirFiltros?: () => void;
   totalFiltrosAtivos?: number;
+  modoAtivo?: boolean;
 }
 
 const NIVEIS: { valor: NivelZoom; label: string }[] = [
@@ -46,6 +47,7 @@ export function GanttToolbar({
   onAbrirCompartilhar,
   onAbrirFiltros,
   totalFiltrosAtivos = 0,
+  modoAtivo = false,
 }: GanttToolbarProps) {
   const temFiltroData = Boolean(dataFiltroInicio || dataFiltroFim);
 
@@ -76,7 +78,7 @@ export function GanttToolbar({
         ))}
       </div>
 
-      <div className="h-4 w-px bg-border-subtle hidden sm:block shrink-0" />
+      {onToggleGrade && <div className="h-4 w-px bg-border-subtle hidden sm:block shrink-0" />}
 
       {onToggleGrade && (
         <button
@@ -93,7 +95,7 @@ export function GanttToolbar({
         </button>
       )}
 
-      {onAbrirFiltros && (
+      {!modoAtivo && onAbrirFiltros && (
         <button
           onClick={onAbrirFiltros}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-all cursor-pointer shrink-0 ${
@@ -113,7 +115,7 @@ export function GanttToolbar({
         </button>
       )}
 
-      {onDataInicioChange && onDataFimChange && (
+      {!modoAtivo && onDataInicioChange && onDataFimChange && (
         <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-md px-2 py-1 text-xs shrink-0">
           <span className="text-muted-foreground font-medium text-[11px]">De:</span>
           <input
@@ -141,9 +143,10 @@ export function GanttToolbar({
         </div>
       )}
 
-      <div className="h-4 w-px bg-border-subtle hidden sm:block shrink-0" />
+      {!modoAtivo && (onImprimir || onAbrirCompartilhar) &&
+        <div className="h-4 w-px bg-border-subtle hidden sm:block shrink-0" />}
 
-      {onImprimir && (
+      {!modoAtivo && onImprimir && (
         <button
           onClick={onImprimir}
           className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-foreground-muted text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
@@ -154,7 +157,7 @@ export function GanttToolbar({
         </button>
       )}
 
-      {onAbrirCompartilhar && (
+      {!modoAtivo && onAbrirCompartilhar && (
         <button
           onClick={onAbrirCompartilhar}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-info hover:bg-info-hover text-primary-foreground text-xs font-semibold shadow-xs transition-all active:scale-[0.97] cursor-pointer shrink-0"
