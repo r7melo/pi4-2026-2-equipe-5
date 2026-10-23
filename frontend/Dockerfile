@@ -6,7 +6,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --frozen-lockfile
+RUN npm ci
 
 # =============================================================================
 # Estágio 2 — dev: servidor Vite com HMR (usado pelo docker-compose em dev)

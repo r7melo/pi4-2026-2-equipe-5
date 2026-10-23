@@ -17,13 +17,16 @@ Sistema web para gestão de obras de instalação de energia solar. Reúne o fun
 ## Executar localmente
 
 ```bash
+cp env.example .env        # defina JWT_SECRET (mínimo 32 caracteres: openssl rand -hex 32)
 docker compose up --build
 ```
 
 | Serviço | Endereço |
 | :---- | :---- |
 | Frontend | http://localhost:3000 |
-| API | http://localhost:8000/api |
+| API (direta, para depuração) | http://localhost:8000/api |
+
+O navegador acessa só o frontend: o nginx encaminha `/api` e `/hubs` ao backend. O schema e o seed são aplicados automaticamente na primeira subida do volume do banco.
 
 Para carregar o banco do zero (o seed só roda na criação do volume):
 

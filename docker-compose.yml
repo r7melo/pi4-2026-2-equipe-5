@@ -1,35 +1,42 @@
-version: '3.8'
+# Sobe o sistema completo: banco + API + frontend (nginx).
+# Uso:  cp env.example .env   (preencha JWT_SECRET)   e depois   docker compose up --build
+# Acesso: http://localhost:3000  (o nginx do frontend encaminha /api e /hubs para o backend)
 
 services:
   db:
     image: postgres:16-alpine
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    # Mantém a porta acessível APENAS dentro da rede interna dos containers
+      POSTGRES_USER: ${DB_USER:-pi4_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pi4_password}
+      POSTGRES_DB: ${DB_NAME:-pi4_db}
+    # Só acessível dentro da rede do Compose. Para usar um cliente SQL no host, troque por "ports".
     expose:
       - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Scripts executados em ordem alfabética, SOMENTE quando o volume pgdata é criado.
+      - ./database/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./database/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pi4_user} -d ${DB_NAME:-pi4_db}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    restart: always
-    expose:
-      - "8000"
+    restart: unless-stopped
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - JWT_SECRET=${JWT_SECRET}
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://0.0.0.0:8000
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no arquivo .env (mínimo 32 caracteres)}
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=${DB_NAME:-pi4_db};Username=${DB_USER:-pi4_user};Password=${DB_PASSWORD:-pi4_password}
+    # Exposta no host também para depuração (http://localhost:8000/api). O frontend usa o proxy do nginx.
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -38,13 +45,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: prod # Força o build final do Nginx/produção
-    restart: always
+      target: prod
+      args:
+        # Vazio = o navegador chama a mesma origem (nginx -> backend). Não é preciso informar nada.
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_USE_MOCK: "false"
+    restart: unless-stopped
     ports:
-      - "80:80"
-    environment:
-      - NODE_ENV=production
-      - VITE_API_URL=${VITE_API_URL}
+      - "3000:80"
     depends_on:
       - backend
 
