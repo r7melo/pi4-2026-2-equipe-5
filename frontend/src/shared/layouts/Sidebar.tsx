@@ -7,6 +7,7 @@ import {
   DollarSign, 
   BarChart2,
   Settings,
+  UserPlus,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -79,6 +80,12 @@ export default function Sidebar() {
       roles: ["Administrador", "Financeiro"],
     },
     {
+      label: "Usuários",
+      path: "/usuarios/novo",
+      icon: UserPlus,
+      roles: ["Administrador"],
+    },
+    {
       label: "Configurações",
       path: "/configuracoes",
       icon: Settings,
@@ -93,7 +100,8 @@ export default function Sidebar() {
     return (
       location.pathname === path ||
       (path === "/kanban" && (location.pathname === "/kanban" || location.pathname === "/cadastrarobra")) ||
-      (path === "/acompanharhomologacao" && location.pathname.startsWith("/acompanharhomologacao"))
+      (path === "/acompanharhomologacao" && location.pathname.startsWith("/acompanharhomologacao")) ||
+      (path === "/usuarios/novo" && location.pathname.startsWith("/usuarios"))
     );
   };
 

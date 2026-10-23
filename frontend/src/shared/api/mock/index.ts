@@ -32,6 +32,13 @@ import {
   excluirObraArmazenada,
   MOCK_INSTALADORES_DISPONIVEIS,
   adicionarEquipeArmazenada,
+  obterUsuariosCriados,
+  salvarUsuariosCriados,
+  gerarHashSenhaMock,
+  validarCadastroUsuarioMock,
+  usuarioPersistidoParaMock,
+  buscarUsuarioPorEmailMock,
+  equipeExisteParaUsuarioMock,
 } from "./fixtures";
 import { gerarPdfRelatorio, gerarExcelRelatorio } from "./pdfGenerator";
 import { verificarSobreposicaoPeriodos } from "@/features/cronograma/lib/ganttCalculos";
@@ -93,17 +100,42 @@ const mock = new MockAdapter(api, { delayResponse: 0 });
 
 console.log("🚧 [MOCK MODE] Backend simulado ativo com axios-mock-adapter (delay: 0ms)");
 
+function erroUsuarioMock(status: number, code: string, message: string):
+  [number, { error: { code: string; message: string } }] {
+  return [status, { error: { code, message } }];
+}
+
+function resolverUsuarioAutenticadoMock(authorization: unknown) {
+  if (typeof authorization !== "string") return undefined;
+  const match = /^Bearer mock_jwt_token_([A-Za-z0-9+/=]+)_(\d+)$/.exec(authorization);
+  if (!match) return undefined;
+  const emitidoEm = Number(match[2]);
+  const agora = Date.now();
+  if (!Number.isSafeInteger(emitidoEm) || emitidoEm <= 0 ||
+      emitidoEm > agora || agora - emitidoEm >= 480 * 60 * 1000) return undefined;
+  let email: string;
+  try {
+    email = atob(match[1]);
+  } catch {
+    return undefined;
+  }
+  return buscarUsuarioPorEmailMock(email);
+}
+
 // --- ROTAS DE AUTENTICAÇÃO ---
 
 // Contador volátil em memória de falhas de login por e-mail (RN-02 / UC-01 FA3)
 const tentativasFalhas: Record<string, number> = {};
 
 // POST /auth/login (suporta com/sem prefixo e com/sem barra)
-mock.onPost(/\/auth\/login\/?(\?.*)?$/).reply((config) => {
+mock.onPost(/\/auth\/login\/?(\?.*)?$/).reply(async (config) => {
   try {
-    const body = extrairDados<{ email?: string; senha?: string }>(config.data);
-    const email = body.email?.toLowerCase().trim() || "";
-    const senha = body.senha || "";
+    const body = extrairDados<{ email?: unknown; senha?: unknown }>(config.data);
+    if (typeof body.email !== "string" || typeof body.senha !== "string") {
+      return erroUsuarioMock(400, "INVALID_BODY", "Corpo da requisição de login inválido");
+    }
+    const email = body.email.toLowerCase().trim();
+    const senha = body.senha;
 
     // 1. Verificação de bloqueio por força bruta (RN-02: 5 falhas consecutivas)
     if (tentativasFalhas[email] && tentativasFalhas[email] >= 5) {
@@ -118,10 +150,18 @@ mock.onPost(/\/auth\/login\/?(\?.*)?$/).reply((config) => {
       ];
     }
 
-    const usuarioMock = MOCK_USUARIOS[email];
+    const criado = obterUsuariosCriados().find((usuario) => usuario.email === email);
+    const usuarioMock = criado ? usuarioPersistidoParaMock(criado)
+      : Object.hasOwn(MOCK_USUARIOS, email) ? MOCK_USUARIOS[email] : undefined;
 
     // 2. Validação canônica de credenciais (Senha padrão: Senha123!)
-    if (!usuarioMock || senha !== "Senha123!") {
+    const credencialValida = criado
+      ? (await gerarHashSenhaMock(senha)) === criado.senhaHash
+      : senha === "Senha123!";
+    if ((tentativasFalhas[email] || 0) >= 5) {
+      return erroUsuarioMock(423, "ACCOUNT_LOCKED", "Conta bloqueada por excesso de tentativas de login");
+    }
+    if (!usuarioMock || !credencialValida) {
       tentativasFalhas[email] = (tentativasFalhas[email] || 0) + 1;
 
       if (tentativasFalhas[email] >= 5) {
@@ -164,34 +204,20 @@ mock.onPost(/\/auth\/login\/?(\?.*)?$/).reply((config) => {
 
     return [200, resposta];
   } catch {
-    return [400, { error: { code: "INVALID_BODY", message: "Corpo da requisição de login inválido" } }];
+    return erroUsuarioMock(500, "INTERNAL_ERROR", "Não foi possível concluir a autenticação.");
   }
 });
 
 // GET /auth/me (identifica o usuário autenticado através do token)
 mock.onGet(/\/auth\/me\/?(\?.*)?$/).reply((config) => {
-  const authHeader = config.headers?.Authorization || "";
-  let usuario = MOCK_USUARIOS["engenharia@zlengenharia.com"];
-
   try {
-    if (authHeader.includes("mock_jwt_token_")) {
-      const match = authHeader.match(/mock_jwt_token_([A-Za-z0-9+/=]+)_/);
-      if (match && match[1]) {
-        const emailDecodificado = atob(match[1]);
-        if (MOCK_USUARIOS[emailDecodificado]) {
-          usuario = MOCK_USUARIOS[emailDecodificado];
-        }
-      }
-    } else if (authHeader.includes("admin")) {
-      usuario = MOCK_USUARIOS["admin@zl.com.br"];
-    } else if (authHeader.includes("instalador")) {
-      usuario = MOCK_USUARIOS["instalador@zl.com.br"];
-    }
+    const usuario = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!usuario) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
+    return [200, usuario];
   } catch {
-    // Mantém fallback seguro
+    // Sem fallback de perfil: falhas de armazenamento não autenticam outro usuário.
+    return erroUsuarioMock(500, "INTERNAL_ERROR", "Não foi possível consultar a sessão.");
   }
-
-  return [200, usuario];
 });
 
 // POST /auth/logout
@@ -770,6 +796,54 @@ mock.onPost(/\/equipes\/?(\?.*)?$/).reply((config) => {
   }
   const equipe = adicionarEquipeArmazenada(payload);
   return [201, equipe];
+});
+
+// POST /api/usuarios — RF-01, UC-05/06/07/09; autorização e gravação após o hash.
+mock.onPost(/\/usuarios\/?(\?.*)?$/).reply(async (config) => {
+  try {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
+    if (operador.perfil.nomePerfil !== "Administrador") {
+      return erroUsuarioMock(403, "ACCESS_DENIED", "Acesso não permitido.");
+    }
+    const parsed = validarCadastroUsuarioMock(extrairDados<unknown>(config.data));
+    if (!parsed.success) return erroUsuarioMock(400, "VALIDATION_ERROR", "Dados inválidos.");
+    const dados = parsed.data;
+    if (!equipeExisteParaUsuarioMock(dados.equipeId)) {
+      return erroUsuarioMock(404, "EQUIPE_NOT_FOUND", "Equipe não encontrada.");
+    }
+    const senhaHash = await gerarHashSenhaMock(dados.senha);
+
+    // Seção síncrona: nenhuma suspensão entre releitura, validação e persistência.
+    const operadorAtual = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operadorAtual) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
+    if (operadorAtual.perfil.nomePerfil !== "Administrador") {
+      return erroUsuarioMock(403, "ACCESS_DENIED", "Acesso não permitido.");
+    }
+    if (!equipeExisteParaUsuarioMock(dados.equipeId)) {
+      return erroUsuarioMock(404, "EQUIPE_NOT_FOUND", "Equipe não encontrada.");
+    }
+    const usuarios = obterUsuariosCriados();
+    if (Object.hasOwn(MOCK_USUARIOS, dados.email) ||
+        usuarios.some((usuario) => usuario.email === dados.email)) {
+      return erroUsuarioMock(409, "EMAIL_ALREADY_EXISTS", "E-mail já cadastrado.");
+    }
+    const maiorId = [...Object.values(MOCK_USUARIOS), ...usuarios]
+      .reduce((maior, usuario) => Math.max(maior, usuario.id), 0);
+    const id = maiorId + 1;
+    if (!Number.isSafeInteger(id)) throw new Error("Identificador indisponível.");
+    const novo = {
+      id, nome: dados.nome, email: dados.email, perfil: dados.perfil,
+      equipeId: dados.equipeId, ativo: true as const, senhaHash,
+    };
+    salvarUsuariosCriados([...usuarios, novo]);
+    return [201, {
+      id: novo.id, nome: novo.nome, email: novo.email, perfil: novo.perfil,
+      equipeId: novo.equipeId, ativo: novo.ativo,
+    }];
+  } catch {
+    return erroUsuarioMock(500, "INTERNAL_ERROR", "Não foi possível concluir o cadastro.");
+  }
 });
 
 // ATENÇÃO: PassThrough obrigatório para requisições não mockadas passarem livremente

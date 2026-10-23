@@ -11,3 +11,4 @@ export * from "@/features/obras/types/obras";
 export * from "@/features/obras/types/obrasCadastro";
 export * from "@/features/financeiro/types/relatorios";
 export * from "@/features/materiais/types/materiais";
+export * from "@/features/usuarios/types/usuarios";

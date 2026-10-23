@@ -9,6 +9,7 @@ const PARAMETROS_SENSIVEIS = ["token", "senha", "password", "code", "secret", "j
 const ROTAS_ESTATICAS_PERMITIDAS = new Set([
   "/kanban",
   "/equipes",
+  "/usuarios/novo",
   "/cadastrarobra",
   "/acompanharhomologacao",
   "/relatorios",
