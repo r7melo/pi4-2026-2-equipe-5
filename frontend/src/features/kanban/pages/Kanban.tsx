@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { podeVerModo } from "@/shared/lib/podeVerModo";
 import { BotaoModoDisplay } from "@/shared/components/display/BotaoModoDisplay";
@@ -17,7 +17,11 @@ import KanbanBoard from "@/features/kanban/components/KanbanBoard";
 import KanbanQuickFilters from "@/features/kanban/components/KanbanQuickFilters";
 import { useKanbanFilterStore } from "@/features/kanban/stores/useKanbanFilterStore";
 
-export default function Kanban() {
+export default function Kanban({
+  renderizarAcoesObra,
+}: {
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
+} = {}) {
   const { ativo: modoAtivo, elegivelParaModo, alturaSelo } = useModoDisplay();
   const navigate = useNavigate();
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
@@ -89,6 +93,7 @@ export default function Kanban() {
         busca={busca}
         categoriaFiltro={categoriaFiltro}
         materialFiltro={materialFiltro}
+        renderizarAcoesObra={renderizarAcoesObra}
       />
     );
   };

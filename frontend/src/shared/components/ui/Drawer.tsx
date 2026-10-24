@@ -9,6 +9,7 @@ export interface DrawerProps {
   titulo?: string;
   subtitulo?: string;
   icone?: ReactNode;
+  acoesHeader?: ReactNode;
   headerCustomizado?: ReactNode;
   tamanho?: "sm" | "md" | "lg" | "xl";
   zIndex?: string;
@@ -31,6 +32,7 @@ export function Drawer({
   titulo,
   subtitulo,
   icone,
+  acoesHeader,
   headerCustomizado,
   tamanho = "md",
   zIndex = "z-[60]",
@@ -97,40 +99,46 @@ export function Drawer({
         )}
       >
         {headerCustomizado ? (
-          <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface-subtle/50 shrink-0">
-            {headerCustomizado}
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={bloquearEscape}
-              aria-label="Fechar painel"
-              className="p-1 text-subtle-foreground hover:text-muted-foreground rounded-lg hover:bg-muted cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-border-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface-subtle/50 shrink-0 gap-3">
+            <div className="min-w-0 flex-1">{headerCustomizado}</div>
+            <div className="flex items-center gap-2 shrink-0">
+              {acoesHeader}
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={bloquearEscape}
+                aria-label="Fechar painel"
+                className="p-1 text-subtle-foreground hover:text-muted-foreground rounded-lg hover:bg-muted cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-border-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         ) : (titulo || icone) ? (
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle bg-surface-subtle/70 shrink-0">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle bg-surface-subtle/70 shrink-0 gap-3">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               {icone}
-              <div>
+              <div className="min-w-0">
                 {titulo && (
-                  <h2 className="text-base font-bold text-foreground-secondary leading-snug">
+                  <h2 className="text-base font-bold text-foreground-secondary leading-snug truncate">
                     {titulo}
                   </h2>
                 )}
-                {subtitulo && <p className="text-xs text-muted-foreground mt-0.5">{subtitulo}</p>}
+                {subtitulo && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitulo}</p>}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={bloquearEscape}
-              aria-label="Fechar painel"
-              className="p-1 text-subtle-foreground hover:text-muted-foreground rounded-lg hover:bg-muted cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-border-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {acoesHeader}
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={bloquearEscape}
+                aria-label="Fechar painel"
+                className="p-1 text-subtle-foreground hover:text-muted-foreground rounded-lg hover:bg-muted cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-border-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         ) : null}
 

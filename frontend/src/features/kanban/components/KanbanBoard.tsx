@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import {
   DndContext,
@@ -34,6 +34,7 @@ interface KanbanBoardProps {
   categoriaFiltro: string;
   materialFiltro: string;
   somenteLeitura?: boolean;
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
 }
 
 const STATUS_TODOS: StatusObra[] = [...COLUNAS_KANBAN.map((c) => c.id)];
@@ -63,6 +64,7 @@ export default function KanbanBoard({
   categoriaFiltro,
   materialFiltro,
   somenteLeitura = false,
+  renderizarAcoesObra,
 }: KanbanBoardProps) {
   const [activeCard, setActiveCard] = useState<ObraCard | null>(null);
   const [initialContainer, setInitialContainer] = useState<StatusObra | null>(null);
@@ -499,7 +501,8 @@ export default function KanbanBoard({
           <KanbanTaskDrawer card={drawerCard} isOpen={Boolean(drawerCard)}
             onClose={() => {
               if (montadoRef.current && podeInteragir(epochRender)) setDrawerCard(null);
-            }} />
+            }}
+            renderizarAcoesObra={renderizarAcoesObra} />
           <ModalConfirmarConclusao obra={obraParaConcluir} isOpen={Boolean(obraParaConcluir)}
             onClose={handleCancelarConclusao} onConfirmar={handleConfirmarConclusao}
             isLoading={moverCardMutation.isPending} />

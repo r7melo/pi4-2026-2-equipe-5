@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import {
   ExternalLink,
   Package,
@@ -39,6 +39,7 @@ interface KanbanTaskDrawerProps {
   card: ObraCard | null;
   isOpen: boolean;
   onClose: () => void;
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
 }
 
 interface FormAbaDadosProps {
@@ -183,7 +184,12 @@ function FormAbaDados({
   );
 }
 
-export default function KanbanTaskDrawer({ card, isOpen, onClose }: KanbanTaskDrawerProps) {
+export default function KanbanTaskDrawer({
+  card,
+  isOpen,
+  onClose,
+  renderizarAcoesObra,
+}: KanbanTaskDrawerProps) {
   const navigate = useNavigate();
   const [abaAtiva, setAbaAtiva] = useState<AbaDrawer>("dados");
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
@@ -282,6 +288,7 @@ export default function KanbanTaskDrawer({ card, isOpen, onClose }: KanbanTaskDr
         isOpen={isOpen}
         onClose={onClose}
         titulo={`Obra #${cardEfetivo.id}`}
+        acoesHeader={renderizarAcoesObra ? renderizarAcoesObra(cardEfetivo.id) : undefined}
         tamanho="lg"
       >
         <div className="flex-1 min-h-0 flex flex-col space-y-4 p-5 overflow-hidden">

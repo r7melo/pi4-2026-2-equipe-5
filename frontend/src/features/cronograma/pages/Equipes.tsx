@@ -1,4 +1,4 @@
-import { useState, useMemo, useLayoutEffect, useRef, type SetStateAction } from "react";
+import { useState, useMemo, useLayoutEffect, useRef, type SetStateAction, type ReactNode } from "react";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
 import type { GanttFiltrosAvancados } from "@/types";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
@@ -44,7 +44,11 @@ import "@/features/cronograma/components/gantt.css";
 
 const HOJE_ISO = formatarDataISO(new Date());
 
-export default function Equipes() {
+export default function Equipes({
+  renderizarAcoesObra,
+}: {
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
+} = {}) {
   const { ativo: modoAtivo, elegivelParaModo, alturaSelo, lerEpoch, podeInteragir } = useModoDisplay();
   const epochRender = lerEpoch();
   const nivelZoom = useGanttStore((s) => s.nivelZoom);
@@ -571,6 +575,7 @@ export default function Equipes() {
         equipes={equipes || []}
         programacoes={programacoes || []}
         onMudarEquipe={handleMudarEquipe}
+        renderizarAcoesObra={renderizarAcoesObra}
       />
 
       {/* Gaveta de Filtros Avançados: */}

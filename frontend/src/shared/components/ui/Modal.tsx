@@ -26,9 +26,10 @@ export function Modal({
   zIndex = "z-50",
   fecharBloqueado = false,
   className,
-  ariaLabelledBy = "modal-titulo",
+  ariaLabelledBy,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const tituloId = ariaLabelledBy || (titulo ? "modal-titulo" : undefined);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -72,7 +73,7 @@ export function Modal({
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={titulo ? ariaLabelledBy : undefined}
+        aria-labelledby={tituloId}
         onClick={(e) => e.stopPropagation()}
         className={cn(
           "w-full max-w-lg bg-surface rounded-xl shadow-2xl border border-border-subtle overflow-hidden transform transition-all",
@@ -85,7 +86,7 @@ export function Modal({
               {icone}
               <div>
                 {titulo && (
-                  <h3 id={ariaLabelledBy} className="text-base font-semibold text-foreground-secondary">
+                  <h3 id={tituloId} className="text-base font-semibold text-foreground-secondary">
                     {titulo}
                   </h3>
                 )}

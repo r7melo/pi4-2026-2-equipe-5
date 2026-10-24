@@ -1,10 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "@/features/auth/pages/Login";
-import Kanban from "@/features/kanban/pages/Kanban";
+import { Kanban, Equipes } from "@/composition/RotasOperacionais";
 import CadastrarObra from "@/features/obras/pages/CadastrarObra";
 import AndamentoHomologacao from "@/features/homologacao/pages/AndamentoHomologacao";
 import LinkInstaladores from "@/features/materiais/pages/LinkInstaladores";
-import Equipes from "@/features/cronograma/pages/Equipes";
 import DetalheObra from "@/features/obras/pages/DetalheObra";
 import MateriaisObra from "@/features/materiais/pages/MateriaisObra";
 import Relatorios from "@/features/financeiro/pages/Relatorios";
