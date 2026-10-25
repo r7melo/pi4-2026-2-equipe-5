@@ -1,5 +1,8 @@
 import { useLayoutEffect, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
+import { deveExibirErroLocal, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
+
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { toast } from "sonner";
 import { moverStatusObra } from "../services/kanban";
@@ -24,13 +27,14 @@ export function useMoverCard() {
 
   const moverMutation = useMutation({
     mutationKey: ["obras"],
-    mutationFn: async ({ cardId, novoStatus, observacao }: MoverCardVariables) => {
-      return moverStatusObra(Number(cardId), novoStatus, observacao);
+    mutationFn: async ({ cardId, novoStatus, observacao }: MoverCardVariables, sessao) => {
+      return moverStatusObra(Number(cardId), novoStatus, observacao, sessao);
     },
-    onMutate: async ({ cardId, novoStatus, epochInicio }) => {
+    onMutate: async ({ cardId, novoStatus, epochInicio }, _contexto, sessao) => {
       const epochOperacao = epochInicio ?? lerEpoch();
       // Cancela queries ativas para evitar sobrescrever a atualização otimista
       await queryClient.cancelQueries({ queryKey: ["obras"] });
+      exigirSessaoOperacional(sessao);
 
       // Snapshot do estado anterior para permitir rollback perfeito
       const previousObras = queryClient.getQueryData<ListaObras>(["obras"]);
@@ -53,6 +57,7 @@ export function useMoverCard() {
         queryClient.setQueryData(["obras"], context.previousObras);
       }
       console.error("Falha ao mover card:", err);
+      if (!deveExibirErroLocal(err)) return;
       const epochOperacao = context?.epochOperacao ?? variables.epochInicio;
       toast.error("Falha ao mover o card. A posição foi restaurada.", {
         action: epochOperacao !== undefined && montadoRef.current && podeInteragir(epochOperacao) ? {

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { toast } from "sonner";
+import { capturarSessaoOperacional, exigirSessaoOperacional, registrarErro403, sessaoOperacionalVigente } from "@/shared/lib/sessaoOperacao";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
 import { salvarRotaRetorno, TOAST_ID_SESSAO_EXPIRADA } from "@/shared/lib/rotasSessao";
 
@@ -41,6 +42,8 @@ export const api = axios.create({
 // Interceptor de Request: Injeta JWT automaticamente em todas as chamadas
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
+  if (config.sessao403 !== undefined) exigirSessaoOperacional(config.sessao403);
+  config.sessao403 ??= capturarSessaoOperacional();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -51,6 +54,29 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
+    if (axios.isAxiosError(error) && error.response?.status === 403 && error.config) {
+      const config = error.config;
+      const metodo = (config.method || "get").toUpperCase();
+      const caminho = new URL(config.url || "", config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
+      const publico = caminho === "/auth/login" ||
+        (metodo === "GET" && (/^\/cronograma\/compartilhado\/[^/]+\/?$/.test(caminho) ||
+          /^\/relatorio-publico(?:\/|$)/.test(caminho) || /^\/mobile(?:\/|$)/.test(caminho)));
+      if (!publico && config.responseType !== "blob") {
+        const sessao = config.sessao403 ?? -1;
+        const mutacao = ["POST", "PUT", "PATCH", "DELETE"].includes(metodo);
+        const avisoGlobal = mutacao && !config.suprimirToast403;
+        const mensagem = mutacao ? "Você não possui permissão para realizar esta ação." : "Você não possui permissão para visualizar este recurso.";
+        error.message = mensagem;
+        const corpo: unknown = error.response.data;
+        const campos = corpo !== null && typeof corpo === "object" && !Array.isArray(corpo) ? corpo : {};
+        const envelope = "error" in campos && campos.error !== null && typeof campos.error === "object" ? campos.error : {};
+        error.response.data = { ...campos, message: mensagem, error: { ...envelope, message: mensagem } };
+        registrarErro403(error, { sessao, avisoGlobal });
+        if (avisoGlobal && sessaoOperacionalVigente(sessao)) {
+          toast.error(mensagem, { id: "acesso-proibido-403" });
+        }
+      }
+    }
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const url = error.config?.url || "";
       const isRotaLogin = url.includes("/auth/login");

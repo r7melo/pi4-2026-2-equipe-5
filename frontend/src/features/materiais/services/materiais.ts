@@ -10,8 +10,9 @@ export async function listarMateriais(obraId: number): Promise<Material[]> {
 /** POST /api/obras/{obraId}/materiais — Rota #9 do Contrato */
 export async function registrarMaterial(
   obraId: number,
-  payload: CriarMaterialPayload | Omit<Material, "id" | "obraId">
+  payload: CriarMaterialPayload | Omit<Material, "id" | "obraId">,
+  sessao403?: number
 ): Promise<Material> {
-  const { data } = await api.post<Material>(`/obras/${obraId}/materiais`, payload);
+  const { data } = await api.post<Material>(`/obras/${obraId}/materiais`, payload, { sessao403 });
   return data;
 }

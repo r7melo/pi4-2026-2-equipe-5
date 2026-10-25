@@ -1,9 +1,12 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
+
+import type { CriarUsuarioPayload } from "../types/usuarios";
 import { criarUsuario, listarEquipesOpcoes } from "../services/usuarios";
 
 export function useCriarUsuario() {
   return useMutation({
-    mutationFn: criarUsuario,
+    mutationFn: (dados: CriarUsuarioPayload, sessao) => criarUsuario(dados, sessao),
     retry: false,
     networkMode: "always",
     gcTime: 0,

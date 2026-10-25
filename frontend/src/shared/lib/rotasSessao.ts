@@ -103,7 +103,7 @@ export function salvarRotaRetorno(rota: string): void {
   try {
     // Guarda de idempotência: se já houver rota salva e válida, ignora chamadas concorrentes
     const rotaAtual = sessionStorage.getItem(CHAVE_ROTA_RETORNO);
-    if (rotaAtual && rotaAtual !== "/" && rotaAtual !== "/login") {
+    if (sanitizarRota(rotaAtual)) {
       return;
     }
 
@@ -166,7 +166,7 @@ function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePerfil): 
  * Retorna o destino seguro pós-login avaliando locationState e sessionStorage, limpando a chave incondicionalmente.
  */
 export function obterELimparRotaRetorno(perfilNome?: NomePerfil, rotaOrigem?: string | null): string {
-  const fallback = perfilNome === "InstaladorCampo" ? "/linkparainstaladores" : "/kanban";
+  const fallback = destinoInicialSeguro(perfilNome);
 
   let rotaCandidata: string | null = null;
 
@@ -209,3 +209,15 @@ export function obterELimparRotaRetorno(perfilNome?: NomePerfil, rotaOrigem?: st
   return fallback;
 }
 
+
+export function perfilCanonico(perfil: unknown): perfil is NomePerfil {
+  return perfil === "Administrador" || perfil === "Engenharia" || perfil === "Financeiro" || perfil === "InstaladorCampo";
+}
+
+export function perfilEscritorio(perfil: unknown): boolean {
+  return perfil === "Administrador" || perfil === "Engenharia" || perfil === "Financeiro";
+}
+
+export function destinoInicialSeguro(perfil: unknown): string {
+  return perfilEscritorio(perfil) ? "/kanban" : perfil === "InstaladorCampo" ? "/linkparainstaladores" : "/sem-permissao";
+}

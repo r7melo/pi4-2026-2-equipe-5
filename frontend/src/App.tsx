@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "@/features/auth/pages/Login";
+import SemPermissao from "@/features/auth/pages/SemPermissao";
+import { statusHttp } from "@/shared/lib/sessaoOperacao";
 import { Kanban, Equipes } from "@/composition/RotasOperacionais";
 import CadastrarObra from "@/features/obras/pages/CadastrarObra";
 import AndamentoHomologacao from "@/features/homologacao/pages/AndamentoHomologacao";
@@ -24,7 +26,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (tentativa, erro) => ![401, 403].includes(statusHttp(erro) ?? 0) && tentativa < 1,
       networkMode: "offlineFirst",
     },
     mutations: {
@@ -47,7 +49,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-right" theme={tema} />
+      <Toaster richColors position="top-right" theme={tema} toastOptions={{ className: "avisos-acesso" }} />
       <ReloadPrompt />
       <BrowserRouter>
         <SessionLifecycleSentinel />
@@ -57,6 +59,10 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
           <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/sem-permissao" element={<SemPermissao />} />
+          </Route>
 
           {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
           <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>

@@ -25,8 +25,8 @@ export async function listarObras(params?: {
 }
 
 /** DELETE /api/obras/{id} — Rota #11 do Contrato Oficial */
-export async function excluirObra(id: number): Promise<void> {
-  await api.delete(`/obras/${id}`);
+export async function excluirObra(id: number, sessao403?: number): Promise<void> {
+  await api.delete(`/obras/${id}`, { sessao403 });
 }
 
 /** POST /api/obras — Rota #7 do Contrato (RF-03) */
@@ -73,7 +73,7 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
         pagamento,
       };
 
-  const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", corpo);
+  const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", corpo, { suprimirToast403: true });
   return {
     id: resposta.id,
     clienteNome: payload.cliente?.nome || payload.clienteNome || "Cliente Cadastrado",
@@ -91,8 +91,8 @@ export async function buscarObra(id: number): Promise<ObraDetalhe> {
 }
 
 /** PUT /api/obras/{id} — Rota #9 do Contrato Oficial 07-api (UC-17) */
-export async function atualizarObra(id: number, payload: EditarObraPayload): Promise<ObraDetalhe> {
-  const { data } = await api.put<ObraDetalhe>(`/obras/${id}`, payload);
+export async function atualizarObra(id: number, payload: EditarObraPayload, sessao403?: number): Promise<ObraDetalhe> {
+  const { data } = await api.put<ObraDetalhe>(`/obras/${id}`, payload, { sessao403 });
   return data;
 }
 
@@ -109,8 +109,8 @@ export async function listarComentarios(obraId: number): Promise<ComentarioObra[
 }
 
 /** POST /api/obras/{id}/comentarios — Rota #17 do Contrato Oficial 07-api */
-export async function adicionarComentario(obraId: number, descricao: string): Promise<ComentarioObra> {
-  const { data } = await api.post<ComentarioObra>(`/obras/${obraId}/comentarios`, { descricao });
+export async function adicionarComentario(obraId: number, descricao: string, sessao403?: number): Promise<ComentarioObra> {
+  const { data } = await api.post<ComentarioObra>(`/obras/${obraId}/comentarios`, { descricao }, { sessao403 });
   return data;
 }
 

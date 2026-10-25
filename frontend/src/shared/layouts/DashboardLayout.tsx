@@ -1,31 +1,24 @@
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useLayoutEffect } from "react";
 import { ModoDisplayProvider, useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { SeloModoDisplay } from "@/shared/components/display/SeloModoDisplay";
 import { podeVerModo } from "@/shared/lib/podeVerModo";
 import { useSidebar } from "@/shared/contexts/SidebarContext";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
+import { perfilEscritorio } from "@/shared/lib/rotasSessao";
 import Sidebar from "./Sidebar";
 import { SidebarProvider } from "@/shared/contexts/SidebarProvider";
 import { HeaderPortalContext } from "@/shared/contexts/HeaderPortalContext";
 import { SignalRProvider } from "@/shared/contexts/SignalRContext";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
-import { toast } from "sonner";
 
 export default function DashboardLayout() {
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const location = useLocation();
   const token = useAuthStore((s) => s.token);
   const [headerNode, setHeaderNode] = useState<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (perfil === "InstaladorCampo") {
-      toast.error(
-        "Acesso Proibido: o perfil Instalador de Campo possui acesso exclusivo à interface móvel."
-      );
-    }
-  }, [perfil]);
-
-  if (perfil === "InstaladorCampo") {
-    return <Navigate to="/linkparainstaladores" replace />;
+  if (!perfilEscritorio(perfil)) {
+    return <Navigate to="/sem-permissao" state={{ de: location.pathname }} replace />;
   }
 
   return (

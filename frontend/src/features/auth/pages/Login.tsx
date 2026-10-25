@@ -30,8 +30,8 @@ export default function Login() {
 
   // Fonte única de redirecionamento canônico: acionada tanto para usuários já autenticados quanto pós-login
   useEffect(() => {
-    if (token && usuario) {
-      const perfilNome = usuario.perfil?.nomePerfil;
+    if (token) {
+      const perfilNome = usuario?.perfil?.nomePerfil;
       const destino = obterELimparRotaRetorno(
         perfilNome,
         (location.state as { from?: string } | null)?.from

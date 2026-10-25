@@ -1,4 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
+
 import { listarEquipes, criarEquipe, listarInstaladores } from "@/features/cronograma/services/equipes";
 import type { CriarEquipePayload } from "@/types";
 
@@ -13,7 +15,7 @@ export function useEquipes() {
 export function useCriarEquipe() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CriarEquipePayload) => criarEquipe(payload),
+    mutationFn: (payload: CriarEquipePayload, sessao) => criarEquipe(payload, sessao),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["equipes"] });
     },

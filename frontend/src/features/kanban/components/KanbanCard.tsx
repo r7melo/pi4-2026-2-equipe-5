@@ -1,3 +1,4 @@
+import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
 import { useState, useMemo, useLayoutEffect, useRef, memo } from "react";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { useDraggable } from "@dnd-kit/core";
@@ -96,6 +97,7 @@ export default memo(function KanbanCard({
       toast.success("Obra excluída com sucesso.");
       if (montadoRef.current && podeInteragir(epochRender)) setModalExcluirAberto(false);
     } catch (err: unknown) {
+      if (!deveExibirErroLocal(err)) return;
       let msg = "Não foi possível excluir a obra.";
       if (axios.isAxiosError<{ error?: { message?: string } }>(err)) {
         msg = err.response?.data?.error?.message || err.message;

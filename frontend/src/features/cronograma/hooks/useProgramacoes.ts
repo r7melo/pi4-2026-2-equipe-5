@@ -1,5 +1,8 @@
 import axios from "axios";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
+import { deveExibirErroLocal, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
+
 import { toast } from "sonner";
 import {
   listarProgramacoes,
@@ -7,7 +10,7 @@ import {
   criarProgramacao,
   deletarProgramacao,
 } from "@/features/cronograma/services/programacoes";
-import type { Programacao, ReordenarProgramacaoResposta } from "@/types";
+import type { Programacao, ReordenarProgramacaoResposta, CriarProgramacaoPayload } from "@/types";
 import { calcularDiasUteisInclusivos } from "@/shared/lib/formatters";
 
 export function useProgramacoes() {
@@ -29,10 +32,11 @@ export function useReordenarProgramacao() {
       id: number;
       novaDataInicio?: string;
       novaDataFim?: string;
-    }) => reordenarProgramacao(id, { novaDataInicio, novaDataFim }),
+    }, sessao) => reordenarProgramacao(id, { novaDataInicio, novaDataFim }, sessao),
 
-    onMutate: async ({ id, novaDataInicio, novaDataFim }) => {
+    onMutate: async ({ id, novaDataInicio, novaDataFim }, _contexto, sessao) => {
       await queryClient.cancelQueries({ queryKey: ["programacoes"] });
+      exigirSessaoOperacional(sessao);
       const previous = queryClient.getQueryData<Programacao[]>(["programacoes"]);
 
       queryClient.setQueryData<Programacao[]>(["programacoes"], (old) => {
@@ -109,6 +113,7 @@ export function useReordenarProgramacao() {
       if (context?.previous) {
         queryClient.setQueryData(["programacoes"], context.previous);
       }
+      if (!deveExibirErroLocal(err)) return;
       let mensagem = "Erro ao reordenar alocação. Posição revertida.";
       if (axios.isAxiosError(err)) {
         const dados = err.response?.data as
@@ -129,12 +134,13 @@ export function useReordenarProgramacao() {
 export function useCriarProgramacao() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: criarProgramacao,
+    mutationFn: (dados: CriarProgramacaoPayload, sessao) => criarProgramacao(dados, sessao),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
       toast.success("Alocação criada com sucesso no cronograma!");
     },
     onError: (err: unknown) => {
+      if (!deveExibirErroLocal(err)) return;
       const mensagem =
         (err as { response?: { data?: { error?: { message?: string } } } })
           ?.response?.data?.error?.message || "Erro ao alocar equipe.";
@@ -146,12 +152,13 @@ export function useCriarProgramacao() {
 export function useDeletarProgramacao() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deletarProgramacao,
+    mutationFn: (id: number, sessao) => deletarProgramacao(id, sessao),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
       toast.success("Alocação removida do cronograma.");
     },
     onError: (err: unknown) => {
+      if (!deveExibirErroLocal(err)) return;
       const mensagem =
         (err as { response?: { data?: { error?: { message?: string } } } })
           ?.response?.data?.error?.message || "Erro ao remover alocação.";

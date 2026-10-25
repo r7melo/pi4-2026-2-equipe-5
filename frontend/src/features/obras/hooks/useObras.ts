@@ -1,4 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
+import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
+
 import { listarObras, obterHomologacaoObra, excluirObra } from "../services/obras";
 import type { ListaObras, DadosHomologacao } from "@/types";
 
@@ -42,7 +45,8 @@ export function useHomologacoesObras(obraIds: number[]) {
             const h = await obterHomologacaoObra(id);
             queryClient.setQueryData(["homologacao", id], h);
             return h;
-          } catch {
+          } catch (erro) {
+            if (erroDaSessaoAnterior(erro)) throw erro;
             const fallback: DadosHomologacao = { obraId: id, parecerAcesso: "Pendente" as const };
             queryClient.setQueryData(["homologacao", id], fallback);
             return fallback;
@@ -62,7 +66,7 @@ export function useHomologacoesObras(obraIds: number[]) {
 export function useExcluirObra() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => excluirObra(id),
+    mutationFn: (id: number, sessao) => excluirObra(id, sessao),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });

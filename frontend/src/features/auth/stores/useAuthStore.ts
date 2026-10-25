@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { invalidarSessaoOperacional, sincronizarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Usuario } from "@/types";
 import type { AuthState } from "../types/auth";
@@ -73,10 +74,12 @@ export const useAuthStore = create<AuthState>()(
             ? expiresAt
             : calcularFallback480Min();
 
+        invalidarSessaoOperacional();
         set({ token, usuario, expiresAt: expiracaoValida });
       },
       logout: () => {
         // Encerramento puramente em estado (SPA); sem recarga imperativa de window.location.href
+        invalidarSessaoOperacional();
         set({ token: null, usuario: null, expiresAt: null });
       },
     }),
@@ -91,3 +94,6 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+sincronizarSessaoOperacional(useAuthStore.getState());
+useAuthStore.subscribe(sincronizarSessaoOperacional);

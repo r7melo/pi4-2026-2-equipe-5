@@ -1,3 +1,4 @@
+import { capturarSessaoOperacional, deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
 import { useState, useMemo, useLayoutEffect, useRef, type SetStateAction, type ReactNode } from "react";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
 import type { GanttFiltrosAvancados } from "@/types";
@@ -418,17 +419,19 @@ export default function Equipes({
     }
 
     try {
-      await deletarAlocacao(id);
+      const sessao = capturarSessaoOperacional();
+      await deletarAlocacao(id, undefined, sessao);
       const novaProg = await criarAlocacao({
         obraId: progAtual.obraId,
         equipeId: novaEquipeId,
         dataInicio: progAtual.dataInicio,
         dataFim: progAtual.dataFim,
-      });
+      }, undefined, sessao);
 
       if (podeEditar()) setTarefaSelecionadaId(novaProg.id);
       toast.success(`Obra reatribuída com sucesso para ${nomeNovaEquipe}!`);
-    } catch {
+    } catch (erro) {
+      if (!deveExibirErroLocal(erro)) return;
       toast.error("Erro ao reatribuir equipe para a obra.");
     }
   };
@@ -449,7 +452,7 @@ export default function Equipes({
             onHoje={handleHoje} mostrarGrade={mostrarGrade}
             onToggleGrade={() => setMostrarGrade((prev) => !prev)}
             onImprimir={handleImprimir}
-            onAbrirCompartilhar={() => { if (podeUsarInterface()) setModalCompartilharAberto(true); }}
+            onAbrirCompartilhar={canEdit ? () => { if (podeEditar()) setModalCompartilharAberto(true); } : undefined}
             onAbrirFiltros={() => { if (podeUsarInterface()) setDrawerFiltrosAberto(true); }}
             totalFiltrosAtivos={totalFiltrosAtivos} modoAtivo={modoAtivo} />
         )}
@@ -542,7 +545,7 @@ export default function Equipes({
 
       {!modoAtivo && !isLoading && !erroProg && (
       <>
-      <GanttNovaAlocacaoModal
+      {canEdit && <GanttNovaAlocacaoModal
         isOpen={modalNovaAlocacaoAberto}
         onClose={() => { if (podeUsarInterface()) setModalNovaAlocacaoAberto(false); }}
         obrasElegiveis={obrasElegiveis}
@@ -550,22 +553,22 @@ export default function Equipes({
         programacoes={programacoes || []}
         onConfirmar={handleConfirmarAlocacao}
         isLoading={criandoAlocacao}
-      />
+      />}
 
       {Boolean(programacoes?.length) && (
       <>
-      <GanttNovaEquipeModal isOpen={modalNovaEquipeAberto} podeInteragir={podeEditar}
+      {canEdit && <GanttNovaEquipeModal isOpen={modalNovaEquipeAberto} podeInteragir={podeEditar}
         onClose={() => { if (podeUsarInterface()) setModalNovaEquipeAberto(false); }}
         onEquipeCriada={(novaEquipeId) => {
           if (!podeEditar()) return;
           atualizarFiltros((prev) => ({ ...prev, equipeId: novaEquipeId }));
           setModalNovaAlocacaoAberto(true);
-        }} />
+        }} />}
 
-      <GanttCompartilharModal
+      {canEdit && <GanttCompartilharModal
         isOpen={modalCompartilharAberto}
         onClose={() => { if (podeUsarInterface()) setModalCompartilharAberto(false); }}
-      />
+      />}
 
       <GanttTaskDrawer
         tarefa={tarefaDrawer}

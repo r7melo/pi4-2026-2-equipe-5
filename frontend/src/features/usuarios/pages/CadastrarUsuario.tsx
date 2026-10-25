@@ -1,3 +1,4 @@
+import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -74,6 +75,7 @@ export default function CadastrarUsuario() {
         { shouldFocus: true });
       return;
     }
+    let erroObsoleto = false;
     try {
       await cadastro.mutateAsync(dados);
       toast.success("Usuário cadastrado com sucesso.");
@@ -81,6 +83,7 @@ export default function CadastrarUsuario() {
       setMostrarSenha(false);
       setFocoPendente(true);
     } catch (erro) {
+      if (erroDaSessaoAnterior(erro)) { erroObsoleto = true; return; }
       if (erro instanceof ApiErro) {
         if (erro.status === 401) return;
         if (erro.status === 409 && erro.codigo === "EMAIL_ALREADY_EXISTS") {
@@ -112,7 +115,7 @@ export default function CadastrarUsuario() {
       }
       toast.error("Não foi possível confirmar o cadastro. Tente novamente.");
     } finally {
-      cadastro.reset();
+      if (!erroObsoleto) cadastro.reset();
     }
   }
 

@@ -1,3 +1,4 @@
+import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
 import { useState, useCallback, useLayoutEffect, useRef } from "react";
 import { Users, UserCheck, Loader2 } from "lucide-react";
 import { Modal } from "@/shared/components/ui/Modal";
@@ -67,6 +68,7 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada, podeInte
       onEquipeCriada?.(novaEquipe.id);
       handleLimparEFechar();
     } catch (err: unknown) {
+      if (!deveExibirErroLocal(err)) return;
       const msg = err instanceof Error ? err.message : "Erro ao cadastrar equipe.";
       toast.error(msg);
     }

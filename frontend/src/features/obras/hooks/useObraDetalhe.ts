@@ -1,5 +1,8 @@
 import axios from "axios";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
+import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
+
 import {
   buscarObra,
   atualizarObra,
@@ -41,13 +44,14 @@ export function useAdicionarComentario() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ obraId, descricao }: { obraId: number; descricao: string }) =>
-      adicionarComentario(obraId, descricao),
+    mutationFn: ({ obraId, descricao }: { obraId: number; descricao: string }, sessao) =>
+      adicionarComentario(obraId, descricao, sessao),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["comentarios", variables.obraId] });
       toast.success("Comentário adicionado");
     },
-    onError: () => {
+    onError: (erro) => {
+      if (!deveExibirErroLocal(erro)) return;
       toast.error("Erro ao adicionar comentário");
     },
   });
@@ -57,14 +61,15 @@ export function useEditarObra() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: EditarObraPayload }) =>
-      atualizarObra(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: EditarObraPayload }, sessao) =>
+      atualizarObra(id, payload, sessao),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
       void queryClient.invalidateQueries({ queryKey: ["obra", variables.id] });
       toast.success("Dados da obra atualizados com sucesso.");
     },
     onError: (err: unknown) => {
+      if (!deveExibirErroLocal(err)) return;
       let mensagem = "Erro ao atualizar dados da obra. Tente novamente.";
       if (axios.isAxiosError<{ error?: { message?: string } }>(err) && err.response?.data?.error?.message) {
         mensagem = String(err.response.data.error.message);

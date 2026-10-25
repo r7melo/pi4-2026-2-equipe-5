@@ -8,8 +8,8 @@ export async function listarEquipes(): Promise<Equipe[]> {
 }
 
 /** POST /api/equipes */
-export async function criarEquipe(payload: CriarEquipePayload): Promise<Equipe> {
-  const { data } = await api.post<Equipe>("/equipes", payload);
+export async function criarEquipe(payload: CriarEquipePayload, sessao403?: number): Promise<Equipe> {
+  const { data } = await api.post<Equipe>("/equipes", payload, { sessao403 });
   return data;
 }
 

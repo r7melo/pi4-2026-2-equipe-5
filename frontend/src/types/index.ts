@@ -14,3 +14,4 @@ export * from "@/features/materiais/types/materiais";
 export * from "@/features/usuarios/types/usuarios";
 export * from "@/shared/types/acoesObra";
 export * from "@/shared/types/exportacaoInstalacao";
+export * from "@/shared/types/autorizacao";

@@ -1,3 +1,4 @@
+import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
 import { useState, useMemo, type ReactNode } from "react";
 import {
   ExternalLink,
@@ -272,6 +273,7 @@ export default function KanbanTaskDrawer({
       setModalExcluirAberto(false);
       onClose();
     } catch (err: unknown) {
+      if (!deveExibirErroLocal(err)) return;
       let msg = "Não foi possível excluir a obra.";
       if (axios.isAxiosError<{ error?: { message?: string } }>(err)) {
         msg = err.response?.data?.error?.message || err.message;
