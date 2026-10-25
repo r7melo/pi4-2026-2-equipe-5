@@ -17,19 +17,22 @@ Sistema web para gestão de obras de instalação de energia solar. Reúne o fun
 ## Executar localmente
 
 ```bash
-docker compose up --build
+cp env.example .env        
+docker compose up -d --build
 ```
 
 | Serviço | Endereço |
 | :---- | :---- |
 | Frontend | http://localhost:3000 |
-| API | http://localhost:8000/api |
+| API (direta, para depuração) | http://localhost:8000/api |
+
+O navegador acessa só o frontend: o nginx encaminha `/api` e `/hubs` ao backend. O schema e o seed são aplicados automaticamente na primeira subida do volume do banco.
 
 Para carregar o banco do zero (o seed só roda na criação do volume):
 
 ```bash
 docker compose down -v
-docker compose up --build
+docker compose up -d --build
 ```
 
 Configure `VITE_USE_MOCK=false` em `frontend/.env.local` para usar a API real. Com o mock ativo, qualquer credencial é aceita.

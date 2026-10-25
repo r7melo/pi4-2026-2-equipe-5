@@ -21,6 +21,7 @@ import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import DashboardLayout from "@/shared/layouts/DashboardLayout";
 import { useThemeStore, aplicarTemaNoDOM } from "@/shared/stores/useThemeStore";
 import SessionLifecycleSentinel from "@/features/auth/components/SessionLifecycleSentinel";
+import { ApiModeSwitcher } from "@/shared/components/dev/ApiModeSwitcher";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +52,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Toaster richColors position="top-right" theme={tema} toastOptions={{ className: "avisos-acesso" }} />
       <ReloadPrompt />
+      {/* Popup de seleção de API — visível somente em desenvolvimento */}
+      <ApiModeSwitcher />
       <BrowserRouter>
         <SessionLifecycleSentinel />
         <Routes>

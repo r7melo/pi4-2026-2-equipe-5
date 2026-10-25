@@ -4,14 +4,11 @@ import { capturarSessaoOperacional, exigirSessaoOperacional, registrarErro403, s
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
 import { salvarRotaRetorno, TOAST_ID_SESSAO_EXPIRADA } from "@/shared/lib/rotasSessao";
 
-// VITE_API_URL é a raiz do backend (sem /api), compartilhada com o hub do SignalR
+// VITE_API_URL é a raiz do backend (sem /api), compartilhada com o hub do SignalR.
+// Vazio (padrão no Docker) = mesma origem da página: o nginx (ou o proxy do Vite em dev) encaminha /api e /hubs.
 export const BACKEND_ROOT_URL = (
-  typeof window !== "undefined" && window.location.protocol === "https:"
-    ? window.location.origin
-    : (import.meta.env.VITE_API_URL as string | undefined) ||
-      (typeof window !== "undefined"
-        ? `${window.location.protocol}//${window.location.hostname}:8000`
-        : "http://localhost:8000")
+  (import.meta.env.VITE_API_URL as string | undefined) ||
+  (typeof window !== "undefined" ? window.location.origin : "http://localhost:8000")
 )
   .replace(/\/api\/?$/, "")
   .replace(/\/+$/, "");

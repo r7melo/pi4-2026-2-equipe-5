@@ -52,6 +52,8 @@
 | [UC-32](#uc-32) Apurar custo total | ✔ | | ✔ | |
 | [UC-33](#uc-33) Emitir DRE | ✔ | | ✔ | |
 | [UC-34](#uc-34) Exportar relatório financeiro | ✔ | | ✔ | |
+| [UC-35](#uc-35) Solicitar recuperação de senha | ✔ | ✔ | ✔ | ✔ |
+| [UC-36](#uc-36) Atualizar senha | ✔ | ✔ | ✔ | ✔ |
 
 ## Descrição dos casos de uso
 
@@ -91,6 +93,8 @@
 | [UC-32](#uc-32) | Apurar custo total | Administrador, Financeiro | Seleciona obra; sistema verifica conclusão e precificação; soma itens | Só obra concluída com precificação completa |
 | [UC-33](#uc-33) | Emitir DRE | Administrador, Financeiro | Solicita DRE; executa UC-32; calcula resultado; exibe | Somente obra concluída; somente leitura |
 | [UC-34](#uc-34) | Exportar relatório financeiro | Financeiro | Seleciona tipo e período; escolhe PDF ou Excel; gera e disponibiliza | Formatos PDF e Excel; 5 s para 1.000 registros |
+| [UC-35](#uc-35) | Solicitar recuperação de senha | Usuário (não autenticado) | Informa e-mail; sistema envia link de uso único por e-mail; exibe mensagem genérica | Link expira em 1 h; resposta idêntica para e-mail existente ou não |
+| [UC-36](#uc-36) | Atualizar senha | Usuário | Redefine a senha via link (UC-35) ou altera a senha atual estando autenticado | Nova senha deve atender à política; todos os tokens são invalidados após a alteração |
 
 ## Relações entre casos de uso
 
@@ -108,6 +112,7 @@
 | [UC-14](#uc-14) Comentário de manutenção | extend | UC-25 Realizar manutenção |
 | [UC-19](#uc-19) Comentário no cartão | extend | UC-17 Editar cartão |
 | [UC-30](#uc-30) Comentário na timeline | extend | UC-29 Consultar linha do tempo |
+| [UC-35](#uc-35) Solicitar recuperação de senha | include | UC-36 Atualizar senha |
 
 ## Casos de Uso - Textual
 
@@ -1298,5 +1303,91 @@
 - RN1 - Os formatos disponíveis são PDF e Excel.
 - RN2 - A geração deve levar no máximo 5 segundos para até 1.000 registros.
 - RN3 - Somente perfis autorizados exportam dados financeiros.
+
+**Prioridade:** Média
+
+---
+
+<a id="uc-35"></a>
+
+### UC-35 - Solicitar Recuperação de Senha
+
+**Descrição:** Permite que um usuário não autenticado solicite a redefinição de sua senha, recebendo um link de uso único por e-mail.
+
+**Atores:** Usuário (não autenticado)
+
+**Pré-condição:** O usuário acessa a tela de login.
+
+**Fluxo principal:**
+
+1. O usuário clica em "Esqueci minha senha" na tela de login.
+2. O usuário informa seu e-mail.
+3. O usuário confirma a solicitação.
+4. O sistema gera um token de redefinição de uso único com validade de 1 hora.
+5. O sistema envia o e-mail com o link de redefinição.
+6. O sistema exibe a mensagem "Se o e-mail informado estiver cadastrado, você receberá as instruções de redefinição".
+
+**Fluxos alternativos:**
+
+- FA1 - E-mail não cadastrado (passo 4): o sistema exibe a mesma mensagem genérica do passo 6 sem revelar a inexistência do e-mail.
+- FA2 - Falha no envio do e-mail (passo 5): o sistema registra o erro em log técnico e exibe a mesma mensagem genérica.
+- FA3 - Cancelamento (qualquer passo): o sistema retorna à tela de login.
+
+**Pós-condição:** Um e-mail com link de redefinição foi enviado (se o e-mail existir) e o usuário recebeu a mensagem genérica.
+
+**Regras de negócio:**
+
+- RN1 - O token de redefinição é de uso único e expira em 1 hora.
+- RN2 - A resposta é sempre idêntica, independente de o e-mail existir ou não (proteção contra enumeração de usuários).
+- RN3 - O link de redefinição aciona o [UC-36](#uc-36) (Atualizar Senha).
+
+**Prioridade:** Média
+
+---
+
+<a id="uc-36"></a>
+
+### UC-36 - Atualizar Senha
+
+**Descrição:** Permite que o usuário redefina a senha por meio de link de recuperação ou altere a própria senha estando autenticado.
+
+**Atores:** Usuário
+
+**Pré-condição:** O usuário possui um token de redefinição válido (via link do [UC-35](#uc-35)) ou está autenticado no sistema.
+
+**Fluxo principal (via link de recuperação):**
+
+1. O usuário acessa o link de redefinição recebido por e-mail.
+2. O sistema valida o token do link.
+3. O usuário informa a nova senha e confirma.
+4. O sistema valida a política mínima de segurança da nova senha.
+5. O sistema atualiza o hash da senha.
+6. O sistema invalida todos os tokens de acesso ativos do usuário.
+7. O sistema exibe mensagem de sucesso e redireciona para a tela de login.
+
+**Fluxo alternativo A - Alterar senha com usuário autenticado:**
+
+1. O usuário acessa a tela de alteração de senha.
+2. O usuário informa a senha atual e a nova senha.
+3. O sistema valida a senha atual.
+4. O sistema valida a política mínima de segurança da nova senha.
+5. O sistema atualiza o hash da senha.
+6. O sistema invalida todos os tokens de acesso ativos do usuário.
+7. O sistema exibe mensagem de sucesso.
+
+**Fluxos alternativos:**
+
+- FA1 - Token inválido ou expirado (passo 2): o sistema exibe "Link inválido ou expirado" e encerra o fluxo.
+- FA2 - Nova senha não atende à política (passo 4): o sistema informa os requisitos mínimos e retorna ao passo 3.
+- FA3 - Senha atual incorreta (FA-A, passo 3): o sistema exibe "Senha atual incorreta" e retorna ao passo 2.
+
+**Pós-condição:** A senha do usuário está atualizada e todos os tokens de acesso anteriores foram invalidados.
+
+**Regras de negócio:**
+
+- RN1 - A nova senha deve ter ao menos 8 caracteres, uma letra maiúscula, uma minúscula e um número.
+- RN2 - A senha é armazenada somente como hash (bcrypt).
+- RN3 - Todos os tokens de acesso ativos são invalidados após a alteração da senha.
+- RN4 - O token de redefinição é invalidado após o primeiro uso.
 
 **Prioridade:** Média

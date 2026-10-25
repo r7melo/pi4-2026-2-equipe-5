@@ -28,6 +28,7 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | RF-18 | — | RN-04 | `DisplayMode` (frontend) | — | — | Pendente |
 | RF-19 | UC-01, UC-03, UC-14, UC-24, UC-25, UC-26 | RN-04 | `InstaladorController` | `GET /api/instalador/instalacoes`, `GET /api/instalador/instalacoes/{obraId}` | CT-08 | Em andamento |
 | RF-20 | UC-33 | RN-03 | `DREController`, `DREService` | `GET /api/obras/{id}/dre` | CT-14 | Pendente |
+| RF-21 | UC-35, UC-36 | RN-04 | `AuthController`, `PasswordResetService` | `POST /api/auth/esqueci-senha`, `POST /api/auth/redefinir-senha`, `PUT /api/auth/alterar-senha` | — | Pendente |
 
 ## Requisitos não funcionais
 
@@ -74,3 +75,5 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | UC-32 | `GET /api/obras/{id}/relatorio-custo` | Em andamento |
 | UC-33 | `GET /api/obras/{id}/dre` | Pendente |
 | UC-34 | `GET /api/relatorios/export` | Pendente |
+| UC-35 | `POST /api/auth/esqueci-senha` | Pendente |
+| UC-36 | `POST /api/auth/redefinir-senha`, `PUT /api/auth/alterar-senha` | Pendente |

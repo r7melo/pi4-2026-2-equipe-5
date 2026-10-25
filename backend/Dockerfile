@@ -1,16 +1,20 @@
-# Dockerfile de DESENVOLVIMENTO para o backend ASP.NET Core
-FROM mcr.microsoft.com/dotnet/sdk:8.0
+# Dockerfile do backend ASP.NET Core (build multi-estágio).
+# O contexto de build é a RAIZ do repositório, porque o .csproj embute ../../database/migrations/*.sql.
 
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Restore primeiro para aproveitar o cache de camadas.
+COPY backend/Backend.Api/Backend.Api.csproj backend/Backend.Api/
+COPY database/ database/
+RUN dotnet restore backend/Backend.Api/Backend.Api.csproj
+
+COPY backend/ backend/
+RUN dotnet publish backend/Backend.Api/Backend.Api.csproj -c Release -o /out --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-
-# Copia o .csproj e a migration primeiro para cache de restore mais eficiente.
-# O contexto de build é a raiz do repositório para incluir database/.
-COPY backend/Backend.Api/Backend.Api.csproj Backend.Api/
-COPY database/ /database/
-RUN dotnet restore Backend.Api/Backend.Api.csproj
-
-COPY backend/ .
-
+COPY --from=build /out .
+ENV ASPNETCORE_URLS=http://0.0.0.0:8000
 EXPOSE 8000
-
-CMD ["dotnet", "watch", "run", "--urls", "http://0.0.0.0:8000", "--project", "Backend.Api"]
+ENTRYPOINT ["dotnet", "Backend.Api.dll"]
