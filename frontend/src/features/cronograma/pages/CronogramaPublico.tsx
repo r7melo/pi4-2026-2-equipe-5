@@ -2,19 +2,16 @@
 // RF-16 & Rota #37: Tela de Visualização Pública Somente-Leitura do Cronograma Gantt
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { obterCronogramaCompartilhado } from "@/features/cronograma/services/cronogramaPublico";
+import { useCronogramaPublico } from "@/features/cronograma/hooks/useCronogramaPublico";
+import { dataCivilParaGanttPublico } from "@/features/cronograma/lib/compartilhamento";
+import { statusHttp } from "@/shared/lib/sessaoOperacao";
+import { diasUteisCivis } from "@/shared/lib/datasCivis";
 import {
   GanttDhtmlxWrapper,
   type GanttTask,
 } from "@/features/cronograma/components/GanttDhtmlxWrapper";
 import { GanttToolbar } from "@/features/cronograma/components/GanttToolbar";
 import type { NivelZoom } from "@/types";
-import {
-  normalizarDataFimInclusiva,
-  dataFimInclusivaParaDhtmlx,
-  calcularDiasUteisInclusivos,
-} from "@/shared/lib/formatters";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
@@ -45,29 +42,26 @@ export default function CronogramaPublico() {
     isLoading: loadingProg,
     isError: erroProg,
     error: errorProg,
-  } = useQuery({
-    queryKey: ["cronogramaPublico", token, dataFiltroInicio, dataFiltroFim],
-    queryFn: () =>
-      obterCronogramaCompartilhado(token, {
-        dataInicio: dataFiltroInicio || undefined,
-        dataFim: dataFiltroFim || undefined,
-      }),
-    enabled: Boolean(token),
+    refetch,
+  } = useCronogramaPublico(token, {
+    dataInicio: dataFiltroInicio || undefined,
+    dataFim: dataFiltroFim || undefined,
   });
+  const status = statusHttp(errorProg);
 
   const dadosFormatados: GanttTask[] = useMemo(() => {
-    if (!programacoes) return [];
+    if (!programacoes || erroProg) return [];
     return programacoes.map((p) => {
       const nomeEquipe = `Equipe ${p.equipeId}`;
       const nomeCliente = `Obra #${p.obraId}`;
-      const fimNormalizado = normalizarDataFimInclusiva(p.dataFim);
-      const duracaoCalculada = calcularDiasUteisInclusivos(p.dataInicio, fimNormalizado);
+      const fimNormalizado = p.dataFim;
+      const duracaoCalculada = diasUteisCivis(p.dataInicio, fimNormalizado);
 
       return {
         id: p.id,
         text: `${nomeEquipe} — ${nomeCliente}`,
-        start_date: p.dataInicio,
-        end_date: dataFimInclusivaParaDhtmlx(fimNormalizado),
+        start_date: dataCivilParaGanttPublico(p.dataInicio),
+        end_date: dataCivilParaGanttPublico(fimNormalizado, 1),
         dataFimInclusiva: fimNormalizado,
         duration: duracaoCalculada,
         equipeId: p.equipeId,
@@ -76,7 +70,7 @@ export default function CronogramaPublico() {
         duracaoDias: duracaoCalculada,
       };
     });
-  }, [programacoes]);
+  }, [programacoes, erroProg]);
 
   const handleHoje = () => {
     setDataFoco(new Date());
@@ -85,29 +79,6 @@ export default function CronogramaPublico() {
   const handleImprimir = () => {
     window.print();
   };
-
-  if (loadingProg) {
-    return (
-      <div className="min-h-screen bg-background-app flex flex-col items-center justify-center p-4">
-        <FeedbackLoading mensagem="Carregando cronograma..." />
-      </div>
-    );
-  }
-
-  if (erroProg) {
-    const msg =
-      (errorProg as { response?: { data?: { error?: { message?: string } } } })
-        ?.response?.data?.error?.message ||
-      "O link informado não é válido ou foi desativado pelo administrador.";
-    return (
-      <div className="min-h-screen bg-background-app flex flex-col items-center justify-center p-4">
-        <FeedbackErro
-          titulo="Acesso não autorizado ou expirado"
-          mensagem={msg}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-background-app">
@@ -152,12 +123,22 @@ export default function CronogramaPublico() {
       {/* Conteúdo do Cronograma */}
       <main className="flex-1 p-2 md:p-3 overflow-hidden flex flex-col min-h-0">
         <div className="relative flex-1 bg-surface rounded-xl shadow-xs border border-border-subtle overflow-hidden flex flex-col min-h-0">
+          {loadingProg ? (
+            <div className="flex h-full items-center justify-center"><FeedbackLoading mensagem="Carregando cronograma..." /></div>
+          ) : erroProg ? (
+            <FeedbackErro
+              titulo={status === 404 ? "Link inválido ou expirado" : status === 400 ? "Confira os filtros de data" : "Não foi possível carregar o cronograma"}
+              mensagem={status === 404 ? "Confira o endereço recebido ou solicite um novo link." : status === 400 ? "Corrija ou limpe as datas na barra superior." : "Verifique sua conexão e tente novamente."}
+              onTentarNovamente={status === 400 || status === 404 ? undefined : () => { void refetch(); }}
+            />
+          ) : (
+          <>
           {dadosFormatados.length === 0 && (
             <EmptyState
               className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
               icone={CalendarX2}
               titulo="Nenhuma alocação encontrada para este período"
-              descricao="Ajuste os filtros de data na barra superior para expandir a busca."
+              descricao="Ajuste ou limpe os filtros dentro do período compartilhado."
             />
           )}
 
@@ -168,6 +149,8 @@ export default function CronogramaPublico() {
             focarData={dataFoco}
             mostrarGrade={mostrarGrade}
           />
+          </>
+          )}
         </div>
       </main>
 

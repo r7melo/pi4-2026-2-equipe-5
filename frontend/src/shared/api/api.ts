@@ -77,10 +77,15 @@ api.interceptors.response.use(
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const url = error.config?.url || "";
       const isRotaLogin = url.includes("/auth/login");
-      const isRotaPublica =
+      const caminho = new URL(url, error.config?.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
+      const postCompartilhado = error.config?.method?.toLowerCase() === "post" &&
+        /^\/cronograma\/compartilhado\/?$/.test(caminho);
+      // Exceção pontual: este POST é privado; um 401 antigo nunca encerra a sessão nova.
+      if (postCompartilhado && !sessaoOperacionalVigente(error.config?.sessao403 ?? -1)) return Promise.reject(error);
+      const isRotaPublica = !postCompartilhado && (
         url.includes("/cronograma/compartilhado") ||
         url.includes("/relatorio-publico") ||
-        url.includes("/mobile");
+        url.includes("/mobile"));
 
       if (!isRotaLogin && !isRotaPublica) {
         // Guarda anti-thundering herd: só processa o salvamento e emissão se o operador ainda constar logado

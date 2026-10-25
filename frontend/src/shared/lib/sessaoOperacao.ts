@@ -6,7 +6,17 @@ let assinatura = "";
 let autenticada = false;
 const erros = new WeakMap<object, ContextoErro403>();
 
-export function invalidarSessaoOperacional(): void { geracao++; }
+const assinantesSessao = new Set<() => void>();
+
+export function assinarSessaoOperacional(avisar: () => void): () => void {
+  assinantesSessao.add(avisar);
+  return () => { assinantesSessao.delete(avisar); };
+}
+
+export function invalidarSessaoOperacional(): void {
+  geracao++;
+  assinantesSessao.forEach(avisar => avisar());
+}
 
 function assinaturaIdentidade(estado?: IdentidadeOperacional): string {
   return JSON.stringify([estado?.token, estado?.usuario?.id, estado?.usuario?.perfil?.nomePerfil, estado?.expiresAt]);
