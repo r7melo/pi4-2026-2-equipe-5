@@ -1,0 +1,174 @@
+import type { Usuario } from "@/types";
+import { z } from "zod";
+import { obterEquipesArmazenadas } from "./equipes";
+
+export type MockUsuario = Usuario;
+
+/** Usuários sincronizados estritamente com IDs do 02_seed.sql e GUIA_QA.md */
+export const MOCK_USUARIOS: Record<string, MockUsuario> = {
+  "admin@zl.com.br": {
+    id: 1,
+    nome: "Carlos Administrador",
+    email: "admin@zl.com.br",
+    perfil: {
+      id: 1,
+      nomePerfil: "Administrador",
+      permissoes: ["*"],
+    },
+    equipeId: null,
+  },
+  "engenharia@zlengenharia.com": {
+    id: 2,
+    nome: "Ana Souza",
+    email: "engenharia@zlengenharia.com",
+    perfil: {
+      id: 2,
+      nomePerfil: "Engenharia",
+      permissoes: ["obras:criar", "obras:mover", "programacoes:editar"],
+    },
+    equipeId: 3,
+  },
+  "financeiro@zl.com.br": {
+    id: 3,
+    nome: "Fernanda Financeiro",
+    email: "financeiro@zl.com.br",
+    perfil: {
+      id: 3,
+      nomePerfil: "Financeiro",
+      permissoes: ["financeiro:visualizar", "relatorios:visualizar"],
+    },
+    equipeId: null,
+  },
+  "instalador@zl.com.br": {
+    id: 4,
+    nome: "Marcos Instalador",
+    email: "instalador@zl.com.br",
+    perfil: {
+      id: 4,
+      nomePerfil: "InstaladorCampo",
+      permissoes: ["obras:visualizar", "materiais:confirmar"],
+    },
+    equipeId: 3,
+  },
+};
+
+const PERFIS_USUARIOS_MOCK: Record<MockUsuario["perfil"]["nomePerfil"], MockUsuario["perfil"]> = {
+  Administrador: { id: 1, nomePerfil: "Administrador", permissoes: ["*"] },
+  Engenharia: { id: 2, nomePerfil: "Engenharia", permissoes: ["obras:criar", "obras:mover", "programacoes:editar"] },
+  Financeiro: { id: 3, nomePerfil: "Financeiro", permissoes: ["financeiro:visualizar", "relatorios:visualizar"] },
+  InstaladorCampo: { id: 4, nomePerfil: "InstaladorCampo", permissoes: ["obras:visualizar", "materiais:confirmar"] },
+};
+
+const EMAIL_USUARIO_MOCK = /^[a-z0-9.!#$%&'*+/=?^_\x60{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+const perfilUsuarioMockSchema = z.enum(["Administrador", "Engenharia", "Financeiro", "InstaladorCampo"]);
+
+const idUsuarioMockSchema = z.number().int().positive().refine(Number.isSafeInteger);
+
+const STORAGE_KEY_USUARIOS = "mock_usuarios_v1";
+
+const cadastroUsuarioMockSchema = z.object({
+  nome: z.string().trim().min(3).max(200),
+  email: z.string().trim().toLowerCase().max(200).regex(EMAIL_USUARIO_MOCK),
+  senha: z.string().refine((senha) => {
+    const tamanho = new TextEncoder().encode(senha).byteLength;
+    return tamanho >= 6 && tamanho <= 72;
+  }),
+  perfil: perfilUsuarioMockSchema,
+  equipeId: idUsuarioMockSchema.nullable().default(null),
+}).superRefine((dados, ctx) => {
+  if (dados.perfil === "InstaladorCampo" && dados.equipeId === null) {
+    ctx.addIssue({ code: "custom", path: ["equipeId"], message: "Equipe obrigatória." });
+  }
+}).transform((dados) => ({
+  ...dados, equipeId: dados.perfil === "InstaladorCampo" ? dados.equipeId : null,
+}));
+
+const usuarioPersistidoMockSchema = z.object({
+  id: idUsuarioMockSchema,
+  nome: z.string().min(3).max(200).refine((nome) => nome === nome.trim()),
+  email: z.string().max(200).regex(EMAIL_USUARIO_MOCK)
+    .refine((email) => email === email.trim().toLowerCase()),
+  perfil: perfilUsuarioMockSchema,
+  equipeId: idUsuarioMockSchema.nullable(),
+  ativo: z.literal(true),
+  senhaHash: z.string().regex(/^[a-f0-9]{64}$/),
+}).strict().superRefine((usuario, ctx) => {
+  if ((usuario.perfil === "InstaladorCampo") !== (usuario.equipeId !== null)) {
+    ctx.addIssue({ code: "custom", path: ["equipeId"], message: "Vínculo de equipe inválido." });
+  }
+});
+
+export type UsuarioPersistidoMock = z.infer<typeof usuarioPersistidoMockSchema>;
+
+function validarUsuariosPersistidosMock(valor: unknown): UsuarioPersistidoMock[] {
+  const parsed = z.array(usuarioPersistidoMockSchema).safeParse(valor);
+  if (!parsed.success) throw new Error("Armazenamento de usuários inválido.");
+  const ids = new Set(Object.values(MOCK_USUARIOS).map((usuario) => usuario.id));
+  const emails = new Set(Object.keys(MOCK_USUARIOS).map((email) => email.toLowerCase()));
+  for (const usuario of parsed.data) {
+    if (ids.has(usuario.id) || emails.has(usuario.email)) {
+      throw new Error("Armazenamento de usuários inválido.");
+    }
+    ids.add(usuario.id);
+    emails.add(usuario.email);
+  }
+  return parsed.data;
+}
+
+export function obterUsuariosCriados(): UsuarioPersistidoMock[] {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_USUARIOS);
+    return raw === null ? [] : validarUsuariosPersistidosMock(JSON.parse(raw));
+  } catch {
+    throw new Error("Não foi possível ler os usuários simulados.");
+  }
+}
+
+export function salvarUsuariosCriados(usuarios: UsuarioPersistidoMock[]): void {
+  try {
+    const validados = validarUsuariosPersistidosMock(usuarios);
+    sessionStorage.setItem(STORAGE_KEY_USUARIOS, JSON.stringify(validados));
+  } catch {
+    throw new Error("Não foi possível salvar os usuários simulados.");
+  }
+}
+
+export async function gerarHashSenhaMock(senha: string): Promise<string> {
+  if (!globalThis.crypto?.subtle) throw new Error("Criptografia indisponível.");
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(senha));
+  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function validarCadastroUsuarioMock(valor: unknown) {
+  return cadastroUsuarioMockSchema.safeParse(valor);
+}
+
+export function usuarioPersistidoParaMock(usuario: UsuarioPersistidoMock): MockUsuario {
+  const perfil = PERFIS_USUARIOS_MOCK[usuario.perfil];
+  return {
+    id: usuario.id, nome: usuario.nome, email: usuario.email,
+    perfil: { ...perfil, permissoes: [...perfil.permissoes] },
+    equipeId: usuario.equipeId,
+  };
+}
+
+export function buscarUsuarioPorEmailMock(email: string): MockUsuario | undefined {
+  const criado = obterUsuariosCriados().find((usuario) => usuario.email === email);
+  if (criado) return usuarioPersistidoParaMock(criado);
+  return Object.hasOwn(MOCK_USUARIOS, email) ? MOCK_USUARIOS[email] : undefined;
+}
+
+export function equipeExisteParaUsuarioMock(equipeId: number | null): boolean {
+  if (equipeId === null) return true;
+  const raw = sessionStorage.getItem("mock_equipes_v1");
+  if (raw !== null) {
+    const equipesSchema = z.array(z.object({
+      id: idUsuarioMockSchema,
+      nome: z.string().trim().min(1),
+    }));
+    const parsed = equipesSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) throw new Error("Armazenamento de equipes inválido.");
+  }
+  return obterEquipesArmazenadas().some((equipe) => equipe.id === equipeId);
+}

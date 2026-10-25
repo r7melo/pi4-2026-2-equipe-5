@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { capturarSessaoOperacional, deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
+import { useState, useMemo, useLayoutEffect, useRef, type SetStateAction, type ReactNode } from "react";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
 import type { GanttFiltrosAvancados } from "@/types";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
@@ -37,11 +38,20 @@ import {
   formatarDataISO,
 } from "@/shared/lib/formatters";
 import { obterConflitosEquipe } from "@/features/cronograma/lib/ganttCalculos";
+import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
+import { podeVerModo } from "@/shared/lib/podeVerModo";
+import { BotaoModoDisplay } from "@/shared/components/display/BotaoModoDisplay";
 import "@/features/cronograma/components/gantt.css";
 
 const HOJE_ISO = formatarDataISO(new Date());
 
-export default function Equipes() {
+export default function Equipes({
+  renderizarAcoesObra,
+}: {
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
+} = {}) {
+  const { ativo: modoAtivo, elegivelParaModo, alturaSelo, lerEpoch, podeInteragir } = useModoDisplay();
+  const epochRender = lerEpoch();
   const nivelZoom = useGanttStore((s) => s.nivelZoom);
   const setNivelZoom = useGanttStore((s) => s.setNivelZoom);
   const filtrosSalvos = useGanttStore((s) => s.filtrosSalvos);
@@ -69,11 +79,33 @@ export default function Equipes() {
   const [modalNovaEquipeAberto, setModalNovaEquipeAberto] = useState(false);
   const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
   const [tarefaSelecionadaId, setTarefaSelecionadaId] = useState<number | null>(null);
+  const [epochOverlays, setEpochOverlays] = useState(epochRender);
+  if (epochOverlays !== epochRender) {
+    setEpochOverlays(epochRender);
+    setDrawerFiltrosAberto(false);
+    setModalNovaAlocacaoAberto(false);
+    setModalNovaEquipeAberto(false);
+    setModalCompartilharAberto(false);
+    setTarefaSelecionadaId(null);
+  }
 
   const nomePerfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const canEdit =
     nomePerfil === "Administrador" || nomePerfil === "Engenharia";
-  const canDrag = canEdit;
+  const canDrag = canEdit && !modoAtivo;
+  const canEditRef = useRef(canEdit);
+  const montadoRef = useRef(false);
+  useLayoutEffect(() => { canEditRef.current = canEdit; }, [canEdit]);
+  useLayoutEffect(() => {
+    montadoRef.current = true;
+    return () => { montadoRef.current = false; };
+  }, []);
+  const podeUsarInterface = () => montadoRef.current && podeInteragir(epochRender);
+  const podeEditar = () => canEditRef.current && podeUsarInterface();
+  const atualizarFiltros = (atualizacao: SetStateAction<GanttFiltrosAvancados>) => {
+    if (!podeUsarInterface()) return;
+    setFiltros(atualizacao);
+  };
 
   const {
     data: programacoes,
@@ -224,14 +256,19 @@ export default function Equipes() {
   ]);
 
 
+  const programacoesVisiveis = useMemo(
+    () => modoAtivo ? programacoes ?? [] : programacoesFiltradas,
+    [modoAtivo, programacoes, programacoesFiltradas]
+  );
+
   const dadosFormatados: GanttTask[] = useMemo(() => {
-    if (!equipes || !programacoesFiltradas) return [];
+    if (!equipes) return [];
 
     const resultado: GanttTask[] = [];
 
     // Agrupa programações por equipe
-    const mapaEquipes = new Map<number, typeof programacoesFiltradas>();
-    for (const p of programacoesFiltradas) {
+    const mapaEquipes = new Map<number, typeof programacoesVisiveis>();
+    for (const p of programacoesVisiveis) {
       const lista = mapaEquipes.get(p.equipeId) || [];
       lista.push(p);
       mapaEquipes.set(p.equipeId, lista);
@@ -304,7 +341,7 @@ export default function Equipes() {
     }
 
     return resultado;
-  }, [equipes, programacoesFiltradas, listaObras, homologacoesMap]);
+  }, [equipes, programacoesVisiveis, listaObras, homologacoesMap]);
 
   const tarefaDrawer = useMemo<TarefaDetalhes | null>(() => {
     if (!tarefaSelecionadaId) return null;
@@ -329,6 +366,7 @@ export default function Equipes() {
   }, [tarefaSelecionadaId, programacoes, listaObras, equipes]);
 
   const handleReorder = (id: number, novaData: string, novaDataFim: string) => {
+    if (!podeEditar()) return;
     reordenar({ id, novaDataInicio: novaData, novaDataFim });
   };
 
@@ -337,6 +375,7 @@ export default function Equipes() {
   };
 
   const handleSelectTask = (taskId: number) => {
+    if (!podeUsarInterface()) return;
     setTarefaSelecionadaId(taskId);
   };
 
@@ -346,14 +385,17 @@ export default function Equipes() {
     dataInicio: string;
     dataFim?: string;
   }) => {
+    if (!podeEditar()) return;
     await criarAlocacao(dados);
   };
 
   const handleDesalocar = (id: number) => {
-    void deletarAlocacao(id);
+    if (!podeEditar()) return;
+    void deletarAlocacao(id).catch(() => undefined);
   };
 
   const handleMudarEquipe = async (id: number, novaEquipeId: number) => {
+    if (!podeEditar()) return;
     const progAtual = programacoes?.find((p) => p.id === id);
     if (!progAtual) return;
 
@@ -377,136 +419,91 @@ export default function Equipes() {
     }
 
     try {
-      await deletarAlocacao(id);
+      const sessao = capturarSessaoOperacional();
+      await deletarAlocacao(id, undefined, sessao);
       const novaProg = await criarAlocacao({
         obraId: progAtual.obraId,
         equipeId: novaEquipeId,
         dataInicio: progAtual.dataInicio,
         dataFim: progAtual.dataFim,
-      });
+      }, undefined, sessao);
 
-      setTarefaSelecionadaId(novaProg.id);
+      if (podeEditar()) setTarefaSelecionadaId(novaProg.id);
       toast.success(`Obra reatribuída com sucesso para ${nomeNovaEquipe}!`);
-    } catch {
+    } catch (erro) {
+      if (!deveExibirErroLocal(erro)) return;
       toast.error("Erro ao reatribuir equipe para a obra.");
     }
   };
 
   const handleImprimir = () => {
+    if (!podeUsarInterface()) return;
     window.print();
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader
-          title="Cronograma de Equipes"
-          subtitle="Gestão de alocações e cronograma de obras (Gantt)"
-        />
+  return (
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden"
+      style={modoAtivo ? { paddingBottom: alturaSelo } : undefined}>
+      <PageHeader title="Cronograma de Equipes"
+        subtitle="Gestão de alocações e cronograma de obras (Gantt)"
+        ocultarMenuLateral={modoAtivo}>
+        {!isLoading && !erroProg && Boolean(programacoes?.length) && (
+          <GanttToolbar nivelAtual={nivelZoom} onMudarNivel={setNivelZoom}
+            onHoje={handleHoje} mostrarGrade={mostrarGrade}
+            onToggleGrade={() => setMostrarGrade((prev) => !prev)}
+            onImprimir={handleImprimir}
+            onAbrirCompartilhar={canEdit ? () => { if (podeEditar()) setModalCompartilharAberto(true); } : undefined}
+            onAbrirFiltros={() => { if (podeUsarInterface()) setDrawerFiltrosAberto(true); }}
+            totalFiltrosAtivos={totalFiltrosAtivos} modoAtivo={modoAtivo} />
+        )}
+        {podeVerModo(nomePerfil) && elegivelParaModo && <BotaoModoDisplay className="size-7.5 [&_svg]:size-3.5" />}
+      </PageHeader>
+
+      {isLoading ? (
         <div className="flex-1 flex items-center justify-center bg-background-app">
           <FeedbackLoading mensagem="Carregando cronograma..." />
         </div>
-      </div>
-    );
-  }
-
-  if (erroProg) {
-    return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader
-          title="Cronograma de Equipes"
-          subtitle="Gestão de alocações e cronograma de obras (Gantt)"
-        />
+      ) : erroProg ? (
         <div className="flex-1 flex items-center justify-center bg-background-app p-4">
-          <FeedbackErro
-            mensagem={errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
-            onTentarNovamente={() => void refetchProg()}
-          />
+          <FeedbackErro mensagem={errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
+            onTentarNovamente={() => void refetchProg()} />
         </div>
-      </div>
-    );
-  }
-
-  if (!programacoes || programacoes.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <PageHeader
-          title="Cronograma de Equipes"
-          subtitle="Gestão de alocações e cronograma de obras (Gantt)"
-        />
+      ) : programacoesVisiveis.length === 0 && (modoAtivo || !programacoes?.length) ? (
         <div className="flex-1 flex items-center justify-center bg-background-app p-4">
-          <EmptyState
-            icone={CalendarX2}
-            titulo="Nenhuma programação encontrada"
-            descricao="Aloque equipes a obras cadastradas para inicializar o cronograma."
-            acao={
-              canEdit
-                ? {
-                    label: "Nova Alocação",
-                    onClick: () => setModalNovaAlocacaoAberto(true),
-                  }
-                : undefined
-            }
-          />
+          <EmptyState icone={CalendarX2} titulo="Nenhuma programação encontrada"
+            descricao={modoAtivo ? undefined : "Aloque equipes a obras cadastradas para inicializar o cronograma."}
+            acao={canEdit && !modoAtivo ? {
+              label: "Nova Alocação",
+              onClick: () => { if (podeEditar()) setModalNovaAlocacaoAberto(true); },
+            } : undefined} />
         </div>
-
-        <GanttNovaAlocacaoModal
-          isOpen={modalNovaAlocacaoAberto}
-          onClose={() => setModalNovaAlocacaoAberto(false)}
-          obrasElegiveis={obrasElegiveis}
-          equipes={equipes || []}
-          programacoes={programacoes || []}
-          onConfirmar={handleConfirmarAlocacao}
-          isLoading={criandoAlocacao}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <PageHeader
-        title="Cronograma de Equipes"
-        subtitle="Gestão de alocações e cronograma de obras (Gantt)"
-      >
-        <GanttToolbar
-          nivelAtual={nivelZoom}
-          onMudarNivel={setNivelZoom}
-          onHoje={handleHoje}
-          mostrarGrade={mostrarGrade}
-          onToggleGrade={() => setMostrarGrade((prev) => !prev)}
-          onImprimir={handleImprimir}
-          onAbrirCompartilhar={() => setModalCompartilharAberto(true)}
-          onAbrirFiltros={() => setDrawerFiltrosAberto(true)}
-          totalFiltrosAtivos={totalFiltrosAtivos}
-        />
-      </PageHeader>
-
-      <div className="flex-1 flex flex-col gap-2 w-full bg-background-app p-2 md:p-3 overflow-hidden">
+      ) : (
+      <div className="flex-1 flex flex-col gap-2 w-full min-h-0 bg-background-app p-2 md:p-3 overflow-hidden">
         {/* Barra Rápida conectada 100% à Fonte Única de Verdade 'filtros': */}
+        {!modoAtivo && (
         <GanttKpiBar
           termoBusca={filtros.termoBusca || ""}
           onBuscaChange={(termo) =>
-            setFiltros((prev) => ({ ...prev, termoBusca: termo || undefined }))
+            atualizarFiltros((prev) => ({ ...prev, termoBusca: termo || undefined }))
           }
           equipeSelecionada={filtros.equipeId ?? null}
           onEquipeChange={(equipeId) =>
-            setFiltros((prev) => ({ ...prev, equipeId: equipeId ?? undefined }))
+            atualizarFiltros((prev) => ({ ...prev, equipeId: equipeId ?? undefined }))
           }
           equipes={equipes || []}
           canEdit={canEdit}
-          onNovaAlocacao={() => setModalNovaAlocacaoAberto(true)}
-          onNovaEquipe={() => setModalNovaEquipeAberto(true)}
+          onNovaAlocacao={() => { if (podeEditar()) setModalNovaAlocacaoAberto(true); }}
+          onNovaEquipe={() => { if (podeEditar()) setModalNovaEquipeAberto(true); }}
           dataFiltroInicio={filtros.dataInicioDe || ""}
           onDataInicioChange={(val) =>
-            setFiltros((prev) => ({ ...prev, dataInicioDe: val || undefined }))
+            atualizarFiltros((prev) => ({ ...prev, dataInicioDe: val || undefined }))
           }
           dataFiltroFim={filtros.dataFimAte || ""}
           onDataFimChange={(val) =>
-            setFiltros((prev) => ({ ...prev, dataFimAte: val || undefined }))
+            atualizarFiltros((prev) => ({ ...prev, dataFimAte: val || undefined }))
           }
           onLimparDatas={() =>
-            setFiltros((prev) => ({
+            atualizarFiltros((prev) => ({
               ...prev,
               dataInicioDe: undefined,
               dataFimAte: undefined,
@@ -515,10 +512,11 @@ export default function Equipes() {
             }))
           }
         />
+        )}
 
         {/* Container do Gantt com Empty State unificado: */}
         <div className="relative flex-1 bg-surface rounded-xl shadow-xs border border-border-subtle overflow-hidden flex flex-col min-h-0">
-          {programacoesFiltradas.length === 0 && (
+          {!modoAtivo && programacoesVisiveis.length === 0 && (
             <EmptyState
               className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
               icone={Search}
@@ -526,7 +524,7 @@ export default function Equipes() {
               descricao="Tente alterar os filtros na gaveta lateral ou na barra rápida."
               acao={{
                 label: "Limpar Todos os Filtros",
-                onClick: () => setFiltros({}),
+                onClick: () => atualizarFiltros({}),
               }}
             />
           )}
@@ -534,58 +532,70 @@ export default function Equipes() {
           <GanttDhtmlxWrapper
             tarefas={dadosFormatados}
             canDrag={canDrag}
+            epochInteracao={epochRender}
             nivelZoom={nivelZoom}
             focarData={dataFoco}
             mostrarGrade={mostrarGrade}
             onReorder={handleReorder}
-            onSelectTask={handleSelectTask}
+            onSelectTask={modoAtivo ? undefined : handleSelectTask}
           />
         </div>
       </div>
+      )}
 
-      <GanttNovaAlocacaoModal
+      {!modoAtivo && !isLoading && !erroProg && (
+      <>
+      {canEdit && <GanttNovaAlocacaoModal
         isOpen={modalNovaAlocacaoAberto}
-        onClose={() => setModalNovaAlocacaoAberto(false)}
+        onClose={() => { if (podeUsarInterface()) setModalNovaAlocacaoAberto(false); }}
         obrasElegiveis={obrasElegiveis}
         equipes={equipes || []}
         programacoes={programacoes || []}
         onConfirmar={handleConfirmarAlocacao}
         isLoading={criandoAlocacao}
-      />
+      />}
 
-      <GanttNovaEquipeModal
-        isOpen={modalNovaEquipeAberto}
-        onClose={() => setModalNovaEquipeAberto(false)}
+      {Boolean(programacoes?.length) && (
+      <>
+      {canEdit && <GanttNovaEquipeModal isOpen={modalNovaEquipeAberto} podeInteragir={podeEditar}
+        onClose={() => { if (podeUsarInterface()) setModalNovaEquipeAberto(false); }}
         onEquipeCriada={(novaEquipeId) => {
-          setFiltros((prev) => ({ ...prev, equipeId: novaEquipeId }));
+          if (!podeEditar()) return;
+          atualizarFiltros((prev) => ({ ...prev, equipeId: novaEquipeId }));
           setModalNovaAlocacaoAberto(true);
-        }}
-      />
+        }} />}
 
-      <GanttCompartilharModal
+      {canEdit && <GanttCompartilharModal
         isOpen={modalCompartilharAberto}
-        onClose={() => setModalCompartilharAberto(false)}
-      />
+        onClose={() => { if (podeUsarInterface()) setModalCompartilharAberto(false); }}
+      />}
 
       <GanttTaskDrawer
         tarefa={tarefaDrawer}
-        onClose={() => setTarefaSelecionadaId(null)}
+        onClose={() => { if (podeUsarInterface()) setTarefaSelecionadaId(null); }}
         canEdit={canEdit}
         onDesalocar={handleDesalocar}
         equipes={equipes || []}
         programacoes={programacoes || []}
         onMudarEquipe={handleMudarEquipe}
+        renderizarAcoesObra={renderizarAcoesObra}
       />
 
       {/* Gaveta de Filtros Avançados: */}
       <GanttFilterDrawer
         aberto={drawerFiltrosAberto}
-        onFechar={() => setDrawerFiltrosAberto(false)}
+        onFechar={() => { if (podeUsarInterface()) setDrawerFiltrosAberto(false); }}
         filtrosAtuais={filtros}
-        onAplicarFiltros={setFiltros}
-        onSalvarVisaoFavorita={salvarFiltrosNaStore}
+        onAplicarFiltros={atualizarFiltros}
+        onSalvarVisaoFavorita={(novosFiltros) => {
+          if (podeUsarInterface()) salvarFiltrosNaStore(novosFiltros);
+        }}
         equipesDisponiveis={equipes || []}
       />
+      </>
+      )}
+      </>
+      )}
     </div>
   );
 }

@@ -6,7 +6,9 @@ import {
   FileCheck, 
   DollarSign, 
   BarChart2,
-  Settings,
+  Moon,
+  Sun,
+  UserPlus,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -16,6 +18,9 @@ import { cn } from "@/shared/lib/utils";
 import { useSidebar } from "@/shared/contexts/SidebarContext";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
 import type { NomePerfil } from "@/types";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useThemeStore, resolverTemaEfetivo } from "@/shared/stores/useThemeStore";
 
 export function SidebarTrigger({ className }: { className?: string }) {
   const { toggleMobile, isMobileOpen } = useSidebar();
@@ -26,7 +31,7 @@ export function SidebarTrigger({ className }: { className?: string }) {
       aria-label="Abrir menu lateral"
       aria-expanded={isMobileOpen}
       className={cn(
-        "shrink-0 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-border-strong cursor-pointer",
+        "shrink-0 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer",
         className
       )}
     >
@@ -37,6 +42,7 @@ export function SidebarTrigger({ className }: { className?: string }) {
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const location = useLocation();
   const { isCollapsed, toggleCollapse, isMobileOpen, closeMobile } = useSidebar();
 
@@ -79,10 +85,10 @@ export default function Sidebar() {
       roles: ["Administrador", "Financeiro"],
     },
     {
-      label: "Configurações",
-      path: "/configuracoes",
-      icon: Settings,
-      roles: ["Administrador", "Financeiro"],
+      label: "Usuários",
+      path: "/usuarios/novo",
+      icon: UserPlus,
+      roles: ["Administrador"],
     },
   ];
 
@@ -93,7 +99,8 @@ export default function Sidebar() {
     return (
       location.pathname === path ||
       (path === "/kanban" && (location.pathname === "/kanban" || location.pathname === "/cadastrarobra")) ||
-      (path === "/acompanharhomologacao" && location.pathname.startsWith("/acompanharhomologacao"))
+      (path === "/acompanharhomologacao" && location.pathname.startsWith("/acompanharhomologacao")) ||
+      (path === "/usuarios/novo" && location.pathname.startsWith("/usuarios"))
     );
   };
 
@@ -108,14 +115,13 @@ export default function Sidebar() {
         )}
       >
         <button
-          onClick={(e) => {
+          onClick={() => {
             toggleCollapse();
-            e.currentTarget.blur();
           }}
           aria-expanded={!isCollapsed}
           aria-label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
           title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-          className="absolute -right-3 top-6 bg-surface border border-border-subtle rounded-full p-1 text-subtle-foreground hover:text-foreground-muted shadow-sm z-10 transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-border-strong cursor-pointer"
+          className="absolute -right-3 top-6 bg-surface border border-border-subtle rounded-full p-1 text-muted-foreground hover:text-foreground-muted shadow-sm z-10 transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -137,7 +143,7 @@ export default function Sidebar() {
                   title={isCollapsed ? item.label : ""}
                   aria-label={item.label}
                   className={cn(
-                    "w-full flex items-center py-2.5 rounded-lg font-medium text-sm transition-colors cursor-pointer",
+                    "w-full flex items-center py-2.5 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     isCollapsed ? "justify-center px-0" : "px-4",
                     isActive
                       ? "bg-muted text-foreground font-semibold"
@@ -156,15 +162,16 @@ export default function Sidebar() {
         </div>
 
         <div className="px-3 shrink-0 pt-4 border-t border-border-subtle">
+          <BotaoTema recolhido={isCollapsed} />
           <button
             onClick={() => {
-              (document.activeElement as HTMLElement)?.blur();
+              queryClient.clear();
               useAuthStore.getState().logout();
             }}
             title={isCollapsed ? "Sair" : ""}
             aria-label="Sair do sistema"
             className={cn(
-              "w-full flex items-center py-2.5 text-muted-foreground hover:bg-destructive-light hover:text-destructive rounded-lg font-medium text-sm transition-colors cursor-pointer",
+              "w-full flex items-center py-2.5 text-muted-foreground hover:bg-destructive-light hover:text-destructive rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               isCollapsed ? "justify-center px-0" : "px-4"
             )}
           >
@@ -186,7 +193,6 @@ export default function Sidebar() {
       >
         <div
           onClick={() => {
-            (document.activeElement as HTMLElement)?.blur();
             closeMobile();
           }}
           className={cn(
@@ -212,11 +218,10 @@ export default function Sidebar() {
               </div>
               <button
                 onClick={() => {
-                  (document.activeElement as HTMLElement)?.blur();
-                  closeMobile();
+                      closeMobile();
                 }}
                 aria-label="Fechar menu lateral"
-                className="p-1.5 text-subtle-foreground hover:text-foreground-muted hover:bg-muted rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-muted-foreground hover:text-foreground-muted hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -229,12 +234,11 @@ export default function Sidebar() {
                   <button
                     key={item.path}
                     onClick={() => {
-                      (document.activeElement as HTMLElement)?.blur();
-                      closeMobile();
+                              closeMobile();
                       void navigate(item.path);
                     }}
                     className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-colors text-left cursor-pointer",
+                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                       isActive
                         ? "bg-muted text-foreground font-bold"
                         : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground"
@@ -249,13 +253,14 @@ export default function Sidebar() {
           </div>
 
           <div className="px-4 shrink-0 pt-4 border-t border-border-subtle">
+          <BotaoTema recolhido={false} />
             <button
               onClick={() => {
-                (document.activeElement as HTMLElement)?.blur();
-                closeMobile();
-                useAuthStore.getState().logout();
+                  closeMobile();
+                queryClient.clear();
+              useAuthStore.getState().logout();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-destructive-light hover:text-destructive rounded-xl font-medium text-sm transition-colors cursor-pointer"
+              className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-destructive-light hover:text-destructive rounded-xl font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <LogOut className="w-5 h-5 shrink-0" />
               <span>Sair</span>
@@ -265,4 +270,23 @@ export default function Sidebar() {
       </div>
     </>
   );
+}
+
+function BotaoTema({ recolhido }: { recolhido: boolean }) {
+  const tema = useThemeStore(s => s.tema);
+  const alternar = useThemeStore(s => s.alternarTema);
+  const [sistemaEscuro, setSistemaEscuro] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const atualizar = () => setSistemaEscuro(media.matches);
+    media.addEventListener("change", atualizar);
+    return () => media.removeEventListener("change", atualizar);
+  }, []);
+  const escuro = tema === "system" ? sistemaEscuro : resolverTemaEfetivo(tema) === "dark";
+  const rotulo = escuro ? "Tema claro" : "Tema escuro";
+  const Icone = escuro ? Sun : Moon;
+  return <button type="button" onClick={alternar} aria-label={rotulo} title={recolhido ? rotulo : undefined}
+    className={cn("w-full flex items-center gap-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", recolhido ? "justify-center" : "px-4")}>
+    <Icone className="size-5 shrink-0" aria-hidden="true" />{!recolhido && <span>{rotulo}</span>}
+  </button>;
 }

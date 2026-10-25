@@ -1,4 +1,6 @@
-import { useState, useMemo, memo } from "react";
+import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
+import { useState, useMemo, useLayoutEffect, useRef, memo } from "react";
+import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { useDraggable } from "@dnd-kit/core";
 import { Trash2, MoreVertical, ArrowRight, Lock } from "lucide-react";
 import axios from "axios";
@@ -18,6 +20,7 @@ interface KanbanCardProps {
   onSelect?: (card: ObraCard) => void;
   onMover?: (card: ObraCard, novoStatus: StatusObra) => void;
   materiaisObra?: Material[];
+  somenteLeitura?: boolean;
 }
 
 export default memo(function KanbanCard({
@@ -25,13 +28,32 @@ export default memo(function KanbanCard({
   onSelect,
   onMover,
   materiaisObra,
+  somenteLeitura = false,
 }: KanbanCardProps) {
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
   const [menuMoverAberto, setMenuMoverAberto] = useState(false);
 
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const { lerEpoch, podeInteragir } = useModoDisplay();
+  const epochRender = lerEpoch();
+  const montadoRef = useRef(true);
+  const perfilRef = useRef(perfil);
+  const [epochLocal, setEpochLocal] = useState(epochRender);
+  if (epochLocal !== epochRender) {
+    setEpochLocal(epochRender);
+    setMenuMoverAberto(false);
+    setModalExcluirAberto(false);
+  }
+  useLayoutEffect(() => { perfilRef.current = perfil; }, [perfil]);
+  useLayoutEffect(() => {
+    montadoRef.current = true;
+    return () => { montadoRef.current = false; };
+  }, []);
+  const podeAbrirAgora = () => montadoRef.current && !somenteLeitura && podeInteragir(epochRender);
+  const podeEditarAgora = () => podeAbrirAgora() &&
+    (perfilRef.current === "Administrador" || perfilRef.current === "Engenharia");
   const isFinanceiro = perfil === "Financeiro";
-  const canDrag = !isFinanceiro && (perfil === "Administrador" || perfil === "Engenharia");
+  const canDrag = !somenteLeitura && !isFinanceiro && (perfil === "Administrador" || perfil === "Engenharia");
   const canDelete = !isFinanceiro && canDrag;
 
   const { data: programacoes } = useProgramacoes();
@@ -59,20 +81,23 @@ export default memo(function KanbanCard({
   });
 
   const style = {
-    opacity: isDragging ? 0.25 : 1,
+    opacity: !somenteLeitura && isDragging ? 0.25 : 1,
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!podeAbrirAgora()) return;
     onSelect?.(card);
   };
 
   const handleConfirmarExclusao = async () => {
+    if (!podeEditarAgora()) return;
     try {
       await excluir(card.id);
       toast.success("Obra excluída com sucesso.");
-      setModalExcluirAberto(false);
+      if (montadoRef.current && podeInteragir(epochRender)) setModalExcluirAberto(false);
     } catch (err: unknown) {
+      if (!deveExibirErroLocal(err)) return;
       let msg = "Não foi possível excluir a obra.";
       if (axios.isAxiosError<{ error?: { message?: string } }>(err)) {
         msg = err.response?.data?.error?.message || err.message;
@@ -104,15 +129,15 @@ export default memo(function KanbanCard({
       <div
         ref={setNodeRef}
         style={style}
-        {...attributes}
-        {...listeners}
-        onClick={handleCardClick}
+        {...(somenteLeitura ? {} : attributes)}
+        {...(somenteLeitura ? {} : listeners)}
+        onClick={somenteLeitura ? undefined : handleCardClick}
         className={cn(
           "bg-surface border border-border-subtle/90 rounded-lg p-2.5 shadow-xs transition-all select-none group relative",
           canDrag
             ? "cursor-pointer hover:shadow-md hover:border-border-strong active:cursor-grabbing hover:-translate-y-0.5"
             : "cursor-default",
-          isDragging && "shadow-xl border-info ring-2 ring-info/20"
+          !somenteLeitura && isDragging && "shadow-xl border-info ring-2 ring-info/20"
         )}
       >
         <KanbanCardVisual
@@ -136,6 +161,7 @@ export default memo(function KanbanCard({
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!podeEditarAgora()) return;
                       setMenuMoverAberto((prev) => !prev);
                     }}
                     title="Mover para..."
@@ -160,6 +186,7 @@ export default memo(function KanbanCard({
                             key={st}
                             type="button"
                             onClick={() => {
+                              if (!podeEditarAgora()) return;
                               setMenuMoverAberto(false);
                               onMover?.(card, st);
                             }}
@@ -181,6 +208,7 @@ export default memo(function KanbanCard({
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!podeEditarAgora()) return;
                     setModalExcluirAberto(true);
                   }}
                   title="Excluir obra"
@@ -194,14 +222,12 @@ export default memo(function KanbanCard({
         />
       </div>
 
-      <ModalExcluirObra
-        obra={card}
-        isOpen={modalExcluirAberto}
-        onClose={() => setModalExcluirAberto(false)}
-        onConfirm={handleConfirmarExclusao}
-        isLoading={excluindo}
-        temAlocacaoAtiva={temAlocacaoAtiva}
-      />
+      {!somenteLeitura && (
+        <ModalExcluirObra obra={card} isOpen={modalExcluirAberto}
+          onClose={() => { if (podeAbrirAgora()) setModalExcluirAberto(false); }}
+          onConfirm={handleConfirmarExclusao} isLoading={excluindo}
+          temAlocacaoAtiva={temAlocacaoAtiva} />
+      )}
     </>
   );
 });

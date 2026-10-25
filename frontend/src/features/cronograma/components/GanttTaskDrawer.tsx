@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Package,
@@ -48,6 +48,7 @@ interface GanttTaskDrawerProps {
   equipes?: { id: number; nome: string }[];
   programacoes?: Programacao[];
   onMudarEquipe?: (id: number, novaEquipeId: number) => Promise<void>;
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
 }
 
 const DEFAULT_PROGRAMACOES: Programacao[] = [];
@@ -60,6 +61,7 @@ export function GanttTaskDrawer({
   equipes,
   programacoes = DEFAULT_PROGRAMACOES,
   onMudarEquipe,
+  renderizarAcoesObra,
 }: GanttTaskDrawerProps) {
   const navigate = useNavigate();
   const [confirmarDesalocacao, setConfirmarDesalocacao] = useState(false);
@@ -104,6 +106,7 @@ export function GanttTaskDrawer({
         isOpen={Boolean(tarefa)}
         onClose={onClose}
         tamanho="md"
+        acoesHeader={renderizarAcoesObra && tarefa?.obraId ? renderizarAcoesObra(tarefa.obraId) : undefined}
         headerCustomizado={
           <div className="flex items-center justify-between flex-1 pr-2">
             <div>

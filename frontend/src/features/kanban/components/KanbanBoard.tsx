@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import {
   DndContext,
   DragOverlay,
@@ -32,15 +33,38 @@ interface KanbanBoardProps {
   busca: string;
   categoriaFiltro: string;
   materialFiltro: string;
+  somenteLeitura?: boolean;
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
 }
 
 const STATUS_TODOS: StatusObra[] = [...COLUNAS_KANBAN.map((c) => c.id)];
+
+function agruparPorStatus(obras: ObraCard[]): Record<StatusObra, ObraCard[]> {
+  const mapa: Record<StatusObra, ObraCard[]> = {
+    MaterialComprado: [], NoDeposito: [], Separado: [],
+    EmAndamento: [], Concluido: [], Assistencia: [],
+  };
+  for (const obra of obras) mapa[obra.status]?.push(obra);
+  return mapa;
+}
+
+function selecionarVisaoIntegral(obras: ObraCard[]): ObraCard[] {
+  return obras.filter((obra) => obra.status !== "Concluido" ||
+    !isObraConcluidaArquivada(obra.dataFimReal || obra.dataFimEstimada))
+    .sort((a, b) => {
+      const timeA = a.dataFimEstimada ? new Date(a.dataFimEstimada).getTime() : Infinity;
+      const timeB = b.dataFimEstimada ? new Date(b.dataFimEstimada).getTime() : Infinity;
+      return timeA - timeB;
+    });
+}
 
 export default function KanbanBoard({
   obras,
   busca,
   categoriaFiltro,
   materialFiltro,
+  somenteLeitura = false,
+  renderizarAcoesObra,
 }: KanbanBoardProps) {
   const [activeCard, setActiveCard] = useState<ObraCard | null>(null);
   const [initialContainer, setInitialContainer] = useState<StatusObra | null>(null);
@@ -49,9 +73,18 @@ export default function KanbanBoard({
   const [colunaMobileAtiva, setColunaMobileAtiva] = useState<StatusObra>("MaterialComprado");
   const [exibirArquivadas, setExibirArquivadas] = useState(false);
 
-  const handleSelectCard = useCallback((card: ObraCard) => {
-    setDrawerCard(card);
+  const { lerEpoch, podeInteragir } = useModoDisplay();
+  const epochRender = lerEpoch();
+  const montadoRef = useRef(true);
+  const dragEpochRef = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    montadoRef.current = true;
+    return () => { montadoRef.current = false; dragEpochRef.current = null; };
   }, []);
+  const handleSelectCard = useCallback((card: ObraCard) => {
+    if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
+    setDrawerCard(card);
+  }, [somenteLeitura, podeInteragir, epochRender]);
 
   const moverCardMutation = useMoverCard();
 
@@ -83,6 +116,7 @@ export default function KanbanBoard({
 
   // Filtragem composta em tempo real com auto-ordenação
   const obrasFiltradas = useMemo(() => {
+    if (somenteLeitura) return selecionarVisaoIntegral(obras);
     const list = obras.filter((obra) => {
       // 1. Busca textual global
       if (busca.trim()) {
@@ -139,7 +173,7 @@ export default function KanbanBoard({
       const timeB = b.dataFimEstimada ? new Date(b.dataFimEstimada).getTime() : Infinity;
       return timeA - timeB;
     });
-  }, [obras, busca, categoriaFiltro, materialFiltro, mapaMateriais, exibirArquivadas]);
+  }, [obras, busca, categoriaFiltro, materialFiltro, mapaMateriais, exibirArquivadas, somenteLeitura]);
 
   // Estado local reativo de itens por coluna
   const [itensColunas, setItensColunas] = useState<Record<StatusObra, ObraCard[]>>(() => {
@@ -159,26 +193,40 @@ export default function KanbanBoard({
     return mapa;
   });
 
+  const obrasAtuaisRef = useRef(obras);
+  const selecaoAtualRef = useRef(obrasFiltradas);
+  useLayoutEffect(() => {
+    obrasAtuaisRef.current = obras;
+    selecaoAtualRef.current = obrasFiltradas;
+  }, [obras, obrasFiltradas]);
+
   // Função centralizada para restaurar itensColunas para o snapshot oficial
   const restaurarEstadoOficial = useCallback(() => {
-    const mapa: Record<StatusObra, ObraCard[]> = {
-      MaterialComprado: [],
-      NoDeposito: [],
-      Separado: [],
-      EmAndamento: [],
-      Concluido: [],
-      Assistencia: [],
-    };
-    for (const item of obrasFiltradas) {
-      if (mapa[item.status]) {
-        mapa[item.status].push(item);
-      }
-    }
-    setItensColunas(mapa);
-  }, [obrasFiltradas]);
+    if (!montadoRef.current) return;
+    const selecao = podeInteragir()
+      ? selecaoAtualRef.current
+      : selecionarVisaoIntegral(obrasAtuaisRef.current);
+    setItensColunas(agruparPorStatus(selecao));
+  }, [podeInteragir]);
 
   // Flag anti-flicker: impede que activeCard === null reverta itensColunas antes do cache otimista resolver
   const isDroppingRef = useRef(false);
+  const ultimoEpochRef = useRef(epochRender);
+  const [epochAplicado, setEpochAplicado] = useState(epochRender);
+  if (epochAplicado !== epochRender) {
+    setEpochAplicado(epochRender);
+    setActiveCard(null);
+    setInitialContainer(null);
+    setDrawerCard(null);
+    setObraParaConcluir(null);
+    setItensColunas(agruparPorStatus(obrasFiltradas));
+  }
+  useLayoutEffect(() => {
+    if (ultimoEpochRef.current === epochRender) return;
+    ultimoEpochRef.current = epochRender;
+    dragEpochRef.current = null;
+    isDroppingRef.current = false;
+  }, [epochRender]);
 
   // Sincroniza estado com obras filtradas quando não houver arraste em andamento
   useEffect(() => {
@@ -242,15 +290,19 @@ export default function KanbanBoard({
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
     const cardId = Number(event.active.id);
     const card = obras.find((o) => o.id === cardId);
     if (card) {
+      dragEpochRef.current = epochRender;
       setActiveCard(card);
       setInitialContainer(card.status);
     }
   };
 
   const handleDragCancel = () => {
+    if (!montadoRef.current || !podeInteragir(epochRender)) return;
+    dragEpochRef.current = null;
     setActiveCard(null);
     setInitialContainer(null);
     isDroppingRef.current = false;
@@ -260,6 +312,7 @@ export default function KanbanBoard({
   // Execução da movimentação de status na API e no estado otimista
   const executarMudancaStatus = useCallback(
     (card: ObraCard, novoStatus: StatusObra) => {
+      if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
       setItensColunas((prev) => {
         const next = { ...prev };
         for (const status of Object.keys(next) as StatusObra[]) {
@@ -274,46 +327,53 @@ export default function KanbanBoard({
         {
           cardId: card.id,
           novoStatus,
+          epochInicio: epochRender,
         },
         {
           onError: () => {
             restaurarEstadoOficial();
           },
           onSettled: () => {
-            isDroppingRef.current = false;
+            if (montadoRef.current && podeInteragir(epochRender)) isDroppingRef.current = false;
           },
         }
       );
     },
-    [moverCardMutation, restaurarEstadoOficial]
+    [moverCardMutation, restaurarEstadoOficial, somenteLeitura, podeInteragir, epochRender]
   );
 
   // Mover card acionado via menu acessível "Mover para..." (UX-09)
   const handleMoverCard = useCallback(
     (card: ObraCard, novoStatus: StatusObra) => {
+      if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
       if (novoStatus === "Concluido") {
         setObraParaConcluir(card);
         return;
       }
       executarMudancaStatus(card, novoStatus);
     },
-    [executarMudancaStatus]
+    [executarMudancaStatus, somenteLeitura, podeInteragir, epochRender]
   );
 
   // Confirmação no diálogo de conclusão (RF-13 / UX-11)
   const handleConfirmarConclusao = useCallback(() => {
-    if (!obraParaConcluir) return;
+    if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender) || !obraParaConcluir) return;
     const card = obraParaConcluir;
     setObraParaConcluir(null);
     executarMudancaStatus(card, "Concluido");
-  }, [obraParaConcluir, executarMudancaStatus]);
+  }, [obraParaConcluir, executarMudancaStatus, somenteLeitura, podeInteragir, epochRender]);
 
   const handleCancelarConclusao = useCallback(() => {
+    if (!montadoRef.current || !podeInteragir(epochRender)) return;
     setObraParaConcluir(null);
     restaurarEstadoOficial();
-  }, [restaurarEstadoOficial]);
+  }, [restaurarEstadoOficial, podeInteragir, epochRender]);
 
   const handleDragEnd = (event: DragEndEvent) => {
+    const epochArraste = dragEpochRef.current;
+    if (!montadoRef.current || somenteLeitura || epochArraste === null ||
+        epochArraste !== epochRender || !podeInteragir(epochArraste)) return;
+    dragEpochRef.current = null;
     const { over } = event;
     const card = activeCard;
     const containerOrigem = initialContainer;
@@ -360,6 +420,7 @@ export default function KanbanBoard({
 
   return (
     <DndContext
+      key={epochRender}
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
@@ -403,6 +464,7 @@ export default function KanbanBoard({
                   title={col.label}
                   badge={col.badge}
                   cards={cardsDaColuna}
+                  somenteLeitura={somenteLeitura}
                   onSelectCard={handleSelectCard}
                   onMoverCard={handleMoverCard}
                   isDestinoValido={isDestinoValido}
@@ -410,10 +472,12 @@ export default function KanbanBoard({
                   mapaMateriais={mapaMateriais}
                   isVisivelMobile={colunaMobileAtiva === col.id}
                   headerAction={
-                    col.id === "Concluido" && totalArquivadasConcluidas > 0 && !busca.trim() ? (
+                    !somenteLeitura && col.id === "Concluido" && totalArquivadasConcluidas > 0 && !busca.trim() ? (
                       <button
                         type="button"
-                        onClick={() => setExibirArquivadas((prev) => !prev)}
+                        onClick={() => {
+                          if (montadoRef.current && podeInteragir(epochRender)) setExibirArquivadas((prev) => !prev);
+                        }}
                         className="text-[10px] font-semibold text-success bg-success-light hover:bg-success-border/40 px-1.5 py-0.5 rounded-full border border-success-border transition-colors cursor-pointer"
                         title="Alternar exibição de obras concluídas há mais de 30 dias"
                       >
@@ -429,22 +493,21 @@ export default function KanbanBoard({
       </div>
 
       <DragOverlay dropAnimation={null}>
-        {activeCard ? <KanbanCardOverlay card={activeCard} /> : null}
+        {!somenteLeitura && activeCard ? <KanbanCardOverlay card={activeCard} /> : null}
       </DragOverlay>
 
-      <KanbanTaskDrawer
-        card={drawerCard}
-        isOpen={Boolean(drawerCard)}
-        onClose={() => setDrawerCard(null)}
-      />
-
-      <ModalConfirmarConclusao
-        obra={obraParaConcluir}
-        isOpen={Boolean(obraParaConcluir)}
-        onClose={handleCancelarConclusao}
-        onConfirmar={handleConfirmarConclusao}
-        isLoading={moverCardMutation.isPending}
-      />
+      {!somenteLeitura && (
+        <>
+          <KanbanTaskDrawer card={drawerCard} isOpen={Boolean(drawerCard)}
+            onClose={() => {
+              if (montadoRef.current && podeInteragir(epochRender)) setDrawerCard(null);
+            }}
+            renderizarAcoesObra={renderizarAcoesObra} />
+          <ModalConfirmarConclusao obra={obraParaConcluir} isOpen={Boolean(obraParaConcluir)}
+            onClose={handleCancelarConclusao} onConfirmar={handleConfirmarConclusao}
+            isLoading={moverCardMutation.isPending} />
+        </>
+      )}
     </DndContext>
   );
 }

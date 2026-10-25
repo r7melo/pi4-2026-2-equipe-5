@@ -172,3 +172,13 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--subtle-foreground);
 }
+
+/* Sonner: usar os mesmos tokens de contraste nos dois temas. */
+[data-sonner-toast].avisos-acesso {
+  --normal-bg: var(--surface);
+  --normal-text: var(--foreground);
+  --normal-border: var(--border-subtle);
+  --error-bg: var(--destructive-light);
+  --error-text: var(--destructive);
+  --error-border: var(--destructive-border);
+}

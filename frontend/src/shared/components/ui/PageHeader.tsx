@@ -13,9 +13,10 @@ export interface PageHeaderProps {
   backState?: unknown;
   onBack?: () => void;
   children?: React.ReactNode;
+  ocultarMenuLateral?: boolean;
 }
 
-export function PageHeader({ title, subtitle, backTo, backState, onBack, children }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, backTo, backState, onBack, children, ocultarMenuLateral = false }: PageHeaderProps) {
   const navigate = useNavigate();
   const contextNode = useHeaderPortal();
   const targetNode =
@@ -27,7 +28,7 @@ export function PageHeader({ title, subtitle, backTo, backState, onBack, childre
   const headerContent = (
     <>
       <div className="flex items-center gap-2 md:gap-3 shrink-0 max-w-[55%] sm:max-w-none min-w-0">
-        <SidebarTrigger className="md:hidden shrink-0" />
+        {!ocultarMenuLateral && <SidebarTrigger className="md:hidden shrink-0" />}
         <div className="min-w-0">
           <h1 className="text-base sm:text-lg font-bold text-foreground-secondary tracking-tight leading-tight truncate">
             {title}

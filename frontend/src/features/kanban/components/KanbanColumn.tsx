@@ -22,6 +22,7 @@ interface KanbanColumnProps {
   isDestinoInvalido?: boolean;
   mapaMateriais?: Map<number, Material[]>;
   isVisivelMobile?: boolean;
+  somenteLeitura?: boolean;
 }
 
 export default memo(function KanbanColumn({
@@ -38,6 +39,7 @@ export default memo(function KanbanColumn({
   isDestinoInvalido,
   mapaMateriais,
   isVisivelMobile = true,
+  somenteLeitura = false,
 }: KanbanColumnProps) {
   const colId = (id || columnId || "") as StatusObra;
   const colTitle = title || label || "";
@@ -93,6 +95,7 @@ export default memo(function KanbanColumn({
           <KanbanCard
             key={card.id}
             card={card}
+            somenteLeitura={somenteLeitura}
             onSelect={onSelectCard}
             onMover={onMoverCard}
             materiaisObra={mapaMateriais?.get(Number(card.id))}

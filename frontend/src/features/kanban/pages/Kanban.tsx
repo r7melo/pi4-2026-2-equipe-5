@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
+import { podeVerModo } from "@/shared/lib/podeVerModo";
+import { BotaoModoDisplay } from "@/shared/components/display/BotaoModoDisplay";
 import { Plus, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
@@ -14,7 +17,12 @@ import KanbanBoard from "@/features/kanban/components/KanbanBoard";
 import KanbanQuickFilters from "@/features/kanban/components/KanbanQuickFilters";
 import { useKanbanFilterStore } from "@/features/kanban/stores/useKanbanFilterStore";
 
-export default function Kanban() {
+export default function Kanban({
+  renderizarAcoesObra,
+}: {
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
+} = {}) {
+  const { ativo: modoAtivo, elegivelParaModo, alturaSelo } = useModoDisplay();
   const navigate = useNavigate();
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const canCriarObra = perfil === "Administrador" || perfil === "Engenharia";
@@ -64,9 +72,9 @@ export default function Kanban() {
         <div className="flex-1 flex items-center justify-center min-h-[400px]">
           <EmptyState
             titulo="Nenhuma obra cadastrada"
-            descricao="Comece cadastrando uma nova obra para alimentar o funil operacional."
+            descricao={modoAtivo ? undefined : "Comece cadastrando uma nova obra para alimentar o funil operacional."}
             acao={
-              canCriarObra
+              canCriarObra && !modoAtivo
                 ? {
                     label: "Nova Obra",
                     onClick: () => { void navigate("/cadastrarobra"); },
@@ -81,20 +89,25 @@ export default function Kanban() {
     return (
       <KanbanBoard
         obras={obras}
+        somenteLeitura={modoAtivo}
         busca={busca}
         categoriaFiltro={categoriaFiltro}
         materialFiltro={materialFiltro}
+        renderizarAcoesObra={renderizarAcoesObra}
       />
     );
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden"
+      style={modoAtivo ? { paddingBottom: alturaSelo } : undefined}>
       <PageHeader
         title="Funil de Obras"
+        ocultarMenuLateral={modoAtivo}
         subtitle="Acompanhamento por etapa"
       >
-        <div className="flex items-center gap-2">
+        {podeVerModo(perfil) && elegivelParaModo && <BotaoModoDisplay />}
+        {!modoAtivo && <div className="flex items-center gap-2">
           {/* Busca Expansível Inline Suave */}
           {buscaAberta ? (
             <SearchInput
@@ -148,10 +161,10 @@ export default function Kanban() {
               <span className="hidden md:inline">Nova obra</span>
             </Button>
           </RoleGate>
-        </div>
+        </div>}
       </PageHeader>
 
-      <main className="flex-1 overflow-auto p-4 md:p-8 custom-scrollbar bg-background-app flex flex-col">
+      <main className="flex-1 min-h-0 overflow-auto p-4 md:p-8 custom-scrollbar bg-background-app flex flex-col">
         {renderContent()}
       </main>
     </div>

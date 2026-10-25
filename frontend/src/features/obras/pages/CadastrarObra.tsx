@@ -1,3 +1,4 @@
+import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
 // Cadastro de novas obras com suporte a cliente existente e novo cliente
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -249,6 +250,7 @@ export default function CadastrarObra() {
         void navigate("/kanban");
       }, 700);
     } catch (erro: unknown) {
+      if (erroDaSessaoAnterior(erro)) return;
       console.error("Falha ao criar obra:", erro);
       const errObj = erro as { response?: { data?: { error?: { message?: string } } } };
       const mensagem =

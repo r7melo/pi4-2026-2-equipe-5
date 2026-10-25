@@ -1,16 +1,18 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "@/features/auth/pages/Login";
-import Kanban from "@/features/kanban/pages/Kanban";
+import SemPermissao from "@/features/auth/pages/SemPermissao";
+import { statusHttp } from "@/shared/lib/sessaoOperacao";
+import { Kanban, Equipes } from "@/composition/RotasOperacionais";
 import CadastrarObra from "@/features/obras/pages/CadastrarObra";
 import AndamentoHomologacao from "@/features/homologacao/pages/AndamentoHomologacao";
 import LinkInstaladores from "@/features/materiais/pages/LinkInstaladores";
-import Equipes from "@/features/cronograma/pages/Equipes";
 import DetalheObra from "@/features/obras/pages/DetalheObra";
 import MateriaisObra from "@/features/materiais/pages/MateriaisObra";
 import Relatorios from "@/features/financeiro/pages/Relatorios";
 import Financeiro from "@/features/financeiro/pages/Financeiro";
 import RelatorioPublico from "@/features/financeiro/pages/RelatorioPublico";
 import CronogramaPublico from "@/features/cronograma/pages/CronogramaPublico";
+import CadastrarUsuario from "@/features/usuarios/pages/CadastrarUsuario";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -18,13 +20,14 @@ import { ReloadPrompt } from "@/shared/components/pwa/ReloadPrompt";
 import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import DashboardLayout from "@/shared/layouts/DashboardLayout";
 import { useThemeStore, aplicarTemaNoDOM } from "@/shared/stores/useThemeStore";
+import SessionLifecycleSentinel from "@/features/auth/components/SessionLifecycleSentinel";
 import { ApiModeSwitcher } from "@/shared/components/dev/ApiModeSwitcher";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (tentativa, erro) => ![401, 403].includes(statusHttp(erro) ?? 0) && tentativa < 1,
       networkMode: "offlineFirst",
     },
     mutations: {
@@ -47,17 +50,22 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-right" theme={tema} />
+      <Toaster richColors position="top-right" theme={tema} toastOptions={{ className: "avisos-acesso" }} />
       <ReloadPrompt />
       {/* Popup de seleção de API — visível somente em desenvolvimento */}
       <ApiModeSwitcher />
       <BrowserRouter>
+        <SessionLifecycleSentinel />
         <Routes>
           {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
           <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/sem-permissao" element={<SemPermissao />} />
+          </Route>
 
           {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
           <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>
@@ -91,6 +99,11 @@ function App() {
               {/* Materiais da Obra: Admin e Engenharia (RF-06) */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia"]} />}>
                 <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
+              </Route>
+
+              {/* Cadastro de usuários: apenas Administrador (RF-01) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
+                <Route path="/usuarios/novo" element={<CadastrarUsuario />} />
               </Route>
 
               {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}

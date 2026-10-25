@@ -1,4 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLayoutEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
+import { deveExibirErroLocal, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
+
+import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { toast } from "sonner";
 import { moverStatusObra } from "../services/kanban";
 import type { ListaObras } from "@/types";
@@ -8,19 +13,28 @@ interface MoverCardVariables {
   cardId: number | string;
   novoStatus: StatusObra;
   observacao?: string;
+  epochInicio?: number;
 }
 
 export function useMoverCard() {
   const queryClient = useQueryClient();
+  const { lerEpoch, podeInteragir } = useModoDisplay();
+  const montadoRef = useRef(true);
+  useLayoutEffect(() => {
+    montadoRef.current = true;
+    return () => { montadoRef.current = false; };
+  }, []);
 
   const moverMutation = useMutation({
     mutationKey: ["obras"],
-    mutationFn: async ({ cardId, novoStatus, observacao }: MoverCardVariables) => {
-      return moverStatusObra(Number(cardId), novoStatus, observacao);
+    mutationFn: async ({ cardId, novoStatus, observacao }: MoverCardVariables, sessao) => {
+      return moverStatusObra(Number(cardId), novoStatus, observacao, sessao);
     },
-    onMutate: async ({ cardId, novoStatus }) => {
+    onMutate: async ({ cardId, novoStatus, epochInicio }, _contexto, sessao) => {
+      const epochOperacao = epochInicio ?? lerEpoch();
       // Cancela queries ativas para evitar sobrescrever a atualização otimista
       await queryClient.cancelQueries({ queryKey: ["obras"] });
+      exigirSessaoOperacional(sessao);
 
       // Snapshot do estado anterior para permitir rollback perfeito
       const previousObras = queryClient.getQueryData<ListaObras>(["obras"]);
@@ -35,7 +49,7 @@ export function useMoverCard() {
         });
       }
 
-      return { previousObras };
+      return { previousObras, epochOperacao };
     },
     onError: (err, variables, context) => {
       // Rollback caso a mutação falhe no backend
@@ -43,13 +57,16 @@ export function useMoverCard() {
         queryClient.setQueryData(["obras"], context.previousObras);
       }
       console.error("Falha ao mover card:", err);
+      if (!deveExibirErroLocal(err)) return;
+      const epochOperacao = context?.epochOperacao ?? variables.epochInicio;
       toast.error("Falha ao mover o card. A posição foi restaurada.", {
-        action: {
+        action: epochOperacao !== undefined && montadoRef.current && podeInteragir(epochOperacao) ? {
           label: "Tentar novamente",
           onClick: () => {
-            moverMutation.mutate(variables);
+            if (!montadoRef.current || !podeInteragir(epochOperacao)) return;
+            moverMutation.mutate({ ...variables, epochInicio: epochOperacao });
           },
-        },
+        } : undefined,
       });
     },
     onSettled: (data) => {

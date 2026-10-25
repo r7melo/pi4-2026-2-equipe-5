@@ -5,11 +5,12 @@ import type { MoverStatusResposta } from "@/types";
 export async function moverStatusObra(
   id: number,
   statusNovo: string,
-  observacao?: string
+  observacao?: string,
+  sessao403?: number
 ): Promise<MoverStatusResposta> {
   const { data } = await api.patch<MoverStatusResposta>(`/obras/${id}/status`, {
     statusNovo,
     observacao,
-  });
+  }, { sessao403 });
   return data;
 }

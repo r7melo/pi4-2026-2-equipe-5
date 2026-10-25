@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
 import { gantt, type Task, type SerializedTask } from "dhtmlx-gantt";
 import type { NivelZoom } from "@/types";
@@ -36,6 +36,7 @@ export interface GanttTask {
 interface GanttWrapperProps {
   tarefas: GanttTask[];
   canDrag: boolean;
+  epochInteracao?: number;
   nivelZoom: NivelZoom;
   focarData?: Date | null;
   mostrarGrade?: boolean;
@@ -46,6 +47,7 @@ interface GanttWrapperProps {
 export function GanttDhtmlxWrapper({
   tarefas,
   canDrag,
+  epochInteracao = 0,
   nivelZoom,
   focarData,
   mostrarGrade = true,
@@ -59,22 +61,61 @@ export function GanttDhtmlxWrapper({
   const mostrarGradeRef = useRef(mostrarGrade);
   const inicializado = useRef(false);
   const dragEmAndamentoRef = useRef(false);
+  const tarefasRef = useRef(tarefas);
+  const epochInteracaoRef = useRef(epochInteracao);
+  const interacaoRef = useRef<{
+    id: string | number; epoch: number; invalidada: boolean;
+  } | null>(null);
+  const gestoRef = useRef<typeof interacaoRef.current>(null);
+  const sincronizacaoPendenteRef = useRef(false);
+  const timerCliqueRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  const sincronizarDados = useCallback((tarefasAtuais = tarefasRef.current) => {
+    if (!inicializado.current) return;
+    if (gestoRef.current || interacaoRef.current || gantt.getState().drag_id != null) {
+      sincronizacaoPendenteRef.current = true;
+      return;
+    }
+    const scrollState = gantt.getScrollState();
+    const openStates = new Map<string | number, boolean>();
+    gantt.eachTask((t: { id: string | number; type?: string; open?: boolean }) => {
+      if (t.type === "project") {
+        openStates.set(t.id, Boolean((t as unknown as { $open?: boolean }).$open ?? t.open));
+      }
+    });
+    const dados = tarefasAtuais.map((tarefa) => ({
+      ...tarefa,
+      start_date: tarefa.start_date instanceof Date ? new Date(tarefa.start_date) : tarefa.start_date,
+      end_date: tarefa.end_date instanceof Date ? new Date(tarefa.end_date) : tarefa.end_date,
+    }));
+    gantt.clearAll();
+    gantt.parse({ data: dados as unknown as (Task | SerializedTask)[] });
+    openStates.forEach((isOpen, id) => {
+      if (gantt.isTaskExists(id)) {
+        if (isOpen) gantt.open(id);
+        else gantt.close(id);
+      }
+    });
+    gantt.scrollTo(scrollState.x, scrollState.y);
+    sincronizacaoPendenteRef.current = false;
+  }, []);
+
+  useLayoutEffect(() => { tarefasRef.current = tarefas; }, [tarefas]);
+  useLayoutEffect(() => {
     onReorderRef.current = onReorder;
-  }, [onReorder]);
-
-  useEffect(() => {
     onSelectTaskRef.current = onSelectTask;
-  }, [onSelectTask]);
-
-  useEffect(() => {
     canDragRef.current = canDrag;
+    epochInteracaoRef.current = epochInteracao;
+    const interacao = interacaoRef.current ?? gestoRef.current;
+    if (interacao && (!canDrag || interacao.epoch !== epochInteracao)) {
+      interacao.invalidada = true;
+      sincronizacaoPendenteRef.current = true;
+    }
     if (inicializado.current) {
       gantt.config.drag_move = canDrag;
       gantt.config.drag_resize = canDrag;
     }
-  }, [canDrag]);
+  }, [onReorder, onSelectTask, canDrag, epochInteracao]);
 
   useEffect(() => {
     mostrarGradeRef.current = mostrarGrade;
@@ -306,23 +347,129 @@ export function GanttDhtmlxWrapper({
     document.addEventListener("mousemove", handleDocumentMouseMove, { passive: true });
     window.addEventListener("mouseout", handleWindowMouseOut, { passive: true });
 
+    let frameFim: number | null = null;
+    let frameResize: number | null = null;
+    let ultimaLargura = containerEl?.getBoundingClientRect().width ?? 0;
+
+    const suprimirClique = () => {
+      dragEmAndamentoRef.current = true;
+      if (timerCliqueRef.current !== null) clearTimeout(timerCliqueRef.current);
+      timerCliqueRef.current = setTimeout(() => {
+        dragEmAndamentoRef.current = false;
+        timerCliqueRef.current = null;
+      }, 150);
+    };
+
+    const agendarFim = () => {
+      if (frameFim !== null) return;
+      frameFim = requestAnimationFrame(() => {
+        frameFim = null;
+        if (!inicializado.current || gantt.getState().drag_id != null) return;
+        const invalidada = interacaoRef.current?.invalidada || gestoRef.current?.invalidada;
+        interacaoRef.current = null;
+        gestoRef.current = null;
+        if (invalidada) { sincronizacaoPendenteRef.current = true; suprimirClique(); }
+        if (sincronizacaoPendenteRef.current) sincronizarDados();
+      });
+    };
+
+    const iniciarGesto = (evento: Event) => {
+      if (gestoRef.current || !canDragRef.current) return;
+      if (evento instanceof MouseEvent && evento.button !== 0) return;
+      const alvo = evento.target;
+      if (!(alvo instanceof Element) || !alvo.closest(".gantt_task_line")) return;
+      const id = gantt.locate(evento);
+      if (!gantt.isTaskExists(id)) return;
+      const task = gantt.getTask(id) as unknown as GanttTask;
+      if (task.type === "project" || String(id).startsWith("equipe-")) return;
+      gestoRef.current = { id, epoch: epochInteracaoRef.current, invalidada: false };
+    };
+
+    const finalizarCancelamento = () => {
+      if (!gestoRef.current && !interacaoRef.current && gantt.getState().drag_id == null) return;
+      if (gestoRef.current) gestoRef.current.invalidada = true;
+      if (interacaoRef.current) interacaoRef.current.invalidada = true;
+      sincronizacaoPendenteRef.current = true;
+      const toqueAtivo = document.body.classList.contains("gantt_touch_active");
+      document.body.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      if (toqueAtivo && containerEl) {
+        const fimToque = Object.assign(new Event("touchend", { bubbles: true }), { touches: [] });
+        containerEl.dispatchEvent(fimToque);
+      }
+      agendarFim();
+    };
+
+    const handleMouseUp = (evento: MouseEvent) => {
+      if (!gestoRef.current && !interacaoRef.current) return;
+      if (!(evento.target instanceof Node) || !document.body.contains(evento.target)) {
+        finalizarCancelamento();
+      } else {
+        agendarFim();
+      }
+    };
+    const handlePointerUp = (evento: PointerEvent) => {
+      if (evento.pointerType !== "mouse") agendarFim();
+    };
+
+    containerEl?.addEventListener("pointerdown", iniciarGesto, true);
+    containerEl?.addEventListener("mousedown", iniciarGesto, true);
+    containerEl?.addEventListener("touchstart", iniciarGesto, true);
+    window.addEventListener("mouseup", handleMouseUp, true);
+    window.addEventListener("pointerup", handlePointerUp, true);
+    window.addEventListener("touchend", agendarFim, true);
+    window.addEventListener("pointercancel", finalizarCancelamento, true);
+    window.addEventListener("touchcancel", finalizarCancelamento, true);
+    window.addEventListener("blur", finalizarCancelamento);
+
+    const resizeObserver = new ResizeObserver(([entrada]) => {
+      if (!entrada || entrada.contentRect.width === ultimaLargura) return;
+      ultimaLargura = entrada.contentRect.width;
+      if (frameResize !== null) cancelAnimationFrame(frameResize);
+      frameResize = requestAnimationFrame(() => {
+        frameResize = null;
+        if (!inicializado.current) return;
+        const scroll = gantt.getScrollState();
+        gantt.setSizes();
+        gantt.scrollTo(scroll.x, scroll.y);
+      });
+    });
+    if (containerEl) resizeObserver.observe(containerEl);
+
     // Guard onBeforeTaskDrag: bloqueia arraste de linhas de equipe
     const beforeDragEventId = gantt.attachEvent("onBeforeTaskDrag", (id) => {
+      if (!canDragRef.current || !gantt.isTaskExists(id)) return false;
       const task = gantt.getTask(id) as unknown as GanttTask;
-      if (task.type === "project" || String(task.id).startsWith("equipe-")) {
-        return false;
-      }
-      return canDragRef.current;
+      if (task.type === "project" || String(task.id).startsWith("equipe-")) return false;
+      const gesto = gestoRef.current;
+      if (!gesto || gesto.invalidada || gesto.epoch !== epochInteracaoRef.current ||
+          String(gesto.id) !== String(id)) return false;
+      interacaoRef.current = gesto;
+      return true;
+    });
+
+    const beforeChangedEventId = gantt.attachEvent("onBeforeTaskChanged", (id) => {
+      const interacao = interacaoRef.current;
+      const permitido = canDragRef.current && interacao !== null &&
+        !interacao.invalidada && interacao.epoch === epochInteracaoRef.current &&
+        String(interacao.id) === String(id) && gantt.isTaskExists(id);
+      if (!permitido) sincronizacaoPendenteRef.current = true;
+      agendarFim();
+      return permitido;
     });
 
     // Guard onBeforeRowDragMove: bloqueia categoricamente reordenação vertical entre linhas
     const rowDragMoveEventId = gantt.attachEvent("onBeforeRowDragMove", () => false);
 
     const dragEventId = gantt.attachEvent("onAfterTaskDrag", (id, _mode) => {
-      dragEmAndamentoRef.current = true;
-      setTimeout(() => {
-        dragEmAndamentoRef.current = false;
-      }, 150);
+      const interacao = interacaoRef.current;
+      if (!canDragRef.current || !interacao || interacao.invalidada ||
+          interacao.epoch !== epochInteracaoRef.current || String(interacao.id) !== String(id) ||
+          !gantt.isTaskExists(id)) {
+        sincronizacaoPendenteRef.current = true;
+        agendarFim();
+        return;
+      }
+      suprimirClique();
 
       const task = gantt.getTask(id) as Omit<GanttTask, "start_date" | "end_date"> & {
         start_date: Date;
@@ -354,7 +501,7 @@ export function GanttDhtmlxWrapper({
 
     // Guard onTaskClick com alternância segura de expansão para nós de projeto
     const clickEventId = gantt.attachEvent("onTaskClick", (id, e) => {
-      if (dragEmAndamentoRef.current) {
+      if (dragEmAndamentoRef.current || interacaoRef.current?.invalidada || gestoRef.current?.invalidada) {
         return true;
       }
       esconderTooltipDhtmlx();
@@ -384,13 +531,33 @@ export function GanttDhtmlxWrapper({
     });
 
     return () => {
+      finalizarCancelamento();
       document.removeEventListener("mousemove", handleDocumentMouseMove);
       window.removeEventListener("mouseout", handleWindowMouseOut);
       containerEl?.removeEventListener("mouseleave", esconderTooltipDhtmlx);
+      containerEl?.removeEventListener("pointerdown", iniciarGesto, true);
+      containerEl?.removeEventListener("mousedown", iniciarGesto, true);
+      containerEl?.removeEventListener("touchstart", iniciarGesto, true);
+      window.removeEventListener("mouseup", handleMouseUp, true);
+      window.removeEventListener("pointerup", handlePointerUp, true);
+      window.removeEventListener("touchend", agendarFim, true);
+      window.removeEventListener("pointercancel", finalizarCancelamento, true);
+      window.removeEventListener("touchcancel", finalizarCancelamento, true);
+      window.removeEventListener("blur", finalizarCancelamento);
+      resizeObserver.disconnect();
+      if (frameFim !== null) cancelAnimationFrame(frameFim);
+      if (frameResize !== null) cancelAnimationFrame(frameResize);
+      if (timerCliqueRef.current !== null) clearTimeout(timerCliqueRef.current);
+      timerCliqueRef.current = null;
+      dragEmAndamentoRef.current = false;
+      gestoRef.current = null;
+      interacaoRef.current = null;
+      sincronizacaoPendenteRef.current = false;
       esconderTooltipDhtmlx();
       document.querySelectorAll(".gantt_tooltip").forEach((el) => el.remove());
       gantt.clearAll();
       gantt.detachEvent(beforeDragEventId);
+      gantt.detachEvent(beforeChangedEventId);
       gantt.detachEvent(rowDragMoveEventId);
       gantt.detachEvent(dragEventId);
       gantt.detachEvent(clickEventId);
@@ -398,7 +565,7 @@ export function GanttDhtmlxWrapper({
       gantt.detachEvent(scrollEventId);
       inicializado.current = false;
     };
-  }, []);
+  }, [sincronizarDados]);
 
   // Atualização dinâmica da visibilidade da grade esquerda
   useEffect(() => {
@@ -447,32 +614,7 @@ export function GanttDhtmlxWrapper({
   }, [nivelZoom]);
 
   // Preservação do estado da árvore pós-render
-  useEffect(() => {
-    if (!inicializado.current) return;
-    const scrollState = gantt.getScrollState();
-
-    const openStates = new Map<string | number, boolean>();
-    gantt.eachTask((t: { id: string | number; type?: string; open?: boolean }) => {
-      if (t.type === "project") {
-        openStates.set(
-          t.id,
-          Boolean((t as unknown as { $open?: boolean }).$open ?? t.open)
-        );
-      }
-    });
-
-    gantt.clearAll();
-    gantt.parse({ data: tarefas as unknown as (Task | SerializedTask)[] });
-
-    openStates.forEach((isOpen, id) => {
-      if (gantt.isTaskExists(id)) {
-        if (isOpen) gantt.open(id);
-        else gantt.close(id);
-      }
-    });
-
-    gantt.scrollTo(scrollState.x, scrollState.y);
-  }, [tarefas]);
+  useEffect(() => { sincronizarDados(tarefas); }, [tarefas, sincronizarDados]);
 
   return <div ref={container} className="flex-1 w-full min-h-0" style={{ width: "100%", height: "100%" }} />;
 }
