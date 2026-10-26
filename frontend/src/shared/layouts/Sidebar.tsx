@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
-  LogOut, 
+  LogOut,
+  Settings, 
   LayoutDashboard, 
   Users, 
   FileCheck, 
@@ -93,6 +94,8 @@ export default function Sidebar() {
   ];
 
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const mostrarConfiguracoes = location.pathname.replace(/\/+$/, "") !== "/sem-permissao" &&
+    Boolean(perfil && ["Administrador", "Engenharia", "Financeiro"].includes(perfil));
   const allowedItems = navItems.filter((item) => perfil && item.roles.includes(perfil));
 
   const checkIsActive = (path: string) => {
@@ -162,6 +165,12 @@ export default function Sidebar() {
         </div>
 
         <div className="px-3 shrink-0 pt-4 border-t border-border-subtle">
+          {mostrarConfiguracoes && <button type="button" aria-label="Configurações" title={isCollapsed ? "Configurações" : undefined}
+            aria-current={location.pathname === "/configuracoes" ? "page" : undefined}
+            onClick={() => void navigate("/configuracoes")}
+            className={cn("w-full min-h-11 flex items-center gap-3 rounded-lg text-sm text-muted-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", isCollapsed ? "justify-center" : "px-4")}>
+            <Settings className="size-5" aria-hidden="true" />{!isCollapsed && <span>Configurações</span>}
+          </button>}
           <BotaoTema recolhido={isCollapsed} />
           <button
             onClick={() => {
@@ -253,6 +262,10 @@ export default function Sidebar() {
           </div>
 
           <div className="px-4 shrink-0 pt-4 border-t border-border-subtle">
+          {mostrarConfiguracoes && <button type="button" aria-label="Configurações" onClick={() => { closeMobile(); void navigate("/configuracoes"); }}
+            className="w-full min-h-11 flex items-center gap-3 rounded-lg px-4 text-sm text-muted-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <Settings className="size-5" aria-hidden="true" /><span>Configurações</span>
+          </button>}
           <BotaoTema recolhido={false} />
             <button
               onClick={() => {

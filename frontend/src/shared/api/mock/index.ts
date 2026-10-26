@@ -11,6 +11,7 @@ import { registrarHomologacao } from "./handlers/homologacao";
 import { registrarCronogramaPublico } from "./handlers/publico";
 import { registrarEquipes } from "./handlers/equipes";
 import { registrarUsuarios } from "./handlers/usuarios";
+import { protegerRevogacaoSenhaMock } from "./core/revogacaoSenha";
 
 const mock = new MockAdapter(api, { delayResponse: 0 });
 console.log("🚧 [MOCK MODE] Backend simulado ativo com axios-mock-adapter (delay: 0ms)");
@@ -31,5 +32,6 @@ registrarUsuarios(mock);
 
 // Ultimo registro: transporte real para requisicoes nao atendidas.
 mock.onAny().passThrough();
+protegerRevogacaoSenhaMock();
 
 export default mock;

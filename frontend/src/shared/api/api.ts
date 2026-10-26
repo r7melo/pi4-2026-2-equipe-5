@@ -41,7 +41,9 @@ api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (config.sessao403 !== undefined) exigirSessaoOperacional(config.sessao403);
   config.sessao403 ??= capturarSessaoOperacional();
-  if (token) {
+  if (config.semAutenticacao) {
+    config.headers.delete("Authorization");
+  } else if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -55,7 +57,7 @@ api.interceptors.response.use(
       const config = error.config;
       const metodo = (config.method || "get").toUpperCase();
       const caminho = new URL(config.url || "", config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
-      const publico = caminho === "/auth/login" ||
+      const publico = config.semAutenticacao || caminho === "/auth/login" ||
         (metodo === "GET" && (/^\/cronograma\/compartilhado\/[^/]+\/?$/.test(caminho) ||
           /^\/relatorio-publico(?:\/|$)/.test(caminho) || /^\/mobile(?:\/|$)/.test(caminho)));
       if (!publico && config.responseType !== "blob") {
@@ -75,7 +77,16 @@ api.interceptors.response.use(
       }
     }
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      const url = error.config?.url || "";
+      const config = error.config;
+      if (config?.semAutenticacao) return Promise.reject(error);
+      if (config?.politica401 && !sessaoOperacionalVigente(config.sessao403 ?? -1)) return Promise.reject(error);
+      if (config?.politica401 === "manual") return Promise.reject(error);
+      const corpo: unknown = error.response.data;
+      const envelope = corpo && typeof corpo === "object" && "error" in corpo ? corpo.error : undefined;
+      const credencialInvalida = envelope && typeof envelope === "object" && "code" in envelope && envelope.code === "INVALID_CREDENTIALS";
+      const url = config?.url || "";
+      if (config?.politica401 === "credencial" && config.method?.toLowerCase() === "put" &&
+          /^\/auth\/alterar-senha\/?$/.test(new URL(url, config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "")) && credencialInvalida) return Promise.reject(error);
       const isRotaLogin = url.includes("/auth/login");
       const caminho = new URL(url, error.config?.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
       const postCompartilhado = error.config?.method?.toLowerCase() === "post" &&

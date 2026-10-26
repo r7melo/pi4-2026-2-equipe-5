@@ -147,6 +147,11 @@ export default function Login() {
             )}
           </button>
 
+          <button type="button" onClick={() => void navigate("/esqueci-senha")}
+            className="w-full rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm text-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            Esqueci minha senha
+          </button>
+
           {/* 
             Preservação de ações secundárias (UX-03) para resguardo de evolução futura:
             - "Esqueci minha senha" aguarda especificação de rota de recuperação no backend.

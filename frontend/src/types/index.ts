@@ -3,6 +3,7 @@
 export * from "@/shared/types/common";
 export * from "@/shared/types/theme";
 export * from "@/features/auth/types/auth";
+export * from "@/features/auth/types/senha";
 export * from "@/features/kanban/types/kanban";
 export * from "@/features/cronograma/types/equipes";
 export * from "@/features/cronograma/types/gantt";

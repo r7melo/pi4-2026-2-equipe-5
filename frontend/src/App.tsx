@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "@/features/auth/pages/Login";
+import EsqueciSenha from "@/features/auth/pages/EsqueciSenha";
+import RedefinirSenha from "@/features/auth/pages/RedefinirSenha";
+import Configuracoes from "@/features/auth/pages/Configuracoes";
 import SemPermissao from "@/features/auth/pages/SemPermissao";
 import { statusHttp } from "@/shared/lib/sessaoOperacao";
 import { Kanban, Equipes } from "@/composition/RotasOperacionais";
@@ -60,6 +63,8 @@ function App() {
           {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
           <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
 
@@ -78,6 +83,7 @@ function App() {
               {/* Kanban: Visível para Admin, Engenharia e Financeiro */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia", "Financeiro"]} />}>
                 <Route path="/kanban" element={<Kanban />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
               </Route>
 
               {/* Equipes (Gantt): Visível para Admin, Engenharia e Financeiro */}

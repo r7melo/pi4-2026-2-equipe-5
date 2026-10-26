@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
 import { api, ApiErro } from "@/shared/api/api";
 import type { LoginResposta, Usuario, NomePerfil } from "@/types";
 
@@ -58,8 +58,9 @@ export async function fazerLogin(email: string, senha: string): Promise<LoginRes
   }
 }
 
-export async function buscarUsuarioLogado(): Promise<Usuario> {
-  const { data } = await api.get<Usuario>("/auth/me");
+export async function buscarUsuarioLogado(config?: AxiosRequestConfig): Promise<Usuario | null> {
+  const { data } = await api.get<Usuario | null>("/auth/me", config);
+  if (data === null) return null;
   return { ...data, perfil: { ...data.perfil, nomePerfil: normalizarPerfil(data.perfil.nomePerfil) } };
 }
 
