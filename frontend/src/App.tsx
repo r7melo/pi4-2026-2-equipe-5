@@ -15,7 +15,7 @@ import Relatorios from "@/features/financeiro/pages/Relatorios";
 import Financeiro from "@/features/financeiro/pages/Financeiro";
 import RelatorioPublico from "@/features/financeiro/pages/RelatorioPublico";
 import CronogramaPublico from "@/features/cronograma/pages/CronogramaPublico";
-import CadastrarUsuario from "@/features/usuarios/pages/CadastrarUsuario";
+import { Usuarios, CadastroUsuario } from "@/composition/RotasUsuarios";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -109,7 +109,8 @@ function App() {
 
               {/* Cadastro de usuários: apenas Administrador (RF-01) */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
-                <Route path="/usuarios/novo" element={<CadastrarUsuario />} />
+                <Route path="/usuarios" element={<Usuarios />} />
+                <Route path="/usuarios/novo" element={<CadastroUsuario />} />
               </Route>
 
               {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}

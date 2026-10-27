@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { lerGestao, gravarGestao, equipeGestaoSchema } from "./estadoGestao";
 import type { Equipe, CriarEquipePayload } from "@/types";
 
 /** 10 Equipes sincronizadas estritamente com database/02_seed.sql */
@@ -31,41 +33,34 @@ const STORAGE_KEY_EQUIPES = "mock_equipes_v1";
 
 export function obterEquipesArmazenadas(): Equipe[] {
   if (typeof window === "undefined") return MOCK_EQUIPES_FIXTURE;
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY_EQUIPES);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (e) {
-    console.warn("[Mock] Erro ao ler equipes no sessionStorage:", e);
-  }
+  const gestao = lerGestao();
+  if (gestao.equipes) return gestao.equipes;
+  const raw = sessionStorage.getItem(STORAGE_KEY_EQUIPES);
+  if (raw !== null) return z.array(equipeGestaoSchema).parse(JSON.parse(raw));
   salvarEquipesArmazenadas(MOCK_EQUIPES_FIXTURE);
   return MOCK_EQUIPES_FIXTURE;
 }
 
 export function salvarEquipesArmazenadas(equipes: Equipe[]): void {
   if (typeof window === "undefined") return;
-  try {
-    sessionStorage.setItem(STORAGE_KEY_EQUIPES, JSON.stringify(equipes));
-  } catch (e) {
-    console.warn("[Mock] Erro ao salvar equipes no sessionStorage:", e);
-  }
+  const gestao = lerGestao();
+  if (gestao.equipes) { gestao.equipes = equipes.map(e => equipeGestaoSchema.parse(e)); gestao.equipesRevisao = crypto.randomUUID(); gravarGestao(gestao); return; }
+  sessionStorage.setItem(STORAGE_KEY_EQUIPES, JSON.stringify(equipes));
 }
 
-export function adicionarEquipeArmazenada(payload: CriarEquipePayload): Equipe {
+export function adicionarEquipeArmazenada(payload: CriarEquipePayload, opcoes = MOCK_INSTALADORES_DISPONIVEIS): Equipe {
   const equipes = obterEquipesArmazenadas();
   const maxId = equipes.reduce((acc, curr) => Math.max(acc, Number(curr.id) || 0), 0);
   const novoId = maxId + 1;
 
-  const membros = MOCK_INSTALADORES_DISPONIVEIS.filter((i) =>
+  const membros = opcoes.filter((i) =>
     payload.instaladorIds.includes(i.id)
   ).map((i) => ({
     id: i.id,
     nome: i.nome,
   }));
 
-  const responsavel = MOCK_INSTALADORES_DISPONIVEIS.find(
+  const responsavel = opcoes.find(
     (i) => i.id === payload.responsavelId
   );
 

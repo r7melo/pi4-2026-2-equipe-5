@@ -61,10 +61,10 @@ export function alterarCredencialSenhaMock(email: string, revisao: number, hash:
 /** Sufixo de versão evita colisão temporal; tokens anteriores à demanda são versão zero. */
 export function identidadeTokenSenhaMock(authorization: unknown) {
   if (typeof authorization !== "string") return undefined;
-  const match = /^Bearer mock_jwt_token_([A-Za-z0-9+/=]+)_(\d+)(?:_v(\d+))?$/.exec(authorization);
+  const match = /^Bearer mock_jwt_token_([A-Za-z0-9+/=]+)_(\d+)(?:_v(\d+))?(?:_a(\d+))?$/.exec(authorization);
   if (!match) return undefined;
   try {
-    return { email: atob(match[1]).trim().toLowerCase(), emitidoEm: Number(match[2]), revisao: Number(match[3] ?? 0) };
+    return { email: atob(match[1]).trim().toLowerCase(), emitidoEm: Number(match[2]), revisao: Number(match[3] ?? 0), acesso: Number(match[4] ?? 0) };
   } catch { return undefined; }
 }
 export function acessoRevogadoSenhaMock(authorization: unknown): boolean {

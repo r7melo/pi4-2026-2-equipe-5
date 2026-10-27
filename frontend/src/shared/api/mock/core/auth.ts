@@ -1,3 +1,4 @@
+import { revisaoAcesso } from "../dados/estadoGestao";
 import { identidadeTokenSenhaMock, revisaoSenhaMock } from "../dados/segurancaSenha";
 import { buscarUsuarioPorEmailMock } from "../dados/usuarios";
 
@@ -13,5 +14,6 @@ export function resolverUsuarioAutenticadoMock(authorization: unknown) {
   const agora = Date.now();
   if (!Number.isSafeInteger(emitidoEm) || emitidoEm <= 0 ||
       emitidoEm > agora || agora - emitidoEm >= 480 * 60 * 1000) return undefined;
-  return buscarUsuarioPorEmailMock(identidade.email);
+  const usuario = buscarUsuarioPorEmailMock(identidade.email);
+  return usuario?.ativo !== false && identidade.acesso === revisaoAcesso(identidade.email) ? usuario : undefined;
 }

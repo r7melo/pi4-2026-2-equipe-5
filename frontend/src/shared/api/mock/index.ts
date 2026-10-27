@@ -1,3 +1,4 @@
+import { registrarGestaoUsuarios } from "./handlers/gestaoUsuarios";
 import MockAdapter from "axios-mock-adapter";
 import { api } from "@/shared/api/api";
 import { registrarAuth } from "./handlers/auth";
@@ -29,6 +30,7 @@ registrarCronogramaPublico(mock);
 registrarExclusaoObra(mock);
 registrarEquipes(mock);
 registrarUsuarios(mock);
+registrarGestaoUsuarios(mock);
 
 // Ultimo registro: transporte real para requisicoes nao atendidas.
 mock.onAny().passThrough();

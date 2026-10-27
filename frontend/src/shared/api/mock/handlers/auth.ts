@@ -1,8 +1,9 @@
 import type MockAdapter from "axios-mock-adapter";
 import { extrairDados } from "../core/http";
 import { erroUsuarioMock, resolverUsuarioAutenticadoMock } from "../core/auth";
-import { obterUsuariosCriados, usuarioPersistidoParaMock, MOCK_USUARIOS, gerarHashSenhaMock } from "../dados/usuarios";
+import { obterUsuariosCriados, buscarUsuarioPorEmailMock, gerarHashSenhaMock } from "../dados/usuarios";
 
+import { revisaoAcesso } from "../dados/estadoGestao";
 import { registrarSenhas } from "./senhas";
 import { credencialSenhaMock, revisaoSenhaMock } from "../dados/segurancaSenha";
 
@@ -23,6 +24,7 @@ export function registrarAuth(mock: MockAdapter): void {
       const email = body.email.toLowerCase().trim();
       const senha = body.senha;
       const revisao = revisaoSenhaMock(email);
+      const acesso = revisaoAcesso(email);
   
       // 1. Verificação de bloqueio por força bruta (RN-02: 5 falhas consecutivas)
       if (tentativasFalhas[email] && tentativasFalhas[email] >= 5) {
@@ -38,8 +40,7 @@ export function registrarAuth(mock: MockAdapter): void {
       }
   
       const criado = obterUsuariosCriados().find((usuario) => usuario.email === email);
-      const usuarioMock = criado ? usuarioPersistidoParaMock(criado)
-        : Object.hasOwn(MOCK_USUARIOS, email) ? MOCK_USUARIOS[email] : undefined;
+      let usuarioMock = buscarUsuarioPorEmailMock(email);
   
       // 2. Validação canônica de credenciais (Senha padrão: Senha123!)
       const alterada = credencialSenhaMock(email);
@@ -49,7 +50,8 @@ export function registrarAuth(mock: MockAdapter): void {
       if ((tentativasFalhas[email] || 0) >= 5) {
         return erroUsuarioMock(423, "ACCOUNT_LOCKED", "Conta bloqueada por excesso de tentativas de login");
       }
-      if (!usuarioMock || !credencialValida) {
+      usuarioMock = buscarUsuarioPorEmailMock(email);
+      if (!usuarioMock || usuarioMock.ativo === false || acesso !== revisaoAcesso(email) || !credencialValida) {
         tentativasFalhas[email] = (tentativasFalhas[email] || 0) + 1;
   
         if (tentativasFalhas[email] >= 5) {
@@ -79,7 +81,7 @@ export function registrarAuth(mock: MockAdapter): void {
       tentativasFalhas[email] = 0;
   
       const resposta = {
-        token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}${revisao ? `_v${revisao}` : ""}`,
+        token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}${revisao ? `_v${revisao}` : ""}${acesso ? `_a${acesso}` : ""}`,
         expiresAt: new Date(Date.now() + 480 * 60 * 1000).toISOString(),
         usuario: {
           id: usuarioMock.id,

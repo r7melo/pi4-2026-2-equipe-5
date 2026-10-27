@@ -9,7 +9,6 @@ import {
   BarChart2,
   Moon,
   Sun,
-  UserPlus,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -87,8 +86,8 @@ export default function Sidebar() {
     },
     {
       label: "Usuários",
-      path: "/usuarios/novo",
-      icon: UserPlus,
+      path: "/usuarios",
+      icon: Users,
       roles: ["Administrador"],
     },
   ];
@@ -103,7 +102,7 @@ export default function Sidebar() {
       location.pathname === path ||
       (path === "/kanban" && (location.pathname === "/kanban" || location.pathname === "/cadastrarobra")) ||
       (path === "/acompanharhomologacao" && location.pathname.startsWith("/acompanharhomologacao")) ||
-      (path === "/usuarios/novo" && location.pathname.startsWith("/usuarios"))
+      (path === "/usuarios" && location.pathname.startsWith("/usuarios"))
     );
   };
 

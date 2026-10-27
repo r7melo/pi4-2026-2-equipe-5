@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 const PERFIS = ["Administrador", "Engenharia", "Financeiro", "InstaladorCampo"] as const;
-const EMAIL_HTML = /^[a-z0-9.!#$%&'*+/=?^_\x60{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+import { EMAIL_USUARIO } from "@/shared/constants/emailUsuario";
 
 export const cadastroUsuarioSchema = z.object({
   nome: z.string().trim().min(3, "Informe ao menos 3 caracteres.").max(200, "Use até 200 caracteres."),
   email: z.string().trim().toLowerCase().max(200, "Use até 200 caracteres.")
-    .regex(EMAIL_HTML, "Informe um e-mail válido."),
+    .regex(EMAIL_USUARIO, "Informe um e-mail válido."),
   senha: z.string().refine((senha) => {
     const bytes = new TextEncoder().encode(senha).byteLength;
     return bytes >= 6 && bytes <= 72;

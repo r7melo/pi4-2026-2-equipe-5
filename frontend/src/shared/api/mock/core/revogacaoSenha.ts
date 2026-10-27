@@ -1,5 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { api } from "@/shared/api/api";
+import { identidadeTokenSenhaMock } from "../dados/segurancaSenha";
+import { resolverUsuarioAutenticadoMock } from "./auth";
 import { acessoRevogadoSenhaMock } from "../dados/segurancaSenha";
 
 /** Conserva os handlers e o passthrough; rejeita acessos revogados antes de seus efeitos. */
@@ -12,7 +14,7 @@ export function protegerRevogacaoSenhaMock(): void {
       (method === "get" && (/^\/cronograma\/compartilhado\//.test(path) || /^\/(relatorio-publico|mobile)(\/|$)/.test(path)));
     let status = 0;
     if (!publico) {
-      try { if (acessoRevogadoSenhaMock(config.headers.Authorization)) status = 401; }
+      try { if (acessoRevogadoSenhaMock(config.headers.Authorization) || (identidadeTokenSenhaMock(config.headers.Authorization) && !resolverUsuarioAutenticadoMock(config.headers.Authorization))) status = 401; }
       catch { status = 500; }
     }
     if (status) {

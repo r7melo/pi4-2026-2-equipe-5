@@ -18,3 +18,5 @@ export * from "@/shared/types/exportacaoInstalacao";
 export * from "@/shared/types/autorizacao";
 export * from "@/shared/types/compartilhamentoCronograma";
 export * from "@/features/cronograma/types/compartilhamento";
+
+export * from "@/features/usuarios/types/gestaoUsuarios";

@@ -1,8 +1,9 @@
 import type { Usuario } from "@/types";
 import { z } from "zod";
+import { lerGestao, gravarGestao, equipeGestaoSchema } from "./estadoGestao";
 import { obterEquipesArmazenadas } from "./equipes";
 
-export type MockUsuario = Usuario;
+export type MockUsuario = Usuario & { ativo?: boolean };
 
 /** Usuários sincronizados estritamente com IDs do 02_seed.sql e GUIA_QA.md */
 export const MOCK_USUARIOS: Record<string, MockUsuario> = {
@@ -59,7 +60,7 @@ const PERFIS_USUARIOS_MOCK: Record<MockUsuario["perfil"]["nomePerfil"], MockUsua
   InstaladorCampo: { id: 4, nomePerfil: "InstaladorCampo", permissoes: ["obras:visualizar", "materiais:confirmar"] },
 };
 
-const EMAIL_USUARIO_MOCK = /^[a-z0-9.!#$%&'*+/=?^_\x60{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+import { EMAIL_USUARIO } from "@/shared/constants/emailUsuario";
 
 const perfilUsuarioMockSchema = z.enum(["Administrador", "Engenharia", "Financeiro", "InstaladorCampo"]);
 
@@ -69,7 +70,7 @@ const STORAGE_KEY_USUARIOS = "mock_usuarios_v1";
 
 const cadastroUsuarioMockSchema = z.object({
   nome: z.string().trim().min(3).max(200),
-  email: z.string().trim().toLowerCase().max(200).regex(EMAIL_USUARIO_MOCK),
+  email: z.string().trim().toLowerCase().max(200).regex(EMAIL_USUARIO),
   senha: z.string().refine((senha) => {
     const tamanho = new TextEncoder().encode(senha).byteLength;
     return tamanho >= 6 && tamanho <= 72;
@@ -87,7 +88,7 @@ const cadastroUsuarioMockSchema = z.object({
 const usuarioPersistidoMockSchema = z.object({
   id: idUsuarioMockSchema,
   nome: z.string().min(3).max(200).refine((nome) => nome === nome.trim()),
-  email: z.string().max(200).regex(EMAIL_USUARIO_MOCK)
+  email: z.string().max(200).regex(EMAIL_USUARIO)
     .refine((email) => email === email.trim().toLowerCase()),
   perfil: perfilUsuarioMockSchema,
   equipeId: idUsuarioMockSchema.nullable(),
@@ -119,7 +120,7 @@ function validarUsuariosPersistidosMock(valor: unknown): UsuarioPersistidoMock[]
 export function obterUsuariosCriados(): UsuarioPersistidoMock[] {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY_USUARIOS);
-    return raw === null ? [] : validarUsuariosPersistidosMock(JSON.parse(raw));
+    return validarUsuariosPersistidosMock([...(raw === null ? [] : validarUsuariosPersistidosMock(JSON.parse(raw))), ...lerGestao().novos]);
   } catch {
     throw new Error("Não foi possível ler os usuários simulados.");
   }
@@ -128,7 +129,20 @@ export function obterUsuariosCriados(): UsuarioPersistidoMock[] {
 export function salvarUsuariosCriados(usuarios: UsuarioPersistidoMock[]): void {
   try {
     const validados = validarUsuariosPersistidosMock(usuarios);
-    sessionStorage.setItem(STORAGE_KEY_USUARIOS, JSON.stringify(validados));
+    const raw = sessionStorage.getItem(STORAGE_KEY_USUARIOS);
+    const legados = raw === null ? [] : validarUsuariosPersistidosMock(JSON.parse(raw));
+    const anteriores = obterUsuariosCriados();
+    const estado = lerGestao();
+    estado.novos = validados.filter(u => !legados.some(l => l.id === u.id));
+    const equipes = structuredClone(obterEquipesArmazenadas());
+    for (const u of estado.novos.filter(candidato => !anteriores.some(a => a.id === candidato.id))) {
+      if (u.perfil !== "InstaladorCampo") continue;
+      const equipe = equipes.find(e => e.id === u.equipeId);
+      if (!equipe) throw new Error("Equipe indisponível.");
+      equipe.membros = [...(equipe.membros ?? []).filter(m => m.id !== u.id), { id: u.id, nome: u.nome }];
+    }
+    estado.equipes = equipes.map(e => equipeGestaoSchema.parse(e));
+    gravarGestao(estado);
   } catch {
     throw new Error("Não foi possível salvar os usuários simulados.");
   }
@@ -154,9 +168,15 @@ export function usuarioPersistidoParaMock(usuario: UsuarioPersistidoMock): MockU
 }
 
 export function buscarUsuarioPorEmailMock(email: string): MockUsuario | undefined {
+  email = email.trim().toLowerCase();
   const criado = obterUsuariosCriados().find((usuario) => usuario.email === email);
-  if (criado) return usuarioPersistidoParaMock(criado);
-  return Object.hasOwn(MOCK_USUARIOS, email) ? MOCK_USUARIOS[email] : undefined;
+  const base = criado ? usuarioPersistidoParaMock(criado) : Object.hasOwn(MOCK_USUARIOS, email) ? MOCK_USUARIOS[email] : undefined;
+  if (!base) return undefined;
+  const alterado = lerGestao().contas[String(base.id)];
+  if (!alterado) return { ...base, ativo: true };
+  if (alterado.email !== base.email) throw new Error("Identidade de usuário inconsistente.");
+  return { ...base, nome: alterado.nome, equipeId: alterado.equipeId, ativo: alterado.ativo,
+    perfil: { ...PERFIS_USUARIOS_MOCK[alterado.perfil] } };
 }
 
 export function equipeExisteParaUsuarioMock(equipeId: number | null): boolean {

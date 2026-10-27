@@ -1,4 +1,4 @@
-import { useRef, useEffect, useId, type ReactNode, type KeyboardEvent, type RefObject } from "react";
+import { useRef, useEffect, useId, type ReactNode, type RefObject } from "react";
 import { AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import { Modal } from "@/shared/components/ui/Modal";
@@ -15,6 +15,8 @@ export interface ConfirmDialogProps {
   labelCancelar?: string;
   variant?: "danger" | "warning" | "info";
   isLoading?: boolean;
+  confirmarBloqueado?: boolean;
+  rolagemInterna?: boolean;
   gerenciarFoco?: boolean;
   origemFoco?: RefObject<HTMLElement | null>;
   podeRestaurarFoco?: () => boolean;
@@ -31,6 +33,8 @@ export function ConfirmDialog({
   labelCancelar = "Cancelar",
   variant = "danger",
   isLoading = false,
+  confirmarBloqueado = false,
+  rolagemInterna = false,
   gerenciarFoco = false,
   origemFoco,
   podeRestaurarFoco,
@@ -52,29 +56,15 @@ export function ConfirmDialog({
     };
   }, [isOpen, gerenciarFoco, podeRestaurarFoco, origemFoco]);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (!gerenciarFoco || e.key !== "Tab") return;
-    if (e.shiftKey) {
-      if (document.activeElement === cancelarBtnRef.current) {
-        e.preventDefault();
-        confirmarBtnRef.current?.focus();
-      }
-    } else {
-      if (document.activeElement === confirmarBtnRef.current) {
-        e.preventDefault();
-        cancelarBtnRef.current?.focus();
-      }
-    }
-  };
-
   return (
     <Modal
       isOpen={isOpen}
+      gerenciarFoco={gerenciarFoco}
       onClose={onClose}
       zIndex="z-[70]"
       fecharBloqueado={isLoading}
       ariaLabelledBy={tituloId}
-      className="max-w-md p-6"
+      className={cn("max-w-md p-6", rolagemInterna && "max-h-[90dvh] overflow-y-auto")}
     >
       <div className="flex flex-col items-center text-center">
         {variant === "danger" && (
@@ -95,11 +85,11 @@ export function ConfirmDialog({
 
         <h3 id={tituloId} className="text-lg font-bold text-foreground-secondary mb-1">{titulo}</h3>
         {descricao && (
-          <p className="text-sm text-muted-foreground mb-3">{descricao}</p>
+          <p className="w-full min-w-0 text-sm text-muted-foreground mb-3 [overflow-wrap:anywhere]">{descricao}</p>
         )}
         {conteudo}
 
-        <div className="flex gap-3 justify-end w-full mt-2" onKeyDown={handleKeyDown}>
+        <div className="flex gap-3 justify-end w-full mt-2">
           <Button
             ref={cancelarBtnRef}
             variant="outline"
@@ -113,7 +103,7 @@ export function ConfirmDialog({
             ref={confirmarBtnRef}
             variant="primary"
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isLoading || confirmarBloqueado}
             className={cn(
               "flex-1",
               variant === "danger" && "bg-destructive hover:bg-destructive-hover text-primary-foreground"
