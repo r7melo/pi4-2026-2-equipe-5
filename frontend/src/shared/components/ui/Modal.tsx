@@ -14,6 +14,7 @@ export interface ModalProps {
   fecharBloqueado?: boolean;
   className?: string;
   ariaLabelledBy?: string;
+  gerenciarFoco?: boolean;
 }
 
 export function Modal({
@@ -27,6 +28,7 @@ export function Modal({
   fecharBloqueado = false,
   className,
   ariaLabelledBy,
+  gerenciarFoco = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const tituloId = ariaLabelledBy || (titulo ? "modal-titulo" : undefined);
@@ -53,6 +55,48 @@ export function Modal({
     };
   }, [isOpen, fecharBloqueado, onClose]);
 
+  // Opt-in para este fluxo: os consumidores existentes mantêm seu comportamento.
+  useEffect(() => {
+    if (!isOpen || !gerenciarFoco) return;
+    const modal = modalRef.current;
+    if (!modal) return;
+    const anterior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focaveis = () => Array.from(modal.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter(el => el.getClientRects().length > 0 && !el.closest("[inert]"));
+    const focar = () => {
+      const inicial = modal.querySelector<HTMLElement>("[data-autofocus]:not([disabled])");
+      (inicial ?? focaveis()[0] ?? modal).focus();
+    };
+    const conterTab = (evento: KeyboardEvent) => {
+      if (evento.key !== "Tab") return;
+      const elementos = focaveis();
+      const posicao = elementos.indexOf(document.activeElement as HTMLElement);
+      if (!elementos.length) { evento.preventDefault(); modal.focus(); return; }
+      if ((evento.shiftKey && posicao <= 0) || (!evento.shiftKey && (posicao < 0 || posicao === elementos.length - 1))) {
+        evento.preventDefault();
+        (evento.shiftKey ? elementos[elementos.length - 1] : elementos[0]).focus();
+      }
+    };
+    const conterFoco = (evento: FocusEvent) => {
+      if (evento.target instanceof Node && !modal.contains(evento.target)) focar();
+    };
+    focar();
+    window.addEventListener("keydown", conterTab, true);
+    window.addEventListener("focusin", conterFoco, true);
+    return () => {
+      window.removeEventListener("keydown", conterTab, true);
+      window.removeEventListener("focusin", conterFoco, true);
+      const atual = document.activeElement;
+      if (anterior?.isConnected && !anterior.closest("[inert]") &&
+          !anterior.matches(":disabled") && (atual === document.body || (atual && modal.contains(atual)))) anterior.focus();
+    };
+  }, [isOpen, gerenciarFoco]);
+
+  useEffect(() => {
+    if (isOpen && gerenciarFoco && fecharBloqueado && document.activeElement?.matches(":disabled")) modalRef.current?.focus();
+  }, [isOpen, gerenciarFoco, fecharBloqueado]);
+
   if (!isOpen || typeof document === "undefined") return null;
 
   return createPortal(
@@ -72,6 +116,7 @@ export function Modal({
       <div
         ref={modalRef}
         role="dialog"
+        tabIndex={gerenciarFoco ? -1 : undefined}
         aria-modal="true"
         aria-labelledby={tituloId}
         onClick={(e) => e.stopPropagation()}
@@ -97,7 +142,8 @@ export function Modal({
               type="button"
               onClick={onClose}
               disabled={fecharBloqueado}
-              className="text-subtle-foreground hover:text-muted-foreground p-1 rounded-md transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className={cn("text-subtle-foreground hover:text-muted-foreground p-1 rounded-md transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
+                gerenciarFoco && "text-foreground-muted focus-visible:outline-2 focus-visible:outline-info")}
               aria-label="Fechar modal"
             >
               <X className="w-4 h-4" />

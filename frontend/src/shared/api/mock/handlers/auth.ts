@@ -1,14 +1,20 @@
+import { geracaoCenario, lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";
 import type MockAdapter from "axios-mock-adapter";
 import { extrairDados } from "../core/http";
 import { erroUsuarioMock, resolverUsuarioAutenticadoMock } from "../core/auth";
-import { obterUsuariosCriados, usuarioPersistidoParaMock, MOCK_USUARIOS, gerarHashSenhaMock } from "../dados/usuarios";
+import { obterUsuariosCriados, buscarUsuarioPorEmailMock, gerarHashSenhaMock } from "../dados/usuarios";
+
+import { revisaoAcesso } from "../dados/estadoGestao";
+import { registrarSenhas } from "./senhas";
+import { credencialSenhaMock, revisaoSenhaMock } from "../dados/segurancaSenha";
 
 // --- ROTAS DE AUTENTICAÇÃO ---
 
 // Contador volátil em memória de falhas de login por e-mail (RN-02 / UC-01 FA3)
-const tentativasFalhas: Record<string, number> = {};
+
 
 export function registrarAuth(mock: MockAdapter): void {
+  registrarSenhas(mock);
   // POST /auth/login (suporta com/sem prefixo e com/sem barra)
   mock.onPost(/\/auth\/login\/?(\?.*)?$/).reply(async (config) => {
     try {
@@ -17,7 +23,10 @@ export function registrarAuth(mock: MockAdapter): void {
         return erroUsuarioMock(400, "INVALID_BODY", "Corpo da requisição de login inválido");
       }
       const email = body.email.toLowerCase().trim();
+      const tentativasFalhas = lerDadosCenario<Record<string, number>>("mock_tentativas_v1");
       const senha = body.senha;
+      const revisao = revisaoSenhaMock(email);
+      const acesso = revisaoAcesso(email);
   
       // 1. Verificação de bloqueio por força bruta (RN-02: 5 falhas consecutivas)
       if (tentativasFalhas[email] && tentativasFalhas[email] >= 5) {
@@ -33,18 +42,20 @@ export function registrarAuth(mock: MockAdapter): void {
       }
   
       const criado = obterUsuariosCriados().find((usuario) => usuario.email === email);
-      const usuarioMock = criado ? usuarioPersistidoParaMock(criado)
-        : Object.hasOwn(MOCK_USUARIOS, email) ? MOCK_USUARIOS[email] : undefined;
+      let usuarioMock = buscarUsuarioPorEmailMock(email);
   
       // 2. Validação canônica de credenciais (Senha padrão: Senha123!)
-      const credencialValida = criado
-        ? (await gerarHashSenhaMock(senha)) === criado.senhaHash
-        : senha === "Senha123!";
+      const alterada = credencialSenhaMock(email);
+      const hashEsperado = alterada?.hash ?? criado?.senhaHash;
+      const credencialValida = hashEsperado ? (await gerarHashSenhaMock(senha)) === hashEsperado : senha === "Senha123!";
+      if (revisaoSenhaMock(email) !== revisao) return erroUsuarioMock(401, "INVALID_CREDENTIALS", "E-mail ou senha incorretos");
       if ((tentativasFalhas[email] || 0) >= 5) {
         return erroUsuarioMock(423, "ACCOUNT_LOCKED", "Conta bloqueada por excesso de tentativas de login");
       }
-      if (!usuarioMock || !credencialValida) {
+      usuarioMock = buscarUsuarioPorEmailMock(email);
+      if (!usuarioMock || usuarioMock.ativo === false || acesso !== revisaoAcesso(email) || !credencialValida) {
         tentativasFalhas[email] = (tentativasFalhas[email] || 0) + 1;
+        salvarDadosCenario("mock_tentativas_v1", tentativasFalhas);
   
         if (tentativasFalhas[email] >= 5) {
           return [
@@ -71,9 +82,10 @@ export function registrarAuth(mock: MockAdapter): void {
   
       // 3. Sucesso: zera tentativas de falha
       tentativasFalhas[email] = 0;
+      salvarDadosCenario("mock_tentativas_v1", tentativasFalhas);
   
       const resposta = {
-        token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}`,
+        token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}${revisao ? `_v${revisao}` : ""}${acesso ? `_a${acesso}` : ""}_g${geracaoCenario()}`,
         expiresAt: new Date(Date.now() + 480 * 60 * 1000).toISOString(),
         usuario: {
           id: usuarioMock.id,

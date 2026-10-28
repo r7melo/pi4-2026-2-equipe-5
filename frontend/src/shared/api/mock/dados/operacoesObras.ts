@@ -1,26 +1,21 @@
+import type { ObraDetalhe, ObraCard, Material, Programacao, DadosHomologacao, RelatorioCusto } from "@/types";
+import { lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";
 import { obterObrasArmazenadas, salvarObrasArmazenadas } from "./obras";
-import { obterProgramacoesArmazenadas, STORAGE_KEY_PROG } from "./programacoes";
-
 export function excluirObraArmazenada(id: number): boolean {
-  const obras = obterObrasArmazenadas();
-  const index = obras.findIndex((o) => Number(o.id) === Number(id));
-  if (index === -1) return false;
-
-  obras.splice(index, 1);
-  salvarObrasArmazenadas(obras);
-
-  // Defesa em profundidade: purga defensiva de eventuais programações no Gantt
-  if (typeof window !== "undefined") {
-    try {
-      const progs = obterProgramacoesArmazenadas();
-      const filtradas = progs.filter((p) => Number(p.obraId) !== Number(id));
-      if (filtradas.length !== progs.length) {
-        sessionStorage.setItem(STORAGE_KEY_PROG, JSON.stringify(filtradas));
-      }
-    } catch {
-      // Silencia erro no storage
-    }
-  }
-
+  const obra = obterObrasArmazenadas().find(o => o.id === id);
+  if (!obra) return false;
+  const detalhes = lerDadosCenario<Record<number, ObraDetalhe>>("mock_detalhes_v1");
+  const excluidas = lerDadosCenario<Record<number, { obra: ObraCard; detalhe: ObraDetalhe; excluidaEm: string }>>("mock_excluidas_v1");
+  excluidas[id] = { obra, detalhe: detalhes[id], excluidaEm: new Date().toISOString() };
+  salvarDadosCenario("mock_excluidas_v1", excluidas);
+  delete detalhes[id]; salvarDadosCenario("mock_detalhes_v1", detalhes);
+  salvarObrasArmazenadas(obterObrasArmazenadas().filter(o => o.id !== id));
+  salvarDadosCenario("mock_materiais", lerDadosCenario<Material[]>("mock_materiais").filter(m => m.obraId !== id));
+  salvarDadosCenario("mock_programacoes_v4", lerDadosCenario<Programacao[]>("mock_programacoes_v4").filter(p => p.obraId !== id));
+  const homologacoes = lerDadosCenario<Record<number, DadosHomologacao>>("mock_homologacoes_v1");
+  delete homologacoes[id]; salvarDadosCenario("mock_homologacoes_v1", homologacoes);
+  const relatorios = lerDadosCenario<Record<number, RelatorioCusto>>("mock_relatorios_v1");
+  delete relatorios[id]; salvarDadosCenario("mock_relatorios_v1", relatorios);
+  // Historico e comentarios permanecem vinculados ao tombstone, fora das publicacoes ativas.
   return true;
 }

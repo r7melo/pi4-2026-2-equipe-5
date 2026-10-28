@@ -3,6 +3,7 @@
 export * from "@/shared/types/common";
 export * from "@/shared/types/theme";
 export * from "@/features/auth/types/auth";
+export * from "@/features/auth/types/senha";
 export * from "@/features/kanban/types/kanban";
 export * from "@/features/cronograma/types/equipes";
 export * from "@/features/cronograma/types/gantt";
@@ -15,3 +16,10 @@ export * from "@/features/usuarios/types/usuarios";
 export * from "@/shared/types/acoesObra";
 export * from "@/shared/types/exportacaoInstalacao";
 export * from "@/shared/types/autorizacao";
+export * from "@/shared/types/compartilhamentoCronograma";
+export * from "@/features/cronograma/types/compartilhamento";
+
+export * from "@/features/usuarios/types/gestaoUsuarios";
+
+export * from "@/shared/types/demonstracao";
+export * from "@/features/obras/types/clientes";

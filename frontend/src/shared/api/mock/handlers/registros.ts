@@ -1,7 +1,8 @@
 import type MockAdapter from "axios-mock-adapter";
 import { obterHistoricoArmazenado, obterComentariosArmazenados, adicionarComentarioArmazenado } from "../dados/registros";
 import { extrairDados } from "../core/http";
-import { MOCK_USUARIOS } from "../dados/usuarios";
+import { resolverUsuarioAutenticadoMock } from "../core/auth";
+import { obterObrasArmazenadas } from "../dados/obras";
 
 export function registrarRegistros(mock: MockAdapter): void {
   // ─── HISTÓRICO E COMENTÁRIOS ───
@@ -28,18 +29,10 @@ export function registrarRegistros(mock: MockAdapter): void {
     try {
       const body = extrairDados<{ descricao: string }>(config.data);
       
-      // Obtém o usuário logado para atribuir ao comentário
-      const authHeader = config.headers?.Authorization || "";
-      let usuario = MOCK_USUARIOS["engenharia@zlengenharia.com"];
-      if (authHeader.includes("admin")) usuario = MOCK_USUARIOS["admin@zl.com.br"];
-      else if (authHeader.includes("mock_jwt_token_")) {
-        const matchToken = authHeader.match(/mock_jwt_token_([A-Za-z0-9+/=]+)_/);
-        if (matchToken && matchToken[1]) {
-          const emailDecodificado = atob(matchToken[1]);
-          if (MOCK_USUARIOS[emailDecodificado]) usuario = MOCK_USUARIOS[emailDecodificado];
-        }
-      }
-  
+      const usuario = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+      if (!usuario) return [401];
+      if (!obterObrasArmazenadas().some(o => o.id === obraId)) return [404];
+      if (typeof body.descricao !== "string" || !body.descricao.trim()) return [400];
       const novo = adicionarComentarioArmazenado(obraId, body.descricao, { id: usuario.id, nome: usuario.nome });
       return [201, novo];
     } catch {

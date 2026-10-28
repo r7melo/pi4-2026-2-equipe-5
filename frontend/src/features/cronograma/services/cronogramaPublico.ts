@@ -1,8 +1,10 @@
 import { api } from "@/shared/api/api";
 import type {
   RelatorioPublicoDados,
-  FiltroCronogramaPublico,
-  Programacao,
+  FiltrosCronogramaCompartilhado,
+  ProgramacaoCompartilhada,
+  PeriodoCompartilhado,
+  LinkCronogramaCompartilhado,
 } from "@/types";
 
 /**
@@ -16,11 +18,22 @@ export async function buscarRelatorioPublico(token: string): Promise<RelatorioPu
 
 export async function obterCronogramaCompartilhado(
   token: string,
-  filtro?: FiltroCronogramaPublico
-): Promise<Programacao[]> {
-  const { data } = await api.get<Programacao[]>(
+  filtro?: FiltrosCronogramaCompartilhado
+): Promise<ProgramacaoCompartilhada[]> {
+  const { data } = await api.get<ProgramacaoCompartilhada[]>(
     `/cronograma/compartilhado/${encodeURIComponent(token)}`,
     { params: filtro }
+  );
+  return data;
+}
+
+/** POST privado; a sessão é capturada antes do envio, sem estado ou toast no service. */
+export async function gerarLinkCompartilhado(
+  periodo: PeriodoCompartilhado,
+  sessao: number,
+): Promise<LinkCronogramaCompartilhado> {
+  const { data } = await api.post<LinkCronogramaCompartilhado>(
+    "/cronograma/compartilhado", periodo, { sessao403: sessao, timeout: 20000 },
   );
   return data;
 }

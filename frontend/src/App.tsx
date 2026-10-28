@@ -1,5 +1,10 @@
+import { Fragment } from "react";
+import type { AplicacaoProps } from "@/shared/types/demonstracao";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "@/features/auth/pages/Login";
+import EsqueciSenha from "@/features/auth/pages/EsqueciSenha";
+import RedefinirSenha from "@/features/auth/pages/RedefinirSenha";
+import Configuracoes from "@/features/auth/pages/Configuracoes";
 import SemPermissao from "@/features/auth/pages/SemPermissao";
 import { statusHttp } from "@/shared/lib/sessaoOperacao";
 import { Kanban, Equipes } from "@/composition/RotasOperacionais";
@@ -12,7 +17,7 @@ import Relatorios from "@/features/financeiro/pages/Relatorios";
 import Financeiro from "@/features/financeiro/pages/Financeiro";
 import RelatorioPublico from "@/features/financeiro/pages/RelatorioPublico";
 import CronogramaPublico from "@/features/cronograma/pages/CronogramaPublico";
-import CadastrarUsuario from "@/features/usuarios/pages/CadastrarUsuario";
+import { Usuarios, CadastroUsuario } from "@/composition/RotasUsuarios";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
@@ -36,7 +41,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
   const tema = useThemeStore((s) => s.tema);
 
   useEffect(() => {
@@ -55,11 +60,14 @@ function App() {
       {/* Popup de seleção de API — visível somente em desenvolvimento */}
       <ApiModeSwitcher />
       <BrowserRouter>
+        <Ambiente>
         <SessionLifecycleSentinel />
         <Routes>
           {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
           <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
 
@@ -78,6 +86,7 @@ function App() {
               {/* Kanban: Visível para Admin, Engenharia e Financeiro */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia", "Financeiro"]} />}>
                 <Route path="/kanban" element={<Kanban />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
               </Route>
 
               {/* Equipes (Gantt): Visível para Admin, Engenharia e Financeiro */}
@@ -103,7 +112,8 @@ function App() {
 
               {/* Cadastro de usuários: apenas Administrador (RF-01) */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
-                <Route path="/usuarios/novo" element={<CadastrarUsuario />} />
+                <Route path="/usuarios" element={<Usuarios />} />
+                <Route path="/usuarios/novo" element={<CadastroUsuario />} />
               </Route>
 
               {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
@@ -114,6 +124,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+      </Ambiente>
       </BrowserRouter>
     </QueryClientProvider>
   );

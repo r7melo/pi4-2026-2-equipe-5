@@ -21,7 +21,10 @@ export function formatarDataBR(dataIso?: string | null): string {
 
 /** Formata objeto Date para string YYYY-MM-DD */
 export function formatarDataISO(data: Date): string {
-  const ano = data.getFullYear();
+  const anoNumerico = data.getFullYear();
+  const ano = anoNumerico >= 0 && anoNumerico <= 9999
+    ? String(anoNumerico).padStart(4, "0")
+    : (anoNumerico < 0 ? "-" : "+") + String(Math.abs(anoNumerico)).padStart(6, "0");
   const mes = String(data.getMonth() + 1).padStart(2, "0");
   const dia = String(data.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
@@ -83,10 +86,7 @@ export function obterProximoDiaUtilISO(dataBase: Date = new Date()): string {
  */
 export function normalizarDataMeioDiaUTC(dataEntrada: string | Date): Date {
   if (dataEntrada instanceof Date) {
-    const ano = dataEntrada.getFullYear();
-    const mes = String(dataEntrada.getMonth() + 1).padStart(2, "0");
-    const dia = String(dataEntrada.getDate()).padStart(2, "0");
-    return new Date(`${ano}-${mes}-${dia}T12:00:00Z`);
+    return new Date(`${formatarDataISO(dataEntrada)}T12:00:00Z`);
   }
   const dataLimpa = String(dataEntrada).split(/[T ]/)[0];
   return new Date(`${dataLimpa}T12:00:00Z`);

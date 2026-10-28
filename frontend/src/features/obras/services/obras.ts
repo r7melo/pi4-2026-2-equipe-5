@@ -2,7 +2,7 @@ import { api } from "@/shared/api/api";
 import type {
   CriarObraPayload,
   ListaObras,
-  ObraCard,
+  ObraCadastrada,
   ObraCriadaResposta,
   DadosHomologacao,
   ObraDetalhe,
@@ -30,7 +30,7 @@ export async function excluirObra(id: number, sessao403?: number): Promise<void>
 }
 
 /** POST /api/obras — Rota #7 do Contrato (RF-03) */
-export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
+export async function criarObra(payload: CriarObraPayload): Promise<ObraCadastrada> {
   const pagamento = {
     prazoContratualDias: payload.pagamento.prazoContratualDias,
     dataConfirmacao:
@@ -76,6 +76,7 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCard> {
   const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", corpo, { suprimirToast403: true });
   return {
     id: resposta.id,
+    clienteId: resposta.clienteId,
     clienteNome: payload.cliente?.nome || payload.clienteNome || "Cliente Cadastrado",
     status: (resposta.status as StatusObra) || "MaterialComprado",
     categoria: (payload.categoria as CategoriaObra) || "Residencial",

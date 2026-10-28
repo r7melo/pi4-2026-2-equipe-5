@@ -1,3 +1,4 @@
+import { lerModoApi as getApiMode } from "@/shared/lib/modoApi";
 /**
  * ApiModeSwitcher — Popup de desenvolvimento (canto inferior direito)
  *
@@ -18,16 +19,7 @@ const STORAGE_KEY = "zl_api_mode";
 export type ApiMode = "real" | "mock";
 
 /** Lê o modo atual do localStorage (padrão: "mock" se VITE_USE_MOCK=true, senão "real") */
-export function getApiMode(): ApiMode {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "real" || stored === "mock") return stored;
-  } catch {
-    // localStorage indisponível (SSR / incognito restrito)
-  }
-  // Fallback para o valor definido em build-time
-  return import.meta.env.VITE_USE_MOCK === "true" ? "mock" : "real";
-}
+export { lerModoApi as getApiMode } from "@/shared/lib/modoApi";
 
 export function ApiModeSwitcher() {
   // Só renderiza em dev

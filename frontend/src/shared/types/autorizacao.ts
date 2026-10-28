@@ -24,5 +24,7 @@ declare module "axios" {
   interface AxiosRequestConfig<D = any> {
     sessao403?: number;
     suprimirToast403?: boolean;
+    semAutenticacao?: boolean;
+    politica401?: "credencial" | "manual" | "sessao";
   }
 }

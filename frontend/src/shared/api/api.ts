@@ -1,3 +1,5 @@
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
+import { contextoDemonstracao } from "@/shared/lib/contextoDemonstracao";
 import axios from "axios";
 import { toast } from "sonner";
 import { capturarSessaoOperacional, exigirSessaoOperacional, registrarErro403, sessaoOperacionalVigente } from "@/shared/lib/sessaoOperacao";
@@ -39,13 +41,16 @@ export const api = axios.create({
 // Interceptor de Request: Injeta JWT automaticamente em todas as chamadas
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
+  if (MOCK_ATIVO) config.geracaoDemonstracao ??= contextoDemonstracao();
   if (config.sessao403 !== undefined) exigirSessaoOperacional(config.sessao403);
   config.sessao403 ??= capturarSessaoOperacional();
-  if (token) {
+  if (config.semAutenticacao) {
+    config.headers.delete("Authorization");
+  } else if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+}, erro => { throw erro; }, { synchronous: true });
 
 // Interceptor de Response: Captura 401 para logout forçado com proteção anti-thundering herd
 api.interceptors.response.use(
@@ -55,7 +60,7 @@ api.interceptors.response.use(
       const config = error.config;
       const metodo = (config.method || "get").toUpperCase();
       const caminho = new URL(config.url || "", config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
-      const publico = caminho === "/auth/login" ||
+      const publico = config.semAutenticacao || caminho === "/auth/login" ||
         (metodo === "GET" && (/^\/cronograma\/compartilhado\/[^/]+\/?$/.test(caminho) ||
           /^\/relatorio-publico(?:\/|$)/.test(caminho) || /^\/mobile(?:\/|$)/.test(caminho)));
       if (!publico && config.responseType !== "blob") {
@@ -75,12 +80,26 @@ api.interceptors.response.use(
       }
     }
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      const url = error.config?.url || "";
+      const config = error.config;
+      if (config?.semAutenticacao) return Promise.reject(error);
+      if (config?.politica401 && !sessaoOperacionalVigente(config.sessao403 ?? -1)) return Promise.reject(error);
+      if (config?.politica401 === "manual") return Promise.reject(error);
+      const corpo: unknown = error.response.data;
+      const envelope = corpo && typeof corpo === "object" && "error" in corpo ? corpo.error : undefined;
+      const credencialInvalida = envelope && typeof envelope === "object" && "code" in envelope && envelope.code === "INVALID_CREDENTIALS";
+      const url = config?.url || "";
+      if (config?.politica401 === "credencial" && config.method?.toLowerCase() === "put" &&
+          /^\/auth\/alterar-senha\/?$/.test(new URL(url, config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "")) && credencialInvalida) return Promise.reject(error);
       const isRotaLogin = url.includes("/auth/login");
-      const isRotaPublica =
+      const caminho = new URL(url, error.config?.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
+      const postCompartilhado = error.config?.method?.toLowerCase() === "post" &&
+        /^\/cronograma\/compartilhado\/?$/.test(caminho);
+      // Exceção pontual: este POST é privado; um 401 antigo nunca encerra a sessão nova.
+      if (postCompartilhado && !sessaoOperacionalVigente(error.config?.sessao403 ?? -1)) return Promise.reject(error);
+      const isRotaPublica = !postCompartilhado && (
         url.includes("/cronograma/compartilhado") ||
         url.includes("/relatorio-publico") ||
-        url.includes("/mobile");
+        url.includes("/mobile"));
 
       if (!isRotaLogin && !isRotaPublica) {
         // Guarda anti-thundering herd: só processa o salvamento e emissão se o operador ainda constar logado

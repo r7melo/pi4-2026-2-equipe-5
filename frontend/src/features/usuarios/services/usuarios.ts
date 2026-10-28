@@ -12,7 +12,7 @@ const erroSchema = z.object({ error: z.object({ code: z.string().optional() }).o
 
 export async function criarUsuario(payload: CriarUsuarioPayload, sessao403?: number): Promise<UsuarioCriado> {
   try {
-    const resposta = await api.post<UsuarioCriado>("/usuarios", payload, { timeout: 15_000, suprimirToast403: true, sessao403 });
+    const resposta = await api.post<UsuarioCriado>("/usuarios", payload, { timeout: 15_000, suprimirToast403: true, sessao403, politica401: "sessao" });
     if (resposta.status !== 201) {
       throw new ApiErro(resposta.status, "UNEXPECTED_RESPONSE", "Não foi possível confirmar o cadastro.");
     }
@@ -34,7 +34,7 @@ export async function criarUsuario(payload: CriarUsuarioPayload, sessao403?: num
   }
 }
 
-export async function listarEquipesOpcoes(): Promise<EquipeOpcao[]> {
-  const { data } = await api.get<unknown>("/equipes");
+export async function listarEquipesOpcoes(sessao403?: number): Promise<EquipeOpcao[]> {
+  const { data } = await api.get<unknown>("/equipes", { sessao403, politica401: "sessao" });
   return equipesSchema.parse(data);
 }

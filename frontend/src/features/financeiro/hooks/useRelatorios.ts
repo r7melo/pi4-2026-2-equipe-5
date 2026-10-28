@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { buscarRelatorioCusto } from "@/features/financeiro/services/relatorios";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { gerarLinkRelatorioDemonstracao, buscarRelatorioCusto } from "@/features/financeiro/services/relatorios";
 import { api } from "@/shared/api/api";
 import type { ListaObras } from "@/types";
 
@@ -24,4 +24,8 @@ export function useObrasSelect() {
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
+}
+
+export function useLinkRelatorioDemonstracao() {
+  return useMutation({ mutationFn: gerarLinkRelatorioDemonstracao, retry: false });
 }

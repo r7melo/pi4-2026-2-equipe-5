@@ -120,6 +120,7 @@ export function GanttToolbar({
           <span className="text-muted-foreground font-medium text-[11px]">De:</span>
           <input
             type="date"
+            aria-label="Data inicial do filtro"
             value={dataFiltroInicio}
             onChange={(e) => onDataInicioChange(e.target.value)}
             className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
@@ -127,6 +128,7 @@ export function GanttToolbar({
           <span className="text-muted-foreground font-medium text-[11px] ml-1">Até:</span>
           <input
             type="date"
+            aria-label="Data final do filtro"
             value={dataFiltroFim}
             onChange={(e) => onDataFimChange(e.target.value)}
             className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
@@ -162,6 +164,7 @@ export function GanttToolbar({
           onClick={onAbrirCompartilhar}
           className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-info hover:bg-info-hover text-primary-foreground text-xs font-semibold shadow-xs transition-all active:scale-[0.97] cursor-pointer shrink-0"
           title="Compartilhar cronograma público"
+          aria-label="Compartilhar"
         >
           <Share2 className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Compartilhar</span>

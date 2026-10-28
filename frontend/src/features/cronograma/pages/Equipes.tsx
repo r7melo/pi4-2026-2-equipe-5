@@ -1,5 +1,5 @@
-import { capturarSessaoOperacional, deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
-import { useState, useMemo, useLayoutEffect, useRef, type SetStateAction, type ReactNode } from "react";
+import { capturarSessaoOperacional, deveExibirErroLocal, assinarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
+import { useState, useMemo, useLayoutEffect, useRef, useSyncExternalStore, type SetStateAction, type ReactNode } from "react";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
 import type { GanttFiltrosAvancados } from "@/types";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
@@ -52,6 +52,7 @@ export default function Equipes({
 } = {}) {
   const { ativo: modoAtivo, elegivelParaModo, alturaSelo, lerEpoch, podeInteragir } = useModoDisplay();
   const epochRender = lerEpoch();
+  const sessaoRender = useSyncExternalStore(assinarSessaoOperacional, capturarSessaoOperacional, capturarSessaoOperacional);
   const nivelZoom = useGanttStore((s) => s.nivelZoom);
   const setNivelZoom = useGanttStore((s) => s.setNivelZoom);
   const filtrosSalvos = useGanttStore((s) => s.filtrosSalvos);
@@ -78,6 +79,11 @@ export default function Equipes({
   const [modalNovaAlocacaoAberto, setModalNovaAlocacaoAberto] = useState(false);
   const [modalNovaEquipeAberto, setModalNovaEquipeAberto] = useState(false);
   const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
+  const [sessaoCompartilhamento, setSessaoCompartilhamento] = useState(sessaoRender);
+  if (sessaoCompartilhamento !== sessaoRender) {
+    setSessaoCompartilhamento(sessaoRender);
+    setModalCompartilharAberto(false);
+  }
   const [tarefaSelecionadaId, setTarefaSelecionadaId] = useState<number | null>(null);
   const [epochOverlays, setEpochOverlays] = useState(epochRender);
   if (epochOverlays !== epochRender) {
@@ -567,6 +573,7 @@ export default function Equipes({
 
       {canEdit && <GanttCompartilharModal
         isOpen={modalCompartilharAberto}
+        podeInteragir={podeEditar}
         onClose={() => { if (podeUsarInterface()) setModalCompartilharAberto(false); }}
       />}
 
