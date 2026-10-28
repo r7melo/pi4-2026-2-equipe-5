@@ -1,7 +1,10 @@
+import { EMAIL_USUARIO } from "@/shared/constants/emailUsuario";
+import { geracaoCenario } from "../core/estadoCenario";
+import { armazenamentoCenario } from "../core/estadoCenario";
 import { z } from "zod";
 
 export const CHAVE_SEGURANCA_SENHA_MOCK = "mock_seguranca_senhas_v1";
-const emailSchema = z.string().email().refine(email => email === email.trim().toLowerCase());
+const emailSchema = z.string().regex(EMAIL_USUARIO).refine(email => email === email.trim().toLowerCase());
 const revisaoSchema = z.number().int().nonnegative().refine(Number.isSafeInteger);
 const contaSchema = z.object({ revisao: revisaoSchema.refine(revisao => revisao > 0), hash: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
 const linkSchema = z.object({ email: emailSchema, expiraEm: z.number().int().positive(), revisao: revisaoSchema }).strict();
@@ -9,11 +12,11 @@ const estadoSchema = z.object({ versao: z.literal(1), contas: z.record(emailSche
 type Estado = z.infer<typeof estadoSchema>;
 
 function ler(): Estado {
-  const raw = sessionStorage.getItem(CHAVE_SEGURANCA_SENHA_MOCK);
+  const raw = armazenamentoCenario.getItem(CHAVE_SEGURANCA_SENHA_MOCK);
   return raw === null ? { versao: 1, contas: {}, links: {} } : estadoSchema.parse(JSON.parse(raw));
 }
 function salvar(estado: Estado): void {
-  sessionStorage.setItem(CHAVE_SEGURANCA_SENHA_MOCK, JSON.stringify(estadoSchema.parse(estado)));
+  armazenamentoCenario.setItem(CHAVE_SEGURANCA_SENHA_MOCK, JSON.stringify(estadoSchema.parse(estado)));
 }
 export function credencialSenhaMock(email: string) {
   const estado = ler();
@@ -61,8 +64,8 @@ export function alterarCredencialSenhaMock(email: string, revisao: number, hash:
 /** Sufixo de versão evita colisão temporal; tokens anteriores à demanda são versão zero. */
 export function identidadeTokenSenhaMock(authorization: unknown) {
   if (typeof authorization !== "string") return undefined;
-  const match = /^Bearer mock_jwt_token_([A-Za-z0-9+/=]+)_(\d+)(?:_v(\d+))?(?:_a(\d+))?$/.exec(authorization);
-  if (!match) return undefined;
+  const match = /^Bearer mock_jwt_token_([A-Za-z0-9+/=]+)_(\d+)(?:_v(\d+))?(?:_a(\d+))?_g([0-9a-f-]+)$/.exec(authorization);
+  if (!match || match[5] !== geracaoCenario()) return undefined;
   try {
     return { email: atob(match[1]).trim().toLowerCase(), emitidoEm: Number(match[2]), revisao: Number(match[3] ?? 0), acesso: Number(match[4] ?? 0) };
   } catch { return undefined; }

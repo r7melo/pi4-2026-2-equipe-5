@@ -1,3 +1,4 @@
+import { CHAVE_AUTH_ATUAL } from "@/shared/lib/modoApi";
 import { useEffect, useRef, useState } from "react";
 import { notifyManager, useQueryClient } from "@tanstack/react-query";
 import { capturarSessaoOperacional, invalidarSessaoOperacional, transicaoSessaoArmazenada } from "@/shared/lib/sessaoOperacao";
@@ -44,7 +45,7 @@ export function SessionLifecycleSentinel(): null {
   // O evento pode descrever logout/login já concluídos no storage atual.
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "auth-storage" && (!event.storageArea || event.storageArea === localStorage)) {
+      if (event.key === CHAVE_AUTH_ATUAL && (!event.storageArea || event.storageArea === localStorage)) {
         if (transicaoSessaoArmazenada(event.oldValue, event.newValue)) invalidarSessaoOperacional();
         void (async () => {
           await useAuthStore.persist.rehydrate();

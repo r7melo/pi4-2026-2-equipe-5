@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { GanttUIState } from "@/types";
@@ -25,19 +27,27 @@ function migrarZoomLegado(): void {
   }
 }
 
-migrarZoomLegado();
+if (!MOCK_ATIVO) migrarZoomLegado();
 
 export const useGanttStore = create<GanttUIState>()(
   persist(
     (set) => ({
-      nivelZoom: "day",
+      nivelZoom: (() => {
+        if (!MOCK_ATIVO) return "day";
+        try {
+          const bruto: unknown = JSON.parse(localStorage.getItem("gantt-storage") ?? "null");
+          const parsed = z.object({ state: z.object({ nivelZoom: z.enum(["day", "week", "month"]) }) }).safeParse(bruto);
+          const salvo = parsed.success ? parsed.data.state.nivelZoom : localStorage.getItem("gantt_nivel_zoom");
+          return salvo === "day" || salvo === "week" || salvo === "month" ? salvo : "day";
+        } catch { return "day"; }
+      })(),
       setNivelZoom: (nivel) => set({ nivelZoom: nivel }),
       filtrosSalvos: null,
       salvarFiltros: (filtros) => set({ filtrosSalvos: filtros }),
       limparFiltrosSalvos: () => set({ filtrosSalvos: null }),
     }),
     {
-      name: "gantt-storage",
+      name: MOCK_ATIVO ? "mock_gantt_ui_v1" : "gantt-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         nivelZoom: state.nivelZoom,

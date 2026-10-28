@@ -1,3 +1,6 @@
+import type { FiltrosRelatorioDemonstracao } from "@/shared/types/demonstracao";
+import { filtrarPeriodo } from "@/shared/lib/filtrarPeriodo";
+import { criarLinkRelatorio, buscarLinkRelatorio } from "../dados/linksRelatorios";
 import type MockAdapter from "axios-mock-adapter";
 import { obterObrasArmazenadas } from "../dados/obras";
 import { resolverUsuarioAutenticadoMock, erroUsuarioMock } from "../core/auth";
@@ -6,6 +9,14 @@ import { periodoCivilValido } from "@/shared/lib/datasCivis";
 import { criarLinkCronograma, buscarLinkCronograma, consultarLinkCronograma, filtrosPublicosValidos } from "../dados/linksCronograma";
 
 export function registrarCronogramaPublico(mock: MockAdapter): void {
+  // Extensao interna exclusiva do mock; nao representa rota oficial do backend.
+  mock.onPost(/\/mock\/relatorios\/compartilhado\/?$/).reply(config => {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente.");
+    if (!["Administrador", "Financeiro"].includes(operador.perfil.nomePerfil)) return erroUsuarioMock(403, "ACCESS_DENIED", "Acesso não permitido.");
+    try { return [201, { token: criarLinkRelatorio(extrairDados<FiltrosRelatorioDemonstracao>(config.data), operador.id) }]; }
+    catch { return erroUsuarioMock(400, "INVALID_PARAMETER", "Confira os filtros do relatório."); }
+  });
   // Rota39: o handler também aplica autorização e validação, independentemente da UI.
   mock.onPost(/\/cronograma\/compartilhado\/?(?:\?.*)?$/).reply(config => {
     try {
@@ -44,37 +55,12 @@ export function registrarCronogramaPublico(mock: MockAdapter): void {
         return erroUsuarioMock(500, "INTERNAL_ERROR", "Não foi possível consultar o cronograma.");
       }
     }
-    // Compatibilidade restrita ao produtor financeiro existente; não é garantia global de privacidade.
-    try {
-      const decoded = atob(token);
-      if (decoded.includes("|")) {
-        const [periodoInicio, periodoFim, clienteFiltro] = decoded.split("|");
-        const obrasArmazenadas = obterObrasArmazenadas();
-        
-        const obrasFiltradas = obrasArmazenadas.filter((o) => {
-          const passaCliente = !clienteFiltro || clienteFiltro === "todos" || o.clienteNome.toLowerCase() === clienteFiltro.toLowerCase();
-          return passaCliente;
-        });
-  
-        const totalPaineis = obrasFiltradas.reduce((acc, o) => acc + (o.quantidadePaineis || 0), 0);
-  
-        return [
-          200,
-          {
-            periodoInicio: periodoInicio || "",
-            periodoFim: periodoFim || "",
-            clienteFiltro: clienteFiltro || "todos",
-            obras: obrasFiltradas,
-            totalObras: obrasFiltradas.length,
-            obrasConcluidas: obrasFiltradas.filter((o) => o.status === "Concluido").length,
-            totalPaineis,
-          },
-        ];
-      }
-    } catch {
-      // Não é o formato financeiro legado; rejeitar como cronograma desconhecido.
+    const registro = buscarLinkRelatorio(token);
+    if (registro) {
+      const obras = filtrarPeriodo(obterObrasArmazenadas(), registro);
+      return [200, { periodoInicio: registro.periodoInicio, periodoFim: registro.periodoFim, clienteFiltro: registro.clienteFiltro, obras, totalObras: obras.length, obrasConcluidas: obras.filter(o => o.status === "Concluido").length, totalPaineis: obras.reduce((soma, o) => soma + o.quantidadePaineis, 0) }];
     }
-  
+
     return erroUsuarioMock(404, "ROUTE_NOT_FOUND", "Link inválido ou expirado.");
   });
 }

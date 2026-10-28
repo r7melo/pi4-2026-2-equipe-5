@@ -5,7 +5,7 @@ import { obterEquipesArmazenadas } from "./equipes";
 
 export type MockUsuario = Usuario & { ativo?: boolean };
 
-/** Usuários sincronizados estritamente com IDs do 02_seed.sql e GUIA_QA.md */
+/** Referencia contratual de QA; a demonstracao inicial usa gerarDadosCenario. */
 export const MOCK_USUARIOS: Record<string, MockUsuario> = {
   "admin@zl.com.br": {
     id: 1,
@@ -27,7 +27,7 @@ export const MOCK_USUARIOS: Record<string, MockUsuario> = {
       nomePerfil: "Engenharia",
       permissoes: ["obras:criar", "obras:mover", "programacoes:editar"],
     },
-    equipeId: 3,
+    equipeId: null,
   },
   "financeiro@zl.com.br": {
     id: 3,
@@ -66,7 +66,7 @@ const perfilUsuarioMockSchema = z.enum(["Administrador", "Engenharia", "Financei
 
 const idUsuarioMockSchema = z.number().int().positive().refine(Number.isSafeInteger);
 
-const STORAGE_KEY_USUARIOS = "mock_usuarios_v1";
+
 
 const cadastroUsuarioMockSchema = z.object({
   nome: z.string().trim().min(3).max(200),
@@ -119,8 +119,7 @@ function validarUsuariosPersistidosMock(valor: unknown): UsuarioPersistidoMock[]
 
 export function obterUsuariosCriados(): UsuarioPersistidoMock[] {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY_USUARIOS);
-    return validarUsuariosPersistidosMock([...(raw === null ? [] : validarUsuariosPersistidosMock(JSON.parse(raw))), ...lerGestao().novos]);
+    return validarUsuariosPersistidosMock(lerGestao().novos);
   } catch {
     throw new Error("Não foi possível ler os usuários simulados.");
   }
@@ -129,11 +128,9 @@ export function obterUsuariosCriados(): UsuarioPersistidoMock[] {
 export function salvarUsuariosCriados(usuarios: UsuarioPersistidoMock[]): void {
   try {
     const validados = validarUsuariosPersistidosMock(usuarios);
-    const raw = sessionStorage.getItem(STORAGE_KEY_USUARIOS);
-    const legados = raw === null ? [] : validarUsuariosPersistidosMock(JSON.parse(raw));
     const anteriores = obterUsuariosCriados();
     const estado = lerGestao();
-    estado.novos = validados.filter(u => !legados.some(l => l.id === u.id));
+    estado.novos = validados;
     const equipes = structuredClone(obterEquipesArmazenadas());
     for (const u of estado.novos.filter(candidato => !anteriores.some(a => a.id === candidato.id))) {
       if (u.perfil !== "InstaladorCampo") continue;
@@ -181,14 +178,5 @@ export function buscarUsuarioPorEmailMock(email: string): MockUsuario | undefine
 
 export function equipeExisteParaUsuarioMock(equipeId: number | null): boolean {
   if (equipeId === null) return true;
-  const raw = sessionStorage.getItem("mock_equipes_v1");
-  if (raw !== null) {
-    const equipesSchema = z.array(z.object({
-      id: idUsuarioMockSchema,
-      nome: z.string().trim().min(1),
-    }));
-    const parsed = equipesSchema.safeParse(JSON.parse(raw));
-    if (!parsed.success) throw new Error("Armazenamento de equipes inválido.");
-  }
   return obterEquipesArmazenadas().some((equipe) => equipe.id === equipeId);
 }

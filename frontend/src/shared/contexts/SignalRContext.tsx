@@ -1,3 +1,4 @@
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 /* oxlint-disable react/only-export-components */
 /* oxlint-disable react/set-state-in-effect */
 import {
@@ -98,7 +99,7 @@ export function SignalRProvider({ children }: SignalRProviderProps) {
     isCancelledRef.current = false;
 
     // RN-09: Isolamento em ambiente mockado
-    if (import.meta.env.VITE_USE_MOCK === "true" || !token) {
+    if (MOCK_ATIVO || !token) {
       return;
     }
 

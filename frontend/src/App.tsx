@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+import type { AplicacaoProps } from "@/shared/types/demonstracao";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "@/features/auth/pages/Login";
 import EsqueciSenha from "@/features/auth/pages/EsqueciSenha";
@@ -39,7 +41,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
   const tema = useThemeStore((s) => s.tema);
 
   useEffect(() => {
@@ -58,6 +60,7 @@ function App() {
       {/* Popup de seleção de API — visível somente em desenvolvimento */}
       <ApiModeSwitcher />
       <BrowserRouter>
+        <Ambiente>
         <SessionLifecycleSentinel />
         <Routes>
           {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
@@ -121,6 +124,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+      </Ambiente>
       </BrowserRouter>
     </QueryClientProvider>
   );

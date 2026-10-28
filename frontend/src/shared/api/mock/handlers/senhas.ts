@@ -1,3 +1,4 @@
+import { EMAIL_USUARIO } from "@/shared/constants/emailUsuario";
 import type MockAdapter from "axios-mock-adapter";
 import { z } from "zod";
 import { extrairDados } from "../core/http";
@@ -6,7 +7,7 @@ import { buscarUsuarioPorEmailMock, gerarHashSenhaMock, obterUsuariosCriados } f
 import { alterarCredencialSenhaMock, consumirLinkSenhaMock, criarLinkSenhaMock, consultarLinkSenhaMock, credencialSenhaMock, revisaoSenhaMock } from "../dados/segurancaSenha";
 
 const mensagem = "Se o e-mail informado estiver cadastrado, você receberá as instruções de redefinição";
-const solicitarSchema = z.object({ email: z.string().trim().toLowerCase().email() });
+const solicitarSchema = z.object({ email: z.string().trim().toLowerCase().regex(EMAIL_USUARIO) });
 const redefinirSchema = z.object({ token: z.string(), novaSenha: z.string() });
 const alterarSchema = z.object({ senhaAtual: z.string().min(1), novaSenha: z.string() });
 function forte(senha: string): boolean {

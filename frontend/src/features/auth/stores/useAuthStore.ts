@@ -1,3 +1,5 @@
+import { CHAVE_AUTH_ATUAL, MOCK_ATIVO } from "@/shared/lib/modoApi";
+import { tokenDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
 import { create } from "zustand";
 import { invalidarSessaoOperacional, sincronizarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { persist, createJSONStorage } from "zustand/middleware";
@@ -60,7 +62,7 @@ function migrarEstadoLegado(): void {
   }
 }
 
-migrarEstadoLegado();
+if (!MOCK_ATIVO) migrarEstadoLegado();
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -69,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
       usuario: null,
       expiresAt: null,
       login: (token, usuario, expiresAt) => {
+        if (!tokenDemonstracaoVigente(token)) return;
         const expiracaoValida =
           expiresAt && !Number.isNaN(new Date(expiresAt).getTime())
             ? expiresAt
@@ -84,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "auth-storage",
+      name: CHAVE_AUTH_ATUAL,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         token: state.token,

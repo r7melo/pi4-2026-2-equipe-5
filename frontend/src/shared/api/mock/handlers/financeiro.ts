@@ -1,3 +1,4 @@
+import { filtrarPeriodo } from "@/shared/lib/filtrarPeriodo";
 import type MockAdapter from "axios-mock-adapter";
 import { obterRelatorioArmazenado } from "../dados/relatorios";
 import { extrairQueryParams } from "../core/http";
@@ -18,13 +19,15 @@ export function registrarFinanceiro(mock: MockAdapter): void {
   });
   
   // GET /relatorios/export (Gera PDF ou Excel com base em todas as obras cadastradas)
-  mock.onGet(/\/relatorios\/export\/?(\?.*)?$/).reply((config) => {
+  mock.onGet(/\/relatorios\/export\/?(\?.*)?$/).reply(async (config) => {
     const params = extrairQueryParams(config);
     const formato = params.formato === "excel" ? "excel" : "pdf";
     const obraId = params.obraId ? Number(params.obraId) : null;
   
-    const obras = obterObrasArmazenadas();
-    // Garante que todas as obras possuam relatório calculado
+    const todas = obterObrasArmazenadas();
+    const obras = params.periodoInicio || params.periodoFim || params.clienteFiltro
+      ? filtrarPeriodo(todas, { periodoInicio: params.periodoInicio ?? "", periodoFim: params.periodoFim ?? "", clienteFiltro: params.clienteFiltro ?? "todos" }) : todas;
+    // Somente relatorios explicitamente precificados, sem completar ausencias.
     const relatorios: Record<number, RelatorioCusto> = {};
     for (const o of obras) {
       const rel = obterRelatorioArmazenado(o.id);
@@ -38,7 +41,7 @@ export function registrarFinanceiro(mock: MockAdapter): void {
       return [200, blob];
     }
   
-    const blob = gerarPdfRelatorio(obras, relatorios, obraId);
+    const blob = await gerarPdfRelatorio(obras, relatorios, obraId);
     return [200, blob];
   });
 }

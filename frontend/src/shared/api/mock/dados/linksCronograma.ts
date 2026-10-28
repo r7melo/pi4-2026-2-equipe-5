@@ -1,3 +1,4 @@
+import { armazenamentoCenario } from "../core/estadoCenario";
 import type { PeriodoCompartilhado, LinkCronogramaCompartilhado, FiltrosCronogramaCompartilhado, ProgramacaoCompartilhada } from "@/shared/types/compartilhamentoCronograma";
 import { dataCivilValida, periodoCivilValido, instanteISOValido, diasUteisCivis, diaUtilCivil, somarDiasCivisUTC } from "@/shared/lib/datasCivis";
 import { obterProgramacoesArmazenadas } from "./programacoes";
@@ -24,7 +25,7 @@ function registroValido(valor: unknown): valor is RegistroLink {
 }
 
 function lerRegistros(): RegistroLink[] {
-  const raw = sessionStorage.getItem(STORAGE_LINKS_CRONOGRAMA);
+  const raw = armazenamentoCenario.getItem(STORAGE_LINKS_CRONOGRAMA);
   if (raw === null) return [];
   const parsed: unknown = JSON.parse(raw);
   if (!Array.isArray(parsed) || !parsed.every(registroValido)) throw new Error("Cadastro de links inválido.");
@@ -45,7 +46,7 @@ export function criarLinkCronograma(periodo: PeriodoCompartilhado, usuarioId: nu
   const criadoEm = Date.now();
   const expiraEm = new Date(criadoEm + VALIDADE_MS).toISOString();
   const registro = { ...periodo, token, expiraEm, criadoEm, usuarioId };
-  sessionStorage.setItem(STORAGE_LINKS_CRONOGRAMA, JSON.stringify([...registros, registro]));
+  armazenamentoCenario.setItem(STORAGE_LINKS_CRONOGRAMA, JSON.stringify([...registros, registro]));
   return { token, expiraEm, url: "/cronograma/compartilhado/" + token };
 }
 

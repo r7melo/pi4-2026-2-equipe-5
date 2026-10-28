@@ -20,3 +20,6 @@ export * from "@/shared/types/compartilhamentoCronograma";
 export * from "@/features/cronograma/types/compartilhamento";
 
 export * from "@/features/usuarios/types/gestaoUsuarios";
+
+export * from "@/shared/types/demonstracao";
+export * from "@/features/obras/types/clientes";

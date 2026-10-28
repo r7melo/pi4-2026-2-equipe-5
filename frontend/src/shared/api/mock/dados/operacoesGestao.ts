@@ -1,17 +1,12 @@
-import { z } from "zod";
 import { MOCK_USUARIOS, obterUsuariosCriados, buscarUsuarioPorEmailMock } from "./usuarios";
-import { MOCK_INSTALADORES_DISPONIVEIS, obterEquipesArmazenadas } from "./equipes";
+import { obterEquipesArmazenadas } from "./equipes";
 import { contaGestaoSchema, equipeGestaoSchema, lerGestao, gravarGestao } from "./estadoGestao";
 
 export class FalhaGestao extends Error {
   status: number; codigo: string;
   constructor(status: number, codigo: string, mensagem: string) { super(mensagem); this.status = status; this.codigo = codigo; }
 }
-export function equipesValidas() {
-  const raw = sessionStorage.getItem("mock_equipes_v1");
-  if (raw !== null) z.array(equipeGestaoSchema).parse(JSON.parse(raw));
-  return obterEquipesArmazenadas();
-}
+export function equipesValidas() { return obterEquipesArmazenadas(); }
 export function contasEfetivas() {
   const emails = [...Object.keys(MOCK_USUARIOS), ...obterUsuariosCriados().map(u => u.email)];
   return emails.map(email => {
@@ -19,18 +14,6 @@ export function contasEfetivas() {
     if (!u) throw new Error("Conta inconsistente.");
     return contaGestaoSchema.parse({ ...u, perfil: u.perfil.nomePerfil, ativo: u.ativo !== false });
   });
-}
-function aliases(email: string, id: number): number[] {
-  const legado = MOCK_INSTALADORES_DISPONIVEIS.find(u => u.email === email);
-  if (legado) return [...new Set([id, legado.id])];
-  if (!MOCK_INSTALADORES_DISPONIVEIS.some(u => u.id === id)) return [id];
-  const estado = lerGestao();
-  if (estado.operacionais[email]) return [estado.operacionais[email]];
-  // Referências antigas com este número pertencem ao instalador legado, não à conta criada.
-  const usados = [...contasEfetivas().map(u => u.id), ...MOCK_INSTALADORES_DISPONIVEIS.map(u => u.id), ...Object.values(estado.operacionais), ...equipesValidas().flatMap(e => [e.responsavelId ?? 0].concat((e.membros ?? []).map(m => m.id)))];
-  const novo = Math.max(0, ...usados) + 1;
-  if (!Number.isSafeInteger(novo)) throw new Error("Identificador operacional indisponível.");
-  estado.operacionais[email] = novo; gravarGestao(estado); return [novo];
 }
 export function itemUsuario(id: number) {
   const conta = contasEfetivas().find(u => u.id === id);
@@ -42,18 +25,10 @@ export function itemUsuario(id: number) {
 }
 export function responsavelUsuario(id: number): boolean {
   const conta = contasEfetivas().find(u => u.id === id);
-  return !!conta && equipesValidas().some(e => e.responsavelId !== undefined && aliases(conta.email, id).includes(e.responsavelId));
+  return !!conta && equipesValidas().some(e => e.responsavelId !== undefined && e.responsavelId === id);
 }
 export function instaladoresEfetivos() {
-  const contas = contasEfetivas();
-  const legados = MOCK_INSTALADORES_DISPONIVEIS.flatMap(legado => {
-    const conta = contas.find(c => c.email === legado.email);
-    if (conta && (!conta.ativo || conta.perfil !== "InstaladorCampo")) return [];
-    // O ID operacional do legado não identifica uma conta criada que coincida numericamente.
-    return [{ ...legado, nome: conta?.nome ?? legado.nome }];
-  });
-  const extras = contas.filter(c => c.ativo && c.perfil === "InstaladorCampo" && !MOCK_INSTALADORES_DISPONIVEIS.some(l => l.email === c.email));
-  return [...legados, ...extras.map(c => ({ id: aliases(c.email, c.id)[0], nome: c.nome, email: c.email }))];
+  return contasEfetivas().filter(c => c.ativo && c.perfil === "InstaladorCampo").map(c => ({ id: c.id, nome: c.nome, email: c.email }));
 }
 export function modificarUsuario(id: number, dados: { nome?: string; perfil?: string; equipeId?: number | null; ativo?: boolean; revisao: string }, operador: number) {
   const atual = itemUsuario(id);
@@ -66,9 +41,9 @@ export function modificarUsuario(id: number, dados: { nome?: string; perfil?: st
   if (proxima.perfil === "InstaladorCampo" && proxima.equipeId === null) throw new FalhaGestao(400, "VALIDATION_ERROR", "Selecione uma equipe.");
   if (proxima.equipeId !== null && !equipes.some(e => e.id === proxima.equipeId)) throw new FalhaGestao(404, "EQUIPE_NOT_FOUND", "Equipe não encontrada.");
   if (vinculoMudou && responsavelUsuario(id)) throw new FalhaGestao(400, "VALIDATION_ERROR", "Substitua o responsável na gestão de equipes antes de alterar este vínculo.");
-  const ids = aliases(atual.email, id);
+  const ids = [id];
   const estado = lerGestao();
-  const operacional = MOCK_INSTALADORES_DISPONIVEIS.find(l => l.email === atual.email)?.id ?? ids[0];
+  const operacional = ids[0];
   const equipesNovas = equipes.map(e => {
     let membros = e.membros;
     if (vinculoMudou) {

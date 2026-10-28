@@ -1,3 +1,6 @@
+import { registrarClientes } from "./handlers/clientes";
+import { iniciarCenario } from "./core/estadoCenario";
+import { coordenarTransporteMock } from "./core/coordenacao";
 import { registrarGestaoUsuarios } from "./handlers/gestaoUsuarios";
 import MockAdapter from "axios-mock-adapter";
 import { api } from "@/shared/api/api";
@@ -18,6 +21,7 @@ const mock = new MockAdapter(api, { delayResponse: 0 });
 console.log("🚧 [MOCK MODE] Backend simulado ativo com axios-mock-adapter (delay: 0ms)");
 
 registrarAuth(mock);
+registrarClientes(mock);
 registrarObras(mock);
 registrarConsultasCronograma(mock);
 registrarMateriais(mock);
@@ -35,5 +39,7 @@ registrarGestaoUsuarios(mock);
 // Ultimo registro: transporte real para requisicoes nao atendidas.
 mock.onAny().passThrough();
 protegerRevogacaoSenhaMock();
+coordenarTransporteMock();
+try { await iniciarCenario(); } catch { /* A interface de recuperacao apresenta o erro sem sobrescrever o acervo. */ }
 
 export default mock;

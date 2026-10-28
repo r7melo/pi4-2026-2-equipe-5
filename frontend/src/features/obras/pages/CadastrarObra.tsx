@@ -1,6 +1,12 @@
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
+import { contextoDemonstracao, contextoDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
+import { useClientesDemonstracao } from "../hooks/useClientesDemonstracao";
+import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
+import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
+import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
 // Cadastro de novas obras com suporte a cliente existente e novo cliente
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -103,8 +109,12 @@ export default function CadastrarObra() {
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<ToastState | null>(null);
   const [tipoCliente, setTipoCliente] = useState<"existente" | "novo">("existente");
-  const [listaClientes, setListaClientes] = useState<ClienteBaseItem[]>(obterClientesDisponiveis);
-  const [clienteIdSelecionado, setClienteIdSelecionado] = useState<number | undefined>(() => {
+  const catalogo = useClientesDemonstracao();
+  const [clientesReais, setListaClientes] = useState<ClienteBaseItem[]>(() => MOCK_ATIVO ? [] : obterClientesDisponiveis());
+  const listaClientes = MOCK_ATIVO ? catalogo.data ?? [] : clientesReais;
+  const catalogoAplicado = useRef(false);
+  const [clienteIdSelecionadoState, setClienteIdSelecionado] = useState<number | undefined>(() => {
+    if (MOCK_ATIVO) return undefined;
     const disponiveis = obterClientesDisponiveis();
     return disponiveis[0]?.id || 1;
   });
@@ -122,10 +132,10 @@ export default function CadastrarObra() {
     mode: "onBlur",
     defaultValues: {
       tipoCliente: "existente",
-      clienteId: 1,
-      clienteNome: CLIENTES_BASE[0].nome,
-      cidade: CLIENTES_BASE[0].cidade,
-      endereco: CLIENTES_BASE[0].endereco,
+      clienteId: MOCK_ATIVO ? undefined : 1,
+      clienteNome: MOCK_ATIVO ? "" : CLIENTES_BASE[0].nome,
+      cidade: MOCK_ATIVO ? "" : CLIENTES_BASE[0].cidade,
+      endereco: MOCK_ATIVO ? "" : CLIENTES_BASE[0].endereco,
       cpfCnpj: "",
       telefone: "",
       email: "",
@@ -140,6 +150,16 @@ export default function CadastrarObra() {
     },
   });
 
+  useEffect(() => {
+    const primeiro = catalogo.data?.[0];
+    if (!MOCK_ATIVO || !primeiro || catalogoAplicado.current || tipoCliente !== "existente") return;
+    catalogoAplicado.current = true;
+    setValue("clienteId", primeiro.id); setValue("clienteNome", primeiro.nome);
+    setValue("cidade", primeiro.cidade); setValue("endereco", primeiro.endereco);
+  }, [catalogo.data, tipoCliente, setValue]);
+
+  const clienteIdSelecionado = clienteIdSelecionadoState ?? (MOCK_ATIVO ? catalogo.data?.[0]?.id : undefined);
+
   const cpfCnpjValue = useWatch({ control, name: "cpfCnpj" });
   const telefoneValue = useWatch({ control, name: "telefone" });
 
@@ -149,9 +169,10 @@ export default function CadastrarObra() {
     clearErrors();
 
     if (novoTipo === "existente") {
-      const clientesAtuais = obterClientesDisponiveis();
+      const clientesAtuais = MOCK_ATIVO ? listaClientes : obterClientesDisponiveis();
       setListaClientes(clientesAtuais);
       const clientePadrao = clientesAtuais.find((c) => c.id === clienteIdSelecionado) || clientesAtuais[0];
+      if (!clientePadrao) return;
       setClienteIdSelecionado(clientePadrao.id);
       setValue("clienteId", clientePadrao.id);
       setValue("clienteNome", clientePadrao.nome);
@@ -169,6 +190,7 @@ export default function CadastrarObra() {
   };
 
   const onSubmit = async (dados: NovaObraFormData) => {
+    const origem = contextoDemonstracao();
     try {
       const dataConfirmacao = dados.dataInicioEstimada || new Date().toISOString().split("T")[0];
 
@@ -214,8 +236,9 @@ export default function CadastrarObra() {
       }
 
       const novaObra = await criarObra(payload);
+      if (!contextoDemonstracaoVigente(origem)) return;
 
-      if (dados.tipoCliente === "novo") {
+      if (dados.tipoCliente === "novo" && !MOCK_ATIVO) {
         const idGerado = (novaObra as { id?: number; clienteId?: number }).clienteId || Date.now();
         const novoItem: ClienteBaseItem = {
           id: idGerado,
@@ -228,6 +251,7 @@ export default function CadastrarObra() {
       }
 
 
+      if (MOCK_ATIVO) void queryClient.invalidateQueries({ queryKey: ["clientes"] });
       // Atualiza o cache do React Query imediatamente e agenda revalidação
       queryClient.setQueryData<ListaObras>(["obras"], (old) => {
         if (!old) return old;
@@ -247,10 +271,10 @@ export default function CadastrarObra() {
 
       // Aguarda breve animação do toast e redireciona para o Kanban
       setTimeout(() => {
-        void navigate("/kanban");
+        if (contextoDemonstracaoVigente(origem)) void navigate("/kanban");
       }, 700);
     } catch (erro: unknown) {
-      if (erroDaSessaoAnterior(erro)) return;
+      if (!contextoDemonstracaoVigente(origem) || erroDaSessaoAnterior(erro)) return;
       console.error("Falha ao criar obra:", erro);
       const errObj = erro as { response?: { data?: { error?: { message?: string } } } };
       const mensagem =
@@ -301,6 +325,9 @@ export default function CadastrarObra() {
         backTo="/kanban"
       />
 
+      {MOCK_ATIVO && catalogo.isLoading && <FeedbackLoading />}
+      {MOCK_ATIVO && catalogo.isError && <FeedbackErro mensagem={catalogo.error.message} />}
+      {MOCK_ATIVO && catalogo.isSuccess && listaClientes.length === 0 && <EmptyState titulo="Nenhum cliente cadastrado" descricao="Cadastre um novo cliente junto com a obra." />}
       {/* Área do Formulário */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
         <div className="w-full max-w-3xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-fit my-auto">
@@ -584,14 +611,14 @@ export default function CadastrarObra() {
                 type="button"
                 variant="ghost"
                 onClick={() => void navigate("/kanban")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || (MOCK_ATIVO && (catalogo.isLoading || catalogo.isError))}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (MOCK_ATIVO && (catalogo.isLoading || catalogo.isError))}
                 className="min-w-36"
               >
                 {isSubmitting ? (

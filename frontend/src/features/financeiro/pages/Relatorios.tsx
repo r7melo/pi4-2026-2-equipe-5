@@ -1,7 +1,10 @@
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
+import { contextoDemonstracao, contextoDemonstracaoVigente, executarEfeitoDemonstracao } from "@/shared/lib/contextoDemonstracao";
+import { filtrarPeriodo } from "@/shared/lib/filtrarPeriodo";
 // RF-15/16: Relatórios e Exportação — Resumo por período com filtros de cliente e exportação
 import { useState } from "react";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { useObrasSelect } from "@/features/financeiro/hooks/useRelatorios";
+import { useObrasSelect, useLinkRelatorioDemonstracao } from "@/features/financeiro/hooks/useRelatorios";
 import { exportarRelatorio } from "@/features/financeiro/services/relatorios";
 import { toast } from "sonner";
 import {
@@ -22,6 +25,7 @@ function formatarDataCurta(data: Date) {
 }
 
 export default function Relatorios() {
+  const gerarLinkMock = useLinkRelatorioDemonstracao();
   const { data: listaObras, isLoading: loadingObras } = useObrasSelect();
   const [exportando, setExportando] = useState(false);
   const [gerandoLink, setGerandoLink] = useState(false);
@@ -39,9 +43,11 @@ export default function Relatorios() {
   ];
 
   const handleExportar = async (formato: "pdf" | "excel") => {
+    const origem = contextoDemonstracao();
     setExportando(true);
     try {
-      const blob = await exportarRelatorio(formato);
+      const blob = await exportarRelatorio(formato, MOCK_ATIVO ? { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado } : undefined);
+      if (!contextoDemonstracaoVigente(origem)) return;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -50,6 +56,7 @@ export default function Relatorios() {
       window.URL.revokeObjectURL(url);
       toast.success(`Relatório exportado em ${formato.toUpperCase()}`);
     } catch {
+      if (!contextoDemonstracaoVigente(origem)) return;
       toast.error("Erro ao exportar relatório");
     } finally {
       setExportando(false);
@@ -57,14 +64,20 @@ export default function Relatorios() {
   };
 
   const handleGerarLink = async () => {
+    const origem = contextoDemonstracao();
     setGerandoLink(true);
     try {
       // RF-16: Link compartilhável público para cronograma/relatório
-      await new Promise((r) => setTimeout(r, 900));
-      const link = `${window.location.origin}/relatorio-publico/${btoa(`${periodoInicio}|${periodoFim}|${clienteSelecionado}`)}`;
-      await navigator.clipboard.writeText(link);
+      const token = MOCK_ATIVO
+        ? await gerarLinkMock.mutateAsync({ periodoInicio, periodoFim, clienteFiltro: clienteSelecionado })
+        : await new Promise<string>(r => setTimeout(() => r(btoa(`${periodoInicio}|${periodoFim}|${clienteSelecionado}`)), 900));
+      if (!contextoDemonstracaoVigente(origem)) return;
+      const link = `${window.location.origin}/relatorio-publico/${token}`;
+      await executarEfeitoDemonstracao(origem, () => navigator.clipboard.writeText(link));
+      if (!contextoDemonstracaoVigente(origem)) return;
       toast.success("Link copiado para a área de transferência!");
     } catch {
+      if (!contextoDemonstracaoVigente(origem)) return;
       toast.error("Erro ao gerar link compartilhável");
     } finally {
       setGerandoLink(false);
@@ -72,9 +85,9 @@ export default function Relatorios() {
   };
 
   // Métricas simuladas do período
-  const obrasDoPeriodo = (listaObras?.itens || []).filter((o) =>
-    clienteSelecionado === "todos" || o.clienteNome === clienteSelecionado
-  );
+  const obrasDoPeriodo = MOCK_ATIVO
+    ? filtrarPeriodo(listaObras?.itens ?? [], { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado })
+    : (listaObras?.itens || []).filter(o => clienteSelecionado === "todos" || o.clienteNome === clienteSelecionado);
   const totalObras = obrasDoPeriodo.length;
   const obrasConcluidasCount = obrasDoPeriodo.filter((o) => o.status === "Concluido").length;
   const totalPaineis = obrasDoPeriodo.reduce((acc, o) => acc + (o.quantidadePaineis ?? 0), 0);

@@ -1,3 +1,4 @@
+import { contextoDemonstracao, executarEfeitoDemonstracao } from "@/shared/lib/contextoDemonstracao";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Copy, Check, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -80,7 +81,10 @@ function FormularioCompartilhamento({ onClose, podeInteragir = interacaoBloquead
     copiando.current = true;
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Cópia automática indisponível.");
-      await navigator.clipboard.writeText(resultado.url);
+      await executarEfeitoDemonstracao(contextoDemonstracao(), async () => {
+        if (!podeUsarLink()) return;
+        await navigator.clipboard.writeText(resultado.url);
+      });
       if (!geracao.podeAgir() || resultado !== linkAtual.current) return;
       setCopiado(true);
       setAvisoManual("");

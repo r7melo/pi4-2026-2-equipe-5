@@ -1,3 +1,4 @@
+import { geracaoCenario, lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";
 import type MockAdapter from "axios-mock-adapter";
 import { extrairDados } from "../core/http";
 import { erroUsuarioMock, resolverUsuarioAutenticadoMock } from "../core/auth";
@@ -10,7 +11,7 @@ import { credencialSenhaMock, revisaoSenhaMock } from "../dados/segurancaSenha";
 // --- ROTAS DE AUTENTICAÇÃO ---
 
 // Contador volátil em memória de falhas de login por e-mail (RN-02 / UC-01 FA3)
-const tentativasFalhas: Record<string, number> = {};
+
 
 export function registrarAuth(mock: MockAdapter): void {
   registrarSenhas(mock);
@@ -22,6 +23,7 @@ export function registrarAuth(mock: MockAdapter): void {
         return erroUsuarioMock(400, "INVALID_BODY", "Corpo da requisição de login inválido");
       }
       const email = body.email.toLowerCase().trim();
+      const tentativasFalhas = lerDadosCenario<Record<string, number>>("mock_tentativas_v1");
       const senha = body.senha;
       const revisao = revisaoSenhaMock(email);
       const acesso = revisaoAcesso(email);
@@ -53,6 +55,7 @@ export function registrarAuth(mock: MockAdapter): void {
       usuarioMock = buscarUsuarioPorEmailMock(email);
       if (!usuarioMock || usuarioMock.ativo === false || acesso !== revisaoAcesso(email) || !credencialValida) {
         tentativasFalhas[email] = (tentativasFalhas[email] || 0) + 1;
+        salvarDadosCenario("mock_tentativas_v1", tentativasFalhas);
   
         if (tentativasFalhas[email] >= 5) {
           return [
@@ -79,9 +82,10 @@ export function registrarAuth(mock: MockAdapter): void {
   
       // 3. Sucesso: zera tentativas de falha
       tentativasFalhas[email] = 0;
+      salvarDadosCenario("mock_tentativas_v1", tentativasFalhas);
   
       const resposta = {
-        token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}${revisao ? `_v${revisao}` : ""}${acesso ? `_a${acesso}` : ""}`,
+        token: `mock_jwt_token_${btoa(usuarioMock.email)}_${Date.now()}${revisao ? `_v${revisao}` : ""}${acesso ? `_a${acesso}` : ""}_g${geracaoCenario()}`,
         expiresAt: new Date(Date.now() + 480 * 60 * 1000).toISOString(),
         usuario: {
           id: usuarioMock.id,

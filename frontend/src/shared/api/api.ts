@@ -1,3 +1,5 @@
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
+import { contextoDemonstracao } from "@/shared/lib/contextoDemonstracao";
 import axios from "axios";
 import { toast } from "sonner";
 import { capturarSessaoOperacional, exigirSessaoOperacional, registrarErro403, sessaoOperacionalVigente } from "@/shared/lib/sessaoOperacao";
@@ -39,6 +41,7 @@ export const api = axios.create({
 // Interceptor de Request: Injeta JWT automaticamente em todas as chamadas
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
+  if (MOCK_ATIVO) config.geracaoDemonstracao ??= contextoDemonstracao();
   if (config.sessao403 !== undefined) exigirSessaoOperacional(config.sessao403);
   config.sessao403 ??= capturarSessaoOperacional();
   if (config.semAutenticacao) {
@@ -47,7 +50,7 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+}, erro => { throw erro; }, { synchronous: true });
 
 // Interceptor de Response: Captura 401 para logout forçado com proteção anti-thundering herd
 api.interceptors.response.use(

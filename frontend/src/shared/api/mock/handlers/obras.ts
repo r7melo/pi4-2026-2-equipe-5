@@ -1,10 +1,12 @@
+import { cadastrarObraCenario, detalheCenario, editarDetalheCenario, registrarDatasReais } from "../dados/detalhes";
+import { resolverUsuarioAutenticadoMock } from "../core/auth";
 import type MockAdapter from "axios-mock-adapter";
 import { extrairQueryParams, extrairDados } from "../core/http";
-import { obterObrasArmazenadas, adicionarObraArmazenada, atualizarStatusObraArmazenada, salvarObrasArmazenadas } from "../dados/obras";
+import { obterObrasArmazenadas, atualizarStatusObraArmazenada } from "../dados/obras";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 import { TRANSICOES_VALIDAS, COLUNAS_KANBAN } from "@/shared/constants/kanbanStatus";
 import { adicionarHistoricoArmazenado } from "../dados/registros";
-import type { EditarObraPayload, ObraCard } from "@/types";
+import type { EditarObraPayload } from "@/types";
 import { obterProgramacoesArmazenadas } from "../dados/programacoes";
 import { excluirObraArmazenada } from "../dados/operacoesObras";
 
@@ -39,49 +41,18 @@ export function registrarObras(mock: MockAdapter): void {
     ];
   });
   
-  // POST /obras (cadastra e persiste no sessionStorage)
-  mock.onPost(/\/obras\/?(\?.*)?$/).reply((config) => {
+  mock.onPost(/\/obras\/?(\?.*)?$/).reply(config => {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return [401];
     try {
-      const payload = extrairDados<{
-        clienteId?: number;
-        cliente?: { nome: string; cidade?: string };
-        clienteNome?: string;
-        cidade?: string;
-        quantidadePaineis: number;
-        dataInicioEstimada: string;
-        dataFimEstimada: string;
-      }>(config.data);
-  
-      const nomeCliente =
-        payload.cliente?.nome ||
-        payload.clienteNome ||
-        (payload.clienteId ? `Cliente #${payload.clienteId}` : "Cliente Cadastrado");
-  
-      const novaObra = adicionarObraArmazenada({
-        ...payload,
-        clienteNome: nomeCliente,
-        cidade: payload.cliente?.cidade || payload.cidade,
-      });
-  
-      return [
-        201,
-        {
-          id: novaObra.id,
-          status: novaObra.status,
-          clienteId: payload.clienteId || 1,
-          dataInicioEstimada: payload.dataInicioEstimada,
-          dataFimEstimada: payload.dataFimEstimada,
-          dataInicioReal: null,
-          dataFimReal: null,
-          criadoEm: new Date().toISOString(),
-        },
-      ];
-    } catch {
-      return [400, { error: { code: "INVALID_PAYLOAD", message: "Erro ao cadastrar obra mockada" } }];
+      const detalhe = cadastrarObraCenario(extrairDados<unknown>(config.data), operador);
+      return [201, { ...detalhe, clienteId: detalhe.cliente.id, criadoEm: new Date().toISOString() }];
+    } catch (erro) {
+      return [400, { error: { code: "INVALID_BODY", message: erro instanceof Error ? erro.message : "Confira os dados da obra." } }];
     }
   });
-  
-  // PATCH /obras/:id/status (atualiza status e persiste no sessionStorage)
+
+  // PATCH /obras/:id/status (atualiza status no agregado transacional)
   mock.onPatch(/\/obras\/\d+\/status\/?(\?.*)?$/).reply((config) => {
     try {
       const match = config.url?.match(/\/obras\/(\d+)\/status/);
@@ -117,7 +88,10 @@ export function registrarObras(mock: MockAdapter): void {
         ];
       }
   
-      const obraAtualizada = atualizarStatusObraArmazenada(id, statusNovo);
+      const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+      if (!operador) return [401];
+      const obraAtualizada = atualizarStatusObraArmazenada(id, statusNovo, operador.nome);
+      registrarDatasReais(id, statusNovo);
   
       if (!obraAtualizada) {
         return [404, { error: { code: "OBRA_NOT_FOUND", message: `Obra ${id} não encontrada` } }];
@@ -129,7 +103,7 @@ export function registrarObras(mock: MockAdapter): void {
         statusAnterior,
         statusNovo,
         observacao || `Status alterado de ${statusAnterior} para ${statusNovo}.`,
-        { id: 1, nome: "Carlos Administrador" }
+        { id: operador.id, nome: operador.nome }
       );
   
       return [
@@ -147,102 +121,17 @@ export function registrarObras(mock: MockAdapter): void {
     }
   });
   
-  // GET /obras/:id (detalhe de obra específica)
-  mock.onGet(/\/obras\/\d+\/?(\?.*)?$/).reply((config) => {
-    const match = config.url?.match(/\/obras\/(\d+)/);
-    const id = match ? Number(match[1]) : 0;
-    const obras = obterObrasArmazenadas();
-    const obra = obras.find((o) => Number(o.id) === id);
-  
-    if (!obra) {
-      return [404, { error: { code: "OBRA_NOT_FOUND", message: `Obra ${id} não encontrada` } }];
-    }
-  
-    return [
-      200,
-      {
-        id: obra.id,
-        status: obra.status,
-        dataInicioEstimada: "2026-10-01",
-        dataFimEstimada: obra.dataFimEstimada,
-        dataInicioReal: null,
-        dataFimReal: null,
-        cliente: {
-          id: 1,
-          nome: obra.clienteNome,
-          cidade: obra.cidade || "Campinas",
-        },
-        pagamento: {
-          id: 88,
-          dataConfirmacao: "2026-09-15",
-          prazoContratualDias: 45,
-        },
-        categoria: obra.categoria || "Residencial",
-        quantidadePaineis: obra.quantidadePaineis,
-        endereco: obra.endereco ?? "",
-        descricao: obra.observacoes ?? "",
-      },
-    ];
+  mock.onGet(/\/obras\/\d+\/?(\?.*)?$/).reply(config => {
+    const id = Number(config.url?.match(/\/obras\/(\d+)/)?.[1]);
+    const detalhe = detalheCenario(id);
+    return detalhe ? [200, detalhe] : [404, { error: { code: "OBRA_NOT_FOUND", message: "Obra não encontrada." } }];
   });
-  
-  // PUT /obras/:id (edição de dados cadastrais da obra - UC-17 / Rota #9)
-  mock.onPut(/\/obras\/\d+\/?$/).reply((config) => {
+  mock.onPut(/\/obras\/\d+\/?$/).reply(config => {
+    const id = Number(config.url?.match(/\/obras\/(\d+)/)?.[1]);
     try {
-      const match = config.url?.match(/\/obras\/(\d+)/);
-      const id = match ? Number(match[1]) : 0;
-      const payload = extrairDados<EditarObraPayload>(config.data);
-  
-      const obras = obterObrasArmazenadas();
-      const index = obras.findIndex((o) => Number(o.id) === id);
-  
-      if (index === -1) {
-        return [404, { error: { code: "OBRA_NOT_FOUND", message: `Obra ${id} não encontrada` } }];
-      }
-  
-      const obraExistente = obras[index];
-  
-      const obraAtualizada: ObraCard = {
-        ...obraExistente,
-        endereco: payload.endereco ?? obraExistente.endereco,
-        cidade: payload.cidade ?? obraExistente.cidade,
-        categoria: payload.categoria ?? obraExistente.categoria,
-        quantidadePaineis: payload.quantidadePaineis ?? obraExistente.quantidadePaineis,
-        dataFimEstimada: payload.dataFimEstimada ?? obraExistente.dataFimEstimada,
-        observacoes: payload.descricao ?? obraExistente.observacoes,
-      };
-  
-      obras[index] = obraAtualizada;
-      salvarObrasArmazenadas(obras);
-  
-      // Resposta compatível com ObraDetalhe (Contrato) e ObraCard
-      const respostaDetalhe = {
-        ...obraAtualizada,
-        id: obraAtualizada.id,
-        status: obraAtualizada.status,
-        dataInicioEstimada: "2026-10-01",
-        dataFimEstimada: obraAtualizada.dataFimEstimada,
-        dataInicioReal: null,
-        dataFimReal: null,
-        cliente: {
-          id: 1,
-          nome: obraAtualizada.clienteNome,
-          cidade: obraAtualizada.cidade || "Campinas",
-        },
-        pagamento: {
-          id: 88,
-          dataConfirmacao: "2026-09-15",
-          prazoContratualDias: obraAtualizada.prazoContratualDias || 45,
-        },
-        categoria: obraAtualizada.categoria || "Residencial",
-        quantidadePaineis: obraAtualizada.quantidadePaineis,
-        endereco: obraAtualizada.endereco ?? "",
-        descricao: payload.descricao ?? obraAtualizada.observacoes ?? "",
-      };
-  
-      return [200, respostaDetalhe];
-    } catch {
-      return [400, { error: { code: "INVALID_BODY", message: "Erro ao atualizar dados da obra" } }];
-    }
+      const detalhe = editarDetalheCenario(id, extrairDados<EditarObraPayload>(config.data));
+      return detalhe ? [200, detalhe] : [404, { error: { code: "OBRA_NOT_FOUND", message: "Obra não encontrada." } }];
+    } catch { return [400, { error: { code: "INVALID_BODY", message: "Confira os dados da obra." } }]; }
   });
 }
 

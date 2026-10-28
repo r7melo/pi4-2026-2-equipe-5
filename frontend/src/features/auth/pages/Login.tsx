@@ -1,3 +1,4 @@
+import { contextoDemonstracao, contextoDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
@@ -42,15 +43,18 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const origem = contextoDemonstracao();
     setCarregando(true);
     setErro(null);
 
     try {
       const resposta = await fazerLogin(email, senha);
+      if (!contextoDemonstracaoVigente(origem)) return;
       const usuarioFormatado = mapearRespostaParaUsuario(resposta.usuario);
       // Injeta token, usuario e expiresAt no Zustand; o redirecionamento ocorre via useEffect de forma reativa
       login(resposta.token, usuarioFormatado, resposta.expiresAt);
     } catch (err) {
+      if (!contextoDemonstracaoVigente(origem)) return;
       setErro(err instanceof Error ? err.message : "Erro ao efetuar login. Tente novamente.");
     } finally {
       setCarregando(false);

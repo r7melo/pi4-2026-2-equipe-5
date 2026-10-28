@@ -54,7 +54,7 @@ export default function MateriaisObra() {
     );
   };
 
-  const getStatusBadge = (status?: string) => {
+  const getStatusBadge = (status?: string | null) => {
     switch (status) {
       case "Disponivel":
         return (

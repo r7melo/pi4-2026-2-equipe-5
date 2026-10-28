@@ -8,7 +8,7 @@ export interface Material {
   quantidade: number;
   quantidadeUtilizada?: number | null;
   custoUnitario?: number | null;
-  statusLogistico?: StatusLogistico;
+  statusLogistico?: StatusLogistico | null;
   descricao?: string;
   unidade?: string;
 }
@@ -17,5 +17,5 @@ export interface CriarMaterialPayload {
   tipo: string;
   quantidade: number;
   custoUnitario?: number;
-  statusLogistico?: StatusLogistico;
+  statusLogistico?: StatusLogistico | null;
 }

@@ -1,8 +1,6 @@
 import type MockAdapter from "axios-mock-adapter";
 import { resolverUsuarioAutenticadoMock, erroUsuarioMock } from "../core/auth";
 import { validarCadastroUsuarioMock, equipeExisteParaUsuarioMock, gerarHashSenhaMock, obterUsuariosCriados, MOCK_USUARIOS, salvarUsuariosCriados } from "../dados/usuarios";
-import { lerGestao } from "../dados/estadoGestao";
-import { MOCK_INSTALADORES_DISPONIVEIS } from "../dados/equipes";
 import { extrairDados } from "../core/http";
 
 export function registrarUsuarios(mock: MockAdapter): void {
@@ -36,8 +34,7 @@ export function registrarUsuarios(mock: MockAdapter): void {
           usuarios.some((usuario) => usuario.email === dados.email)) {
         return erroUsuarioMock(409, "EMAIL_ALREADY_EXISTS", "E-mail já cadastrado.");
       }
-      const reservados = Object.values(lerGestao().operacionais).map(id => ({ id }));
-      const maiorId = [...Object.values(MOCK_USUARIOS), ...usuarios, ...MOCK_INSTALADORES_DISPONIVEIS, ...reservados]
+      const maiorId = [...Object.values(MOCK_USUARIOS), ...usuarios]
         .reduce((maior, usuario) => Math.max(maior, usuario.id), 0);
       const id = maiorId + 1;
       if (!Number.isSafeInteger(id)) throw new Error("Identificador indisponível.");

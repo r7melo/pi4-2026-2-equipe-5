@@ -55,15 +55,17 @@ export function registrarAlocacoes(mock: MockAdapter): void {
   
       const progs = obterProgramacoesArmazenadas();
       const equipes = obterEquipesArmazenadas();
+      const obra = obterObrasArmazenadas().find(o => o.id === Number(body.obraId));
+      if (!obra) return [404, { error: { code: "OBRA_NOT_FOUND", message: "Obra não encontrada." } }];
+      const equipe = equipes.find(e => e.id === Number(body.equipeId));
+      if (!equipe) return [404, { error: { code: "EQUIPE_NOT_FOUND", message: "Equipe não encontrada." } }];
   
       // 1. Identificar se há colisão temporal para a mesma equipe
       const novaDataInicio = body.dataInicio;
       let novaDataFim = body.dataFim;
   
       if (!novaDataFim && body.obraId) {
-        const obras = obterObrasArmazenadas();
-        const obra = obras.find((o) => Number(o.id) === Number(body.obraId));
-        const paineis = obra?.quantidadePaineis || 9;
+        const paineis = obra.quantidadePaineis;
         const duracaoDias = Math.max(1, Math.ceil(paineis / 9));
         const iniSanitizado = proximoDiaUtil(normalizarDataMeioDiaUTC(novaDataInicio));
         const fimCalculado = calcularUltimoDiaUtil(iniSanitizado, duracaoDias);
@@ -82,8 +84,7 @@ export function registrarAlocacoes(mock: MockAdapter): void {
         });
   
         if (colidente) {
-          const equipe = equipes.find((e) => e.id === Number(body.equipeId));
-          const nomeEquipe = equipe?.nome || `Equipe ${body.equipeId}`;
+          const nomeEquipe = equipe.nome;
           const fimFormatado = formatarDataBR(normalizarDataFimInclusiva(colidente.dataFim));
           const iniFormatado = formatarDataBR(colidente.dataInicio);
   

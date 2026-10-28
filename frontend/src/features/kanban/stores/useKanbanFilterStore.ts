@@ -1,3 +1,4 @@
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -33,7 +34,7 @@ export const useKanbanFilterStore = create<KanbanFilterState>()(
         }),
     }),
     {
-      name: "kanban-filter-storage",
+      name: MOCK_ATIVO ? "mock_kanban_filter_v1" : "kanban-filter-storage",
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         busca: state.busca,

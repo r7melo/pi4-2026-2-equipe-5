@@ -1,7 +1,13 @@
+import { contextoDemonstracao } from "./contextoDemonstracao";
 import axios from "axios";
 import type { ContextoErro403, IdentidadeOperacional } from "@/shared/types/autorizacao";
 
 let geracao = 0;
+let contextoCenario = contextoDemonstracao();
+function atualizarContexto(): void {
+  const proximo = contextoDemonstracao();
+  if (proximo !== contextoCenario) { contextoCenario = proximo; geracao++; }
+}
 let assinatura = "";
 let autenticada = false;
 const erros = new WeakMap<object, ContextoErro403>();
@@ -38,8 +44,8 @@ export function sincronizarSessaoOperacional(estado: IdentidadeOperacional): voi
   autenticada = Boolean(estado.token);
 }
 
-export function capturarSessaoOperacional(): number { return geracao; }
-export function sessaoOperacionalVigente(origem: number): boolean { return autenticada && origem === geracao; }
+export function capturarSessaoOperacional(): number { atualizarContexto(); return geracao; }
+export function sessaoOperacionalVigente(origem: number): boolean { atualizarContexto(); return autenticada && origem === geracao; }
 
 class OperacaoDescartada extends Error {
   constructor() { super("Operação de uma sessão encerrada."); this.name = "OperacaoDescartada"; }
