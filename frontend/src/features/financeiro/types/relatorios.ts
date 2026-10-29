@@ -32,3 +32,8 @@ export interface FiltroCronogramaPublico {
   dataInicio?: string;
   dataFim?: string;
 }
+
+export interface PedidoExportacaoRelatorio {
+  formato: 'pdf' | 'excel';
+  filtros?: import('@/shared/types/demonstracao').FiltrosRelatorioDemonstracao;
+}

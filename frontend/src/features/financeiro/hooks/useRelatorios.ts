@@ -1,3 +1,8 @@
+import { useMutacaoSessao } from '@/shared/hooks/useMutacaoSessao';
+import { assinarSessaoOperacional, capturarSessaoOperacional, exigirSessaoOperacional } from '@/shared/lib/sessaoOperacao';
+import { useSyncExternalStore } from 'react';
+import type { PedidoExportacaoRelatorio } from '@/types';
+import { exportarRelatorio } from '../services/relatorios';
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { gerarLinkRelatorioDemonstracao, buscarRelatorioCusto } from "@/features/financeiro/services/relatorios";
 import { api } from "@/shared/api/api";
@@ -28,4 +33,14 @@ export function useObrasSelect() {
 
 export function useLinkRelatorioDemonstracao() {
   return useMutation({ mutationFn: gerarLinkRelatorioDemonstracao, retry: false });
+}
+
+export function useExportarRelatorio() {
+  const sessaoObservada = useSyncExternalStore(assinarSessaoOperacional, capturarSessaoOperacional);
+  return useMutacaoSessao<Blob, PedidoExportacaoRelatorio>({ retry: false, mutationKey: ['exportacao-financeira', sessaoObservada],
+    mutationFn: async (pedido, sessao) => {
+      const blob = await exportarRelatorio(pedido.formato, pedido.filtros, sessao);
+      exigirSessaoOperacional(sessao); return blob;
+    },
+  });
 }

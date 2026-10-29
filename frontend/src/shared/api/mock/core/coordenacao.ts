@@ -10,8 +10,8 @@ export function coordenarTransporteMock(): void {
         !/^\/(cronograma\/compartilhado|mock\/relatorios\/compartilhado|relatorios\/export)(?:\/|$)/.test(path)) return executar(config);
     try {
       const origem = config.geracaoDemonstracao ?? geracaoCenario();
+      const caminho = path.replace(/\/+$/, "");
       const tarefa = async () => {
-          const caminho = new URL(config.url ?? "", config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "").replace(/\/+$/, "");
           const metodo = (config.method ?? "get").toLowerCase();
           const publica = (metodo === "post" && ["/auth/login", "/auth/esqueci-senha", "/auth/redefinir-senha"].includes(caminho)) || (metodo === "get" && /^\/cronograma\/compartilhado\//.test(caminho));
           if (!publica && !resolverUsuarioAutenticadoMock(config.headers.Authorization)) {

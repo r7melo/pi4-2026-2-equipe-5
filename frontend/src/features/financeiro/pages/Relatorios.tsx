@@ -4,8 +4,9 @@ import { filtrarPeriodo } from "@/shared/lib/filtrarPeriodo";
 // RF-15/16: Relatórios e Exportação — Resumo por período com filtros de cliente e exportação
 import { useState } from "react";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { useObrasSelect, useLinkRelatorioDemonstracao } from "@/features/financeiro/hooks/useRelatorios";
-import { exportarRelatorio } from "@/features/financeiro/services/relatorios";
+import { useObrasSelect, useLinkRelatorioDemonstracao, useExportarRelatorio } from "@/features/financeiro/hooks/useRelatorios";
+import { ApiErro } from '@/shared/api/api';
+import { capturarSessaoOperacional, sessaoOperacionalVigente } from '@/shared/lib/sessaoOperacao';
 import { toast } from "sonner";
 import {
   Loader2,
@@ -27,7 +28,8 @@ function formatarDataCurta(data: Date) {
 export default function Relatorios() {
   const gerarLinkMock = useLinkRelatorioDemonstracao();
   const { data: listaObras, isLoading: loadingObras } = useObrasSelect();
-  const [exportando, setExportando] = useState(false);
+  const exportacao = useExportarRelatorio();
+  const exportando = exportacao.isPending;
   const [gerandoLink, setGerandoLink] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<string>("todos");
   const [periodoInicio, setPeriodoInicio] = useState(() => {
@@ -44,10 +46,11 @@ export default function Relatorios() {
 
   const handleExportar = async (formato: "pdf" | "excel") => {
     const origem = contextoDemonstracao();
-    setExportando(true);
+    const sessao = capturarSessaoOperacional();
+    const vigente = () => contextoDemonstracaoVigente(origem) && sessaoOperacionalVigente(sessao);
     try {
-      const blob = await exportarRelatorio(formato, MOCK_ATIVO ? { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado } : undefined);
-      if (!contextoDemonstracaoVigente(origem)) return;
+      const blob = await exportacao.mutateAsync({ formato, filtros: MOCK_ATIVO ? { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado } : undefined }, undefined, sessao);
+      if (!vigente()) return;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -55,11 +58,9 @@ export default function Relatorios() {
       link.click();
       window.URL.revokeObjectURL(url);
       toast.success(`Relatório exportado em ${formato.toUpperCase()}`);
-    } catch {
-      if (!contextoDemonstracaoVigente(origem)) return;
-      toast.error("Erro ao exportar relatório");
-    } finally {
-      setExportando(false);
+    } catch (erro) {
+      if (!vigente()) return;
+      toast.error(MOCK_ATIVO && erro instanceof ApiErro ? erro.message : "Erro ao exportar relatório");
     }
   };
 

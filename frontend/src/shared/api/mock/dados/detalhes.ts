@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ObraCard, ObraDetalhe, EditarObraPayload } from "@/types";
-import { novaObraSchema } from "@/types";
+import { novaObraSchema } from "@/shared/types/obrasCadastro";
 import { lerDadosCenario, salvarDadosCenario, dataLocalCenario } from "../core/estadoCenario";
 import { obterObrasArmazenadas, salvarObrasArmazenadas } from "./obras";
 import { adicionarHistoricoArmazenado } from "./registros";

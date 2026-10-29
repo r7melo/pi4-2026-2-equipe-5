@@ -1,6 +1,7 @@
 // RF-16: Visualização pública e somente leitura do relatório/cronograma de obras
 import { useParams, Link } from "react-router-dom";
 import { useRelatorioPublico } from "@/features/financeiro/hooks/useRelatorioPublico";
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 import {
   Sun,
   Calendar,
@@ -183,6 +184,7 @@ export default function RelatorioPublico() {
 
             <div className="divide-y divide-slate-800">
               {obras.map((obra) => {
+                const progresso = obra.progressoGeral ?? (MOCK_ATIVO ? null : obra.status === "Concluido" ? 100 : 50);
                 const badgeColor =
                   obra.status === "Concluido"
                     ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
@@ -230,14 +232,18 @@ export default function RelatorioPublico() {
                       <div className="w-full md:w-56 space-y-1.5">
                         <div className="flex justify-between text-xs font-medium">
                           <span className="text-slate-400">Progresso</span>
-                          <span className="text-amber-400 font-bold">{obra.progressoGeral ?? (obra.status === "Concluido" ? 100 : 50)}%</span>
+                          {progresso === null ? (
+                            <span>Não informado</span>
+                          ) : (
+                            <span className="text-amber-400 font-bold">{progresso}%</span>
+                          )}
                         </div>
-                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        {progresso !== null && <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-amber-500 to-emerald-400 rounded-full transition-all duration-500"
-                            style={{ width: `${obra.progressoGeral ?? (obra.status === "Concluido" ? 100 : 50)}%` }}
+                            style={{ width: `${progresso}%` }}
                           />
-                        </div>
+                        </div>}
                       </div>
                     </div>
                   </div>
