@@ -53,6 +53,7 @@ export default memo(function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
+      data-column-id={colId}
       className={cn(
         "flex flex-col bg-muted/90 rounded-xl p-2.5 transition-all border border-border-subtle/80 w-full min-w-[240px]",
         !isVisivelMobile && "hidden md:flex",

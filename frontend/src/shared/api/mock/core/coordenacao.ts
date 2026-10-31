@@ -5,8 +5,18 @@ import { executarLeituraCenario, executarTransacaoCenario, geracaoCenario } from
 export function coordenarTransporteMock(): void {
   const executar = axios.getAdapter(api.defaults.adapter);
   api.defaults.adapter = async config => {
+    if (typeof window !== "undefined") {
+      const rotas = (window as unknown as Record<string, RegExp[] | undefined>)["__rotasPassThrough"];
+      const base = (config.baseURL ?? "").replace(/\/+$/, "");
+      const pathRel = (config.url ?? "").replace(/^\/+/, "");
+      const fullUrl = base ? `${base}/${pathRel}` : pathRel;
+      if (rotas?.some(r => r.test(fullUrl) || r.test(config.url ?? ""))) {
+        const adapterNativo = axios.getAdapter("fetch") ?? axios.getAdapter("xhr");
+        return adapterNativo(config);
+      }
+    }
     const path = new URL(config.url ?? "", config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
-    if (!/^\/(auth|clientes|usuarios|equipes|instaladores|obras|programacoes)(?:\/|$)/.test(path) &&
+    if (!/^\/(auth|clientes|usuarios|equipes|instaladores|obras|programacoes|materiais)(?:\/|$)/.test(path) &&
         !/^\/(cronograma\/compartilhado|mock\/relatorios\/compartilhado|relatorios\/export)(?:\/|$)/.test(path)) return executar(config);
     try {
       const origem = config.geracaoDemonstracao ?? geracaoCenario();

@@ -22,7 +22,8 @@ import { formatarMoeda, formatarDataBR } from "@/shared/lib/formatters";
 import ModalExcluirObra from "./ModalExcluirObra";
 import { useProgramacoes } from "@/features/cronograma/hooks/useProgramacoes";
 import { useEquipes } from "@/features/cronograma/hooks/useEquipes";
-import { useMateriais } from "@/features/materiais/hooks/useMateriais";
+import { AbaMateriais } from "./AbaMateriais";
+import { useMateriais } from "@/features/kanban/hooks/useKanbanMateriais";
 import { useObras, useExcluirObra } from "@/features/obras/hooks/useObras";
 import {
   useObraDetalhe,
@@ -213,7 +214,7 @@ export default function KanbanTaskDrawer({
   const { data: detalhe, isLoading: loadingDetalhe, isError: erroDetalhe } = useObraDetalhe(obraId);
   const { data: programacoes } = useProgramacoes();
   const { data: equipes } = useEquipes();
-  const { data: materiais, isLoading: loadingMateriais } = useMateriais(obraId);
+  const { data: materiais } = useMateriais(obraId);
   const { data: historico, isLoading: loadingHistorico } = useHistoricoObra(obraId);
   const { data: comentarios, isLoading: loadingComentarios } = useComentariosObra(obraId);
 
@@ -412,46 +413,7 @@ export default function KanbanTaskDrawer({
 
             {/* ABA 2: MATERIAIS */}
             {abaAtiva === "materiais" && (
-              <div className="space-y-3">
-                {loadingMateriais && (
-                  <div className="py-8 text-center text-xs text-muted-foreground">Carregando materiais da obra...</div>
-                )}
-
-                {!loadingMateriais && materiais && materiais.length > 0 && (
-                  <div className="space-y-2">
-                    {materiais.map((mat) => (
-                      <div
-                        key={mat.id}
-                        className="p-2.5 bg-surface-subtle border border-border-subtle rounded-lg flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="text-xs font-semibold text-foreground-secondary">{mat.descricao || mat.tipo || "Material"}</p>
-                          <span className="text-[10px] text-muted-foreground">
-                            Qtd: <strong>{mat.quantidade} {mat.unidade || "un."}</strong> {mat.tipo ? `• ${mat.tipo}` : ""}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn(
-                            "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-                            mat.statusLogistico === "Disponivel" && "bg-success-light text-success border-success-border",
-                            mat.statusLogistico === "EmTransito" && "bg-info-light text-info border-info-border",
-                            mat.statusLogistico === "Comprado" && "bg-warning-light text-warning border-warning-border",
-                            mat.statusLogistico === "Utilizado" && "bg-muted text-foreground-muted border-border-subtle"
-                          )}>
-                            {mat.statusLogistico}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {!loadingMateriais && (!materiais || materiais.length === 0) && (
-                  <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border-subtle rounded-xl">
-                    Nenhum material associado a esta obra.
-                  </div>
-                )}
-              </div>
+              <AbaMateriais obraId={obraId} somenteLeitura={!canEdit} />
             )}
 
             {/* ABA 3: HISTÓRICO */}

@@ -12,7 +12,7 @@ import ModalExcluirObra from "./ModalExcluirObra";
 import { useExcluirObra } from "@/features/obras/hooks/useObras";
 import { useProgramacoes } from "@/features/cronograma/hooks/useProgramacoes";
 import { toast } from "sonner";
-import { obterHojeLocalISO } from "./kanbanUtils";
+import { obterHojeLocalISO, calcularStatusGargalo } from "./kanbanUtils";
 import { KanbanCardVisual } from "./KanbanCardVisual";
 
 interface KanbanCardProps {
@@ -49,7 +49,7 @@ export default memo(function KanbanCard({
     montadoRef.current = true;
     return () => { montadoRef.current = false; };
   }, []);
-  const podeAbrirAgora = () => montadoRef.current && !somenteLeitura && podeInteragir(epochRender);
+  const podeAbrirAgora = () => montadoRef.current && (!somenteLeitura || isFinanceiro) && podeInteragir(epochRender);
   const podeEditarAgora = () => podeAbrirAgora() &&
     (perfilRef.current === "Administrador" || perfilRef.current === "Engenharia");
   const isFinanceiro = perfil === "Financeiro";
@@ -109,15 +109,7 @@ export default memo(function KanbanCard({
   };
 
   const statusMaterial = useMemo(() => {
-    if (!materiaisObra || materiaisObra.length === 0) {
-      if (card.status === "MaterialComprado") return "Comprado";
-      if (card.status === "NoDeposito") return "Disponivel";
-      return undefined;
-    }
-    if (materiaisObra.every((m) => m.statusLogistico === "Utilizado")) return "Utilizado";
-    if (materiaisObra.some((m) => m.statusLogistico === "Disponivel")) return "Disponivel";
-    if (materiaisObra.some((m) => m.statusLogistico === "EmTransito")) return "EmTransito";
-    return "Comprado";
+    return calcularStatusGargalo(materiaisObra, card.status);
   }, [materiaisObra, card.status]);
 
   const proximosStatusValidos = useMemo(() => {
@@ -129,9 +121,11 @@ export default memo(function KanbanCard({
       <div
         ref={setNodeRef}
         style={style}
-        {...(somenteLeitura ? {} : attributes)}
-        {...(somenteLeitura ? {} : listeners)}
-        onClick={somenteLeitura ? undefined : handleCardClick}
+        data-status={card.status}
+        data-card-id={card.id}
+        {...(canDrag ? attributes : {})}
+        {...(canDrag ? listeners : {})}
+        onClick={handleCardClick}
         className={cn(
           "bg-surface border border-border-subtle/90 rounded-lg p-2.5 shadow-xs transition-all select-none group relative",
           canDrag

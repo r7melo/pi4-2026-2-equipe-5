@@ -1,4 +1,5 @@
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
+import type { Material, StatusLogistico } from "@/types";
 
 export function getCategoriaBadgeStyle(categoria: string) {
   switch (categoria.toLowerCase()) {
@@ -68,6 +69,27 @@ export function isObraConcluidaArquivada(dataFimISO?: string): boolean {
   const hoje = new Date();
   const diffMs = hoje.getTime() - new Date(dataFimISO).getTime();
   return Math.floor(diffMs / (1000 * 60 * 60 * 24)) > 30;
+}
+
+export function calcularStatusGargalo(
+  materiaisObra?: Material[],
+  statusObra?: StatusObra
+): StatusLogistico | undefined {
+  if (!materiaisObra || materiaisObra.length === 0) {
+    if (statusObra === "MaterialComprado") return "Comprado";
+    if (statusObra === "NoDeposito") return "Disponivel";
+    return undefined;
+  }
+
+  // Precedência de gargalo estrito (RF-06):
+  // 1. Qualquer insumo não definido ou "Comprado" indica compra pendente (gargalo crítico)
+  if (materiaisObra.some((m) => !m.statusLogistico || m.statusLogistico === "Comprado")) return "Comprado";
+  // 2. Qualquer insumo em transporte indica deslocamento logístico
+  if (materiaisObra.some((m) => m.statusLogistico === "EmTransito")) return "EmTransito";
+  // 3. Se todos os insumos forem consumidos na obra
+  if (materiaisObra.every((m) => m.statusLogistico === "Utilizado")) return "Utilizado";
+  // 4. Se todos os materiais estão no depósito (ou mesclados com utilizados)
+  return "Disponivel";
 }
 
 /**

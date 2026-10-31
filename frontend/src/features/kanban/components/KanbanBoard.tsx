@@ -25,7 +25,7 @@ import KanbanTaskDrawer from "./KanbanTaskDrawer";
 import ModalConfirmarConclusao from "./ModalConfirmarConclusao";
 import { useMoverCard } from "@/features/kanban/hooks/useMoverCard";
 import { useMateriaisObras } from "@/features/materiais/hooks/useMateriaisObras";
-import { isObraConcluidaArquivada } from "./kanbanUtils";
+import { isObraConcluidaArquivada, calcularStatusGargalo } from "./kanbanUtils";
 import { cn } from "@/shared/lib/utils";
 
 interface KanbanBoardProps {
@@ -134,27 +134,15 @@ export default function KanbanBoard({
       // 3. Filtro Logístico de Materiais (RF-06)
       if (materialFiltro && materialFiltro !== "Todos") {
         const mats = mapaMateriais.get(Number(obra.id)) || [];
+        const statusGargalo = calcularStatusGargalo(mats, obra.status);
         if (materialFiltro === "Comprado") {
-          const temComprado = mats.some(
-            (m) => m.statusLogistico === "Comprado" || m.statusLogistico === "EmTransito"
-          );
-          if (!temComprado && mats.length > 0) return false;
-          if (mats.length === 0 && obra.status !== "MaterialComprado") return false;
-        } else if (materialFiltro === "No Depósito") {
-          const temNoDeposito = mats.some((m) => m.statusLogistico === "Disponivel");
-          if (!temNoDeposito && mats.length > 0) return false;
-          if (mats.length === 0 && obra.status !== "NoDeposito") return false;
-        } else if (materialFiltro === "Separado") {
-          const separado =
-            obra.status === "Separado" ||
-            (obra.status !== "MaterialComprado" &&
-              obra.status !== "NoDeposito" &&
-              mats.some(
-                (m) =>
-                  m.statusLogistico === "Disponivel" ||
-                  m.statusLogistico === "Utilizado"
-              ));
-          if (!separado) return false;
+          if (statusGargalo !== "Comprado") return false;
+        } else if (materialFiltro === "Em Trânsito") {
+          if (statusGargalo !== "EmTransito") return false;
+        } else if (materialFiltro === "Disponível" || materialFiltro === "No Depósito") {
+          if (statusGargalo !== "Disponivel") return false;
+        } else if (materialFiltro === "Utilizado" || materialFiltro === "Separado") {
+          if (statusGargalo !== "Utilizado") return false;
         }
       }
 

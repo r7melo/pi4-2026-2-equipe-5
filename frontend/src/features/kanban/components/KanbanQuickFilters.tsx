@@ -11,21 +11,20 @@ interface KanbanQuickFiltersProps {
   temFiltroAtivo: boolean;
 }
 
+// RF-03 / Contrato 07-api: Categorias canônicas de obra
 const CATEGORIAS = [
   "Todas",
   "Residencial",
   "Comercial",
-  "Industrial",
-  "Rural",
-  "Manutenção",
 ];
 
-// RF-06: Filtro alinhado às etapas logísticas de materiais no funil
+// RF-06: Filtro alinhado às etapas logísticas canônicas de materiais (RF-06)
 const ETAPAS_MATERIAIS = [
   "Todos",
   "Comprado",
-  "No Depósito",
-  "Separado",
+  "Em Trânsito",
+  "Disponível",
+  "Utilizado",
 ];
 
 export default function KanbanQuickFilters({

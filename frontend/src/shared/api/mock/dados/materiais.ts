@@ -17,3 +17,21 @@ export function adicionarMaterialArmazenado(obraId: number, payload: Omit<Materi
   armazenamentoCenario.setItem(STORAGE_KEY_MAT, JSON.stringify(atualizados));
   return novo;
 }
+
+export function atualizarMaterialArmazenado(id: number, payload: Partial<Material>): Material | undefined {
+  const materiais = obterMateriaisArmazenados();
+  const idx = materiais.findIndex(m => m.id === id);
+  if (idx === -1) return undefined;
+  const atualizado = { ...materiais[idx], ...payload, id };
+  materiais[idx] = atualizado;
+  armazenamentoCenario.setItem(STORAGE_KEY_MAT, JSON.stringify(materiais));
+  return atualizado;
+}
+
+export function removerMaterialArmazenado(id: number): boolean {
+  const materiais = obterMateriaisArmazenados();
+  const novos = materiais.filter(m => m.id !== id);
+  if (novos.length === materiais.length) return false;
+  armazenamentoCenario.setItem(STORAGE_KEY_MAT, JSON.stringify(novos));
+  return true;
+}
