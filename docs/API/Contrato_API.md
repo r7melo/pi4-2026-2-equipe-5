@@ -161,7 +161,7 @@ Na coluna **Perfis**, "Engenharia" é o perfil `EngenhariaObras`.
 - **Erros:** `401 UNAUTHORIZED`.
 
 #### 3. `POST /api/usuarios`
-- **Descrição:** Cadastra um usuário de qualquer perfil. A senha é gravada somente como hash bcrypt. Para `InstaladorCampo`, `equipeId` é obrigatório. (RF-01)
+- **Descrição:** Cadastra um usuário de qualquer perfil. A senha é gravada somente como hash bcrypt. Para `InstaladorCampo`, `equipeId` é opcional: ausente ou `null` cadastra um instalador livre, que pode integrar uma equipe posteriormente. Se informado, deve ser um ID positivo de equipe existente. Para os demais perfis, permanece `null`. Regra alinhada em 01/11/2026 para permitir o fluxo RF-01 → RF-07. (RF-01)
 - **Perfis:** `Administrador`
 - **Entrada:**
 ```json
@@ -184,7 +184,7 @@ Na coluna **Perfis**, "Engenharia" é o perfil `EngenhariaObras`.
   "ativo": true
 }
 ```
-- **Erros:** `400 VALIDATION_ERROR` (perfil inexistente, instalador sem equipe), `404 EQUIPE_NOT_FOUND`, `409 EMAIL_ALREADY_EXISTS`, `403 ACCESS_DENIED`.
+- **Erros:** `400 VALIDATION_ERROR` (perfil inexistente ou equipe informada com ID inválido), `404 EQUIPE_NOT_FOUND`, `409 EMAIL_ALREADY_EXISTS`, `403 ACCESS_DENIED`.
 
 ---
 

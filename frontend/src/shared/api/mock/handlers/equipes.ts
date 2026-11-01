@@ -1,5 +1,5 @@
 import type MockAdapter from "axios-mock-adapter";
-import { obterEquipesArmazenadas, adicionarEquipeArmazenada } from "../dados/equipes";
+import { obterEquipesArmazenadas, adicionarEquipeArmazenada, InstaladorVinculadoError } from "../dados/equipes";
 import { instaladoresEfetivos } from "../dados/operacoesGestao";
 import { erroUsuarioMock } from "../core/auth";
 import { extrairDados } from "../core/http";
@@ -31,6 +31,9 @@ export function registrarEquipes(mock: MockAdapter): void {
       if (!payload.instaladorIds.includes(payload.responsavelId) || payload.instaladorIds.some(id => !opcoes.some(o => o.id === id))) return erroUsuarioMock(400, "VALIDATION_ERROR", "Selecione instaladores disponíveis e um responsável integrante.");
       const equipe = adicionarEquipeArmazenada(payload, opcoes);
       return [201, equipe];
-    } catch { return erroUsuarioMock(500, "INTERNAL_ERROR", "Não foi possível criar a equipe."); }
+    } catch (erro) {
+      if (erro instanceof InstaladorVinculadoError) return erroUsuarioMock(409, "INSTALADOR_ALREADY_ASSIGNED", erro.message);
+      return erroUsuarioMock(500, "INTERNAL_ERROR", "Não foi possível criar a equipe.");
+    }
   });
 }

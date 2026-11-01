@@ -37,7 +37,7 @@ public sealed class Autenticacao
         var claims = new Dictionary<string, object>
         {
             [ClaimId] = usuario.Id.ToString(),
-            [ClaimPerfil] = usuario.NomePerfil,
+            [ClaimPerfil] = usuario.NomePerfil == "EngenhariaObras" ? Perfis.Engenharia : usuario.NomePerfil,
         };
         if (usuario.EquipeId is int equipe) claims[ClaimEquipe] = equipe.ToString();
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
@@ -64,6 +64,21 @@ public sealed class Autenticacao
         // 401 e 403 no formato do contrato, com registro no audit_log (RF-02, RNF-03).
         opcoes.Events = new JwtBearerEvents
         {
+            OnTokenValidated = contexto =>
+            {
+                // Compativel com JWTs assinados antes da migracao, apenas ate a expiracao original.
+                // A normalizacao ocorre depois de o middleware validar assinatura e validade.
+                if (contexto.Principal is not null)
+                    foreach (var identidade in contexto.Principal.Identities)
+                        foreach (var claim in identidade.FindAll(ClaimPerfil)
+                                     .Where(c => c.Value == "EngenhariaObras").ToArray())
+                        {
+                            identidade.RemoveClaim(claim);
+                            identidade.AddClaim(new Claim(ClaimPerfil, Perfis.Engenharia,
+                                claim.ValueType, claim.Issuer, claim.OriginalIssuer));
+                        }
+                return Task.CompletedTask;
+            },
             OnChallenge = async contexto =>
             {
                 contexto.HandleResponse();

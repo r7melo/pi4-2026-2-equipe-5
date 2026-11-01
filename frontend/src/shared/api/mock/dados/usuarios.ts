@@ -77,10 +77,6 @@ const cadastroUsuarioMockSchema = z.object({
   }),
   perfil: perfilUsuarioMockSchema,
   equipeId: idUsuarioMockSchema.nullable().default(null),
-}).superRefine((dados, ctx) => {
-  if (dados.perfil === "InstaladorCampo" && dados.equipeId === null) {
-    ctx.addIssue({ code: "custom", path: ["equipeId"], message: "Equipe obrigatória." });
-  }
 }).transform((dados) => ({
   ...dados, equipeId: dados.perfil === "InstaladorCampo" ? dados.equipeId : null,
 }));
@@ -95,7 +91,7 @@ const usuarioPersistidoMockSchema = z.object({
   ativo: z.literal(true),
   senhaHash: z.string().regex(/^[a-f0-9]{64}$/),
 }).strict().superRefine((usuario, ctx) => {
-  if ((usuario.perfil === "InstaladorCampo") !== (usuario.equipeId !== null)) {
+  if (usuario.perfil !== "InstaladorCampo" && usuario.equipeId !== null) {
     ctx.addIssue({ code: "custom", path: ["equipeId"], message: "Vínculo de equipe inválido." });
   }
 });
@@ -133,7 +129,7 @@ export function salvarUsuariosCriados(usuarios: UsuarioPersistidoMock[]): void {
     estado.novos = validados;
     const equipes = structuredClone(obterEquipesArmazenadas());
     for (const u of estado.novos.filter(candidato => !anteriores.some(a => a.id === candidato.id))) {
-      if (u.perfil !== "InstaladorCampo") continue;
+      if (u.perfil !== "InstaladorCampo" || u.equipeId === null) continue;
       const equipe = equipes.find(e => e.id === u.equipeId);
       if (!equipe) throw new Error("Equipe indisponível.");
       equipe.membros = [...(equipe.membros ?? []).filter(m => m.id !== u.id), { id: u.id, nome: u.nome }];

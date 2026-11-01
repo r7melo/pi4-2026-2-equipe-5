@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- Tipos usados nas validações do banco.
 CREATE TYPE status_obra_enum AS ENUM ('MaterialComprado', 'NoDeposito', 'Separado', 'EmAndamento', 'Concluido', 'Assistencia');
 CREATE TYPE status_logistico_enum AS ENUM ('Comprado', 'EmTransito', 'Disponivel', 'Utilizado');
-CREATE TYPE nome_perfil_enum AS ENUM ('Administrador', 'EngenhariaObras', 'Financeiro', 'VisualizadorLeitor', 'InstaladorCampo');
+CREATE TYPE nome_perfil_enum AS ENUM ('Administrador', 'Engenharia', 'Financeiro', 'VisualizadorLeitor', 'InstaladorCampo');
 CREATE TYPE tipo_comentario_enum AS ENUM ('Cartao', 'Manutencao', 'Timeline');
 CREATE TYPE tipo_acao_historico_enum AS ENUM ('Cadastro', 'MudancaStatus', 'Comentario', 'ManutencaoConcluida', 'AlteracaoFinanceira');
 CREATE TYPE status_manutencao_enum AS ENUM ('Pendente', 'Concluida');

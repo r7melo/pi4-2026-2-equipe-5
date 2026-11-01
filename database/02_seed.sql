@@ -3,7 +3,7 @@ BEGIN;
 
 INSERT INTO perfil_acesso (id, nome_perfil, permissoes) VALUES
 (1, 'Administrador',      '*'),
-(2, 'EngenhariaObras',    'obras:criar,obras:mover,programacoes:editar'),
+(2, 'Engenharia',         'obras:criar,obras:mover,programacoes:editar'),
 (3, 'Financeiro',         'financeiro:visualizar,relatorios:visualizar'),
 (4, 'VisualizadorLeitor', 'obras:visualizar'),
 (5, 'InstaladorCampo',    'obras:visualizar,materiais:confirmar');
@@ -75,6 +75,10 @@ INSERT INTO obra (id, status, categoria, quantidade_paineis, data_inicio_estimad
 (310, 'MaterialComprado', 'Comercial', 200, '2026-10-15', '2026-11-10', NULL, NULL, 10, 10, 'Avenida Bela Vista, 1010');
 
 SELECT setval('obra_id_seq', (SELECT MAX(id) FROM obra));
+
+UPDATE obra SET projeto_arquivo = 'projeto-demonstracao-301.pdf',
+    instrucoes = 'Conferir o kit e o acesso ao telhado antes de iniciar. Fixar a estrutura antes dos paineis.'
+WHERE id = 301;
 
 INSERT INTO pagamento (id, data_confirmacao, prazo_contratual_dias, id_obra) VALUES
 (1,  '2026-09-15', 45, 301),
