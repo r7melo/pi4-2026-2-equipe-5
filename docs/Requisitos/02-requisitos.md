@@ -44,6 +44,7 @@ O sistema autentica por e-mail e senha e emite um token de acesso (JWT) com o pe
 - Token expirado ou ausente retorna 401; toda negação (401/403) é registrada em log de segurança com motivo.
 - E-mail deve ser único.
 - Senhas são armazenadas somente como hash.
+- Instalador pode ser cadastrado sem equipe e vinculado ao criar a equipe (RF-07). Se uma equipe for informada no cadastro, ela deve existir. Sem equipe, o login é permitido, mas não concede acesso às instalações ou ao cronograma de outras equipes. Após o vínculo, um novo login atualiza a equipe no token. Regra alinhada em 01/11/2026.
 
 **Critérios de aceite:**
 
@@ -85,6 +86,15 @@ Funcionalidade: Autenticação e cadastro de usuários
     Dado que o e-mail "instalador@zl.com.br" já pertence a outro usuário
     Quando o Administrador tenta cadastrar um novo usuário com esse mesmo e-mail
     Então o sistema exibe mensagem de erro e impede o cadastro
+
+  Cenário: Cadastro de instaladores antes da criação da equipe
+    Dado que o Administrador está autenticado no sistema
+    Quando ele cadastra instaladores sem informar equipe
+    Então o sistema salva os usuários sem vínculo de equipe e permite seu login
+    E não concede acesso às instalações ou ao cronograma de outras equipes
+    Quando um usuário autorizado cria uma equipe selecionando esses instaladores e um responsável entre eles
+    Então o sistema grava a equipe, os integrantes e os vínculos dos usuários na mesma transação
+    E um novo login do instalador emite o token com sua equipe atual
 
   Cenário: Credenciais incorretas na autenticação
     Dado que o usuário está na tela de login
@@ -1049,7 +1059,7 @@ Funcionalidade: Invalidação de sessões após mudança de senha
 O Administrador lista, cadastra, edita e desativa usuários do sistema. Nenhum outro perfil acessa esta tela ou rota.
 
 - A listagem exibe nome, e-mail, perfil e situação (ativo/inativo).
-- O cadastro exige nome completo, e-mail único e perfil. A equipe é opcional, exceto para Instalador de Campo, que a exige.
+- O cadastro exige nome completo, e-mail único e perfil. A equipe é opcional para Instalador de Campo, permitindo cadastrar os integrantes antes da criação da equipe (RF-01/RF-07); se informada, deve existir. Para os demais perfis, o novo cadastro não cria vínculo de equipe.
 - E-mail duplicado é recusado com mensagem de erro.
 - A senha inicial é gerada automaticamente e enviada por e-mail ao novo usuário (depende do RF-21).
 - Desativar um usuário invalida todos os seus tokens ativos e impede novos logins, sem apagar o registro (exclusão lógica).
@@ -1097,10 +1107,12 @@ Funcionalidade: Gestão de usuários pelo Administrador
     Quando ele tenta cadastrar um usuário sem informar o e-mail
     Então o sistema exibe mensagem de validação e não cria o usuário
 
-  Cenário: Tentativa de cadastro de Instalador de Campo sem equipe
+  Cenário: Cadastro de Instalador de Campo sem equipe
     Dado que o Administrador está autenticado
-    Quando ele tenta cadastrar um usuário com o perfil "Instalador de Campo" sem selecionar uma equipe
-    Então o sistema exibe mensagem informando que o perfil Instalador de Campo requer uma equipe
+    Quando ele cadastra um usuário com o perfil "Instalador de Campo" sem selecionar uma equipe
+    Então o sistema salva o instalador sem vínculo de equipe
+    E permite selecioná-lo posteriormente na criação de uma equipe
+    E não concede acesso às instalações ou ao cronograma de outras equipes
 
   Cenário: Desativação de usuário ativo
     Dado que o Administrador está autenticado

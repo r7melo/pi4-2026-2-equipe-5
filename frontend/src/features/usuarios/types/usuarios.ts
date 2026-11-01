@@ -14,14 +14,14 @@ export const cadastroUsuarioSchema = z.object({
   perfil: z.string().pipe(z.enum(PERFIS, { error: "Selecione um perfil de acesso." })),
   equipeId: z.string(),
 }).superRefine((dados, ctx) => {
-  if (dados.perfil === "InstaladorCampo" &&
+  if (dados.perfil === "InstaladorCampo" && dados.equipeId !== "" &&
       (!/^\d+$/.test(dados.equipeId) ||
        !Number.isSafeInteger(Number(dados.equipeId)) || Number(dados.equipeId) <= 0)) {
-    ctx.addIssue({ code: "custom", path: ["equipeId"], message: "Selecione uma equipe." });
+    ctx.addIssue({ code: "custom", path: ["equipeId"], message: "Selecione uma equipe válida ou mantenha sem equipe." });
   }
 }).transform((dados) => ({
   ...dados,
-  equipeId: dados.perfil === "InstaladorCampo" ? Number(dados.equipeId) : null,
+  equipeId: dados.perfil === "InstaladorCampo" && dados.equipeId !== "" ? Number(dados.equipeId) : null,
 }));
 
 export type CadastroUsuarioEntrada = z.input<typeof cadastroUsuarioSchema>;

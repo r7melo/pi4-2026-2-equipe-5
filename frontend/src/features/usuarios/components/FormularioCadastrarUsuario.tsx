@@ -61,8 +61,9 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
     if (instalador && equipes.isSuccess && !equipes.isFetching && equipeId &&
         !opcoes?.some((equipe) => equipe.id === Number(equipeId))) {
       setValue("equipeId", "", { shouldValidate: false });
+      setError("equipeId", { type: "validate", message: "A equipe selecionada não está mais disponível. Selecione outra ou mantenha sem equipe." });
     }
-  }, [instalador, equipes.isSuccess, equipes.isFetching, equipeId, opcoes, setValue]);
+  }, [instalador, equipes.isSuccess, equipes.isFetching, equipeId, opcoes, setValue, setError]);
 
   useEffect(() => {
     if (!focoPendente || ocupado) return;
@@ -74,9 +75,9 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
   }, [focoPendente, ocupado, setFocus]);
 
   async function enviar(dados: CadastroUsuarioDados) {
-    if (dados.perfil === "InstaladorCampo" &&
+    if (dados.perfil === "InstaladorCampo" && dados.equipeId !== null &&
         (equipeIndisponivel || !opcoes?.some((equipe) => equipe.id === dados.equipeId))) {
-      setError("equipeId", { type: "validate", message: "Selecione uma equipe disponível." },
+      setError("equipeId", { type: "validate", message: "Confirme uma equipe disponível ou mantenha sem equipe." },
         { shouldFocus: true });
       return;
     }
@@ -171,18 +172,19 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
             </div>
             {instalador && (
               <div className="space-y-1.5">
-                <label htmlFor="usuario-equipe" className={CLASSE_LABEL}>Equipe</label>
-                <select id="usuario-equipe" required autoComplete="off" className={CLASSE_SELECT}
-                  {...register("equipeId")} disabled={ocupado || equipeIndisponivel}
+                <label htmlFor="usuario-equipe" className={CLASSE_LABEL}>Equipe (opcional)</label>
+                <select id="usuario-equipe" autoComplete="off" className={CLASSE_SELECT}
+                  {...register("equipeId")} disabled={ocupado}
                   aria-invalid={!!errors.equipeId}
-                  aria-describedby={errors.equipeId ? "usuario-equipe-erro" : undefined}>
-                  <option value="">
-                    {equipes.isPending || equipes.isFetching ? "Carregando equipes..." : "Selecionar equipe"}
-                  </option>
+                  aria-describedby={`usuario-equipe-ajuda${errors.equipeId ? " usuario-equipe-erro" : ""}`}>
+                  <option value="">Sem equipe — vincular depois</option>
                   {opcoes?.map((equipe) => (
                     <option key={equipe.id} value={equipe.id}>{equipe.nome}</option>
                   ))}
                 </select>
+                <p id="usuario-equipe-ajuda" className="text-xs text-foreground-muted">
+                  Você pode cadastrar o instalador sem equipe e vinculá-lo ao criar a equipe.
+                </p>
                 {errors.equipeId && (
                   <p id="usuario-equipe-erro" className="text-xs text-destructive">
                     {errors.equipeId.message}
@@ -197,7 +199,7 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
                 )}
                 {equipes.isSuccess && !equipes.isFetching && opcoes?.length === 0 && (
                   <EmptyState titulo="Nenhuma equipe cadastrada."
-                    descricao="Cadastre uma equipe antes de criar um instalador."
+                    descricao="O instalador pode ser cadastrado sem equipe e vinculado depois."
                     acao={{ label: "Cadastrar equipe", onClick: () => { void navigate("/equipes"); } }} />
                 )}
               </div>
@@ -214,7 +216,7 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
                   : <Eye className="h-4 w-4" aria-hidden="true" />}
               </button>
             </div>
-            <Button type="submit" disabled={ocupado || equipeIndisponivel}
+            <Button type="submit" disabled={ocupado}
               className="w-full sm:w-auto" aria-busy={ocupado}>
               {ocupado && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
               {ocupado ? "Cadastrando usuário..." : "Cadastrar usuário"}

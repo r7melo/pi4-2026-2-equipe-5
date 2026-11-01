@@ -5,7 +5,7 @@ namespace Backend.Api;
 public static class Perfis
 {
     public const string Administrador = "Administrador";
-    public const string Engenharia = "EngenhariaObras";
+    public const string Engenharia = "Engenharia";
     public const string Financeiro = "Financeiro";
     public const string Instalador = "InstaladorCampo";
 
