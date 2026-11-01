@@ -250,7 +250,11 @@ Metas: taxa de sucesso ≥ 80% por tarefa; SUS ≥ 68; taxa de erro < 5% (RNF-06
 | CT-12 | RF-16 | Link válido exibe cronograma; link inválido exibe mensagem; sem dados financeiros |
 | CT-13 | RF-06 | Mudança de status logístico reflete no cartão e na barra |
 | CT-14 | RF-20 | DRE com custo, valor da obra e resultado |
-| CT-RNF-01 a 05 | RNF-01 a RNF-05 | Renderização em 4 larguras; HTTPS; RBAC em todas as rotas; log; exportação em 5 s |
+| CT-15 | RF-21 | Redefinição de senha por link, alteração autenticada, política de senha, invalidação de tokens, link de uso único |
+| CT-16 | RF-22 | Gestão de usuários: listagem, cadastro, desativação, reativação, edição de perfil e acesso negado a outros perfis |
+| CT-17 | RF-23 | Cadastro e listagem de clientes; CPF/CNPJ válido e único; acesso negado ao Financeiro e ao Instalador |
+| CT-18 | RF-24 | Página não encontrada, estados vazios por perfil e mensagem amigável de erro de API |
+| CT-RNF-01 a 05 | RNF-01 a RNF-05 | Renderização em 4 larguras; HTTPS; RBAC em todas as rotas da [matriz de autorização](04-regras-negocio.md#8-matriz-de-autorização-das-rotas-da-api), por perfil; log irremovível para exclusões e mudanças financeiras; exportação em 5 s |
 | CT-RNF-06 | RNF-06 | Sessões com usuários e avaliação heurística (roteiro acima) |
 
 ## Dados de teste

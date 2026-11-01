@@ -20,6 +20,8 @@ usecase "UC-01 - Login" as Login
 usecase "UC-02 - Emitir Token de Acesso" as EmitirToken
 usecase "UC-03 - Acessar Recursos" as AcessarRecursos
 usecase "UC-04 - Validar Autorização de Acesso" as ValidarAutorizacao
+usecase "UC-35 - Solicitar Recuperação de Senha" as SolicitarRecuperacao
+usecase "UC-36 - Atualizar Senha" as AtualizarSenha
 
 ' ===== Casos de uso: cadastros =====
 usecase "UC-05 - Cadastrar Administrador" as CadAdmin
@@ -27,6 +29,8 @@ usecase "UC-06 - Cadastrar Engenheiro" as CadEng
 usecase "UC-07 - Cadastrar Financeiro" as CadFin
 usecase "UC-08 - Cadastrar Clientes" as CadClientes
 usecase "UC-09 - Cadastrar Instalador de Campo" as CadInstalador
+usecase "UC-37 - Desativar Usuário" as DesativarUsuario
+usecase "UC-38 - Reativar Usuário" as ReativarUsuario
 
 ' ===== Casos de uso: obra =====
 usecase "UC-10 - Cadastrar Obra" as CadObra
@@ -77,6 +81,8 @@ rectangle "Gerenciar Financeiro" as Financas {
 ' ===== Associações: Usuário =====
 Usuario --> Login
 Usuario --> AcessarRecursos
+Usuario --> SolicitarRecuperacao
+Usuario --> AtualizarSenha
 
 ' ===== Associações: Administrador =====
 Administrador --> CadAdmin
@@ -84,6 +90,9 @@ Administrador --> CadEng
 Administrador --> CadFin
 Administrador --> CadClientes
 Administrador --> CadInstalador
+Administrador --> DesativarUsuario
+Administrador --> ReativarUsuario
+Engenharia --> CadClientes
 Administrador --> CadObra
 Administrador --> ApagarObra
 Administrador --> EditarCartao

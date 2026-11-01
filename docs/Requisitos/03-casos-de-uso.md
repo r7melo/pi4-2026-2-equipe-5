@@ -25,7 +25,7 @@
 | [UC-05](#uc-05) Cadastrar administrador | ✔ | | | |
 | [UC-06](#uc-06) Cadastrar engenheiro | ✔ | | | |
 | [UC-07](#uc-07) Cadastrar financeiro | ✔ | | | |
-| [UC-08](#uc-08) Cadastrar clientes | ✔ | | | |
+| [UC-08](#uc-08) Cadastrar clientes | ✔ | ✔ | | |
 | [UC-09](#uc-09) Cadastrar instalador de campo | ✔ | | | |
 | [UC-10](#uc-10) Cadastrar obra | ✔ | ✔ | | |
 | [UC-11](#uc-11) Apagar obra | ✔ | ✔ | | |
@@ -54,6 +54,8 @@
 | [UC-34](#uc-34) Exportar relatório financeiro | ✔ | | ✔ | |
 | [UC-35](#uc-35) Solicitar recuperação de senha | ✔ | ✔ | ✔ | ✔ |
 | [UC-36](#uc-36) Atualizar senha | ✔ | ✔ | ✔ | ✔ |
+| [UC-37](#uc-37) Desativar usuário | ✔ | | | |
+| [UC-38](#uc-38) Reativar usuário | ✔ | | | |
 
 ## Descrição dos casos de uso
 
@@ -66,7 +68,7 @@
 | [UC-05](#uc-05) | Cadastrar administrador | Administrador | Informa nome, e-mail e senha inicial; sistema valida e salva | Somente Administrador cadastra Administrador |
 | [UC-06](#uc-06) | Cadastrar engenheiro | Administrador | Seleciona perfil Engenharia; informa dados; salva | E-mail único |
 | [UC-07](#uc-07) | Cadastrar financeiro | Administrador | Seleciona perfil Financeiro; informa dados; salva | E-mail único |
-| [UC-08](#uc-08) | Cadastrar clientes | Administrador | Informa nome, CPF/CNPJ, telefone, e-mail e endereço; salva | CPF/CNPJ válido e único; nome e CPF/CNPJ obrigatórios |
+| [UC-08](#uc-08) | Cadastrar clientes | Administrador, Engenharia | Informa nome, CPF/CNPJ, telefone, e-mail e endereço; salva | CPF/CNPJ válido e único; nome e CPF/CNPJ obrigatórios |
 | [UC-09](#uc-09) | Cadastrar instalador de campo | Administrador | Seleciona perfil InstaladorCampo; informa dados; salva | Instalador tem leitura da instalação e registro de manutenção |
 | [UC-10](#uc-10) | Cadastrar obra | Administrador, Engenharia | Seleciona cliente; informa endereço, descrição e dados do projeto; salva; cria cartão e registra ação | Toda obra tem cliente; nasce no status inicial |
 | [UC-11](#uc-11) | Apagar obra | Administrador, Engenharia | Seleciona obra; confirma; remove cartão; marca obra como excluída | Confirmação explícita; obra em execução não é apagada; exclusão lógica |
@@ -95,6 +97,8 @@
 | [UC-34](#uc-34) | Exportar relatório financeiro | Financeiro | Seleciona tipo e período; escolhe PDF ou Excel; gera e disponibiliza | Formatos PDF e Excel; 5 s para 1.000 registros |
 | [UC-35](#uc-35) | Solicitar recuperação de senha | Usuário (não autenticado) | Informa e-mail; sistema envia link de uso único por e-mail; exibe mensagem genérica | Link expira em 1 h; resposta idêntica para e-mail existente ou não |
 | [UC-36](#uc-36) | Atualizar senha | Usuário | Redefine a senha via link (UC-35) ou altera a senha atual estando autenticado | Nova senha deve atender à política; todos os tokens são invalidados após a alteração |
+| [UC-37](#uc-37) | Desativar usuário | Administrador | Seleciona usuário ativo; confirma; sistema marca como inativo e invalida os tokens | Exclusão lógica; sem novos logins; registro preservado |
+| [UC-38](#uc-38) | Reativar usuário | Administrador | Seleciona usuário inativo; confirma; sistema marca como ativo e envia nova senha por e-mail | Acesso restaurado somente com a nova senha |
 
 ## Relações entre casos de uso
 
@@ -369,15 +373,15 @@
 
 **Descrição:** Permite cadastrar os clientes da empresa, que serão vinculados às obras.
 
-**Atores:** Administrador
+**Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado com perfil Administrador.
+**Pré-condição:** O usuário está autenticado com perfil Administrador ou Engenharia.
 
 **Fluxo principal:**
 
-1. O Administrador acessa a tela de cadastro de clientes.
-2. O Administrador informa nome, CPF/CNPJ, telefone, e-mail e endereço.
-3. O Administrador confirma o cadastro.
+1. O usuário acessa a tela de cadastro de clientes.
+2. O usuário informa nome, CPF/CNPJ, telefone, e-mail e endereço.
+3. O usuário confirma o cadastro.
 4. O sistema valida os dados.
 5. O sistema salva o cliente.
 6. O sistema exibe mensagem de sucesso.
@@ -1391,3 +1395,74 @@
 - RN4 - O token de redefinição é invalidado após o primeiro uso.
 
 **Prioridade:** Média
+
+---
+
+<a id="uc-37"></a>
+
+### UC-37 - Desativar Usuário
+
+**Descrição:** Permite ao Administrador desativar um usuário, impedindo novos logins e invalidando suas sessões, sem apagar o registro.
+
+**Atores:** Administrador
+
+**Pré-condição:** O Administrador está autenticado e o usuário-alvo está ativo.
+
+**Fluxo principal:**
+
+1. O Administrador acessa a tela de gestão de usuários.
+2. O Administrador seleciona o usuário ativo e aciona "Desativar".
+3. O sistema solicita confirmação.
+4. O Administrador confirma.
+5. O sistema marca o usuário como inativo (exclusão lógica).
+6. O sistema invalida todos os tokens de acesso ativos do usuário.
+7. O sistema exibe mensagem de sucesso.
+
+**Fluxos alternativos:**
+
+- FA1 - Cancelamento (passo 3 ou 4): o sistema não altera o usuário e retorna à lista.
+
+**Pós-condição:** O usuário está inativo, não consegue fazer login e seus tokens anteriores deixaram de valer. O registro permanece no sistema.
+
+**Regras de negócio:**
+
+- RN1 - Somente o Administrador desativa usuários.
+- RN2 - A desativação é lógica: o registro e o histórico são preservados.
+- RN3 - Conta inativa retorna a mensagem genérica de credenciais inválidas e não incrementa tentativas (RN-06.4).
+
+**Prioridade:** Alta
+
+---
+
+<a id="uc-38"></a>
+
+### UC-38 - Reativar Usuário
+
+**Descrição:** Permite ao Administrador reativar um usuário inativo, restaurando seu acesso com uma nova senha enviada por e-mail.
+
+**Atores:** Administrador
+
+**Pré-condição:** O Administrador está autenticado e o usuário-alvo está inativo.
+
+**Fluxo principal:**
+
+1. O Administrador acessa a tela de gestão de usuários.
+2. O Administrador seleciona o usuário inativo e aciona "Reativar".
+3. O sistema solicita confirmação.
+4. O Administrador confirma.
+5. O sistema marca o usuário como ativo.
+6. O sistema gera uma nova senha e a envia por e-mail ao usuário.
+7. O sistema exibe mensagem de sucesso.
+
+**Fluxos alternativos:**
+
+- FA1 - Cancelamento (passo 3 ou 4): o sistema não altera o usuário e retorna à lista.
+
+**Pós-condição:** O usuário está ativo e pode fazer login com a nova senha.
+
+**Regras de negócio:**
+
+- RN1 - Somente o Administrador reativa usuários.
+- RN2 - A nova senha segue a política mínima de segurança (RN-06.15).
+
+**Prioridade:** Alta

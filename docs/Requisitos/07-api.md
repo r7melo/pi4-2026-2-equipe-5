@@ -37,48 +37,53 @@ Base: `/api`. Autenticação por `Authorization: Bearer <token>`, obtido em `POS
 
 ## Rotas
 
-| # | Método e caminho | Perfis | Descrição |
-| :---- | :---- | :---- | :---- |
-| 1 | `POST /api/auth/login` | Público | Autentica e emite JWT |
-| 2 | `GET /api/auth/me` | Autenticado | Usuário, perfil e permissões |
-| 3 | `POST /api/auth/esqueci-senha` | Público | Envia e-mail com link de redefinição de senha (uso único, expira em 1h) |
-| 4 | `POST /api/auth/redefinir-senha` | Público por token | Redefine a senha usando o token do link; invalida todos os tokens de acesso do usuário |
-| 5 | `PUT /api/auth/alterar-senha` | Autenticado | Usuário autenticado altera a própria senha informando a senha atual e a nova |
-| 6 | `POST /api/usuarios` | Administrador | Cadastra usuário de qualquer perfil |
-| 7 | `GET /api/clientes` | Administrador, Engenharia | Lista clientes |
-| 8 | `POST /api/clientes` | Administrador, Engenharia | Cadastra cliente |
-| 9 | `GET /api/obras` | Administrador, Engenharia, Financeiro | Lista obras com filtros `status`, `clienteNome`, `categoria` |
-| 10 | `POST /api/obras` | Administrador, Engenharia | Cadastra obra vinculada a cliente |
-| 11 | `GET /api/obras/{id}` | Administrador, Engenharia, Financeiro; Instalador se da equipe | Detalhe da obra |
-| 12 | `PUT /api/obras/{id}` | Administrador, Engenharia | Edita título, descrição, responsável e datas |
-| 13 | `DELETE /api/obras/{id}` | Administrador, Engenharia | Exclusão lógica |
-| 14 | `PATCH /api/obras/{id}/status` | Administrador, Engenharia | Move o cartão (muda status) |
-| 15 | `GET /api/obras/{id}/materiais` | Autenticado (Instalador só da equipe) | Lista materiais |
-| 16 | `POST /api/obras/{id}/materiais` | Administrador, Engenharia | Registra material |
-| 17 | `PATCH /api/materiais/{id}` | Administrador, Engenharia | Atualiza status logístico |
-| 18 | `GET /api/obras/{id}/historico` | Administrador, Engenharia, Financeiro | Timeline cronológica |
-| 19 | `GET /api/obras/{id}/comentarios` | Autenticado | Lista comentários |
-| 20 | `POST /api/obras/{id}/comentarios` | Administrador, Engenharia (cartão); Financeiro (timeline) | Cria comentário |
-| 21 | `PUT /api/comentarios/{id}` | Administrador | Edita comentário geral |
-| 22 | `DELETE /api/comentarios/{id}` | Administrador | Exclui comentário geral |
-| 23 | `GET /api/equipes` | Autenticado | Lista equipes |
-| 24 | `POST /api/equipes` | Administrador, Engenharia | Cria equipe com instaladores e responsável |
-| 25 | `GET /api/programacoes` | Autenticado | Cronograma (filtros `dataInicio`, `dataFim`, `equipeId`) |
-| 26 | `POST /api/programacoes` | Administrador, Engenharia | Aloca equipe a obra |
-| 27 | `PUT /api/programacoes/{id}/reordenar` | Administrador, Engenharia | Reordena com propagação |
-| 28 | `GET /api/obras/{id}/custos` | Administrador, Financeiro | Itens de custo e precificação |
-| 29 | `POST /api/obras/{id}/custos` | Financeiro | Registra custos e valor da obra |
-| 30 | `GET /api/obras/{id}/relatorio-custo` | Administrador, Financeiro | Custo total e itens (só obra concluída) |
-| 31 | `GET /api/obras/{id}/dre` | Administrador, Financeiro | DRE da obra |
-| 32 | `GET /api/relatorios/export` | Administrador, Financeiro | Exporta `tipo` (financeiro, cronograma), `dataInicio`, `dataFim`, `formato` (`pdf` ou `xlsx`) |
-| 33 | `GET /api/obras/{id}/instalacao/export` | Administrador | Exporta detalhes da instalação |
-| 34 | `GET /api/instalador/instalacoes` | InstaladorCampo | Instalações da equipe do usuário |
-| 35 | `GET /api/instalador/instalacoes/{obraId}` | InstaladorCampo | Detalhe: kit, endereço, projeto, instruções, `linkNavegacao` |
-| 36 | `GET /api/instalador/manutencoes` | InstaladorCampo | Manutenções da equipe |
-| 37 | `PATCH /api/manutencoes/{id}/concluir` | InstaladorCampo | Conclui manutenção |
-| 38 | `POST /api/manutencoes/{id}/comentarios` | InstaladorCampo | Comenta manutenção |
-| 39 | `POST /api/cronograma/compartilhado` | Administrador, Engenharia | Gera token de cronograma |
-| 40 | `GET /api/cronograma/compartilhado/{token}` | Público por token | Cronograma somente leitura, com `dataInicio` e `dataFim` |
+A matriz por perfil, em formato de tabela, está na seção 8 de [Regras de negócio](04-regras-negocio.md#8-matriz-de-autorização-das-rotas-da-api).
+
+| # | Método e caminho | Perfis | Descrição | Situação |
+| :---- | :---- | :---- | :---- | :---: |
+| 1 | `POST /api/auth/login` | Público | Autentica e emite JWT | ✅ |
+| 2 | `GET /api/auth/me` | Autenticado | Usuário, perfil e permissões | ✅ |
+| 3 | `POST /api/auth/esqueci-senha` | Público | Envia e-mail com link de redefinição (uso único, expira em 1h) | ⏳ |
+| 4 | `POST /api/auth/redefinir-senha` | Público por token | Redefine a senha pelo token; invalida todos os tokens do usuário | ⏳ |
+| 5 | `PUT /api/auth/alterar-senha` | Autenticado | Usuário autenticado altera a própria senha | ⏳ |
+| 6 | `GET /api/usuarios` | Administrador | Lista usuários (nome, e-mail, perfil, situação) | ⏳ |
+| 7 | `POST /api/usuarios` | Administrador | Cadastra usuário de qualquer perfil; senha inicial enviada por e-mail; Instalador exige equipe | ⏳ |
+| 8 | `PUT /api/usuarios/{id}` | Administrador | Edita nome, e-mail, perfil e equipe; mudança de perfil invalida os tokens do usuário | ⏳ |
+| 9 | `PATCH /api/usuarios/{id}/ativo` | Administrador | Desativa ou reativa usuário; desativar invalida os tokens; reativar envia nova senha por e-mail | ⏳ |
+| 10 | `GET /api/clientes` | Administrador, Engenharia | Lista clientes | ⏳ |
+| 11 | `POST /api/clientes` | Administrador, Engenharia | Cadastra cliente (CPF/CNPJ único e válido) | ⏳ |
+| 12 | `GET /api/obras` | Administrador, Engenharia, Financeiro | Lista obras; filtros: `status`, `clienteNome`, `categoria`, `page`, `pageSize` | ✅ |
+| 13 | `POST /api/obras` | Administrador, Engenharia | Cadastra obra vinculada a cliente (existente ou novo) | ✅ |
+| 14 | `GET /api/obras/{id}` | Administrador, Engenharia, Financeiro; Instalador se da equipe | Detalhe da obra | ✅ |
+| 15 | `PUT /api/obras/{id}` | Administrador, Engenharia | Edita título, descrição, categoria, endereço, datas e pagamento | ✅ |
+| 16 | `DELETE /api/obras/{id}` | Administrador, Engenharia | Exclusão lógica (obra em execução não pode ser excluída) | ⏳ |
+| 17 | `PATCH /api/obras/{id}/status` | Administrador, Engenharia | Muda o status da obra conforme o fluxo; grava histórico e audit_log | ✅ |
+| 18 | `GET /api/obras/{id}/materiais` | Autenticado (Instalador só da equipe) | Lista materiais | ✅ |
+| 19 | `POST /api/obras/{id}/materiais` | Administrador, Engenharia | Registra material | ✅ |
+| 20 | `PATCH /api/materiais/{id}` | Administrador, Engenharia | Atualiza status logístico do material | ⏳ |
+| 21 | `GET /api/obras/{id}/historico` | Administrador, Engenharia, Financeiro | Timeline cronológica | ✅ |
+| 22 | `GET /api/obras/{id}/comentarios` | Autenticado | Lista comentários; filtro opcional `?tipo=` com `Cartao`, `Manutencao` ou `Timeline` | ✅ |
+| 23 | `POST /api/obras/{id}/comentarios` | Administrador, Engenharia (tipo Cartao); Financeiro (tipo Timeline apenas) | Cria comentário | ✅ |
+| 24 | `PUT /api/comentarios/{id}` | Administrador | Edita comentário; grava audit_log | ✅ |
+| 25 | `DELETE /api/comentarios/{id}` | Administrador | Exclui comentário; grava audit_log | ✅ |
+| 26 | `GET /api/equipes` | Autenticado | Lista equipes; com `?dataInicio&dataFim` marca campo `ocupada` | ✅ |
+| 27 | `POST /api/equipes` | Administrador, Engenharia | Cria equipe com instaladores e responsável | ⏳ |
+| 28 | `GET /api/programacoes` | Autenticado (Instalador só da própria equipe) | Cronograma; filtros: `dataInicio`, `dataFim`, `equipeId` | ✅ |
+| 29 | `POST /api/programacoes` | Administrador, Engenharia | Aloca equipe a obra (dia útil obrigatório; obra deve ter status Separado, EmAndamento ou Assistencia) | ✅ |
+| 30 | `PUT /api/programacoes/{id}/reordenar` | Administrador, Engenharia | Reordena com propagação em dias úteis | ✅ |
+| 31 | `GET /api/obras/{id}/custos` | Administrador, Financeiro | Itens de custo e precificação | ⏳ |
+| 32 | `POST /api/obras/{id}/custos` | Financeiro | Registra custos e valor da obra | ⏳ |
+| 33 | `GET /api/obras/{id}/relatorio-custo` | Administrador, Financeiro | Custo total e itens (só obra concluída com precificação completa) | ⏳ |
+| 34 | `GET /api/obras/{id}/dre` | Administrador, Financeiro | DRE da obra (custo, valor, resultado) | ⏳ |
+| 35 | `GET /api/relatorios/export` | Administrador, Financeiro | Exporta `tipo` (financeiro, cronograma), `dataInicio`, `dataFim`, `formato` (pdf ou xlsx) | ⏳ |
+| 36 | `GET /api/obras/{id}/instalacao/export` | Administrador | Exporta detalhes da instalação | ⏳ |
+| 37 | `GET /api/instalador/instalacoes` | InstaladorCampo | Instalações da equipe do usuário | ⏳ |
+| 38 | `GET /api/instalador/instalacoes/{obraId}` | InstaladorCampo | Detalhe: kit, endereço, projeto, instruções, `linkNavegacao` | ⏳ |
+| 39 | `GET /api/instalador/manutencoes` | InstaladorCampo | Manutenções da equipe | ⏳ |
+| 40 | `PATCH /api/manutencoes/{id}/concluir` | InstaladorCampo | Conclui manutenção | ⏳ |
+| 41 | `POST /api/manutencoes/{id}/comentarios` | InstaladorCampo | Comenta manutenção | ⏳ |
+| 42 | `POST /api/cronograma/compartilhado` | Administrador, Engenharia | Gera token de cronograma compartilhado | ⏳ |
+| 43 | `GET /api/cronograma/compartilhado/{token}` | Público por token | Cronograma somente leitura, sem dados financeiros ou de usuários | ⏳ |
 
 ## Contratos principais
 

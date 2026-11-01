@@ -6,8 +6,8 @@ Prioridades seguem MoSCoW (Must, Should, Could, Won't). A coluna **Situação** 
 
 | ID | Requisito | Prioridade | Situação |
 | :---- | :---- | :---- | :---- |
-| RF-01 | Autenticação e gestão de perfis | Must | Em andamento |
-| RF-02 | Autorização por perfil (RBAC) | Must | Pendente |
+| RF-01 | Autenticação e gestão de perfis | Must | Concluído |
+| RF-02 | Autorização por perfil (RBAC) | Must | Concluído |
 | RF-03 | Cadastro de clientes e gestão de obras | Must | Em andamento |
 | RF-04 | Funil Kanban | Must | Em andamento |
 | RF-05 | Raia de assistência e manutenção | Should | Pendente |
@@ -27,6 +27,9 @@ Prioridades seguem MoSCoW (Must, Should, Could, Won't). A coluna **Situação** 
 | RF-19 | Módulo do instalador de campo | Must | Em andamento |
 | RF-20 | DRE da obra | Must | Pendente |
 | RF-21 | Recuperação e atualização de senha | Should | Pendente |
+| RF-22 | Gestão de usuários (cadastro, listagem e desativação) | Must | Pendente |
+| RF-23 | Cadastro e listagem de clientes (tela dedicada) | Must | Pendente |
+| RF-24 | Página de erro e estados vazios | Should | Pendente |
 
 ### RF-01: Autenticação e gestão de perfis
 
@@ -34,10 +37,13 @@ O sistema autentica por e-mail e senha e emite um token de acesso (JWT) com o pe
 
 - Login válido redireciona para a tela do perfil. Instalador vai para a lista de instalações.
 - Erro de credencial mostra "E-mail ou senha incorretos", sem indicar qual campo está errado.
-- Cinco falhas consecutivas bloqueiam novas tentativas por tempo determinado.
+- Cinco falhas consecutivas bloqueiam a conta por 15 minutos (HTTP 423 `ACCOUNT_LOCKED`). A mensagem informa o tempo restante.
+- Após o bloqueio expirar ou após login bem-sucedido, a contagem de tentativas é zerada.
+- Conta inativa retorna a mesma mensagem genérica sem incrementar tentativas.
+- Token com validade padrão de 480 minutos (8 horas), configurável por `JWT_EXPIRES_MINUTES`. Sem renovação automática.
+- Token expirado ou ausente retorna 401; toda negação (401/403) é registrada em log de segurança com motivo.
 - E-mail deve ser único.
 - Senhas são armazenadas somente como hash.
-- O tempo de expiração do token é configurável por `JWT_EXPIRES_MINUTES`.
 
 **Critérios de aceite:**
 
@@ -90,7 +96,7 @@ Funcionalidade: Autenticação e cadastro de usuários
 
 Toda rota protegida valida token e perfil no servidor. Sem token: `401`. Perfil sem permissão: `403`. Ambos geram registro em log de segurança.
 
-Matriz completa na seção 4 de [Regras de negócio](04-regras-negocio.md).
+Matrizes completas nas seções 4 (funcionalidades), 8 (rotas da API) e 9 (telas) de [Regras de negócio](04-regras-negocio.md).
 
 **Critérios de aceite:**
 
@@ -184,6 +190,34 @@ Funcionalidade: Cadastro de clientes e gestão de obras
     Dado que o usuário está autenticado com o perfil "Financeiro"
     Quando ele tenta cadastrar uma obra
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
+```
+
+**Critérios de aceite complementares:**
+
+```gherkin
+# language: pt
+@RF-03
+Funcionalidade: Restrições na exclusão de obras
+
+  Cenário: Tentativa de excluir obra em execução
+    Dado que o usuário está autenticado com o perfil "Administrador"
+    E que existe uma obra com status "Em Andamento"
+    Quando ele tenta excluir essa obra
+    Então o sistema recusa a exclusão
+    E exibe mensagem informando que obras em execução não podem ser excluídas
+
+  Cenário: Exclusão de obra no início do funil
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe uma obra com status "Material Comprado"
+    Quando ele exclui essa obra
+    Então o sistema marca a obra como excluída logicamente
+    E remove o cartão do Kanban
+    E o histórico da obra permanece acessível ao Administrador
+
+  Cenário: Obra excluída não aparece nas listagens
+    Dado que uma obra foi excluída logicamente
+    Quando qualquer usuário consulta a lista de obras
+    Então a obra excluída não aparece na listagem
 ```
 
 ### RF-04: Funil Kanban
@@ -356,6 +390,32 @@ Funcionalidade: Gestão de equipes e alocação no Gantt
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
 ```
 
+**Critérios de aceite complementares:**
+
+```gherkin
+# language: pt
+@RF-07
+Funcionalidade: Restrição de gestão de equipes por perfil
+
+  Cenário: Financeiro tenta criar equipe
+    Dado que o usuário está autenticado com o perfil "Financeiro"
+    Quando ele tenta criar uma nova equipe
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
+
+  Cenário: Instalador tenta alocar obra no Gantt
+    Dado que o Instalador de Campo está autenticado
+    Quando ele tenta alocar uma equipe a uma obra
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
+
+  Cenário: Responsável deve pertencer à equipe
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que os instaladores "Carlos" e "Bruno" existem no sistema
+    Quando ele cria uma equipe com "Carlos" e "Bruno" como membros
+    E define "Paulo" (não membro) como responsável
+    Então o sistema exibe mensagem de erro informando que o responsável deve ser membro da equipe
+    E não cria a equipe
+```
+
 ### RF-08: Estimativa de duração
 
 - Duração = quantidade de painéis ÷ produtividade (padrão 9 painéis por dia).
@@ -489,6 +549,31 @@ Funcionalidade: Histórico da obra e linha do tempo
     Então o sistema grava o comentário na linha do tempo com o seu nome, a data e a hora
 ```
 
+**Critérios de aceite complementares:**
+
+```gherkin
+# language: pt
+@RF-11
+Funcionalidade: Comentário do Financeiro na timeline da obra
+
+  Cenário: Financeiro comenta na timeline
+    Dado que o usuário está autenticado com o perfil "Financeiro"
+    E que existe uma obra cadastrada
+    Quando ele inclui um comentário na timeline da obra
+    Então o sistema salva o comentário com o nome do usuário, a data e a hora
+    E exibe o comentário na timeline em ordem cronológica
+
+  Cenário: Financeiro tenta comentar no cartão do Kanban
+    Dado que o usuário está autenticado com o perfil "Financeiro"
+    Quando ele tenta incluir um comentário no cartão do Kanban
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
+
+  Cenário: Comentário vazio é recusado
+    Dado que o usuário está autenticado com qualquer perfil que pode comentar
+    Quando ele tenta enviar um comentário vazio ou com apenas espaços
+    Então o sistema exibe mensagem de erro e não salva o comentário
+```
+
 ### RF-12: Imutabilidade da timeline
 
 - Registros automáticos não podem ser editados nem removidos, por nenhum perfil.
@@ -601,6 +686,31 @@ Funcionalidade: Apuração de custo total da obra
     Dado que o usuário está autenticado com o perfil "Financeiro"
     Quando ele altera um valor financeiro da obra
     Então o sistema grava log irremovível com o ID do usuário e o timestamp
+```
+
+**Critérios de aceite complementares:**
+
+```gherkin
+# language: pt
+@RF-14 @RF-20 @RF-02
+Funcionalidade: Bloqueio de acesso financeiro para instalador
+
+  Cenário: Instalador tenta acessar custo total
+    Dado que o Instalador de Campo está autenticado
+    Quando ele tenta acessar o endpoint de custo total de uma obra
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
+    E registra a tentativa em log de segurança
+
+  Cenário: Instalador tenta acessar o DRE
+    Dado que o Instalador de Campo está autenticado
+    Quando ele tenta acessar o endpoint de DRE de uma obra
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
+    E registra a tentativa em log de segurança
+
+  Cenário: Engenharia tenta registrar custo
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele tenta registrar um custo em uma obra
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
 ```
 
 ### RF-15: Exportação de relatórios e detalhes
@@ -898,6 +1008,215 @@ Funcionalidade: Recuperação e atualização de senha
     Quando ele tenta alterar a senha informando a senha atual incorreta
     Então o sistema rejeita a alteração
     E exibe a mensagem "Senha atual incorreta"
+```
+
+**Critérios de aceite complementares:**
+
+```gherkin
+# language: pt
+@RF-21
+Funcionalidade: Invalidação de sessões após mudança de senha
+
+  Cenário: Tokens ativos expiram após redefinição via link
+    Dado que o usuário "engenharia@zlengenharia.com" tem uma sessão aberta (token A)
+    Quando ele redefine a senha pelo link de recuperação
+    Então o token A passa a ser inválido
+    E qualquer requisição com o token A recebe resposta "401 UNAUTHORIZED"
+
+  Cenário: Tokens ativos expiram após alteração de senha autenticada
+    Dado que o usuário "financeiro@zl.com.br" está autenticado com o token B
+    Quando ele altera a própria senha informando a senha atual correta e uma nova senha válida
+    Então o token B passa a ser inválido
+    E o sistema exige um novo login para continuar
+
+  Cenário: Link de redefinição com senha inválida na política
+    Dado que o usuário possui um link de redefinição válido
+    Quando ele tenta definir a nova senha como "abc123" (sem letra maiúscula)
+    Então o sistema exibe mensagem informando que a senha precisa de ao menos uma letra maiúscula
+    E não atualiza a senha
+
+  Cenário: Tentativa de reutilizar link já utilizado
+    Dado que o usuário já utilizou o link de redefinição para definir uma nova senha
+    Quando ele tenta acessar o mesmo link novamente
+    Então o sistema exibe a mensagem "Link inválido ou expirado"
+    E não permite nova redefinição com esse link
+```
+
+### RF-22: Gestão de usuários (cadastro, listagem e desativação)
+
+**Prioridade:** Must | **Situação:** Pendente
+
+O Administrador lista, cadastra, edita e desativa usuários do sistema. Nenhum outro perfil acessa esta tela ou rota.
+
+- A listagem exibe nome, e-mail, perfil e situação (ativo/inativo).
+- O cadastro exige nome completo, e-mail único e perfil. A equipe é opcional, exceto para Instalador de Campo, que a exige.
+- E-mail duplicado é recusado com mensagem de erro.
+- A senha inicial é gerada automaticamente e enviada por e-mail ao novo usuário (depende do RF-21).
+- Desativar um usuário invalida todos os seus tokens ativos e impede novos logins, sem apagar o registro (exclusão lógica).
+- Reativar um usuário restaura o acesso com nova senha enviada por e-mail.
+- Editar o perfil de um usuário ativo invalida imediatamente os tokens existentes.
+
+**Critérios de aceite:**
+
+```gherkin
+# language: pt
+@RF-22 @UC-05 @UC-06 @UC-07 @UC-09 @UC-37 @UC-38
+Funcionalidade: Gestão de usuários pelo Administrador
+
+  Cenário: Listagem de usuários
+    Dado que o Administrador está autenticado
+    Quando ele acessa a tela de gestão de usuários
+    Então o sistema exibe todos os usuários com nome, e-mail, perfil e situação
+
+  Esquema do Cenário: Administrador cadastra usuário de qualquer perfil
+    Dado que o Administrador está autenticado
+    Quando ele cadastra um usuário com nome, e-mail e o perfil "<perfil>"
+    Então o sistema salva o usuário com status ativo
+    E o token emitido no login desse usuário contém o perfil "<perfil>"
+
+    Exemplos:
+      | perfil              |
+      | Administrador       |
+      | Engenharia          |
+      | Financeiro          |
+
+  Cenário: Cadastro de usuário com perfil Instalador de Campo vinculado à equipe
+    Dado que o Administrador está autenticado
+    E que existe a equipe "Equipe Alpha" cadastrada
+    Quando ele cadastra um novo usuário com nome, e-mail e o perfil "Instalador de Campo" vinculado à "Equipe Alpha"
+    Então o sistema salva o usuário
+    E envia um e-mail com a senha inicial para o endereço cadastrado
+
+  Cenário: Tentativa de cadastro com e-mail duplicado
+    Dado que o e-mail "engenharia@zlengenharia.com" já pertence a outro usuário
+    Quando o Administrador tenta cadastrar um novo usuário com esse mesmo e-mail
+    Então o sistema exibe mensagem de erro e impede o cadastro
+
+  Cenário: Tentativa de cadastro sem e-mail
+    Dado que o Administrador está autenticado
+    Quando ele tenta cadastrar um usuário sem informar o e-mail
+    Então o sistema exibe mensagem de validação e não cria o usuário
+
+  Cenário: Tentativa de cadastro de Instalador de Campo sem equipe
+    Dado que o Administrador está autenticado
+    Quando ele tenta cadastrar um usuário com o perfil "Instalador de Campo" sem selecionar uma equipe
+    Então o sistema exibe mensagem informando que o perfil Instalador de Campo requer uma equipe
+
+  Cenário: Desativação de usuário ativo
+    Dado que o Administrador está autenticado
+    E que existe um usuário ativo com sessão aberta
+    Quando o Administrador desativa esse usuário
+    Então o sistema marca o usuário como inativo
+    E invalida todos os tokens ativos do usuário
+    E o usuário não consegue realizar novas ações autenticadas
+
+  Cenário: Reativação de usuário inativo
+    Dado que o Administrador está autenticado
+    E que existe um usuário inativo
+    Quando o Administrador reativa o usuário
+    Então o sistema marca o usuário como ativo
+    E envia um e-mail com nova senha para o usuário
+
+  Cenário: Edição do perfil de usuário ativo invalida tokens
+    Dado que o Administrador está autenticado
+    E que existe um usuário ativo com sessão aberta com o perfil "Engenharia"
+    Quando o Administrador altera o perfil desse usuário para "Financeiro"
+    Então o sistema invalida todos os tokens ativos do usuário
+    E o usuário precisa fazer login novamente
+
+  Cenário: Perfil sem permissão tenta acessar gestão de usuários
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele tenta acessar a tela ou rota de gestão de usuários
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
+```
+
+### RF-23: Cadastro e listagem de clientes (tela dedicada)
+
+**Prioridade:** Must | **Situação:** Pendente
+
+> **Nota:** O cadastro de clientes já existe como sub-fluxo embutido no cadastro de obras (RF-03). Este RF formaliza a tela/rota independente para gestão de clientes, que estava referenciada no código (`GET /api/clientes`, `POST /api/clientes`) mas sem RF formal.
+
+- A listagem de clientes exibe nome, CPF/CNPJ, cidade e quantidade de obras vinculadas.
+- O cadastro exige nome e CPF/CNPJ; demais campos são opcionais.
+- CPF/CNPJ deve ser válido nos dígitos verificadores e único no sistema.
+- Não é possível excluir um cliente que tenha obras vinculadas (mesmo excluídas logicamente).
+- Administrador e Engenharia acessam essa funcionalidade.
+
+**Critérios de aceite:**
+
+```gherkin
+# language: pt
+@RF-23 @UC-08
+Funcionalidade: Cadastro e listagem de clientes
+
+  Cenário: Listagem de clientes
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele acessa a tela de clientes
+    Então o sistema exibe a lista de clientes com nome, CPF/CNPJ e quantidade de obras
+
+  Cenário: Cadastro de cliente com CPF válido
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele cadastra um cliente com nome "João da Silva" e CPF "529.982.247-25"
+    Então o sistema salva o cliente e o disponibiliza para vínculo com obras
+
+  Cenário: CPF/CNPJ com dígitos verificadores inválidos
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele tenta cadastrar um cliente com CPF "111.111.111-11"
+    Então o sistema exibe mensagem de erro e não salva o cliente
+
+  Cenário: CPF/CNPJ duplicado
+    Dado que o CPF "529.982.247-25" já pertence a outro cliente
+    Quando o usuário tenta cadastrar um segundo cliente com o mesmo CPF
+    Então o sistema exibe mensagem de erro informando que o CPF/CNPJ já está cadastrado
+
+  Cenário: Perfil sem permissão tenta acessar clientes
+    Dado que o usuário está autenticado com o perfil "Financeiro"
+    Quando ele tenta acessar a tela ou rota de clientes
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
+```
+
+### RF-24: Página de erro e estados vazios
+
+**Prioridade:** Should | **Situação:** Pendente
+
+> **Nota:** Derivado do achado UX-15 (severidade 4) e UX-17 da avaliação heurística. Itens de menu que levam a rotas inexistentes causam confusão. Este RF estabelece os comportamentos de fallback obrigatórios.
+
+- Rota não encontrada exibe tela "Página não encontrada" com botão para retornar à tela principal do perfil.
+- Listas vazias exibem mensagem descritiva e, quando o perfil tem permissão, um botão de ação (ex.: "Cadastrar primeira obra").
+- Erros de API exibem mensagem amigável sem expor detalhes técnicos.
+
+**Critérios de aceite:**
+
+```gherkin
+# language: pt
+@RF-24
+Funcionalidade: Estados de erro e listas vazias
+
+  Cenário: Rota inexistente no frontend
+    Dado que o usuário está autenticado
+    Quando ele navega para uma URL que não existe no sistema
+    Então o sistema exibe a tela "Página não encontrada"
+    E exibe um botão para retornar à tela principal do seu perfil
+
+  Cenário: Lista vazia com perfil com permissão de cadastro
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que não existe nenhuma obra cadastrada
+    Quando ele abre o quadro Kanban
+    Então o sistema exibe a mensagem "Nenhuma obra cadastrada"
+    E exibe o botão "Cadastrar primeira obra"
+
+  Cenário: Lista vazia com perfil somente leitura
+    Dado que o usuário está autenticado com o perfil "Financeiro"
+    E que não existe nenhuma obra cadastrada
+    Quando ele abre o quadro Kanban
+    Então o sistema exibe a mensagem "Nenhuma obra cadastrada"
+    E não exibe botão de cadastro
+
+  Cenário: Erro de API exibe mensagem amigável
+    Dado que o serviço de API está indisponível
+    Quando o usuário tenta carregar uma lista de obras
+    Então o sistema exibe mensagem amigável de erro
+    E não exibe stack trace ou detalhes técnicos
 ```
 
 ## Requisitos não funcionais
