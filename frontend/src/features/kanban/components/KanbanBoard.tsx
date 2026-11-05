@@ -24,8 +24,9 @@ import KanbanCardOverlay from "./KanbanCardOverlay";
 import KanbanTaskDrawer from "./KanbanTaskDrawer";
 import ModalConfirmarConclusao from "./ModalConfirmarConclusao";
 import { useMoverCard } from "@/features/kanban/hooks/useMoverCard";
-import { useMateriaisObras } from "@/features/materiais/hooks/useMateriaisObras";
+import { useMateriaisKanbanObras } from "../hooks/useMateriaisKanbanObras";
 import { isObraConcluidaArquivada, calcularStatusGargalo } from "./kanbanUtils";
+import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { cn } from "@/shared/lib/utils";
 
 interface KanbanBoardProps {
@@ -98,7 +99,7 @@ export default function KanbanBoard({
   );
 
   const obraIds = useMemo(() => obras.map((o) => Number(o.id)), [obras]);
-  const { mapaMateriais } = useMateriaisObras(obraIds);
+  const { mapaMateriais, isError: erroMateriais, refetchErros } = useMateriaisKanbanObras(obraIds);
 
   // Destinos válidos calculados dinamicamente durante o arraste (UX-07)
   const destinosValidos = useMemo(() => {
@@ -133,7 +134,8 @@ export default function KanbanBoard({
 
       // 3. Filtro Logístico de Materiais (RF-06)
       if (materialFiltro && materialFiltro !== "Todos") {
-        const mats = mapaMateriais.get(Number(obra.id)) || [];
+        const mats = mapaMateriais.get(Number(obra.id));
+        if (!mats) return false;
         const statusGargalo = calcularStatusGargalo(mats, obra.status);
         if (materialFiltro === "Comprado") {
           if (statusGargalo !== "Comprado") return false;
@@ -416,6 +418,7 @@ export default function KanbanBoard({
       onDragCancel={handleDragCancel}
     >
       <div className="w-full space-y-4">
+        {erroMateriais && <FeedbackErro mensagem="Não foi possível carregar os materiais de algumas obras." onTentarNovamente={() => void refetchErros()} />}
         {/* Seletor de Colunas para Telas Mobile (RNF-01 / UX-09) */}
         <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-2 mb-2 custom-scrollbar">
           {COLUNAS_KANBAN.map((col) => (

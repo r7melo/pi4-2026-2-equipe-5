@@ -109,7 +109,7 @@ export default memo(function KanbanCard({
   };
 
   const statusMaterial = useMemo(() => {
-    return calcularStatusGargalo(materiaisObra, card.status);
+    return materiaisObra ? calcularStatusGargalo(materiaisObra, card.status) : undefined;
   }, [materiaisObra, card.status]);
 
   const proximosStatusValidos = useMemo(() => {

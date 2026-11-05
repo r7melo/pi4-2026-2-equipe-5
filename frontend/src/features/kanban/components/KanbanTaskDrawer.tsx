@@ -413,7 +413,7 @@ export default function KanbanTaskDrawer({
 
             {/* ABA 2: MATERIAIS */}
             {abaAtiva === "materiais" && (
-              <AbaMateriais obraId={obraId} somenteLeitura={!canEdit} />
+              <AbaMateriais key={obraId} obraId={obraId} somenteLeitura={!canEdit} />
             )}
 
             {/* ABA 3: HISTÓRICO */}

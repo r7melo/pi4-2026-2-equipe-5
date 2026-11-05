@@ -1,96 +1,77 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
-import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
-import {
-  listarMateriais,
-  registrarMaterial,
-  atualizarMaterial,
-  atualizarStatusMaterial,
-  removerMaterial,
-} from "@/features/kanban/services/kanbanMateriais";
-import type { Material, CriarMaterialPayload, StatusLogistico } from "@/types";
-import { toast } from "sonner";
+import { exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
+import { listarMateriais, registrarMaterial, atualizarMaterial, atualizarStatusMaterial, removerMaterial } from "../services/kanbanMateriais";
+import type { CriarMaterialPayload } from "@/types";
+import type { AlterarMaterial, AlterarStatusMaterial, ExcluirMaterial, LoteMateriais } from "../types/gestaoMateriais";
 
 export function useMateriais(obraId: number) {
-  return useQuery({
-    queryKey: ["materiais", obraId],
-    queryFn: () => listarMateriais(obraId),
-    staleTime: 1000 * 30,
-    enabled: !!obraId,
-  });
+  return useQuery({ queryKey: ["materiais", obraId], queryFn: ({ signal }) => listarMateriais(obraId, undefined, signal), staleTime: 30_000, enabled: obraId > 0 });
 }
 
+function useInvalidarMateriais() {
+  const client = useQueryClient();
+  // O prefixo também cobre ["materiais", obraId], inclusive outros consumidores.
+  return () => client.invalidateQueries({ queryKey: ["materiais"] });
+}
 export function useAdicionarMaterial() {
-  const queryClient = useQueryClient();
-
+  const invalidar = useInvalidarMateriais();
   return useMutation({
-    mutationFn: ({ obraId, payload }: { obraId: number; payload: CriarMaterialPayload | Omit<Material, "id" | "obraId"> }, sessao) =>
-      registrarMaterial(obraId, payload, sessao),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
-      void queryClient.invalidateQueries({ queryKey: ["materiais"] });
-      toast.success("Material registrado com sucesso");
+    mutationKey: ["materiais"],
+    mutationFn: async ({ obraId, payload }: { obraId: number; payload: CriarMaterialPayload }, sessao) => {
+      const data = await registrarMaterial(obraId, payload, sessao);
+      exigirSessaoOperacional(sessao);
+      return data;
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao registrar material");
-    },
+    onSuccess: invalidar,
   });
 }
-
 export function useAtualizarMaterial() {
-  const queryClient = useQueryClient();
-
+  const invalidar = useInvalidarMateriais();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<Omit<Material, "id" | "obraId">> }, sessao) =>
-      atualizarMaterial(id, payload, sessao),
-    onSuccess: (data) => {
-      if (data?.obraId) {
-        void queryClient.invalidateQueries({ queryKey: ["materiais", data.obraId] });
-      }
-      void queryClient.invalidateQueries({ queryKey: ["materiais"] });
+    mutationKey: ["materiais"],
+    mutationFn: async ({ id, payload }: AlterarMaterial, sessao) => {
+      const data = await atualizarMaterial(id, payload, sessao);
+      exigirSessaoOperacional(sessao);
+      return data;
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao atualizar material");
-    },
+    onSuccess: invalidar,
   });
 }
-
 export function useAtualizarStatusMaterial() {
-  const queryClient = useQueryClient();
-
+  const invalidar = useInvalidarMateriais();
   return useMutation({
-    mutationFn: ({ id, statusLogistico, obraId: _obraId }: { id: number; statusLogistico: StatusLogistico; obraId?: number }, sessao) =>
-      atualizarStatusMaterial(id, statusLogistico, sessao),
-    onSuccess: (data, variables) => {
-      const oid = data?.obraId || variables.obraId;
-      if (oid) {
-        void queryClient.invalidateQueries({ queryKey: ["materiais", oid] });
-      }
-      void queryClient.invalidateQueries({ queryKey: ["materiais"] });
+    mutationKey: ["materiais"],
+    mutationFn: async ({ id, statusLogistico }: AlterarStatusMaterial, sessao) => {
+      const data = await atualizarStatusMaterial(id, statusLogistico, sessao);
+      exigirSessaoOperacional(sessao);
+      return data;
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao alterar status do material");
-    },
+    onSuccess: invalidar,
   });
 }
-
-export function useRemoverMaterial() {
-  const queryClient = useQueryClient();
-
+export function useLoteMateriais() {
+  const invalidar = useInvalidarMateriais();
   return useMutation({
-    mutationFn: ({ id, obraId: _obraId }: { id: number; obraId: number }, sessao) =>
-      removerMaterial(id, sessao),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
-      void queryClient.invalidateQueries({ queryKey: ["materiais"] });
-      toast.success("Material removido com sucesso");
+    mutationKey: ["materiais"],
+    mutationFn: async (lote: LoteMateriais, sessao) => {
+      const resultados = await Promise.allSettled(lote.ids.map(id => lote.acao === "excluir"
+        ? removerMaterial(id, sessao)
+        : atualizarStatusMaterial(id, lote.statusLogistico, sessao)));
+      exigirSessaoOperacional(sessao);
+      return resultados;
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao remover material");
+    onSuccess: invalidar,
+  });
+}
+export function useRemoverMaterial() {
+  const invalidar = useInvalidarMateriais();
+  return useMutation({
+    mutationKey: ["materiais"],
+    mutationFn: async ({ id }: ExcluirMaterial, sessao) => {
+      await removerMaterial(id, sessao);
+      exigirSessaoOperacional(sessao);
     },
+    onSuccess: invalidar,
   });
 }

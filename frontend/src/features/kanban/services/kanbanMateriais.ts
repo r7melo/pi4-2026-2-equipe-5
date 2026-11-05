@@ -1,45 +1,53 @@
 import { api } from "@/shared/api/api";
+import { capturarSessaoOperacional, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import type { Material, CriarMaterialPayload, StatusLogistico } from "@/types";
+import type { AtualizarMaterialPayload } from "../types/gestaoMateriais";
 
-/** GET /api/obras/{obraId}/materiais — Rota #15 do Contrato */
-export async function listarMateriais(obraId: number): Promise<Material[]> {
-  const { data } = await api.get<Material[]>(`/obras/${obraId}/materiais`);
-  return data;
+async function executarNaSessao<T>(sessao: number | undefined, acao: (origem: number) => Promise<T>): Promise<T> {
+  const origem = sessao ?? capturarSessaoOperacional();
+  exigirSessaoOperacional(origem);
+  try {
+    const data = await acao(origem);
+    exigirSessaoOperacional(origem);
+    return data;
+  } catch (erro) {
+    // Também descartar 400/500 antigos antes dos callbacks de erro dos hooks.
+    exigirSessaoOperacional(origem);
+    throw erro;
+  }
 }
 
-/** POST /api/obras/{obraId}/materiais — Rota #16 do Contrato */
-export async function registrarMaterial(
-  obraId: number,
-  payload: CriarMaterialPayload | Omit<Material, "id" | "obraId">,
-  sessao403?: number
-): Promise<Material> {
-  const { data } = await api.post<Material>(`/obras/${obraId}/materiais`, payload, { sessao403 });
-  return data;
+/** GET /api/obras/{obraId}/materiais — Rota #18. */
+export function listarMateriais(obraId: number, sessao?: number, signal?: AbortSignal): Promise<Material[]> {
+  return executarNaSessao(sessao, async origem => {
+    const { data } = await api.get<Material[]>(`/obras/${obraId}/materiais`, { sessao403: origem, politica401: "sessao", suprimirToast403: true, signal });
+    return data;
+  });
 }
 
-/** PATCH /api/materiais/{id} — Rota #17 do Contrato: Alteração de dados cadastrais */
-export async function atualizarMaterial(
-  id: number,
-  payload: Partial<Omit<Material, "id" | "obraId">>,
-  sessao403?: number
-): Promise<Material> {
-  const { data } = await api.patch<Material>(`/materiais/${id}`, payload, { sessao403 });
-  return data;
+/** POST /api/obras/{obraId}/materiais — Rota #19. */
+export function registrarMaterial(obraId: number, payload: CriarMaterialPayload, sessao?: number): Promise<Material> {
+  return executarNaSessao(sessao, async origem => {
+    const { data } = await api.post<Material>(`/obras/${obraId}/materiais`, payload, { sessao403: origem, politica401: "sessao", suprimirToast403: true });
+    return data;
+  });
 }
 
-/** PATCH /api/materiais/{id} — Rota #17 do Contrato: Alteração rápida de status logístico */
-export async function atualizarStatusMaterial(
-  id: number,
-  statusLogistico: StatusLogistico,
-  sessao403?: number
-): Promise<Material> {
-  return atualizarMaterial(id, { statusLogistico }, sessao403);
+/** PATCH /api/materiais/{id} — Rota #20 para status; tipo/quantidade são extensão proposta, backend pendente. */
+export function atualizarMaterial(id: number, payload: AtualizarMaterialPayload, sessao?: number): Promise<Material> {
+  return executarNaSessao(sessao, async origem => {
+    const { data } = await api.patch<Material>(`/materiais/${id}`, payload, { sessao403: origem, politica401: "sessao", suprimirToast403: true });
+    return data;
+  });
 }
 
-/** DELETE /api/materiais/{id} — Remoção de insumo da obra */
-export async function removerMaterial(
-  id: number,
-  sessao403?: number
-): Promise<void> {
-  await api.delete(`/materiais/${id}`, { sessao403 });
+export function atualizarStatusMaterial(id: number, statusLogistico: StatusLogistico, sessao?: number): Promise<Material> {
+  return atualizarMaterial(id, { statusLogistico }, sessao);
+}
+
+/** DELETE /api/materiais/{id} — Extensão proposta, backend pendente. */
+export function removerMaterial(id: number, sessao?: number): Promise<void> {
+  return executarNaSessao(sessao, async origem => {
+    await api.delete(`/materiais/${id}`, { sessao403: origem, politica401: "sessao", suprimirToast403: true });
+  });
 }

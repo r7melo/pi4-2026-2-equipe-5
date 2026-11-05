@@ -54,7 +54,7 @@ export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCa
                 getStatusMaterialBadgeStyle(statusMaterial)
               )}
             >
-              {statusMaterial === "EmTransito" ? "Em trânsito" : statusMaterial}
+              {statusMaterial === "EmTransito" ? "Em trânsito" : statusMaterial === "Disponivel" ? "Disponível" : statusMaterial}
             </span>
           )}
         </div>

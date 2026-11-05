@@ -22,7 +22,7 @@ export function atualizarMaterialArmazenado(id: number, payload: Partial<Materia
   const materiais = obterMateriaisArmazenados();
   const idx = materiais.findIndex(m => m.id === id);
   if (idx === -1) return undefined;
-  const atualizado = { ...materiais[idx], ...payload, id };
+  const atualizado = { ...materiais[idx], ...payload, id, obraId: materiais[idx].obraId };
   materiais[idx] = atualizado;
   armazenamentoCenario.setItem(STORAGE_KEY_MAT, JSON.stringify(materiais));
   return atualizado;

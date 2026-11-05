@@ -1,13 +1,17 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useLayoutEffect } from "react";
 import { Link } from "react-router";
 import {
   useMateriais,
   useAdicionarMaterial,
   useAtualizarMaterial,
   useAtualizarStatusMaterial,
-  useRemoverMaterial,
+  useLoteMateriais,
 } from "@/features/kanban/hooks/useKanbanMateriais";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
+import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
+import { EmptyState } from "@/shared/components/feedback/EmptyState";
+import { capturarSessaoOperacional, sessaoOperacionalVigente, deveExibirErroLocal, statusHttp } from "@/shared/lib/sessaoOperacao";
+import type { LoteMateriais } from "../types/gestaoMateriais";
 import type { Material, StatusLogistico } from "@/types";
 import {
   ExternalLink,
@@ -19,9 +23,6 @@ import {
   Truck,
   CheckCircle,
   Wrench,
-  Package,
-  PackagePlus,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
@@ -32,16 +33,30 @@ interface AbaMateriaisProps {
   somenteLeitura?: boolean;
 }
 
-export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisProps) {
-  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
-  const isFinanceiro = perfil === "Financeiro";
-  const podeEditar = !somenteLeitura && !isFinanceiro && (perfil === "Administrador" || perfil === "Engenharia");
+export function AbaMateriais({ obraId, somenteLeitura = true }: AbaMateriaisProps) {
+  // A permissão vem do Drawer protegido; o componente não depende da feature auth.
+  const podeEditar = !somenteLeitura;
 
-  const { data: materiais, isLoading } = useMateriais(obraId);
+  const { data: materiais, isLoading, isError, refetch } = useMateriais(obraId);
   const { mutateAsync: adicionarMaterial, isPending: criando } = useAdicionarMaterial();
   const { mutateAsync: atualizarMaterial, isPending: editando } = useAtualizarMaterial();
   const { mutateAsync: atualizarStatus, isPending: mudandoStatus } = useAtualizarStatusMaterial();
-  const { mutateAsync: removerMaterial, isPending: removendo } = useRemoverMaterial();
+  const { mutateAsync: executarLote, isPending: lotePendente } = useLoteMateriais();
+  const ocupado = criando || editando || mudandoStatus || lotePendente;
+  const trava = useRef(false);
+  const montado = useRef(true);
+  useLayoutEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
+  const iniciar = () => {
+    if (!podeEditar || ocupado || trava.current) return undefined;
+    trava.current = true;
+    return capturarSessaoOperacional();
+  };
+  const vigente = (sessao: number) => montado.current && sessaoOperacionalVigente(sessao);
+  const informarErroLocal = (erro: unknown, sessao: number) => {
+    if (vigente(sessao) && deveExibirErroLocal(erro)) toast.error(statusHttp(erro) === 403
+      ? "Você não possui permissão para realizar esta ação."
+      : "Não foi possível salvar os materiais. Tente novamente.");
+  };
 
   const [itensSelecionados, setItensSelecionados] = useState<Set<number>>(new Set());
   const [formularioAberto, setFormularioAberto] = useState(false);
@@ -90,7 +105,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
   const abrirFormEdicao = (mat: Material) => {
     setItemEmEdicao(mat);
     setFormTipo(mat.tipo || mat.descricao || "");
-    setFormQuantidade(String(mat.quantidade || 1));
+    setFormQuantidade(String(mat.quantidade));
     setFormStatus(mat.statusLogistico || "Comprado");
     setFormularioAberto(true);
   };
@@ -103,63 +118,69 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
   const handleSalvarFormulario = async (e: React.FormEvent) => {
     e.preventDefault();
     const tipo = formTipo.trim();
-    const qtd = parseInt(formQuantidade, 10);
-    if (!tipo) {
+    const qtd = Number(formQuantidade);
+    if (!tipo || tipo.length > 200) {
       toast.error("Informe o nome ou tipo do insumo.");
       return;
     }
-    if (isNaN(qtd) || qtd <= 0) {
+    if (!Number.isSafeInteger(qtd) || qtd <= 0) {
       toast.error("A quantidade deve ser um número maior que zero.");
       return;
     }
 
+    const sessao = iniciar();
+    if (sessao === undefined) return;
     try {
       if (itemEmEdicao) {
         await atualizarMaterial({
           id: itemEmEdicao.id,
           payload: { tipo, quantidade: qtd, statusLogistico: formStatus },
         });
-        toast.success(`Insumo "${tipo}" atualizado com sucesso`);
+        if (vigente(sessao)) toast.success(`Insumo "${tipo}" atualizado com sucesso`);
       } else {
         await adicionarMaterial({
           obraId,
           payload: { tipo, quantidade: qtd, statusLogistico: formStatus },
         });
       }
-      fecharFormulario();
-    } catch {
-      // Erro tratado no hook
-    }
+      if (vigente(sessao)) {
+        if (!itemEmEdicao) toast.success("Material registrado com sucesso");
+        fecharFormulario();
+      }
+    } catch (erro) { informarErroLocal(erro, sessao); }
+    finally { trava.current = false; }
   };
 
   const handleAlterarStatusIndividual = async (id: number, novoStatus: StatusLogistico) => {
+    const sessao = iniciar();
+    if (sessao === undefined) return;
     try {
       await atualizarStatus({ id, statusLogistico: novoStatus, obraId });
-      toast.success("Status do insumo atualizado com sucesso");
-    } catch {
-      // Erro tratado no hook
-    }
+      if (vigente(sessao)) toast.success("Status do insumo atualizado com sucesso");
+    } catch (erro) { informarErroLocal(erro, sessao); }
+    finally { trava.current = false; }
   };
 
-  const handleAplicarStatusEmLote = async (novoStatus: StatusLogistico) => {
-    if (itensSelecionados.size === 0) return;
-    const ids = Array.from(itensSelecionados);
-    const promessas = ids.map((id) => atualizarStatus({ id, statusLogistico: novoStatus, obraId }));
-    const resultados = await Promise.allSettled(promessas);
-
-    const sucessos = resultados.filter((r) => r.status === "fulfilled").length;
-    const falhas = resultados.filter((r) => r.status === "rejected").length;
-
-    if (falhas === 0) {
-      toast.success(`${sucessos} insumos atualizados com sucesso`);
-      limparSelecao();
-    } else {
-      toast.warning(`${sucessos} atualizados com sucesso. ${falhas} falharam.`);
-      // Mantém selecionados apenas os que falharam
-      const falhados = ids.filter((_, idx) => resultados[idx].status === "rejected");
+  const processarLote = async (lote: LoteMateriais) => {
+    const sessao = iniciar();
+    if (sessao === undefined) return;
+    if (lote.ids.length === 0) { trava.current = false; return; }
+    try {
+      const resultados = await executarLote(lote);
+      if (!vigente(sessao)) return;
+      const falhados = lote.ids.filter((_, i) => resultados[i].status === "rejected");
+      const sucessos = lote.ids.length - falhados.length;
       setItensSelecionados(new Set(falhados));
-    }
+      if (falhados.length) toast.warning(`${sucessos} concluídos. ${falhados.length} falharam. Tente novamente os itens selecionados.`);
+      else toast.success(lote.acao === "excluir" ? "Insumos removidos com sucesso" : "Insumos atualizados com sucesso");
+      setDialogoExclusaoAberto(false);
+      setIdsParaExcluir([]);
+    } catch (erro) { informarErroLocal(erro, sessao); }
+    finally { trava.current = false; }
   };
+
+  const handleAplicarStatusEmLote = (statusLogistico: StatusLogistico) =>
+    processarLote({ ids: Array.from(itensSelecionados), obraId, acao: "status", statusLogistico });
 
   const solicitarExclusaoIndividual = (id: number) => {
     setIdsParaExcluir([id]);
@@ -172,32 +193,15 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
     setDialogoExclusaoAberto(true);
   };
 
-  const executarExclusao = async () => {
-    try {
-      await Promise.all(idsParaExcluir.map((id) => removerMaterial({ id, obraId })));
-      setItensSelecionados((prev) => {
-        const next = new Set(prev);
-        idsParaExcluir.forEach((id) => next.delete(id));
-        return next;
-      });
-      setDialogoExclusaoAberto(false);
-      setIdsParaExcluir([]);
-    } catch {
-      toast.error("Erro ao remover insumo(s).");
-    }
-  };
+  const executarExclusao = () => processarLote({ ids: [...idsParaExcluir], obraId, acao: "excluir" });
 
-  if (isLoading) {
-    return (
-      <div className="py-12 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-        <span>Carregando insumos da obra...</span>
-      </div>
-    );
-  }
+  if (isLoading) return <FeedbackLoading mensagem="Carregando insumos da obra..." />;
+  if (isError) return <FeedbackErro mensagem="Não foi possível carregar os materiais da obra." onTentarNovamente={() => void refetch()} />;
 
   return (
-    <div className="flex flex-col relative pb-20">
+    <div className="flex flex-col relative pb-20" aria-busy={ocupado}>
+      {lotePendente && <p role="status" className="text-xs text-muted-foreground">Processando materiais...</p>}
+      <fieldset disabled={ocupado} className="min-w-0 border-0 p-0 m-0">
       {/* 1. Cabeçalho de Controle e Ações da Aba */}
       <div className="flex items-center justify-between px-1.5 py-1 mb-2">
         <div className="flex items-center gap-2">
@@ -249,7 +253,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
                 "w-7 h-7 rounded-md flex items-center justify-center transition-colors cursor-pointer",
                 formularioAberto
                   ? "bg-surface-subtle text-foreground-muted hover:bg-muted border border-border-subtle"
-                  : "bg-primary text-white hover:bg-primary-hover shadow-xs"
+                  : "bg-primary text-primary-foreground hover:bg-primary-hover shadow-xs"
               )}
               title={formularioAberto ? "Fechar formulário" : "Adicionar novo insumo"}
               aria-label={formularioAberto ? "Fechar formulário" : "Adicionar novo insumo"}
@@ -288,6 +292,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
                 id="formTipoInput"
                 type="text"
                 required
+                maxLength={200}
                 value={formTipo}
                 onChange={(e) => setFormTipo(e.target.value)}
                 placeholder="Ex: Módulos Fotovoltaicos 550W"
@@ -332,7 +337,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
             <button
               type="submit"
               disabled={criando || editando}
-              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary-hover disabled:opacity-50 transition-colors cursor-pointer"
+              className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-50 transition-colors cursor-pointer"
             >
               {criando || editando ? "Salvando..." : itemEmEdicao ? "Salvar Alterações" : "Cadastrar Insumo"}
             </button>
@@ -342,23 +347,8 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
 
       {/* 3. Listagem de Itens ou Estado Vazio */}
       {listaMateriais.length === 0 ? (
-        <div className="py-10 px-4 flex flex-col items-center justify-center text-center gap-2 border border-dashed border-border-subtle rounded-xl bg-surface-subtle/40">
-          <Package className="w-8 h-8 text-muted-foreground/60 stroke-[1.5]" />
-          <p className="text-xs font-semibold text-foreground">Nenhum insumo cadastrado nesta obra</p>
-          <p className="text-xs text-muted-foreground max-w-xs">
-            Adicione insumos para habilitar o controle logístico e o cálculo automático de gargalo no Kanban.
-          </p>
-          {podeEditar && (
-            <button
-              type="button"
-              onClick={abrirFormCriacao}
-              className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary-hover inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <PackagePlus className="w-3.5 h-3.5" />
-              <span>Adicionar Primeiro Insumo</span>
-            </button>
-          )}
-        </div>
+        <EmptyState titulo="Nenhum insumo cadastrado nesta obra" descricao="Adicione insumos para acompanhar os materiais da obra."
+          acao={podeEditar ? { label: "Adicionar primeiro insumo", onClick: abrirFormCriacao } : undefined} />
       ) : (
         <div className="flex flex-col divide-y divide-border-subtle/60">
           {listaMateriais.map((mat) => {
@@ -366,6 +356,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
             return (
               <div
                 key={mat.id}
+                data-material-id={mat.id}
                 className={cn(
                   "py-2 px-1.5 flex items-center justify-between gap-2.5 transition-colors group",
                   isSelected && "bg-info-light/40 rounded-md"
@@ -423,7 +414,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
                         mat.statusLogistico === "Utilizado" && "bg-muted text-foreground-muted border-border-subtle"
                       )}
                     >
-                      {mat.statusLogistico === "EmTransito" ? "Em trânsito" : mat.statusLogistico}
+                      {mat.statusLogistico === "EmTransito" ? "Em trânsito" : mat.statusLogistico === "Disponivel" ? "Disponível" : mat.statusLogistico || "Comprado"}
                     </span>
                   )}
 
@@ -467,7 +458,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
             <button
               type="button"
               onClick={() => handleAplicarStatusEmLote("Comprado")}
-              className="w-7 h-7 rounded-full border border-warning-border bg-warning-light text-warning hover:bg-warning hover:text-white flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
+              className="w-7 h-7 rounded-full border border-warning-border bg-warning-light text-warning hover:bg-warning hover:text-primary-foreground flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
               title="Definir selecionados como Comprado"
               aria-label="Definir selecionados como Comprado"
             >
@@ -477,7 +468,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
             <button
               type="button"
               onClick={() => handleAplicarStatusEmLote("EmTransito")}
-              className="w-7 h-7 rounded-full border border-info-border bg-info-light text-info hover:bg-info hover:text-white flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
+              className="w-7 h-7 rounded-full border border-info-border bg-info-light text-info hover:bg-info hover:text-primary-foreground flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
               title="Definir selecionados como Em trânsito"
               aria-label="Definir selecionados como Em trânsito"
             >
@@ -487,7 +478,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
             <button
               type="button"
               onClick={() => handleAplicarStatusEmLote("Disponivel")}
-              className="w-7 h-7 rounded-full border border-success-border bg-success-light text-success hover:bg-success hover:text-white flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
+              className="w-7 h-7 rounded-full border border-success-border bg-success-light text-success hover:bg-success hover:text-primary-foreground flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
               title="Definir selecionados como Disponível"
               aria-label="Definir selecionados como Disponível"
             >
@@ -497,7 +488,7 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
             <button
               type="button"
               onClick={() => handleAplicarStatusEmLote("Utilizado")}
-              className="w-7 h-7 rounded-full border border-border-subtle bg-muted text-foreground-muted hover:bg-foreground-muted hover:text-white flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
+              className="w-7 h-7 rounded-full border border-border-subtle bg-muted text-foreground-muted hover:bg-foreground-muted hover:text-primary-foreground flex items-center justify-center transition-all hover:scale-105 cursor-pointer"
               title="Definir selecionados como Utilizado"
               aria-label="Definir selecionados como Utilizado"
             >
@@ -531,10 +522,12 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
         </nav>
       )}
 
+      </fieldset>
       {/* Diálogo de Confirmação para Exclusão */}
       <ConfirmDialog
         isOpen={dialogoExclusaoAberto}
-        onClose={() => setDialogoExclusaoAberto(false)}
+        confirmarBloqueado={ocupado}
+        onClose={() => { if (!ocupado) setDialogoExclusaoAberto(false); }}
         titulo={idsParaExcluir.length > 1 ? "Excluir insumos selecionados?" : "Excluir insumo?"}
         descricao={
           idsParaExcluir.length > 1
@@ -543,7 +536,8 @@ export function AbaMateriais({ obraId, somenteLeitura = false }: AbaMateriaisPro
         }
         labelConfirmar="Excluir"
         labelCancelar="Cancelar"
-        isLoading={removendo}
+        isLoading={lotePendente}
+        gerenciarFoco
         variant="danger"
         onConfirm={executarExclusao}
       />
