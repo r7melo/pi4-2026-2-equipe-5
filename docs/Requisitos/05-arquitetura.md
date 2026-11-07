@@ -69,11 +69,12 @@ flowchart TB
 | Módulo | Componentes | Responsabilidade |
 | :---- | :---- | :---- |
 | Autenticação | `AuthController`, `AuthService`, `AuthorizationMiddleware` | Login, emissão de JWT, validação de token e perfil |
-| Obras e Kanban | `ObraController`, `ClienteController`, `ComentarioController`, `RegrasTransicaoService`, `SyncService` | Cadastro, status, cartões, comentários e sincronização |
-| Gantt e equipes | `EquipeController`, `GanttController`, `DuracaoService`, `GanttService` | Equipes, alocação, duração, dias úteis e propagação |
-| Financeiro | `FinanceiroController`, `CustoService`, `DREController`, `DREService`, `RelatorioController`, `ExportService` | Custos, DRE e exportação |
+| Obras, clientes e Kanban | `ObraController`, `ClienteController`, `ComentarioController`, `RegrasTransicaoService`, `SyncService` | Gestão de obras (página Obras), clientes, status do Kanban, comentários e sincronização |
+| Materiais | `MaterialController`, `ProdutoController` | Inclusão de materiais a partir de produtos e status logístico (Financeiro e Administrador alteram) |
+| Gantt e responsáveis | `GanttController`, `DuracaoService`, `GanttService` | Programação de obras, responsáveis (via `ObraController`), duração, dias úteis e propagação |
+| Financeiro | `FinanceiroController`, `CustoService`, `DREController`, `DREService`, `RelatorioController`, `ExportService`, `ProdutoController` | Valores da obra, custos, DRE, catálogo de produtos e exportação. Único módulo com campos de valor |
 | Timeline e auditoria | `HistoricoController`, `RegistroAcaoService`, `AuditLogService` | Registros de ação e log imutável |
-| Instalador | `InstaladorController`, `ManutencaoController` | Instalações da equipe, manutenção, rota |
+| Instalador | `InstaladorController`, `ManutencaoController` | Instalações das obras em que o usuário é responsável, manutenção, rota |
 | Público | `CronogramaPublicoController` | Cronograma por token, somente leitura |
 | Notificação | `EmailService`, `ObraStatusEventHandler` | E-mail de conclusão, de forma assíncrona |
 
@@ -81,11 +82,12 @@ flowchart TB
 
 | Componente | Responsabilidade | Fonte de dados |
 | :---- | :---- | :---- |
-| `KanbanBoard`, `KanbanCard`, `KanbanColumn` | Quadro, cartões e arraste | React Query (obras) |
-| `GanttView`, `GanttNovaAlocacaoModal` | Barras por equipe, alocação e reordenação | React Query (programações) |
-| `CadastrarObra` | Formulário de obra | Mutação de obra |
-| Tela financeira | Custos, DRE e exportação | React Query (custos) |
-| Tela do instalador | Instalações do dia e rota | React Query (instalador) |
+| `KanbanBoard`, `KanbanCard`, `KanbanColumn` | Quadro, cartões, arraste livre (sem destaque de colunas) e resumo do cartão sem valores | React Query (obras) |
+| `ObrasPage`, `ObraDetalhe` | Gestão oficial de obras: listagem, edição, materiais, comentários e linha do tempo | React Query (obras, materiais) |
+| `GanttView`, `GanttNovaAlocacaoModal` | Barras de programação, responsáveis ocupados no período e reordenação | React Query (programações, responsáveis) |
+| `CadastrarObra` | Formulário de obra, sem campos de valor; seletor de cliente existente | Mutação de obra e lista de clientes |
+| Tela financeira | Valor da obra, custos, DRE, catálogo de produtos e exportação | React Query (custos, produtos) |
+| Tela do instalador | Instalações do dia e rota, sem preços | React Query (instalador) |
 | `RouteGuard` | Proteção de rotas por perfil | Sessão (Zustand) |
 
 ## 5. Stack
@@ -118,7 +120,7 @@ flowchart TB
 
 **Autenticação.** JWT assinado, com expiração configurável por `JWT_EXPIRES_MINUTES`. Senhas com hash bcrypt. Bloqueio temporário após 5 falhas consecutivas. Mensagem de erro de login genérica.
 
-**Autorização.** Middleware valida token e perfil em toda rota protegida. O frontend oculta ações, mas a decisão é sempre do servidor. Instalador só acessa dados da própria equipe, filtrados no servidor.
+**Autorização.** Middleware valida token e perfil em toda rota protegida. O frontend oculta ações, mas a decisão é sempre do servidor. Instalador só acessa obras em que é responsável, filtradas no servidor. Os DTOs de Engenharia e Instalador não incluem campos de valor (ADR-014).
 
 **Transporte.** HTTPS obrigatório (TLS 1.2+). Nenhuma rota HTTP em produção.
 
@@ -130,7 +132,8 @@ flowchart TB
 | :---- | :---- | :---- |
 | Força bruta no login | Tentativas repetidas de senha | Bloqueio após 5 falhas; mensagem genérica |
 | Elevação de privilégio | Instalador chama mudança de status | RBAC em toda rota |
-| Acesso a objeto de outro usuário | Obra de outra equipe por ID | Filtro por equipe no servidor |
+| Acesso a objeto de outro usuário | Obra sem vínculo de responsável, por ID | Filtro por responsável no servidor |
+| Vazamento de valores | Engenharia lê preço ou valor da obra pela API | Campos de valor fora dos DTOs de Engenharia e Instalador; RBAC no servidor |
 | Link vazado | Cronograma compartilhado | Token com expiração e revogação; sem dados financeiros |
 | Alteração sem rastro | Mudança de custo sem autor | `audit_log` append-only |
 

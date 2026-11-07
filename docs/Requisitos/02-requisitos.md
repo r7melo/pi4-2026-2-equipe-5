@@ -2,17 +2,19 @@
 
 Prioridades seguem MoSCoW (Must, Should, Could, Won't). A coluna **Situação** indica o estado de implementação na data de atualização deste documento. Os valores são: Concluído, Em andamento, Pendente e Fora do escopo. Os critérios de aceite de cada requisito funcional estão escritos em Gherkin (Dado/Quando/Então), em português.
 
+> **Revisão de 07/11/2026:** equipes foram substituídas por responsáveis da obra; valores foram isolados no módulo financeiro; a página Obras foi separada do Kanban; materiais passam a sair de um catálogo de produtos. Os achados do teste funcional da mesma data estão tratados em RF-03, RF-21, RF-22 e RF-23. Decisões pendentes estão em [Visão de negócio](01-visao-negocio.md#questões-em-aberto) (Q9 a Q13).
+
 ## Requisitos funcionais
 
 | ID | Requisito | Prioridade | Situação |
 | :---- | :---- | :---- | :---- |
 | RF-01 | Autenticação e gestão de perfis | Must | Concluído |
 | RF-02 | Autorização por perfil (RBAC) | Must | Concluído |
-| RF-03 | Cadastro de clientes e gestão de obras | Must | Em andamento |
-| RF-04 | Funil Kanban | Must | Em andamento |
+| RF-03 | Gestão de obras (página Obras) | Must | Em andamento |
+| RF-04 | Funil Kanban (visualização e movimentação) | Must | Em andamento |
 | RF-05 | Raia de assistência e manutenção | Should | Pendente |
-| RF-06 | Status de material | Should | Em andamento |
-| RF-07 | Equipes e alocação no Gantt | Must | Em andamento |
+| RF-06 | Materiais da obra e status de material | Should | Em andamento |
+| RF-07 | Responsáveis da obra e programação no Gantt | Must | Em andamento |
 | RF-08 | Estimativa de duração | Should | Em andamento |
 | RF-09 | Reordenação e propagação de atrasos | Must | Em andamento |
 | RF-10 | Sincronização Gantt e Kanban | Should | Pendente |
@@ -28,8 +30,10 @@ Prioridades seguem MoSCoW (Must, Should, Could, Won't). A coluna **Situação** 
 | RF-20 | DRE da obra | Must | Pendente |
 | RF-21 | Recuperação e atualização de senha | Should | Pendente |
 | RF-22 | Gestão de usuários (cadastro, listagem e desativação) | Must | Pendente |
-| RF-23 | Cadastro e listagem de clientes (tela dedicada) | Must | Pendente |
+| RF-23 | Gestão de clientes (tela dedicada: cadastro, listagem, edição e exclusão) | Must | Pendente |
 | RF-24 | Página de erro e estados vazios | Should | Pendente |
+| RF-25 | Catálogo de produtos e preços | Must | Pendente |
+| RF-26 | Isolamento de valores no módulo financeiro | Must | Pendente |
 
 ### RF-01: Autenticação e gestão de perfis
 
@@ -44,7 +48,7 @@ O sistema autentica por e-mail e senha e emite um token de acesso (JWT) com o pe
 - Token expirado ou ausente retorna 401; toda negação (401/403) é registrada em log de segurança com motivo.
 - E-mail deve ser único.
 - Senhas são armazenadas somente como hash.
-- Instalador pode ser cadastrado sem equipe e vinculado ao criar a equipe (RF-07). Se uma equipe for informada no cadastro, ela deve existir. Sem equipe, o login é permitido, mas não concede acesso às instalações ou ao cronograma de outras equipes. Após o vínculo, um novo login atualiza a equipe no token. Regra alinhada em 01/11/2026.
+- Instalador pode ser cadastrado sem vínculo com obras. Sem ser responsável por nenhuma obra, o login é permitido, mas a lista de instalações fica vazia. O vínculo é feito na obra (RF-07) e não altera o token, que carrega somente o perfil. Regra alinhada em 01/11/2026 e revisada em 07/11/2026 (equipes substituídas por responsáveis da obra).
 
 **Critérios de aceite:**
 
@@ -87,14 +91,17 @@ Funcionalidade: Autenticação e cadastro de usuários
     Quando o Administrador tenta cadastrar um novo usuário com esse mesmo e-mail
     Então o sistema exibe mensagem de erro e impede o cadastro
 
-  Cenário: Cadastro de instaladores antes da criação da equipe
+  Cenário: Cadastro de instaladores sem vínculo com obras
     Dado que o Administrador está autenticado no sistema
-    Quando ele cadastra instaladores sem informar equipe
-    Então o sistema salva os usuários sem vínculo de equipe e permite seu login
-    E não concede acesso às instalações ou ao cronograma de outras equipes
-    Quando um usuário autorizado cria uma equipe selecionando esses instaladores e um responsável entre eles
-    Então o sistema grava a equipe, os integrantes e os vínculos dos usuários na mesma transação
-    E um novo login do instalador emite o token com sua equipe atual
+    Quando ele cadastra instaladores sem vincular nenhuma obra
+    Então o sistema salva os usuários e permite seu login
+    E a lista de instalações de cada instalador fica vazia
+
+  Cenário: Instalador passa a ver a obra quando é definido como responsável
+    Dado que existe um Instalador de Campo ativo sem obras vinculadas
+    Quando um usuário autorizado define esse instalador como responsável por uma obra
+    Então o sistema grava o vínculo na obra
+    E a obra aparece na lista de instalações do instalador
 
   Cenário: Credenciais incorretas na autenticação
     Dado que o usuário está na tela de login
@@ -106,7 +113,7 @@ Funcionalidade: Autenticação e cadastro de usuários
 
 Toda rota protegida valida token e perfil no servidor. Sem token: `401`. Perfil sem permissão: `403`. Ambos geram registro em log de segurança.
 
-Matrizes completas nas seções 4 (funcionalidades), 8 (rotas da API) e 9 (telas) de [Regras de negócio](04-regras-negocio.md).
+Matrizes completas nas seções 4 (funcionalidades), 8 (rotas da API) e 9 (telas) de [Regras de negócio](04-regras-negocio.md). Valores (preços, custos e valor da obra) só são retornados a Administrador e Financeiro (RF-26).
 
 **Critérios de aceite:**
 
@@ -128,7 +135,7 @@ Funcionalidade: Controle de acesso aos recursos do sistema
 
   Cenário: Acesso concedido a recurso permitido
     Dado que o Instalador de Campo está autenticado
-    Quando ele solicita visualizar os detalhes de uma instalação atribuída à sua equipe
+    Quando ele solicita visualizar os detalhes de uma instalação de obra em que é responsável
     Então o sistema valida o token e exibe os dados de kit, endereço e projeto
 
   Esquema do Cenário: Autorização por perfil conforme a matriz de permissões
@@ -144,15 +151,24 @@ Funcionalidade: Controle de acesso aos recursos do sistema
       | Financeiro          | movimentação de cartões no Kanban    | Acesso Proibido  |
       | Financeiro          | DRE da obra                          | Acesso Concedido |
       | Administrador       | conclusão de manutenção              | Acesso Proibido  |
-      | Instalador de Campo | detalhes da instalação da sua equipe | Acesso Concedido |
+      | Instalador de Campo | detalhes da instalação de obra em que é responsável | Acesso Concedido |
+      | Engenharia          | visualização de valores (custos, preços, valor da obra) | Acesso Proibido |
+      | Financeiro          | atualização de status de material | Acesso Concedido |
+      | Engenharia          | atualização de status de material | Acesso Proibido |
+      | Instalador de Campo | cadastro de produtos e preços | Acesso Proibido |
 ```
 
-### RF-03: Cadastro de clientes e gestão de obras
+### RF-03: Gestão de obras (página Obras)
 
-- Cliente tem nome e CPF/CNPJ obrigatórios. CPF/CNPJ é único.
-- Obra exige cliente vinculado, escolhido entre os clientes cadastrados ou criado na própria tela de obra.
-- O formulário de obra informa categoria (Residencial ou Comercial), quantidade de painéis, quantidade de inversores e dados de pagamento (data de confirmação e prazo contratual).
-- Ao cadastrar uma obra, o sistema cria o cartão no Kanban na primeira coluna e registra a ação na timeline.
+A página **Obras** é a gestão oficial das obras. Ela aparece no menu lateral e reúne listagem, filtros, cadastro, edição, materiais, comentários e linha do tempo de cada obra.
+
+- Cada obra tem um cliente vinculado, escolhido entre os clientes já cadastrados. O formulário de obra não cria cliente: a criação acontece somente na gestão de clientes (RF-23).
+- O seletor de cliente mostra todos os clientes cadastrados e ativos, inclusive os cadastrados há pouco tempo, sem exigir recarregamento da página.
+- O formulário de obra informa categoria (Residencial ou Comercial), quantidade de painéis, quantidade de inversores, endereço (origem em definição, Q9), datas estimadas de início e término e prazo contratual em dias.
+- O formulário e o detalhe da obra não exibem campos de valor. Valor da obra e data de confirmação de pagamento são lançados pelo Financeiro (RF-26).
+- Ao cadastrar uma obra, o sistema cria o cartão no Kanban na primeira coluna e registra a ação na linha do tempo.
+- Ao abrir uma obra, a página mostra as abas Dados, Materiais, Histórico e Comentários. Edição e comentários de gestão são feitos aqui, por Administrador e Engenharia.
+- O botão "Página da Obra", no cartão do Kanban, é apenas um atalho que abre a obra selecionada nesta página. A navegação até a obra também está disponível pelo item "Obras" do menu lateral.
 - Exclusão de obra é lógica: a obra some das listagens, o cartão é removido e o log registra usuário e data.
 - Obra em execução não pode ser excluída.
 
@@ -160,19 +176,8 @@ Funcionalidade: Controle de acesso aos recursos do sistema
 
 ```gherkin
 # language: pt
-@RF-03 @UC-08 @UC-10 @UC-11 @UC-15 @UC-16 @UC-20
-Funcionalidade: Cadastro de clientes e gestão de obras
-
-  Cenário: Cadastro de cliente com dados completos
-    Dado que o usuário está autenticado com o perfil "Engenharia"
-    Quando ele cadastra um cliente com nome, CPF/CNPJ, telefone, e-mail e endereço
-    Então o sistema salva o cliente e o disponibiliza para vínculo com obras
-
-  Cenário: Cadastro de cliente sem CPF/CNPJ
-    Dado que o usuário está autenticado com o perfil "Engenharia"
-    Quando ele tenta cadastrar um cliente sem informar o CPF/CNPJ
-    Então o sistema exibe mensagem de erro indicando o campo obrigatório
-    E não salva o cliente
+@RF-03 @UC-10 @UC-11 @UC-15 @UC-16 @UC-17 @UC-19 @UC-20
+Funcionalidade: Gestão de obras
 
   Cenário: Cadastro de obra vinculada a um cliente
     Dado que o usuário está autenticado com o perfil "Engenharia"
@@ -187,6 +192,34 @@ Funcionalidade: Cadastro de clientes e gestão de obras
     Quando ele tenta cadastrar uma obra sem vincular um cliente
     Então o sistema exibe mensagem de erro informando que a obra deve estar vinculada a um cliente
     E não cria a obra nem o cartão no Kanban
+
+  Cenário: Cliente recém-cadastrado aparece na seleção da obra
+    Dado que o usuário cadastrou um novo cliente na gestão de clientes
+    Quando ele abre o formulário de nova obra
+    Então o cliente aparece na lista "Selecione o Cliente" sem recarregar a página
+
+  Cenário: Formulário de obra não cria cliente
+    Dado que o usuário está no formulário de nova obra
+    Quando ele visualiza a seção "Identificação do Cliente"
+    Então o sistema exibe somente o seletor de cliente
+    E não exibe a opção "Novo Cliente" nem os dados de cadastro do cliente
+
+  Cenário: Formulário e detalhe da obra sem campos de valor
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele abre o formulário de nova obra ou o detalhe de uma obra
+    Então o sistema não exibe preço, valor estimado nem data de confirmação de pagamento
+
+  Cenário: Edição de obra na página Obras
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe uma obra cadastrada
+    Quando ele edita os dados da obra e salva
+    Então o sistema persiste as alterações
+    E registra a ação na linha do tempo da obra
+
+  Cenário: Botão "Página da Obra" abre a obra na página Obras
+    Dado que o usuário está no Kanban com o resumo de uma obra aberto
+    Quando ele aciona "Página da Obra"
+    Então o sistema abre a página Obras com essa obra selecionada
 
   Cenário: Exclusão lógica de obra
     Dado que o usuário está autenticado com o perfil "Administrador"
@@ -232,20 +265,23 @@ Funcionalidade: Restrições na exclusão de obras
 
 ### RF-04: Funil Kanban
 
+O Kanban é a visão simples do fluxo das obras: mostra onde cada obra está e permite movê-la. Edição e comentários ficam na página Obras (RF-03).
+
 - O quadro tem as colunas: Material Comprado, No Depósito, Separado, Em Andamento e Concluído, mais a raia de Assistência.
-- Mover um cartão altera o status da obra, grava a ação na timeline e grava log.
-- Transições fora do fluxo são recusadas, e o cartão volta para a coluna de origem com o motivo.
-- Edição do cartão e comentários: somente Administrador e Engenharia.
-- Ao arrastar um cartão, somente as colunas permitidas para aquela obra ficam destacadas.
-- Movimentação alternativa pelo menu do cartão ("Mover para..."), para teclado e celular.
-- Ao clicar no cartão, abre painel com as abas Dados, Materiais, Histórico e Comentários.
-- Financeiro e Instalador têm o quadro em modo leitura.
+- O cartão mostra o nome do cliente, a categoria, a quantidade de painéis e o status do material (RF-06). Não mostra valores.
+- O arraste é livre: o cartão pode ser solto em qualquer coluna, sem destaque prévio das colunas. Ao soltar, o sistema valida a transição (Q11).
+- Mover um cartão para uma transição válida altera o status da obra, grava a ação na linha do tempo e grava log.
+- Transição inválida devolve o cartão à coluna de origem e exibe o motivo retornado pela API, com os próximos status permitidos.
+- Clicar em um cartão abre um resumo somente leitura, com o botão "Página da Obra" (RF-03).
+- Financeiro tem o quadro em modo leitura. Instalador não acessa o Kanban.
+
+**Movimentação pelo menu do cartão ("Mover para...") — Could:** o menu flutuante "Mover para..." está bugado e deve ser pouco usado, por isso não faz parte da entrega. Pode ser reavaliado depois da correção. A movimentação por teclado (sensor de teclado do dnd-kit) continua como requisito a confirmar.
 
 **Critérios de aceite:**
 
 ```gherkin
 # language: pt
-@RF-04 @UC-12 @UC-15 @UC-16 @UC-17 @UC-18 @UC-19 @UC-20
+@RF-04 @UC-12 @UC-18 @UC-27
 Funcionalidade: Gerenciamento do funil Kanban
 
   Cenário: Movimentação de cartão altera o status da obra
@@ -256,18 +292,22 @@ Funcionalidade: Gerenciamento do funil Kanban
     E grava a ação na linha do tempo com usuário, data e hora
     E grava log de auditoria da alteração de status
 
-  Cenário: Edição de dados do cartão
-    Dado que o usuário está autenticado com o perfil "Administrador"
-    E que existe um cartão de obra no Kanban
-    Quando ele edita os dados do cartão e salva
-    Então o sistema persiste os novos dados no cartão
-
-  Cenário: Inclusão de comentário no cartão
+  Cenário: Arraste livre com transição inválida
     Dado que o usuário está autenticado com o perfil "Engenharia"
-    E que existe um cartão de obra no Kanban
-    Quando ele inclui um comentário no cartão
-    Então o sistema exibe o comentário no cartão
-    E registra o comentário na linha do tempo da obra
+    E que existe uma obra na coluna "Material Comprado"
+    Quando ele arrasta o cartão e o solta na coluna "Em Andamento"
+    Então o sistema recusa a transição e devolve o cartão à coluna "Material Comprado"
+    E exibe o motivo informado pela API
+
+  Cenário: Arraste sem destaque prévio de colunas
+    Dado que o usuário está autenticado com o perfil "Administrador"
+    Quando ele inicia o arraste de um cartão
+    Então o sistema não destaca colunas como permitidas ou bloqueadas
+
+  Cenário: Cartão sem valores
+    Dado que existe uma obra com valor definido pelo Financeiro
+    Quando o usuário com o perfil "Engenharia" visualiza o cartão no Kanban
+    Então o cartão não exibe valor da obra nem preço de material
 
   Cenário: Perfil somente leitura tenta mover cartão
     Dado que o usuário está autenticado com o perfil "Financeiro"
@@ -279,7 +319,7 @@ Funcionalidade: Gerenciamento do funil Kanban
 ### RF-05: Raia de assistência e manutenção
 
 - Obras pós-instalação aparecem na raia de Assistência.
-- O instalador vê somente as manutenções da própria equipe.
+- O instalador vê somente as manutenções das obras em que é responsável.
 - Concluir a manutenção registra o serviço executado, altera o status e grava na timeline.
 - Comentário de manutenção é opcional, mas quando enviado não pode ser vazio. Guarda autor, data e hora.
 - Outros perfis não concluem manutenção.
@@ -291,28 +331,28 @@ Funcionalidade: Gerenciamento do funil Kanban
 @RF-05 @UC-14 @UC-20 @UC-25
 Funcionalidade: Raia de assistência e módulo de manutenção
 
-  Cenário: Instalador visualiza manutenções atribuídas à sua equipe
+  Cenário: Instalador visualiza manutenções das obras em que é responsável
     Dado que o Instalador de Campo está autenticado
-    E que existem manutenções na raia de assistência atribuídas à sua equipe
+    E que existem manutenções na raia de assistência de obras em que ele é responsável
     Quando ele acessa a lista de manutenções
-    Então o sistema exibe somente as manutenções atribuídas à sua equipe
+    Então o sistema exibe somente as manutenções dessas obras
 
   Cenário: Conclusão de manutenção com comentário
     Dado que o Instalador de Campo está autenticado
-    E que existe uma manutenção atribuída à sua equipe
+    E que existe uma manutenção de obra em que ele é responsável
     Quando ele registra a execução do serviço, adiciona um comentário e marca a manutenção como concluída
     Então o sistema altera o status da manutenção para concluída
     E grava o evento na linha do tempo da obra
 
   Cenário: Conclusão de manutenção sem comentário
     Dado que o Instalador de Campo está autenticado
-    E que existe uma manutenção atribuída à sua equipe
+    E que existe uma manutenção de obra em que ele é responsável
     Quando ele registra a execução do serviço sem adicionar comentário e marca a manutenção como concluída
     Então o sistema conclui a manutenção normalmente
 
-  Cenário: Instalador tenta acessar manutenção de outra equipe
+  Cenário: Instalador tenta acessar manutenção de obra em que não é responsável
     Dado que o Instalador de Campo está autenticado
-    E que existe uma manutenção atribuída a outra equipe
+    E que existe uma manutenção de obra sem vínculo com ele
     Quando ele tenta acessar essa manutenção
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
 
@@ -322,16 +362,19 @@ Funcionalidade: Raia de assistência e módulo de manutenção
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
 ```
 
-### RF-06: Status de material
+### RF-06: Materiais da obra e status de material
 
-- Cada material tem um status logístico: `Comprado`, `EmTransito`, `Disponivel` ou `Utilizado` (material consumido na instalação).
+- Materiais são incluídos na obra somente a partir de produtos cadastrados e ativos (RF-25). A Engenharia escolhe o produto e a quantidade; não digita tipo nem preço.
+- Todo material nasce com o status `EmSolicitacao`. Depois, o status segue a ordem: `Comprado`, `EmTransito`, `Disponivel` (já está no depósito) e `Utilizado` (já está na obra).
+- Quem altera o status é o Financeiro ou o Administrador. A Engenharia vê o status, mas não o altera. O mecanismo de atualização está em estudo (Q12).
 - O status aparece com rótulo e cor no cartão do Kanban e na barra do Gantt, nos dois lugares ao mesmo tempo.
+- Toda alteração de status de material grava log de auditoria com usuário, data e hora.
 
 **Critérios de aceite:**
 
 ```gherkin
 # language: pt
-@RF-06 @UC-17
+@RF-06 @UC-40 @UC-41
 Funcionalidade: Status do material da obra
 
   Esquema do Cenário: Exibição do status do material no Kanban e no Gantt
@@ -341,89 +384,92 @@ Funcionalidade: Status do material da obra
 
     Exemplos:
       | status                 |
+      | em solicitação         |
       | comprado               |
       | em trânsito            |
       | disponível no depósito |
+      | utilizado              |
 
-  Cenário: Atualização do status do material
+  Cenário: Material nasce em solicitação
     Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe um produto ativo cadastrado
+    Quando ele inclui esse produto como material de uma obra
+    Então o material é criado com o status "em solicitação"
+
+  Cenário: Financeiro atualiza o status do material
+    Dado que o usuário está autenticado com o perfil "Financeiro"
     E que existe uma obra com material de status "comprado"
     Quando ele altera o status do material para "em trânsito"
     Então o sistema atualiza o rótulo e a cor no cartão do Kanban
     E atualiza o rótulo e a cor na barra do Gantt
+    E grava log de auditoria com usuário, data e hora
+
+  Cenário: Engenharia tenta alterar o status do material
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe uma obra com material de status "comprado"
+    Quando ele tenta alterar o status do material para "em trânsito"
+    Então o sistema nega o acesso com resposta de "Acesso Proibido"
 ```
 
-### RF-07: Equipes e alocação no Gantt
+### RF-07: Responsáveis da obra e programação no Gantt
 
-- Equipe tem nome, ao menos um instalador e um responsável (que deve estar entre os instaladores).
-- Um instalador não pode estar em duas equipes no mesmo período.
-- Alocar equipe a uma obra define o período da instalação no Gantt.
-- Conflito de agenda da equipe é bloqueado, com mensagem informando o período ocupado.
-- A lista de equipes indica as equipes ocupadas no período antes da confirmação.
-- Obra só pode ser alocada se estiver apta (materiais separados).
-- Perfis Financeiro e Instalador não alocam equipes.
+Equipes deixam de ser cadastradas (revisão de 07/11/2026). O vínculo passa a ser entre a obra e seus responsáveis: uma obra pode ter vários responsáveis, e um usuário pode ser responsável por várias obras. Nesta fase, o responsável pode ser usuário de qualquer perfil ativo.
+
+- Definir os responsáveis é feito na página Obras, por Administrador e Engenharia.
+- Programar uma obra no Gantt exige obra apta para instalação (materiais separados) e ao menos um responsável.
+- Um responsável não pode estar em duas obras com período sobreposto (proposta; depende do eixo do Gantt, Q10).
+- Conflito de agenda é bloqueado, com mensagem que informa o período ocupado.
+- A lista de responsáveis indica quem já está ocupado no período antes da confirmação.
+- Perfis Financeiro e Instalador de Campo não programam obras no Gantt.
+- Duração e reordenação seguem RF-08 e RF-09.
 
 **Critérios de aceite:**
 
 ```gherkin
 # language: pt
 @RF-07 @UC-13 @UC-21 @UC-22
-Funcionalidade: Gestão de equipes e alocação no Gantt
+Funcionalidade: Responsáveis da obra e programação no Gantt
 
-  Cenário: Criação de equipe de campo com responsável
+  Cenário: Definição de responsáveis de perfis diferentes
     Dado que o usuário está autenticado com o perfil "Engenharia"
-    E que existem instaladores cadastrados no sistema
-    Quando ele cria uma equipe selecionando instaladores e definindo um responsável
-    Então o sistema salva a equipe com seus integrantes e o responsável
+    E que existe uma obra cadastrada
+    Quando ele define como responsáveis um usuário de perfil "Engenharia" e um usuário de perfil "Instalador de Campo"
+    Então o sistema salva os responsáveis na obra
 
-  Cenário: Criação de equipe sem responsável
+  Cenário: Programação de obra sem responsável
     Dado que o usuário está autenticado com o perfil "Engenharia"
-    Quando ele tenta criar uma equipe sem definir um responsável
-    Então o sistema exibe mensagem de erro e não cria a equipe
+    E que existe uma obra apta para instalação sem responsáveis
+    Quando ele tenta programar a obra no Gantt
+    Então o sistema não salva a programação
+    E exibe mensagem informando que é necessário definir ao menos um responsável
 
-  Cenário: Alocação de equipe a uma obra no Gantt
+  Cenário: Programação de obra no Gantt
     Dado que o usuário está autenticado com o perfil "Engenharia"
-    E que existe uma obra definida para instalação
-    E que existe uma equipe sem obras no período desejado
-    Quando ele aloca a equipe à obra no período desejado
-    Então o sistema exibe a barra da obra no Gantt para a equipe e o período escolhidos
+    E que existe uma obra apta para instalação com a responsável "Ana Souza"
+    Quando ele programa a obra para 10/11/2026 a 12/11/2026
+    Então o sistema exibe a barra da obra no Gantt no período escolhido
+    E a obra passa a aparecer como definida para instalação no Kanban
 
-  Cenário: Conflito de agenda da equipe
-    Dado que a equipe "Equipe A" já está alocada a uma obra de 10/11/2026 a 12/11/2026
-    Quando o usuário tenta alocar a "Equipe A" a outra obra em 11/11/2026
-    Então o sistema impede a alocação
-    E exibe mensagem informando o conflito de agenda
+  Cenário: Conflito de agenda do responsável
+    Dado que "Ana Souza" é responsável por uma obra programada de 10/11/2026 a 12/11/2026
+    Quando o usuário tenta programar outra obra com "Ana Souza" como responsável em 11/11/2026
+    Então o sistema impede a programação
+    E exibe mensagem informando o conflito de agenda e o período ocupado
 
-  Cenário: Perfil sem permissão tenta alocar equipe
+  Cenário: Responsável ocupado aparece marcado
+    Dado que "Ana Souza" está ocupada em 11/11/2026
+    Quando o usuário abre a lista de responsáveis para programar uma obra nesse dia
+    Então o sistema marca "Ana Souza" como ocupada antes da confirmação
+
+  Cenário: Perfil sem permissão tenta programar obra
     Dado que o usuário está autenticado com o perfil "Instalador de Campo"
-    Quando ele tenta alocar uma equipe a uma obra no Gantt
+    Quando ele tenta programar uma obra no Gantt
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
-```
 
-**Critérios de aceite complementares:**
-
-```gherkin
-# language: pt
-@RF-07
-Funcionalidade: Restrição de gestão de equipes por perfil
-
-  Cenário: Financeiro tenta criar equipe
+  Cenário: Financeiro tenta programar obra
     Dado que o usuário está autenticado com o perfil "Financeiro"
-    Quando ele tenta criar uma nova equipe
+    Quando ele tenta programar uma obra no Gantt
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
-
-  Cenário: Instalador tenta alocar obra no Gantt
-    Dado que o Instalador de Campo está autenticado
-    Quando ele tenta alocar uma equipe a uma obra
-    Então o sistema nega o acesso com resposta de "Acesso Proibido"
-
-  Cenário: Responsável deve pertencer à equipe
-    Dado que o usuário está autenticado com o perfil "Engenharia"
-    E que os instaladores "Carlos" e "Bruno" existem no sistema
-    Quando ele cria uma equipe com "Carlos" e "Bruno" como membros
-    E define "Paulo" (não membro) como responsável
-    Então o sistema exibe mensagem de erro informando que o responsável deve ser membro da equipe
-    E não cria a equipe
 ```
 
 ### RF-08: Estimativa de duração
@@ -469,9 +515,9 @@ Funcionalidade: Estimativa automática de duração da instalação
 
 ### RF-09: Reordenação e propagação de atrasos
 
-- Reordenar uma alocação recalcula as datas das alocações seguintes da mesma equipe.
+- Reordenar uma programação recalcula as datas das programações seguintes do mesmo responsável. O agrupamento depende do eixo do Gantt (Q10).
 - O cálculo de término usa somente dias úteis.
-- Reagendamento que sobrepõe outra alocação da mesma equipe é bloqueado.
+- Reagendamento que sobrepõe outra programação do mesmo responsável é bloqueado.
 
 **Critérios de aceite:**
 
@@ -480,8 +526,8 @@ Funcionalidade: Estimativa automática de duração da instalação
 @RF-09 @UC-22
 Funcionalidade: Reordenação e propagação de atrasos no Gantt
 
-  Cenário: Propagação de atraso para obras vinculadas
-    Dado que a obra "A" e a obra "B" estão vinculadas na mesma equipe, com a obra "B" iniciando após a obra "A"
+  Cenário: Propagação de atraso para obras do mesmo responsável
+    Dado que a obra "A" e a obra "B" têm o mesmo responsável, com a obra "B" iniciando após a obra "A"
     Quando o usuário adia o término da obra "A" em 2 dias úteis
     Então o sistema desloca o início e o término da obra "B" em 2 dias úteis
 
@@ -492,8 +538,8 @@ Funcionalidade: Reordenação e propagação de atrasos no Gantt
     E sábado e domingo não são contados na duração
 
   Cenário: Reagendamento que gera conflito de agenda
-    Dado que a equipe possui duas obras alocadas em períodos distintos
-    Quando o usuário reagenda uma das obras para um período que sobrepõe a outra
+    Dado que um responsável possui duas obras programadas em períodos distintos
+    Quando o usuário reagenda uma dessas obras para um período que sobrepõe a outra
     Então o sistema impede o reagendamento
     E exibe mensagem informando o conflito de agenda
 ```
@@ -652,6 +698,7 @@ Funcionalidade: Notificação por e-mail
 - Só é apurado para obras concluídas com precificação completa. Caso contrário, retorna erro descritivo.
 - Acesso: Administrador e Financeiro.
 - Toda criação ou alteração de custo grava log com usuário e timestamp.
+- Valor da obra e custos são lançados somente pelo Financeiro (RF-26).
 
 **Critérios de aceite:**
 
@@ -726,7 +773,7 @@ Funcionalidade: Bloqueio de acesso financeiro para instalador
 ### RF-15: Exportação de relatórios e detalhes
 
 - Relatórios financeiros e cronograma exportam em PDF ou Excel.
-- Detalhes da instalação (kit, endereço, equipe, período e instruções) exportam somente para o Administrador.
+- Detalhes da instalação (kit, endereço, responsáveis, período e instruções) exportam somente para o Administrador.
 - Geração de até 1.000 registros em no máximo 5 segundos (RNF-05).
 - Perfis sem permissão recebem `403`.
 
@@ -759,9 +806,9 @@ Funcionalidade: Exportação de relatórios e detalhes de instalação
 
   Cenário: Exportação dos detalhes da instalação
     Dado que o usuário está autenticado com o perfil "Administrador"
-    E que existe uma instalação com kit, endereço, equipe e instruções cadastrados
+    E que existe uma instalação com kit, endereço, responsáveis e instruções cadastrados
     Quando ele exporta os detalhes da instalação
-    Então o arquivo gerado contém o kit, o endereço, a equipe e as instruções da instalação
+    Então o arquivo gerado contém o kit, o endereço, os responsáveis e as instruções da instalação
 
   Cenário: Perfil sem permissão tenta exportar detalhes da instalação
     Dado que o usuário está autenticado com o perfil "Engenharia"
@@ -861,11 +908,11 @@ Funcionalidade: Modo display para monitores
 
 ### RF-19: Módulo do instalador de campo
 
-- O instalador faz login e acessa a lista de instalações da sua equipe.
-- Cada instalação mostra kit de materiais, endereço, projeto e instruções.
+- O instalador faz login e acessa a lista de instalações das obras em que é responsável.
+- Cada instalação mostra o kit de materiais (produto e quantidade, sem preços), endereço, projeto e instruções.
 - Botão "Abrir rota" envia o endereço ao aplicativo de mapas do dispositivo.
-- Instalador registra e conclui manutenções e comenta sobre elas.
-- Instalador não vê instalações de outras equipes e não acessa telas administrativas ou financeiras.
+- Instalador registra e conclui manutenções e comenta sobre elas, nas obras em que é responsável.
+- Instalador não vê obras em que não é responsável e não acessa telas administrativas ou financeiras.
 
 **Critérios de aceite:**
 
@@ -876,14 +923,20 @@ Funcionalidade: Módulo do Instalador de Campo
 
   Cenário: Consulta de detalhes da instalação pelo instalador logado
     Dado que o Instalador de Campo fez login no sistema com suas credenciais
+    E que ele é responsável por uma obra
     Quando ele acessa a tela de instalações
-    Então o sistema exibe os kits de materiais, o endereço e as instruções das obras alocadas à sua equipe
+    Então o sistema exibe o kit de materiais (produtos e quantidades), o endereço e as instruções dessa obra
 
-  Cenário: Instalador não vê instalações de outras equipes
+  Cenário: Instalador não vê obras em que não é responsável
     Dado que o Instalador de Campo está autenticado
-    E que existem instalações alocadas a outras equipes
+    E que existem obras sem vínculo com ele
     Quando ele acessa a tela de instalações
-    Então o sistema não exibe as instalações das outras equipes
+    Então o sistema não exibe essas obras
+
+  Cenário: Kit sem preços
+    Dado que o Instalador de Campo está visualizando uma instalação
+    Quando ele consulta o kit de materiais
+    Então o sistema exibe produto e quantidade, sem preços
 
   Cenário: Abertura de rota no aplicativo de mapas
     Dado que o Instalador de Campo está visualizando uma instalação com endereço cadastrado
@@ -891,12 +944,12 @@ Funcionalidade: Módulo do Instalador de Campo
     Então o sistema aciona o aplicativo de GPS padrão enviando as coordenadas/endereço da obra
 
   Cenário: Registro de manutenção concluída
-    Dado que o Instalador de Campo está visualizando uma manutenção atribuída à sua equipe
+    Dado que o Instalador de Campo está visualizando uma manutenção de obra em que é responsável
     Quando ele registra a execução do serviço e marca a manutenção como concluída
     Então o sistema altera o status da manutenção para concluída
 
   Cenário: Comentário sobre manutenção executada
-    Dado que o Instalador de Campo está visualizando uma manutenção atribuída à sua equipe
+    Dado que o Instalador de Campo está visualizando uma manutenção de obra em que é responsável
     Quando ele inclui um comentário detalhado sobre o serviço executado
     Então o sistema salva o comentário vinculado à manutenção
 
@@ -968,6 +1021,8 @@ Funcionalidade: Relatório financeiro da obra (DRE da obra)
 - A nova senha deve atender à política mínima de segurança: ao menos 8 caracteres, uma letra maiúscula, uma minúscula e um número.
 - Após a redefinição, todos os tokens de acesso do usuário são invalidados.
 - Usuário autenticado pode alterar a própria senha informando a senha atual e a nova senha.
+- A confirmação da nova senha deve coincidir com a nova senha.
+- A alteração autenticada informa o resultado real da operação: sucesso ou falha, nunca os dois. Em falha, a senha anterior continua válida. A mensagem não sugere solicitar novo link, pois esse fluxo é exclusivo da redefinição por e-mail (achado do teste de 07/11/2026).
 
 **Critérios de aceite:**
 
@@ -1052,6 +1107,34 @@ Funcionalidade: Invalidação de sessões após mudança de senha
     E não permite nova redefinição com esse link
 ```
 
+**Critérios de aceite complementares (revisão de 07/11/2026):**
+
+```gherkin
+# language: pt
+@RF-21 @UC-36
+Funcionalidade: Alteração de senha autenticada sem falsa mensagem de erro
+
+  Cenário: Falha na gravação da nova senha
+    Dado que o usuário está autenticado e informa a senha atual correta e uma nova senha válida
+    Quando o sistema não consegue gravar a nova senha
+    Então o sistema exibe "Não foi possível alterar a senha. Tente novamente."
+    E não sugere solicitar outro link
+    E a senha anterior continua válida para novo login
+
+  Cenário: Alteração bem-sucedida exige novo login
+    Dado que o usuário está autenticado e informa a senha atual correta e uma nova senha válida
+    Quando o sistema grava a nova senha
+    Então o sistema exibe confirmação da alteração
+    E invalida os tokens ativos do usuário
+    E exige novo login com a nova senha
+
+  Cenário: Confirmação diferente da nova senha
+    Dado que o usuário está autenticado
+    Quando ele informa uma confirmação diferente da nova senha
+    Então o sistema exibe "As senhas não coincidem"
+    E não altera a senha
+```
+
 ### RF-22: Gestão de usuários (cadastro, listagem e desativação)
 
 **Prioridade:** Must | **Situação:** Pendente
@@ -1059,7 +1142,8 @@ Funcionalidade: Invalidação de sessões após mudança de senha
 O Administrador lista, cadastra, edita e desativa usuários do sistema. Nenhum outro perfil acessa esta tela ou rota.
 
 - A listagem exibe nome, e-mail, perfil e situação (ativo/inativo).
-- O cadastro exige nome completo, e-mail único e perfil. A equipe é opcional para Instalador de Campo, permitindo cadastrar os integrantes antes da criação da equipe (RF-01/RF-07); se informada, deve existir. Para os demais perfis, o novo cadastro não cria vínculo de equipe.
+- A tela de cadastro de usuários deve estar disponível ao Administrador. No teste de 07/11/2026, ela estava indisponível.
+- O cadastro exige nome completo, e-mail único e perfil. O Instalador de Campo pode ser cadastrado sem obras vinculadas; o vínculo é feito na obra (RF-07).
 - E-mail duplicado é recusado com mensagem de erro.
 - A senha inicial é gerada automaticamente e enviada por e-mail ao novo usuário (depende do RF-21).
 - Desativar um usuário invalida todos os seus tokens ativos e impede novos logins, sem apagar o registro (exclusão lógica).
@@ -1078,6 +1162,11 @@ Funcionalidade: Gestão de usuários pelo Administrador
     Quando ele acessa a tela de gestão de usuários
     Então o sistema exibe todos os usuários com nome, e-mail, perfil e situação
 
+  Cenário: Tela de cadastro disponível ao Administrador
+    Dado que o Administrador está autenticado
+    Quando ele aciona a opção de cadastrar novo usuário
+    Então o sistema exibe o formulário de cadastro com nome, e-mail e perfil
+
   Esquema do Cenário: Administrador cadastra usuário de qualquer perfil
     Dado que o Administrador está autenticado
     Quando ele cadastra um usuário com nome, e-mail e o perfil "<perfil>"
@@ -1090,11 +1179,10 @@ Funcionalidade: Gestão de usuários pelo Administrador
       | Engenharia          |
       | Financeiro          |
 
-  Cenário: Cadastro de usuário com perfil Instalador de Campo vinculado à equipe
+  Cenário: Cadastro de usuário com perfil Instalador de Campo
     Dado que o Administrador está autenticado
-    E que existe a equipe "Equipe Alpha" cadastrada
-    Quando ele cadastra um novo usuário com nome, e-mail e o perfil "Instalador de Campo" vinculado à "Equipe Alpha"
-    Então o sistema salva o usuário
+    Quando ele cadastra um novo usuário com nome, e-mail e o perfil "Instalador de Campo"
+    Então o sistema salva o usuário com status ativo, sem obras vinculadas
     E envia um e-mail com a senha inicial para o endereço cadastrado
 
   Cenário: Tentativa de cadastro com e-mail duplicado
@@ -1106,13 +1194,6 @@ Funcionalidade: Gestão de usuários pelo Administrador
     Dado que o Administrador está autenticado
     Quando ele tenta cadastrar um usuário sem informar o e-mail
     Então o sistema exibe mensagem de validação e não cria o usuário
-
-  Cenário: Cadastro de Instalador de Campo sem equipe
-    Dado que o Administrador está autenticado
-    Quando ele cadastra um usuário com o perfil "Instalador de Campo" sem selecionar uma equipe
-    Então o sistema salva o instalador sem vínculo de equipe
-    E permite selecioná-lo posteriormente na criação de uma equipe
-    E não concede acesso às instalações ou ao cronograma de outras equipes
 
   Cenário: Desativação de usuário ativo
     Dado que o Administrador está autenticado
@@ -1142,16 +1223,17 @@ Funcionalidade: Gestão de usuários pelo Administrador
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
 ```
 
-### RF-23: Cadastro e listagem de clientes (tela dedicada)
+### RF-23: Gestão de clientes (tela dedicada)
 
 **Prioridade:** Must | **Situação:** Pendente
 
-> **Nota:** O cadastro de clientes já existe como sub-fluxo embutido no cadastro de obras (RF-03). Este RF formaliza a tela/rota independente para gestão de clientes, que estava referenciada no código (`GET /api/clientes`, `POST /api/clientes`) mas sem RF formal.
+> **Nota:** O cadastro de clientes existia como sub-fluxo do cadastro de obras (RF-03). Pela revisão de 07/11/2026, passa a ser uma área própria, com cadastro, listagem, edição e exclusão (CRUD). O formulário de obra só seleciona clientes já cadastrados. A rota já era referenciada no código (`GET /api/clientes`, `POST /api/clientes`).
 
 - A listagem de clientes exibe nome, CPF/CNPJ, cidade e quantidade de obras vinculadas.
+- Cadastro, edição e exclusão ficam somente nesta tela.
 - O cadastro exige nome e CPF/CNPJ; demais campos são opcionais.
 - CPF/CNPJ deve ser válido nos dígitos verificadores e único no sistema.
-- Não é possível excluir um cliente que tenha obras vinculadas (mesmo excluídas logicamente).
+- Não é possível excluir um cliente que tenha obras vinculadas, inclusive obras excluídas logicamente (`409 CLIENTE_COM_OBRAS`).
 - Administrador e Engenharia acessam essa funcionalidade.
 
 **Critérios de aceite:**
@@ -1159,7 +1241,7 @@ Funcionalidade: Gestão de usuários pelo Administrador
 ```gherkin
 # language: pt
 @RF-23 @UC-08
-Funcionalidade: Cadastro e listagem de clientes
+Funcionalidade: Gestão de clientes
 
   Cenário: Listagem de clientes
     Dado que o usuário está autenticado com o perfil "Engenharia"
@@ -1171,6 +1253,12 @@ Funcionalidade: Cadastro e listagem de clientes
     Quando ele cadastra um cliente com nome "João da Silva" e CPF "529.982.247-25"
     Então o sistema salva o cliente e o disponibiliza para vínculo com obras
 
+  Cenário: Cadastro de cliente sem CPF/CNPJ
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele tenta cadastrar um cliente sem informar o CPF/CNPJ
+    Então o sistema exibe mensagem de erro indicando o campo obrigatório
+    E não salva o cliente
+
   Cenário: CPF/CNPJ com dígitos verificadores inválidos
     Dado que o usuário está autenticado com o perfil "Engenharia"
     Quando ele tenta cadastrar um cliente com CPF "111.111.111-11"
@@ -1180,6 +1268,25 @@ Funcionalidade: Cadastro e listagem de clientes
     Dado que o CPF "529.982.247-25" já pertence a outro cliente
     Quando o usuário tenta cadastrar um segundo cliente com o mesmo CPF
     Então o sistema exibe mensagem de erro informando que o CPF/CNPJ já está cadastrado
+
+  Cenário: Edição de cliente
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe o cliente "João da Silva" cadastrado
+    Quando ele altera o telefone desse cliente e salva
+    Então o sistema persiste a alteração
+    E o cliente continua disponível para vínculo com obras
+
+  Cenário: Exclusão de cliente sem obras
+    Dado que o usuário está autenticado com o perfil "Administrador"
+    E que existe um cliente sem obras vinculadas
+    Quando ele exclui esse cliente
+    Então o sistema remove o cliente da listagem
+
+  Cenário: Exclusão de cliente com obras vinculadas é bloqueada
+    Dado que o usuário está autenticado com o perfil "Administrador"
+    E que existe um cliente com uma obra excluída logicamente
+    Quando ele tenta excluir esse cliente
+    Então o sistema recusa a exclusão com a mensagem "Cliente possui obras vinculadas"
 
   Cenário: Perfil sem permissão tenta acessar clientes
     Dado que o usuário está autenticado com o perfil "Financeiro"
@@ -1229,6 +1336,112 @@ Funcionalidade: Estados de erro e listas vazias
     Quando o usuário tenta carregar uma lista de obras
     Então o sistema exibe mensagem amigável de erro
     E não exibe stack trace ou detalhes técnicos
+```
+
+### RF-25: Catálogo de produtos e preços
+
+**Prioridade:** Must | **Situação:** Pendente
+
+O Financeiro e o Administrador mantêm o catálogo de produtos, com preço. A Engenharia usa o catálogo para incluir materiais nas obras, sem ver preços. O cadastro de produtos sai da gestão de obras e passa para o financeiro (revisão de 07/11/2026).
+
+- Produto tem nome, tipo (painel, inversor, cabo, disjuntor etc.), unidade e preço unitário.
+- A Engenharia vê a lista de produtos com nome, tipo e unidade, sem preço.
+- Produto desativado não aparece para novas inclusões de material. Materiais já incluídos mantêm o produto.
+- Alterar o preço de um produto não altera o custo de materiais já incluídos nas obras (ver Q13).
+
+**Critérios de aceite:**
+
+```gherkin
+# language: pt
+@RF-25 @UC-39 @UC-40
+Funcionalidade: Catálogo de produtos
+
+  Cenário: Financeiro cadastra produto com preço
+    Dado que o usuário está autenticado com o perfil "Financeiro"
+    Quando ele cadastra o produto "Painel Solar 550W", tipo "painel", unidade "un" e preço unitário "R$ 780,00"
+    Então o sistema salva o produto e o disponibiliza para inclusão em obras
+
+  Cenário: Engenharia vê produtos sem preço
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe o produto "Painel Solar 550W" cadastrado
+    Quando ele consulta a lista de produtos
+    Então o sistema exibe nome, tipo e unidade do produto
+    E não exibe o preço
+
+  Cenário: Engenharia inclui material a partir de produto cadastrado
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe uma obra cadastrada
+    Quando ele inclui 2 unidades de "Painel Solar 550W" na obra
+    Então o sistema cria o material com o status "em solicitação"
+
+  Cenário: Inclusão de material fora do catálogo
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele tenta incluir um material que não é um produto cadastrado
+    Então o sistema recusa a inclusão e exige a escolha de um produto da lista
+
+  Cenário: Produto desativado não aparece para novas inclusões
+    Dado que o produto "Cabo Solar 6mm" está desativado
+    Quando a Engenharia abre a lista para incluir material em uma obra
+    Então o produto não aparece na lista
+
+  Esquema do Cenário: Acesso ao catálogo por perfil
+    Dado que o usuário está autenticado com o perfil "<perfil>"
+    Quando ele tenta cadastrar ou alterar um produto
+    Então o sistema responde com "<resultado>"
+
+    Exemplos:
+      | perfil              | resultado        |
+      | Administrador       | Acesso Concedido |
+      | Financeiro          | Acesso Concedido |
+      | Engenharia          | Acesso Proibido  |
+      | Instalador de Campo | Acesso Proibido  |
+```
+
+### RF-26: Isolamento de valores no módulo financeiro
+
+**Prioridade:** Must | **Situação:** Pendente
+
+Valores (preços de produtos, custos, valor da obra, custo total e DRE) são visíveis somente ao Administrador e ao Financeiro, e somente no módulo financeiro. Gestão de obras, Kanban, Gantt, materiais e a tela do instalador não mostram valores (revisão de 07/11/2026).
+
+- O valor estimado mockado exibido no painel da obra é removido.
+- Os campos de preço e de valor da obra não aparecem no cadastro ou na edição de obra.
+- As respostas da API para Engenharia e Instalador de Campo não contêm campos de valor, preço ou custo (listagens e detalhes de obras, materiais, Gantt, instalação e cronograma compartilhado).
+- A exportação de detalhes de instalação não contém valores.
+
+**Critérios de aceite:**
+
+```gherkin
+# language: pt
+@RF-26 @UC-10 @UC-31 @UC-32 @UC-33
+Funcionalidade: Isolamento de valores no módulo financeiro
+
+  Cenário: Painel da obra sem valor estimado
+    Dado que o usuário está autenticado com o perfil "Administrador"
+    E que existe uma obra cadastrada
+    Quando ele abre o painel lateral da obra no Kanban
+    Então o sistema não exibe valor estimado nem valor da obra
+
+  Cenário: Financeiro define o valor da obra
+    Dado que o usuário está autenticado com o perfil "Financeiro"
+    Quando ele informa o valor da obra no módulo financeiro
+    Então o sistema salva o valor e grava log de auditoria
+
+  Esquema do Cenário: Visibilidade de valores por perfil
+    Dado que o usuário está autenticado com o perfil "<perfil>"
+    Quando ele consulta o valor de uma obra ou o preço de um produto
+    Então o sistema responde com "<resultado>"
+
+    Exemplos:
+      | perfil              | resultado        |
+      | Administrador       | Acesso Concedido |
+      | Financeiro          | Acesso Concedido |
+      | Engenharia          | Acesso Proibido  |
+      | Instalador de Campo | Acesso Proibido  |
+
+  Cenário: Resposta da API sem campos de valor para a Engenharia
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele consulta o detalhe de uma obra ou a lista de materiais
+    Então a resposta não contém campos de valor, preço ou custo
 ```
 
 ## Requisitos não funcionais

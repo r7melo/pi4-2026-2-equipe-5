@@ -27,7 +27,7 @@ usecase "UC-36 - Atualizar Senha" as AtualizarSenha
 usecase "UC-05 - Cadastrar Administrador" as CadAdmin
 usecase "UC-06 - Cadastrar Engenheiro" as CadEng
 usecase "UC-07 - Cadastrar Financeiro" as CadFin
-usecase "UC-08 - Cadastrar Clientes" as CadClientes
+usecase "UC-08 - Gerenciar Clientes (CRUD)" as CadClientes
 usecase "UC-09 - Cadastrar Instalador de Campo" as CadInstalador
 usecase "UC-37 - Desativar Usuário" as DesativarUsuario
 usecase "UC-38 - Reativar Usuário" as ReativarUsuario
@@ -38,14 +38,14 @@ usecase "UC-11 - Apagar Obra" as ApagarObra
 usecase "UC-12 - Alterar Status da Obra" as AlterarStatus
 usecase "UC-13 - Definir Obra para Instalação" as DefinirObra
 usecase "UC-14 - Criar Comentário sobre a Manutenção" as CriarComentarioManut
+usecase "UC-17 - Editar Obra (página Obras)" as EditarObra
+usecase "UC-19 - Adicionar Comentário na Obra" as ComentarObra
 
 ' ===== Subjects =====
 rectangle "Gerenciar Kanban" as Kanban {
   usecase "UC-15 - Inserir Cartão de Obra no Kanban" as InserirCartao
   usecase "UC-16 - Deletar Cartão de Obra no Kanban" as DeletarCartao
-  usecase "UC-17 - Editar Cartão no Kanban" as EditarCartao
   usecase "UC-18 - Mover Cartão no Kanban" as MoverCartao
-  usecase "UC-19 - Adicionar Comentario no Cartão" as ComentarCartao
 }
 
 rectangle "Linha do Tempo da Obra" as Timeline {
@@ -55,8 +55,8 @@ rectangle "Linha do Tempo da Obra" as Timeline {
 }
 
 rectangle "Gerenciar Gantt" as Gantt {
-  usecase "UC-21 - Criar Equipe de Campo" as CriarEquipe
-  usecase "UC-22 - Alocar Equipe" as AlocarEquipe
+  usecase "UC-21 - Definir Responsáveis da Obra" as DefinirResponsaveis
+  usecase "UC-22 - Programar Obra no Gantt" as ProgramarObra
 }
 
 rectangle "Gerenciar Instalação" as Instalacao {
@@ -69,6 +69,12 @@ rectangle "Gerenciar Instalação" as Instalacao {
 rectangle "Consultar em Modo Leitura" as Consulta {
   usecase "UC-27 - Consultar Obras e Quadro Kanban" as ConsultarKanban
   usecase "UC-28 - Consultar Cronograma (Gantt)" as ConsultarGantt
+}
+
+rectangle "Gerenciar Materiais e Produtos" as Materiais {
+  usecase "UC-39 - Gerenciar Produtos" as GerenciarProdutos
+  usecase "UC-40 - Adicionar Material à Obra" as AdicionarMaterial
+  usecase "UC-41 - Atualizar Status do Material" as AtualizarMaterial
 }
 
 rectangle "Gerenciar Financeiro" as Financas {
@@ -92,31 +98,39 @@ Administrador --> CadClientes
 Administrador --> CadInstalador
 Administrador --> DesativarUsuario
 Administrador --> ReativarUsuario
-Engenharia --> CadClientes
 Administrador --> CadObra
 Administrador --> ApagarObra
-Administrador --> EditarCartao
+Administrador --> EditarObra
+Administrador --> ComentarObra
 Administrador --> MoverCartao
-Administrador --> CriarEquipe
-Administrador --> AlocarEquipe
+Administrador --> DefinirResponsaveis
+Administrador --> ProgramarObra
 Administrador --> ExportarDetalhes
 Administrador --> ConsultarTimeline
+Administrador --> GerenciarProdutos
+Administrador --> AdicionarMaterial
+Administrador --> AtualizarMaterial
 Administrador --> ApurarCusto
 Administrador --> EmitirDRE
 
 ' ===== Associações: Engenharia =====
+Engenharia --> CadClientes
 Engenharia --> CadObra
 Engenharia --> ApagarObra
-Engenharia --> EditarCartao
+Engenharia --> EditarObra
+Engenharia --> ComentarObra
 Engenharia --> MoverCartao
-Engenharia --> CriarEquipe
-Engenharia --> AlocarEquipe
+Engenharia --> DefinirResponsaveis
+Engenharia --> ProgramarObra
+Engenharia --> AdicionarMaterial
 Engenharia --> ConsultarTimeline
 
 ' ===== Associações: Financeiro =====
 Financeiro --> ConsultarKanban
 Financeiro --> ConsultarGantt
 Financeiro --> ConsultarTimeline
+Financeiro --> GerenciarProdutos
+Financeiro --> AtualizarMaterial
 Financeiro --> RegistrarCustos
 Financeiro --> ApurarCusto
 Financeiro --> EmitirDRE
@@ -128,8 +142,7 @@ Instalador --> RealizarManutencao
 Instalador --> AbrirRota
 
 ' ===== Associações entre casos de uso =====
-CriarEquipe --> DefinirObra
-AlocarEquipe --> DefinirObra
+ProgramarObra ..> DefinirObra : <<include>>
 
 ' ===== Include =====
 Login ..> EmitirToken : <<include>>
@@ -145,7 +158,7 @@ EmitirDRE ..> ApurarCusto : <<include>>
 
 ' ===== Extend =====
 CriarComentarioManut ..> RealizarManutencao : <<extend>>
-ComentarCartao ..> EditarCartao : <<extend>>
+ComentarObra ..> EditarObra : <<extend>>
 ComentarTimeline ..> ConsultarTimeline : <<extend>>
 
 @enduml

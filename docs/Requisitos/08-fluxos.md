@@ -31,6 +31,8 @@ sequenceDiagram
 
 ## Mudança de status (cartão no Kanban)
 
+O arraste é livre: o cartão pode ser solto em qualquer coluna, e a API valida a transição ao receber a tentativa (Q11).
+
 ```mermaid
 sequenceDiagram
   participant F as KanbanBoard
@@ -58,7 +60,7 @@ sequenceDiagram
   end
 ```
 
-## Alocação de equipe no Gantt
+## Programação de obra no Gantt
 
 ```mermaid
 sequenceDiagram
@@ -68,12 +70,12 @@ sequenceDiagram
   participant GS as GanttService
   participant D as PostgreSQL
 
-  F->>F: marca as equipes ocupadas no período
+  F->>F: marca os responsáveis ocupados no período
   F->>G: POST /api/programacoes
-  G->>D: buscar obra e verificar se está apta
+  G->>D: buscar obra, verificar se está apta e se tem responsável
   G->>DS: duração a partir de quantidade_paineis
   G->>GS: data final em dias úteis
-  G->>D: verificar conflito da equipe
+  G->>D: verificar conflito de cada responsável
   alt sem conflito
     G->>D: INSERT programacao_obra
     G-->>F: 201
@@ -81,6 +83,22 @@ sequenceDiagram
     G-->>F: 409 SCHEDULE_CONFLICT
   end
 ```
+
+## Status de material (Financeiro)
+
+1. O Financeiro abre o material na aba Materiais da obra e escolhe o próximo status.
+2. O SPA envia `PATCH /api/materiais/{id}` com `statusNovo`.
+3. A API valida a ordem (Q12), grava o novo status e o `audit_log`.
+4. O Kanban e o Gantt recebem o evento em tempo real e exibem o novo rótulo e cor.
+5. Se a Engenharia enviar a mesma chamada, a API responde `403 ACCESS_DENIED`.
+
+## Alteração de senha autenticada
+
+1. O usuário informa a senha atual, a nova senha e a confirmação.
+2. O SPA confere a confirmação e a política mínima antes de enviar.
+3. A API valida a senha atual e grava o novo hash em uma única operação.
+4. Sucesso: a API invalida os tokens, e o SPA exibe confirmação e leva ao login.
+5. Falha: a senha anterior continua válida, e o SPA exibe "Não foi possível alterar a senha. Tente novamente.", sem sugerir link de redefinição.
 
 ## Atualização em tempo real
 

@@ -8,13 +8,16 @@ Cada decisão relevante tem um registro com contexto, decisão, alternativas e c
 | [ADR-002](#adr-002-spa-em-react-com-vite-e-typescript) | SPA em React com Vite e TypeScript | Aceita |
 | [ADR-003](#adr-003-tailwind-css-e-shadcnui) | Tailwind CSS e shadcn/ui | Aceita |
 | [ADR-004](#adr-004-dhtmlx-gantt-com-propagação-customizada) | DHTMLX Gantt com propagação customizada | Aceita, licença pendente |
-| [ADR-005](#adr-005-dnd-kit-no-kanban) | dnd-kit no Kanban | Aceita |
+| [ADR-005](#adr-005-dnd-kit-no-kanban) | dnd-kit no Kanban | Aceita, menu "Mover para..." reclassificado (ver ADR-013) |
 | [ADR-006](#adr-006-zustand-react-query-e-signalr) | Zustand, React Query e SignalR | Aceita |
 | [ADR-007](#adr-007-autenticação-jwt-com-autorização-no-servidor) | Autenticação JWT com autorização no servidor | Aceita |
 | [ADR-008](#adr-008-exclusão-lógica-e-timeline-append-only) | Exclusão lógica e timeline append-only | Aceita |
 | [ADR-009](#adr-009-postgresql) | PostgreSQL | Aceita |
 | [ADR-010](#adr-010-homologação-fora-do-escopo) | Homologação fora do escopo | Aceita |
 | [ADR-011](#adr-011-regras-de-cálculo-do-gantt) | Regras de cálculo do Gantt | Proposta |
+| [ADR-012](#adr-012-responsáveis-da-obra-substituem-equipes-cadastradas) | Responsáveis da obra substituem equipes cadastradas | Aceita (revisão de 07/11/2026) |
+| [ADR-013](#adr-013-kanban-com-arraste-livre-e-edição-na-página-obras) | Kanban com arraste livre e edição na página Obras | Aceita (revisão de 07/11/2026) |
+| [ADR-014](#adr-014-valores-e-catálogo-de-produtos-no-módulo-financeiro) | Valores e catálogo de produtos no módulo financeiro | Aceita (revisão de 07/11/2026) |
 
 ---
 
@@ -62,7 +65,7 @@ Cada decisão relevante tem um registro com contexto, decisão, alternativas e c
 
 **Status:** Aceita, licença pendente
 
-**Contexto.** Alocação de equipes por arraste. O auto-scheduling (propagação automática de datas) é recurso pago na maioria das bibliotecas comerciais.
+**Contexto.** Programação de obras por arraste no Gantt. O auto-scheduling (propagação automática de datas) é recurso pago na maioria das bibliotecas comerciais.
 
 **Decisão.** DHTMLX Gantt para a interface. Propagação de atrasos (dependência fim-início, em dias úteis) implementada pela equipe, no backend (`GanttService`). Horário de cada tarefa é preservado; só edição manual o altera.
 
@@ -108,7 +111,7 @@ Cada decisão relevante tem um registro com contexto, decisão, alternativas e c
 
 - Todo usuário, inclusive o instalador, faz login e recebe JWT com o perfil.
 - O servidor valida token e perfil em toda rota protegida.
-- O instalador só vê instalações da própria equipe, com filtro no servidor.
+- O instalador só vê instalações das obras em que é responsável, com filtro no servidor.
 - O link público fica restrito ao cronograma somente leitura, sem dados financeiros.
 
 **Alternativas.** Token público por link para o instalador: expõe dados. Sessão em cookie: viável, mas o contrato já usa JWT.
@@ -168,3 +171,59 @@ Cada decisão relevante tem um registro com contexto, decisão, alternativas e c
 - Recalcular as programações de exemplo com a regra escolhida.
 
 **Consequências.** Sem esta decisão, o cálculo de duração e a propagação no Gantt não têm resultado único, e backend e testes podem divergir.
+
+---
+
+## ADR-012: Responsáveis da obra substituem equipes cadastradas
+
+**Status:** Aceita (revisão de 07/11/2026)
+
+**Contexto.** Equipes mudam com frequência. Cadastrar equipes fixas não representa a operação, e o vínculo real é entre a obra e as pessoas responsáveis por ela.
+
+**Decisão.**
+
+- Remover as entidades `equipe` e `equipe_instalador`. Criar `obra_responsavel`, relação N:N entre obra e usuário.
+- Nesta fase, qualquer perfil ativo pode ser responsável.
+- A programação no Gantt usa obra e período. O conflito é verificado por responsável.
+
+**Alternativas.** Manter equipes com edição livre: continua exigindo um cadastro que muda o tempo todo. Campo de texto livre com nome do instalador: impede o controle de conflito de agenda e o filtro de acesso.
+
+**Consequências.** RF-07, RF-09, RF-19, RN-02 e as rotas de equipes mudam. O eixo do Gantt depende da decisão Q10. O filtro de acesso do instalador passa a usar o vínculo com a obra.
+
+---
+
+## ADR-013: Kanban com arraste livre e edição na página Obras
+
+**Status:** Aceita (revisão de 07/11/2026); reclassifica parte da ADR-005
+
+**Contexto.** O menu "Mover para..." está bugado e deve ser pouco usado. O Kanban deve ser a visão simples do fluxo. A edição de obra precisa de um lugar único.
+
+**Decisão.**
+
+- Arraste livre: o cartão pode ser solto em qualquer coluna. A API valida a transição ao receber o movimento. A regra de transição é mantida (Q11).
+- Sem destaque prévio de colunas durante o arraste.
+- O menu "Mover para..." passa a Could.
+- Edição, materiais e comentários de gestão ficam na página Obras. O botão "Página da Obra" do cartão é somente um atalho.
+
+**Alternativas.** Arraste sem validação: permite transições fora do fluxo de negócio. Manter o destaque de colunas: restringe o arraste, contrariando o pedido de revisão.
+
+**Consequências.** Mais trabalho no backend para tratar movimentos recusados. A página Obras passa a ser a rota principal de gestão. Q11 precisa de resposta do solicitante.
+
+---
+
+## ADR-014: Valores e catálogo de produtos no módulo financeiro
+
+**Status:** Aceita (revisão de 07/11/2026)
+
+**Contexto.** A gestão de obras e a Engenharia não devem tratar valores. O valor estimado mockado na tela da obra induzia a erro.
+
+**Decisão.**
+
+- Preços de produto, custos, valor da obra, custo total e DRE ficam somente no módulo financeiro, visíveis a Administrador e Financeiro.
+- O catálogo de produtos é mantido pelo Financeiro e pelo Administrador. A Engenharia usa a lista sem preço.
+- As respostas da API para Engenharia e Instalador não contêm campos de valor. A regra é aplicada no servidor, nos DTOs.
+- O valor mockado é removido da interface.
+
+**Alternativas.** Ocultar valores só no frontend: não protege os dados, pois a decisão de autorização é do servidor (ADR-007). Manter preços na tela de materiais com leitura liberada: expõe valores à Engenharia.
+
+**Consequências.** Dois conjuntos de DTOs para obra e material. Os testes de API por perfil precisam verificar a ausência de campos de valor (CT-20).

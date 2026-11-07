@@ -9,12 +9,12 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | RF | Casos de uso | Regras | Componente | Endpoint | Caso de teste | Situação |
 | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
 | RF-01 | UC-01, UC-02, UC-05, UC-06, UC-07, UC-09 | RN-04, RN-06 | `AuthController`, `AuthService` | `POST /api/auth/login`, `GET /api/auth/me`, `POST /api/usuarios` | CT-01 | Concluído |
-| RF-02 | UC-03, UC-04 | RN-04, RN-05, RN-06 | `AuthorizationMiddleware` | Todas as rotas protegidas | CT-02 | Concluído |
-| RF-03 | UC-08, UC-10, UC-11, UC-15, UC-16, UC-20 | RN-03 | `ClienteController`, `ObraController` | `POST /api/clientes`, `POST /api/obras`, `DELETE /api/obras/{id}` | CT-06 | Em andamento |
-| RF-04 | UC-12, UC-15 a UC-19 | RN-03, RN-05 | `KanbanBoard`, `ObraController` | `PATCH /api/obras/{id}/status`, `PUT /api/obras/{id}` | CT-03 | Em andamento |
+| RF-02 | UC-03, UC-04 | RN-04, RN-05, RN-06, RN-07 | `AuthorizationMiddleware` | Todas as rotas protegidas | CT-02, CT-20 | Concluído |
+| RF-03 | UC-10, UC-11, UC-15, UC-16, UC-17, UC-19, UC-20 | RN-03, RN-04 | `ObraController`, `ObrasPage` | `POST /api/obras`, `PUT /api/obras/{id}`, `DELETE /api/obras/{id}` | CT-06 | Em andamento |
+| RF-04 | UC-12, UC-15, UC-16, UC-18, UC-27 | RN-03, RN-05 | `KanbanBoard`, `ObraController` | `PATCH /api/obras/{id}/status` | CT-03, CT-21 | Em andamento |
 | RF-05 | UC-14, UC-20, UC-25 | RN-05 | `ManutencaoController` | `PATCH /api/manutencoes/{id}/concluir`, `POST /api/manutencoes/{id}/comentarios` | CT-07 | Pendente |
-| RF-06 | UC-17, UC-27, UC-28 | — | `ObraController`, `KanbanCard`, `GanttBar` | `PATCH /api/materiais/{id}` | CT-13 | Em andamento |
-| RF-07 | UC-13, UC-21, UC-22 | RN-01, RN-02 | `EquipeController`, `GanttController` | `POST /api/equipes`, `POST /api/programacoes` | CT-04 | Em andamento |
+| RF-06 | UC-27, UC-28, UC-40, UC-41 | RN-08 | `MaterialController`, `KanbanCard`, `GanttBar` | `POST /api/obras/{id}/materiais`, `PATCH /api/materiais/{id}` | CT-13, CT-19 | Em andamento |
+| RF-07 | UC-13, UC-21, UC-22 | RN-02, RN-09 | `ObraController`, `GanttController` | `PUT /api/obras/{id}/responsaveis`, `GET /api/responsaveis`, `POST /api/programacoes` | CT-04 | Em andamento |
 | RF-08 | UC-22 | RN-01 | `DuracaoService` | Cálculo em `POST /api/programacoes` | CT-04 | Em andamento |
 | RF-09 | UC-22 | RN-02 | `GanttService` | `PUT /api/programacoes/{id}/reordenar` | CT-09 | Em andamento |
 | RF-10 | UC-12, UC-13, UC-18 | — | `SyncService`, handler SignalR | Evento interno | CT-10 | Pendente |
@@ -30,8 +30,10 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | RF-20 | UC-33 | RN-03 | `DREController`, `DREService` | `GET /api/obras/{id}/dre` | CT-14 | Pendente |
 | RF-21 | UC-35, UC-36 | RN-04, RN-06.15 a RN-06.17 | `AuthController`, `PasswordResetService` | `POST /api/auth/esqueci-senha`, `POST /api/auth/redefinir-senha`, `PUT /api/auth/alterar-senha` | CT-15 | Pendente |
 | RF-22 | UC-05, UC-06, UC-07, UC-09, UC-37, UC-38 | RN-06.17, RN-06.18 | `UsuarioController` (a implementar) | `GET /api/usuarios`, `POST /api/usuarios`, `PUT /api/usuarios/{id}`, `PATCH /api/usuarios/{id}/ativo` | CT-16 | Pendente |
-| RF-23 | UC-08 | RN-03 | `ClienteController` | `GET /api/clientes`, `POST /api/clientes` | CT-17 | Pendente |
+| RF-23 | UC-08 | RN-03 | `ClienteController` | `GET`, `POST`, `PUT /api/clientes/{id}`, `DELETE /api/clientes/{id}` | CT-17 | Pendente |
 | RF-24 | — | — | Componente `NotFound`, estados vazios | — | CT-18 | Pendente |
+| RF-25 | UC-39, UC-40 | RN-08 | `ProdutoController` | `GET`, `POST`, `PUT /api/produtos` | CT-19 | Pendente |
+| RF-26 | UC-10, UC-31, UC-32, UC-33 | RN-07 | `ObraDTO`, `FinanceiroController` | Respostas de `/api/obras`, `/api/materiais`, `/api/produtos` | CT-20 | Pendente |
 
 ## Requisitos não funcionais
 
@@ -53,18 +55,18 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | UC-03 | `GET /api/auth/me` e middleware | Em andamento |
 | UC-04 | `AuthorizationMiddleware` | Pendente |
 | UC-05, UC-06, UC-07, UC-09 | `POST /api/usuarios` | Pendente |
-| UC-08 | `POST /api/clientes` | Pendente |
+| UC-08 | `GET`, `POST`, `PUT`, `DELETE /api/clientes` | Pendente |
 | UC-10 | `POST /api/obras` | Em andamento |
 | UC-11 | `DELETE /api/obras/{id}` | Pendente |
 | UC-12 | `PATCH /api/obras/{id}/status` | Em andamento |
 | UC-13 | `POST /api/programacoes` | Em andamento |
 | UC-14 | `POST /api/manutencoes/{id}/comentarios` | Pendente |
 | UC-15, UC-16 | Criação e remoção de cartão em `ObraController` | Em andamento |
-| UC-17 | `PUT /api/obras/{id}` | Em andamento |
+| UC-17 | `PUT /api/obras/{id}` (página Obras) | Em andamento |
 | UC-18 | `PATCH /api/obras/{id}/status` | Em andamento |
-| UC-19 | `POST /api/obras/{id}/comentarios` | Em andamento |
+| UC-19 | `POST /api/obras/{id}/comentarios` (página Obras) | Em andamento |
 | UC-20 | `RegistroAcaoService` | Em andamento |
-| UC-21 | `POST /api/equipes` | Em andamento |
+| UC-21 | `PUT /api/obras/{id}/responsaveis` | Pendente |
 | UC-22 | `POST /api/programacoes`, `PUT /reordenar` | Em andamento |
 | UC-23 | `GET /api/obras/{id}/instalacao/export` | Pendente |
 | UC-24 | `GET /api/instalador/instalacoes/{obraId}` | Em andamento |
@@ -82,3 +84,6 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | UC-36 | `POST /api/auth/redefinir-senha`, `PUT /api/auth/alterar-senha` | Pendente |
 | UC-37 | `PATCH /api/usuarios/{id}/ativo` (desativar) | Pendente |
 | UC-38 | `PATCH /api/usuarios/{id}/ativo` (reativar) | Pendente |
+| UC-39 | `GET`, `POST`, `PUT /api/produtos` | Pendente |
+| UC-40 | `POST /api/obras/{id}/materiais` | Pendente |
+| UC-41 | `PATCH /api/materiais/{id}` | Pendente |

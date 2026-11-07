@@ -43,6 +43,7 @@ Usuários do seed (somente ambiente de desenvolvimento): senha `Senha123!`, com 
 
 | Documento | Conteúdo |
 | :---- | :---- |
+| [Contexto da empresa](docs/Requisitos/00-contexto-empresa.md) | Como a empresa trabalha hoje, jornada da obra, dores e divergências com a documentação |
 | [Visão de negócio](docs/Requisitos/01-visao-negocio.md) | Objetivos, escopo, perfis, premissas e questões em aberto |
 | [Requisitos](docs/Requisitos/02-requisitos.md) | Requisitos funcionais, não funcionais e critérios de aceite |
 | [Casos de uso](docs/Requisitos/03-casos-de-uso.md) | Atores, casos de uso e relações |
@@ -56,4 +57,4 @@ Usuários do seed (somente ambiente de desenvolvimento): senha `Senha123!`, com 
 | [Rastreabilidade](docs/Requisitos/11-rastreabilidade.md) | Requisito → caso de uso → regra → componente → endpoint → teste |
 | [Riscos](docs/Requisitos/12-riscos.md) | Riscos abertos e mitigação |
 | [Status](docs/Requisitos/13-status.md) | Situação por módulo e critérios de conclusão |
-| [Protótipo](https://www.figma.com/design/lVSE5i1ZoAaV5Y0AvmC0Hz/PI-IV?node-id=0-1&t=d1mq86Ut5gcweABj-1) | Modelo via Figma |
+| [Protótipo](https://www.figma.com/design/QBf6ftBtIhzKB7CQkbWaTW/PI-IV--Copy---c%C3%B3pia-?node-id=0-1&p=f&t=0yvhwtyTuvl4CvuB-0) | Modelo via Figma |
