@@ -2,7 +2,7 @@
 
 Prioridades seguem MoSCoW (Must, Should, Could, Won't). A coluna **Situação** indica o estado de implementação na data de atualização deste documento. Os valores são: Concluído, Em andamento, Pendente e Fora do escopo. Os critérios de aceite de cada requisito funcional estão escritos em Gherkin (Dado/Quando/Então), em português.
 
-> **Revisão de 07/11/2026:** equipes foram substituídas por responsáveis da obra; valores foram isolados no módulo financeiro; a página Obras foi separada do Kanban; materiais passam a sair de um catálogo de produtos. Os achados do teste funcional da mesma data estão tratados em RF-03, RF-21, RF-22 e RF-23. Decisões pendentes estão em [Visão de negócio](01-visao-negocio.md#questões-em-aberto) (Q9 a Q13).
+> **Revisão de 07/11/2026:** equipes passam a ser entidades temporais do Gantt, montadas por programação de obra, com integrantes flexíveis e foco na gestão do tempo de cada instalador (substituem os responsáveis da obra); valores foram isolados no módulo financeiro; a página Obras foi separada do Kanban; materiais passam a sair de um catálogo de produtos. Os achados do teste funcional da mesma data estão tratados em RF-03, RF-21, RF-22 e RF-23. Decisões pendentes estão em [Visão de negócio](01-visao-negocio.md#questões-em-aberto) (Q9 a Q14).
 
 ## Requisitos funcionais
 
@@ -14,7 +14,7 @@ Prioridades seguem MoSCoW (Must, Should, Could, Won't). A coluna **Situação** 
 | RF-04 | Funil Kanban (visualização e movimentação) | Must | Em andamento |
 | RF-05 | Raia de assistência e manutenção | Should | Pendente |
 | RF-06 | Materiais da obra e status de material | Should | Em andamento |
-| RF-07 | Responsáveis da obra e programação no Gantt | Must | Em andamento |
+| RF-07 | Equipes de instalação e programação no Gantt | Must | Em andamento |
 | RF-08 | Estimativa de duração | Should | Em andamento |
 | RF-09 | Reordenação e propagação de atrasos | Must | Em andamento |
 | RF-10 | Sincronização Gantt e Kanban | Should | Pendente |
@@ -48,7 +48,7 @@ O sistema autentica por e-mail e senha e emite um token de acesso (JWT) com o pe
 - Token expirado ou ausente retorna 401; toda negação (401/403) é registrada em log de segurança com motivo.
 - E-mail deve ser único.
 - Senhas são armazenadas somente como hash.
-- Instalador pode ser cadastrado sem vínculo com obras. Sem ser responsável por nenhuma obra, o login é permitido, mas a lista de instalações fica vazia. O vínculo é feito na obra (RF-07) e não altera o token, que carrega somente o perfil. Regra alinhada em 01/11/2026 e revisada em 07/11/2026 (equipes substituídas por responsáveis da obra).
+- Instalador pode ser cadastrado sem estar em nenhuma equipe. Sem equipe, o login é permitido, mas a lista de instalações fica vazia. A inclusão em equipe é feita na programação do Gantt (RF-07) e não altera o token, que carrega somente o perfil, pois a equipe muda conforme o período. Regra alinhada em 01/11/2026 e revisada em 07/11/2026 (equipes temporais do Gantt).
 
 **Critérios de aceite:**
 
@@ -91,16 +91,16 @@ Funcionalidade: Autenticação e cadastro de usuários
     Quando o Administrador tenta cadastrar um novo usuário com esse mesmo e-mail
     Então o sistema exibe mensagem de erro e impede o cadastro
 
-  Cenário: Cadastro de instaladores sem vínculo com obras
+  Cenário: Cadastro de instaladores sem equipe
     Dado que o Administrador está autenticado no sistema
-    Quando ele cadastra instaladores sem vincular nenhuma obra
+    Quando ele cadastra instaladores sem incluí-los em nenhuma equipe
     Então o sistema salva os usuários e permite seu login
     E a lista de instalações de cada instalador fica vazia
 
-  Cenário: Instalador passa a ver a obra quando é definido como responsável
-    Dado que existe um Instalador de Campo ativo sem obras vinculadas
-    Quando um usuário autorizado define esse instalador como responsável por uma obra
-    Então o sistema grava o vínculo na obra
+  Cenário: Instalador passa a ver a obra quando entra na equipe
+    Dado que existe um Instalador de Campo ativo sem equipe
+    Quando um usuário autorizado o adiciona à equipe de uma obra programada no Gantt
+    Então o sistema grava o integrante na equipe
     E a obra aparece na lista de instalações do instalador
 
   Cenário: Credenciais incorretas na autenticação
@@ -135,7 +135,7 @@ Funcionalidade: Controle de acesso aos recursos do sistema
 
   Cenário: Acesso concedido a recurso permitido
     Dado que o Instalador de Campo está autenticado
-    Quando ele solicita visualizar os detalhes de uma instalação de obra em que é responsável
+    Quando ele solicita visualizar os detalhes de uma instalação de obra cuja equipe ele integra
     Então o sistema valida o token e exibe os dados de kit, endereço e projeto
 
   Esquema do Cenário: Autorização por perfil conforme a matriz de permissões
@@ -151,7 +151,7 @@ Funcionalidade: Controle de acesso aos recursos do sistema
       | Financeiro          | movimentação de cartões no Kanban    | Acesso Proibido  |
       | Financeiro          | DRE da obra                          | Acesso Concedido |
       | Administrador       | conclusão de manutenção              | Acesso Proibido  |
-      | Instalador de Campo | detalhes da instalação de obra em que é responsável | Acesso Concedido |
+      | Instalador de Campo | detalhes da instalação de obra cuja equipe integra | Acesso Concedido |
       | Engenharia          | visualização de valores (custos, preços, valor da obra) | Acesso Proibido |
       | Financeiro          | atualização de status de material | Acesso Concedido |
       | Engenharia          | atualização de status de material | Acesso Proibido |
@@ -319,7 +319,7 @@ Funcionalidade: Gerenciamento do funil Kanban
 ### RF-05: Raia de assistência e manutenção
 
 - Obras pós-instalação aparecem na raia de Assistência.
-- O instalador vê somente as manutenções das obras em que é responsável.
+- O instalador vê somente as manutenções das obras cujas equipes ele integrou.
 - Concluir a manutenção registra o serviço executado, altera o status e grava na timeline.
 - Comentário de manutenção é opcional, mas quando enviado não pode ser vazio. Guarda autor, data e hora.
 - Outros perfis não concluem manutenção.
@@ -331,26 +331,26 @@ Funcionalidade: Gerenciamento do funil Kanban
 @RF-05 @UC-14 @UC-20 @UC-25
 Funcionalidade: Raia de assistência e módulo de manutenção
 
-  Cenário: Instalador visualiza manutenções das obras em que é responsável
+  Cenário: Instalador visualiza manutenções das obras em que trabalhou
     Dado que o Instalador de Campo está autenticado
-    E que existem manutenções na raia de assistência de obras em que ele é responsável
+    E que existem manutenções na raia de assistência de obras cujas equipes ele integrou
     Quando ele acessa a lista de manutenções
     Então o sistema exibe somente as manutenções dessas obras
 
   Cenário: Conclusão de manutenção com comentário
     Dado que o Instalador de Campo está autenticado
-    E que existe uma manutenção de obra em que ele é responsável
+    E que existe uma manutenção de obra cuja equipe ele integrou
     Quando ele registra a execução do serviço, adiciona um comentário e marca a manutenção como concluída
     Então o sistema altera o status da manutenção para concluída
     E grava o evento na linha do tempo da obra
 
   Cenário: Conclusão de manutenção sem comentário
     Dado que o Instalador de Campo está autenticado
-    E que existe uma manutenção de obra em que ele é responsável
+    E que existe uma manutenção de obra cuja equipe ele integrou
     Quando ele registra a execução do serviço sem adicionar comentário e marca a manutenção como concluída
     Então o sistema conclui a manutenção normalmente
 
-  Cenário: Instalador tenta acessar manutenção de obra em que não é responsável
+  Cenário: Instalador tenta acessar manutenção de obra em que não trabalhou
     Dado que o Instalador de Campo está autenticado
     E que existe uma manutenção de obra sem vínculo com ele
     Quando ele tenta acessar essa manutenção
@@ -411,16 +411,22 @@ Funcionalidade: Status do material da obra
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
 ```
 
-### RF-07: Responsáveis da obra e programação no Gantt
+### RF-07: Equipes de instalação e programação no Gantt
 
-Equipes deixam de ser cadastradas (revisão de 07/11/2026). O vínculo passa a ser entre a obra e seus responsáveis: uma obra pode ter vários responsáveis, e um usuário pode ser responsável por várias obras. Nesta fase, o responsável pode ser usuário de qualquer perfil ativo.
+Equipe é uma entidade temporal do Gantt, não um cadastro fixo (revisão de 07/11/2026, que substitui os "responsáveis da obra"). Cada programação de obra no Gantt tem a sua equipe: o grupo de instaladores que executa aquela instalação naquele período. O objetivo é a gestão do tempo das pessoas: quantas trabalham em cada instalação, quantas ainda faltam e quanto tempo cada trabalhador fica ocupado ou livre.
 
-- Definir os responsáveis é feito na página Obras, por Administrador e Engenharia.
-- Programar uma obra no Gantt exige obra apta para instalação (materiais separados) e ao menos um responsável.
-- Um responsável não pode estar em duas obras com período sobreposto (proposta; depende do eixo do Gantt, Q10).
-- Conflito de agenda é bloqueado, com mensagem que informa o período ocupado.
-- A lista de responsáveis indica quem já está ocupado no período antes da confirmação.
-- Perfis Financeiro e Instalador de Campo não programam obras no Gantt.
+- Ao programar uma obra no Gantt, o usuário informa o período e a quantidade de pessoas previstas para a instalação. Os integrantes podem ser escolhidos na hora ou depois.
+- Integrantes da equipe são usuários ativos com perfil Instalador de Campo.
+- Integrantes são adicionados e removidos a qualquer momento, sem recriar a equipe nem a programação. Cada integrante tem data de entrada e de saída dentro do período da programação (padrão: o período inteiro).
+- Remover um integrante antes do início apaga o vínculo. Remover durante a execução encerra o vínculo na data informada, preservando os dias já trabalhados.
+- Um instalador não pode estar em duas equipes com períodos sobrepostos. O conflito é bloqueado, com mensagem que informa a obra e o período ocupado.
+- A lista de instaladores, ao montar a equipe, mostra quem está livre e quem está ocupado no período antes da confirmação.
+- A barra da obra no Gantt mostra a equipe no formato alocadas/previstas (ex.: 2/3) e destaca equipe incompleta (faltam pessoas).
+- O sistema calcula o esforço da equipe em pessoa-dia: soma dos dias úteis de cada integrante na programação.
+- O Gantt oferece a visão de ocupação por instalador (uma linha por pessoa) e, por dia, o total de instaladores alocados, livres e faltantes nas equipes, para maximizar o uso do tempo de cada trabalhador.
+- Programar uma obra exige obra apta para instalação (materiais separados).
+- Cada alteração na equipe (inclusão, remoção ou mudança de datas de integrante) grava log de auditoria.
+- Perfis Financeiro e Instalador de Campo não programam obras nem alteram equipes.
 - Duração e reordenação seguem RF-08 e RF-09.
 
 **Critérios de aceite:**
@@ -428,47 +434,69 @@ Equipes deixam de ser cadastradas (revisão de 07/11/2026). O vínculo passa a s
 ```gherkin
 # language: pt
 @RF-07 @UC-13 @UC-21 @UC-22
-Funcionalidade: Responsáveis da obra e programação no Gantt
+Funcionalidade: Equipes de instalação e programação no Gantt
 
-  Cenário: Definição de responsáveis de perfis diferentes
+  Cenário: Programação de obra com equipe
     Dado que o usuário está autenticado com o perfil "Engenharia"
-    E que existe uma obra cadastrada
-    Quando ele define como responsáveis um usuário de perfil "Engenharia" e um usuário de perfil "Instalador de Campo"
-    Então o sistema salva os responsáveis na obra
-
-  Cenário: Programação de obra sem responsável
-    Dado que o usuário está autenticado com o perfil "Engenharia"
-    E que existe uma obra apta para instalação sem responsáveis
-    Quando ele tenta programar a obra no Gantt
-    Então o sistema não salva a programação
-    E exibe mensagem informando que é necessário definir ao menos um responsável
-
-  Cenário: Programação de obra no Gantt
-    Dado que o usuário está autenticado com o perfil "Engenharia"
-    E que existe uma obra apta para instalação com a responsável "Ana Souza"
-    Quando ele programa a obra para 10/11/2026 a 12/11/2026
-    Então o sistema exibe a barra da obra no Gantt no período escolhido
+    E que existe uma obra apta para instalação
+    E que os instaladores "Carlos" e "Bruno" estão livres de 10/11/2026 a 12/11/2026
+    Quando ele programa a obra para 10/11/2026 a 12/11/2026 com 2 pessoas previstas e adiciona "Carlos" e "Bruno" à equipe
+    Então o sistema exibe a barra da obra no Gantt no período escolhido com a equipe "2/2"
     E a obra passa a aparecer como definida para instalação no Kanban
 
-  Cenário: Conflito de agenda do responsável
-    Dado que "Ana Souza" é responsável por uma obra programada de 10/11/2026 a 12/11/2026
-    Quando o usuário tenta programar outra obra com "Ana Souza" como responsável em 11/11/2026
-    Então o sistema impede a programação
-    E exibe mensagem informando o conflito de agenda e o período ocupado
+  Cenário: Programação com equipe incompleta
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    E que existe uma obra apta para instalação
+    Quando ele programa a obra com 3 pessoas previstas e adiciona somente "Carlos" à equipe
+    Então o sistema salva a programação
+    E a barra da obra no Gantt exibe a equipe "1/3" destacada como incompleta
 
-  Cenário: Responsável ocupado aparece marcado
-    Dado que "Ana Souza" está ocupada em 11/11/2026
-    Quando o usuário abre a lista de responsáveis para programar uma obra nesse dia
-    Então o sistema marca "Ana Souza" como ocupada antes da confirmação
+  Cenário: Inclusão de integrante em equipe já programada
+    Dado que existe uma obra programada de 10/11/2026 a 12/11/2026 com a equipe "1/2"
+    E que o instalador "Bruno" está livre no período
+    Quando o usuário adiciona "Bruno" à equipe a partir de 11/11/2026
+    Então o sistema grava "Bruno" na equipe de 11/11/2026 a 12/11/2026
+    E a barra da obra exibe a equipe "2/2"
+    E o esforço da equipe é recalculado em pessoa-dia
+
+  Cenário: Remoção de integrante durante a execução
+    Dado que "Carlos" integra a equipe de uma obra programada de 10/11/2026 a 12/11/2026
+    Quando o usuário remove "Carlos" da equipe com saída em 11/11/2026
+    Então o sistema encerra o vínculo de "Carlos" em 11/11/2026
+    E mantém os dias trabalhados por "Carlos" no esforço da equipe
+    E "Carlos" passa a aparecer como livre em 12/11/2026
+
+  Cenário: Conflito de agenda do instalador
+    Dado que "Carlos" integra a equipe de uma obra programada de 10/11/2026 a 12/11/2026
+    Quando o usuário tenta adicionar "Carlos" à equipe de outra obra em 11/11/2026
+    Então o sistema impede a inclusão
+    E exibe mensagem informando a obra e o período em que "Carlos" está ocupado
+
+  Cenário: Instalador ocupado aparece marcado
+    Dado que "Carlos" está ocupado em 11/11/2026
+    Quando o usuário abre a lista de instaladores para montar a equipe de uma obra nesse dia
+    Então o sistema marca "Carlos" como ocupado antes da confirmação
+
+  Cenário: Ocupação diária dos instaladores
+    Dado que existem 5 instaladores ativos
+    E que em 11/11/2026 há 3 instaladores em equipes e uma equipe com 1 pessoa faltante
+    Quando o usuário consulta a ocupação de 11/11/2026 no Gantt
+    Então o sistema exibe 3 instaladores alocados, 2 livres e 1 pessoa faltante
+
+  Cenário: Usuário que não é instalador não entra na equipe
+    Dado que o usuário está autenticado com o perfil "Engenharia"
+    Quando ele tenta adicionar à equipe um usuário de perfil "Financeiro"
+    Então o sistema impede a inclusão
+    E exibe mensagem informando que a equipe aceita somente instaladores de campo ativos
 
   Cenário: Perfil sem permissão tenta programar obra
     Dado que o usuário está autenticado com o perfil "Instalador de Campo"
-    Quando ele tenta programar uma obra no Gantt
+    Quando ele tenta programar uma obra no Gantt ou alterar uma equipe
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
 
   Cenário: Financeiro tenta programar obra
     Dado que o usuário está autenticado com o perfil "Financeiro"
-    Quando ele tenta programar uma obra no Gantt
+    Quando ele tenta programar uma obra no Gantt ou alterar uma equipe
     Então o sistema nega o acesso com resposta de "Acesso Proibido"
 ```
 
@@ -515,9 +543,11 @@ Funcionalidade: Estimativa automática de duração da instalação
 
 ### RF-09: Reordenação e propagação de atrasos
 
-- Reordenar uma programação recalcula as datas das programações seguintes do mesmo responsável. O agrupamento depende do eixo do Gantt (Q10).
+- O Gantt tem uma linha por obra programada; a equipe é atributo da barra. A visão de ocupação por instalador é complementar (RF-07).
+- Adiar ou reordenar uma programação recalcula as datas das programações seguintes que têm integrantes em comum, em cadeia (proposta; ver Q10).
 - O cálculo de término usa somente dias úteis.
-- Reagendamento que sobrepõe outra programação do mesmo responsável é bloqueado.
+- Reagendamento que deixa um integrante em duas equipes no mesmo período é bloqueado.
+- Mudar o período da programação ajusta as datas de entrada e saída dos integrantes que cobriam o período inteiro; integrantes com datas parciais são revisados pelo usuário.
 
 **Critérios de aceite:**
 
@@ -526,8 +556,8 @@ Funcionalidade: Estimativa automática de duração da instalação
 @RF-09 @UC-22
 Funcionalidade: Reordenação e propagação de atrasos no Gantt
 
-  Cenário: Propagação de atraso para obras do mesmo responsável
-    Dado que a obra "A" e a obra "B" têm o mesmo responsável, com a obra "B" iniciando após a obra "A"
+  Cenário: Propagação de atraso para obras com integrantes em comum
+    Dado que o instalador "Carlos" integra as equipes das obras "A" e "B", com a obra "B" iniciando após a obra "A"
     Quando o usuário adia o término da obra "A" em 2 dias úteis
     Então o sistema desloca o início e o término da obra "B" em 2 dias úteis
 
@@ -538,7 +568,7 @@ Funcionalidade: Reordenação e propagação de atrasos no Gantt
     E sábado e domingo não são contados na duração
 
   Cenário: Reagendamento que gera conflito de agenda
-    Dado que um responsável possui duas obras programadas em períodos distintos
+    Dado que um instalador integra as equipes de duas obras programadas em períodos distintos
     Quando o usuário reagenda uma dessas obras para um período que sobrepõe a outra
     Então o sistema impede o reagendamento
     E exibe mensagem informando o conflito de agenda
@@ -773,7 +803,7 @@ Funcionalidade: Bloqueio de acesso financeiro para instalador
 ### RF-15: Exportação de relatórios e detalhes
 
 - Relatórios financeiros e cronograma exportam em PDF ou Excel.
-- Detalhes da instalação (kit, endereço, responsáveis, período e instruções) exportam somente para o Administrador.
+- Detalhes da instalação (kit, endereço, equipe, período e instruções) exportam somente para o Administrador.
 - Geração de até 1.000 registros em no máximo 5 segundos (RNF-05).
 - Perfis sem permissão recebem `403`.
 
@@ -806,9 +836,9 @@ Funcionalidade: Exportação de relatórios e detalhes de instalação
 
   Cenário: Exportação dos detalhes da instalação
     Dado que o usuário está autenticado com o perfil "Administrador"
-    E que existe uma instalação com kit, endereço, responsáveis e instruções cadastrados
+    E que existe uma instalação com kit, endereço, equipe e instruções cadastrados
     Quando ele exporta os detalhes da instalação
-    Então o arquivo gerado contém o kit, o endereço, os responsáveis e as instruções da instalação
+    Então o arquivo gerado contém o kit, o endereço, a equipe e as instruções da instalação
 
   Cenário: Perfil sem permissão tenta exportar detalhes da instalação
     Dado que o usuário está autenticado com o perfil "Engenharia"
@@ -908,11 +938,11 @@ Funcionalidade: Modo display para monitores
 
 ### RF-19: Módulo do instalador de campo
 
-- O instalador faz login e acessa a lista de instalações das obras em que é responsável.
+- O instalador faz login e acessa a lista de instalações das obras cujas equipes ele integra, com o período em que está escalado em cada uma.
 - Cada instalação mostra o kit de materiais (produto e quantidade, sem preços), endereço, projeto e instruções.
 - Botão "Abrir rota" envia o endereço ao aplicativo de mapas do dispositivo.
-- Instalador registra e conclui manutenções e comenta sobre elas, nas obras em que é responsável.
-- Instalador não vê obras em que não é responsável e não acessa telas administrativas ou financeiras.
+- Instalador registra e conclui manutenções e comenta sobre elas, nas obras cujas equipes ele integrou.
+- Instalador não vê obras de equipes que não integra e não acessa telas administrativas ou financeiras.
 
 **Critérios de aceite:**
 
@@ -923,11 +953,11 @@ Funcionalidade: Módulo do Instalador de Campo
 
   Cenário: Consulta de detalhes da instalação pelo instalador logado
     Dado que o Instalador de Campo fez login no sistema com suas credenciais
-    E que ele é responsável por uma obra
+    E que ele integra a equipe de uma obra programada
     Quando ele acessa a tela de instalações
     Então o sistema exibe o kit de materiais (produtos e quantidades), o endereço e as instruções dessa obra
 
-  Cenário: Instalador não vê obras em que não é responsável
+  Cenário: Instalador não vê obras de equipes que não integra
     Dado que o Instalador de Campo está autenticado
     E que existem obras sem vínculo com ele
     Quando ele acessa a tela de instalações
@@ -944,12 +974,12 @@ Funcionalidade: Módulo do Instalador de Campo
     Então o sistema aciona o aplicativo de GPS padrão enviando as coordenadas/endereço da obra
 
   Cenário: Registro de manutenção concluída
-    Dado que o Instalador de Campo está visualizando uma manutenção de obra em que é responsável
+    Dado que o Instalador de Campo está visualizando uma manutenção de obra cuja equipe ele integrou
     Quando ele registra a execução do serviço e marca a manutenção como concluída
     Então o sistema altera o status da manutenção para concluída
 
   Cenário: Comentário sobre manutenção executada
-    Dado que o Instalador de Campo está visualizando uma manutenção de obra em que é responsável
+    Dado que o Instalador de Campo está visualizando uma manutenção de obra cuja equipe ele integrou
     Quando ele inclui um comentário detalhado sobre o serviço executado
     Então o sistema salva o comentário vinculado à manutenção
 

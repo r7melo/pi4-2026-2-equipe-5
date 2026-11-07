@@ -1,6 +1,6 @@
 # ZL Engenharia Solar: Sistema de Gestão de Obras
 
-Sistema web para gestão de obras de instalação de energia solar. Reúne o funil de obras (Kanban), o planejamento de equipes de campo (Gantt), a linha do tempo de cada obra, o módulo do instalador em celular e o controle de custos e DRE.
+Sistema web para gestão de obras de instalação de energia solar. Reúne o funil de obras (Kanban), o planejamento das instalações com equipes temporais e gestão do tempo dos instaladores (Gantt), a linha do tempo de cada obra, o módulo do instalador em celular e o controle de custos e DRE.
 
 ## Stack
 

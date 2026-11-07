@@ -38,7 +38,7 @@
 | [UC-18](#uc-18) Mover cartão no Kanban | ✔ | ✔ | | |
 | [UC-19](#uc-19) Adicionar comentário na obra | ✔ | ✔ | | |
 | [UC-20](#uc-20) Registrar ação | ✔ | ✔ | | |
-| [UC-21](#uc-21) Definir responsáveis da obra | ✔ | ✔ | | |
+| [UC-21](#uc-21) Gerenciar equipe da programação | ✔ | ✔ | | |
 | [UC-22](#uc-22) Programar obra no Gantt | ✔ | ✔ | | |
 | [UC-23](#uc-23) Exportar detalhes de instalação | ✔ | | | |
 | [UC-24](#uc-24) Visualizar detalhes da instalação | ✔ | ✔ | | ✔ |
@@ -76,7 +76,7 @@
 | [UC-10](#uc-10) | Cadastrar obra | Administrador, Engenharia | Seleciona cliente; informa endereço, descrição e dados do projeto; salva; cria cartão e registra ação | Toda obra tem cliente; nasce no status inicial |
 | [UC-11](#uc-11) | Apagar obra | Administrador, Engenharia | Seleciona obra; confirma; remove cartão; marca obra como excluída | Confirmação explícita; obra em execução não é apagada; exclusão lógica |
 | [UC-12](#uc-12) | Alterar status da obra | Sistema | Recebe obra e novo status; valida transição; atualiza; registra ação | Status segue o fluxo; toda mudança é registrada |
-| [UC-13](#uc-13) | Definir obra para instalação | Administrador, Engenharia | Seleciona obra; associa responsáveis e período; move cartão para a coluna de instalação | Obra apta; ao menos um responsável; responsável sem conflito de período |
+| [UC-13](#uc-13) | Definir obra para instalação | Administrador, Engenharia | Seleciona obra; define período e equipe; move cartão para a coluna de instalação | Obra apta; integrante sem conflito de período |
 | [UC-14](#uc-14) | Criar comentário sobre a manutenção | Instalador | Escreve comentário durante a manutenção; sistema salva com autor, data e hora | Comentário é opcional e estende UC-25 |
 | [UC-15](#uc-15) | Inserir cartão no Kanban | Sistema | Cria cartão com dados resumidos na primeira coluna | Um cartão por obra |
 | [UC-16](#uc-16) | Deletar cartão no Kanban | Sistema | Remove o cartão da coluna | Só junto com a exclusão da obra |
@@ -84,14 +84,14 @@
 | [UC-18](#uc-18) | Mover cartão no Kanban | Administrador, Engenharia | Arrasta cartão livremente até qualquer coluna; sistema valida ao soltar; executa UC-12; atualiza posição | Respeita a ordem do fluxo (Q11); movimento válido altera status e gera registro |
 | [UC-19](#uc-19) | Adicionar comentário na obra | Administrador, Engenharia | Escreve comentário na página da obra; sistema salva | Comentário guarda autor, data e hora |
 | [UC-20](#uc-20) | Registrar ação | Sistema | Recebe evento; adiciona data e hora; grava na timeline | Registros não podem ser editados nem removidos; identifica o usuário |
-| [UC-21](#uc-21) | Definir responsáveis da obra | Administrador, Engenharia | Seleciona um ou mais usuários como responsáveis pela obra; salva | Qualquer perfil ativo pode ser responsável; obra programada tem ao menos um responsável |
-| [UC-22](#uc-22) | Programar obra no Gantt | Administrador, Engenharia | Seleciona obra e período; sistema verifica disponibilidade dos responsáveis; salva; executa UC-13 | Sem dupla alocação por responsável; obra apta |
-| [UC-23](#uc-23) | Exportar detalhes de instalação | Administrador | Seleciona obra; sistema reúne kit, endereço, responsáveis, período e instruções; gera arquivo | Somente dados da obra selecionada |
-| [UC-24](#uc-24) | Visualizar detalhes da instalação | Instalador | Abre lista; seleciona instalação; vê kit, endereço, projeto e instruções | Somente obras em que é responsável; somente leitura; kit sem preços |
-| [UC-25](#uc-25) | Realizar manutenção | Instalador | Abre manutenção; registra serviço; marca como concluída; sistema salva e registra ação | Somente manutenção de obra em que é responsável; conclusão gera registro |
-| [UC-26](#uc-26) | Abrir rota | Instalador | Seleciona instalação; aciona rota; sistema abre o aplicativo de mapas com o endereço | Usa o endereço da obra; só de obra em que é responsável |
+| [UC-21](#uc-21) | Gerenciar equipe da programação | Administrador, Engenharia | Abre a programação; adiciona ou remove instaladores com datas de entrada e saída; salva | Só instaladores ativos; sem dupla alocação no período; recalcula faltantes e pessoa-dia |
+| [UC-22](#uc-22) | Programar obra no Gantt | Administrador, Engenharia | Seleciona obra, período e pessoas previstas; escolhe integrantes livres; salva; executa UC-13 | Sem dupla alocação por instalador; obra apta; equipe incompleta é destacada |
+| [UC-23](#uc-23) | Exportar detalhes de instalação | Administrador | Seleciona obra; sistema reúne kit, endereço, equipe, período e instruções; gera arquivo | Somente dados da obra selecionada |
+| [UC-24](#uc-24) | Visualizar detalhes da instalação | Instalador | Abre lista; seleciona instalação; vê kit, endereço, projeto e instruções | Somente obras cujas equipes integra; somente leitura; kit sem preços |
+| [UC-25](#uc-25) | Realizar manutenção | Instalador | Abre manutenção; registra serviço; marca como concluída; sistema salva e registra ação | Somente manutenção de obra cuja equipe integrou; conclusão gera registro |
+| [UC-26](#uc-26) | Abrir rota | Instalador | Seleciona instalação; aciona rota; sistema abre o aplicativo de mapas com o endereço | Usa o endereço da obra; só de obra cuja equipe integra |
 | [UC-27](#uc-27) | Consultar obras e quadro Kanban | Financeiro | Abre o quadro; vê cartões e status de material; abre detalhes | Somente leitura |
-| [UC-28](#uc-28) | Consultar cronograma (Gantt) | Financeiro | Abre o Gantt; vê programações por período e responsável; abre detalhes | Somente leitura |
+| [UC-28](#uc-28) | Consultar cronograma (Gantt) | Financeiro | Abre o Gantt; vê programações por período, equipe e ocupação dos instaladores; abre detalhes | Somente leitura |
 | [UC-29](#uc-29) | Consultar linha do tempo | Administrador, Engenharia, Financeiro | Seleciona obra; abre timeline; vê registros em ordem cronológica | Ordem cronológica; registros de ação são imutáveis |
 | [UC-30](#uc-30) | Incluir comentário na linha do tempo | Financeiro | Escreve comentário; sistema salva com autor, data e hora | Somente Administrador edita ou exclui |
 | [UC-31](#uc-31) | Registrar custos e precificação | Financeiro | Seleciona obra; informa itens de custo e valor da obra; salva; grava log | Precificação completa exige todos os itens e o valor |
@@ -440,7 +440,7 @@
 - FA2 - Dados obrigatórios ausentes ou inválidos (passo 5): o sistema destaca os campos e retorna ao passo 3.
 - FA3 - Cancelamento (qualquer passo): o sistema descarta os dados e retorna à lista de usuários.
 
-**Pós-condição:** O Instalador de Campo está cadastrado e pode ser definido como responsável por obras.
+**Pós-condição:** O Instalador de Campo está cadastrado e pode ser incluído em equipes de obras programadas no Gantt.
 
 **Regras de negócio:**
 
@@ -564,16 +564,16 @@
 
 ### UC-13 - Definir Obra para Instalação
 
-**Descrição:** Marca uma obra como pronta para instalação, associando-a a seus responsáveis e a um período, e movendo seu cartão no Kanban.
+**Descrição:** Marca uma obra como pronta para instalação, associando-a a um período e à sua equipe, e movendo seu cartão no Kanban.
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado, a obra está apta para instalação e tem ao menos um responsável (UC-21).
+**Pré-condição:** O usuário está autenticado, a obra está apta para instalação.
 
 **Fluxo principal:**
 
 1. O usuário seleciona a obra.
-2. O usuário associa os responsáveis e o período da instalação.
+2. O usuário define o período da instalação, as pessoas previstas e a equipe (UC-22).
 3. O usuário confirma a definição.
 4. O sistema valida as informações.
 5. O sistema executa o [UC-18](#uc-18) (Mover Cartão no Kanban) para a coluna de instalação.
@@ -582,14 +582,14 @@
 **Fluxos alternativos:**
 
 - FA1 - Obra não apta (passo 4): o sistema informa a etapa pendente (ex.: material ou pagamento) e cancela o fluxo.
-- FA2 - Conflito de agenda de um responsável (passo 4): o sistema informa o conflito e retorna ao passo 2.
+- FA2 - Conflito de agenda de um integrante da equipe (passo 4): o sistema informa o conflito e retorna ao passo 2.
 
 **Pós-condição:** A obra está definida para instalação e seu cartão foi movido para a coluna correspondente.
 
 **Regras de negócio:**
 
 - RN1 - A obra só pode ser definida para instalação após as etapas anteriores do fluxo.
-- RN2 - Um responsável não pode estar em duas obras no mesmo período (proposta; ver Q10).
+- RN2 - Um instalador não pode estar em duas equipes no mesmo período.
 
 **Prioridade:** Alta
 
@@ -833,36 +833,40 @@
 
 <a id="uc-21"></a>
 
-### UC-21 - Definir Responsáveis da Obra
+### UC-21 - Gerenciar Equipe da Programação
 
-**Descrição:** Permite vincular um ou mais usuários como responsáveis por uma obra. Substitui o cadastro de equipes de campo, removido na revisão de 07/11/2026.
+**Descrição:** Permite montar e ajustar a equipe de instaladores de uma obra programada no Gantt, incluindo e removendo integrantes a qualquer momento. A equipe é temporal: existe somente dentro da programação e serve para gerir o tempo de cada instalador. Substitui os responsáveis da obra (revisão de 07/11/2026).
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado e a obra existe.
+**Pré-condição:** O usuário está autenticado e a obra está programada no Gantt (UC-22).
 
 **Fluxo principal:**
 
-1. O usuário abre a obra na página Obras.
-2. O usuário seleciona um ou mais usuários ativos, de qualquer perfil.
-3. O usuário confirma.
-4. O sistema valida os dados.
-5. O sistema salva os responsáveis da obra.
-6. O sistema registra a ação na linha do tempo.
-7. O sistema exibe mensagem de sucesso.
+1. O usuário abre a programação da obra no Gantt.
+2. O sistema exibe a equipe atual (alocadas/previstas), o esforço em pessoa-dia e a lista de instaladores ativos, marcando quem está livre ou ocupado no período.
+3. O usuário adiciona ou remove integrantes e, se necessário, ajusta as datas de entrada e saída de cada um.
+4. O usuário confirma.
+5. O sistema verifica conflito de agenda de cada integrante incluído ou alterado.
+6. O sistema salva a equipe e recalcula pessoas faltantes e pessoa-dia.
+7. O sistema registra a alteração em log de auditoria e atualiza a barra no Gantt.
 
 **Fluxos alternativos:**
 
-- FA1 - Usuário inativo selecionado (passo 4): o sistema recusa o usuário e retorna ao passo 2.
-- FA2 - Cancelamento (passo 3): o sistema descarta a seleção.
+- FA1 - Instalador ocupado (passo 5): o sistema informa a obra e o período em que ele está ocupado e retorna ao passo 3.
+- FA2 - Usuário que não é instalador ativo (passo 5): o sistema recusa a inclusão e retorna ao passo 3.
+- FA3 - Remoção durante a execução (passo 3): o sistema pede a data de saída, encerra o vínculo nessa data e preserva os dias já trabalhados.
+- FA4 - Ajuste da quantidade de pessoas previstas (passo 3): o sistema atualiza o indicador de pessoas faltantes.
+- FA5 - Cancelamento (passo 4): o sistema descarta as alterações.
 
-**Pós-condição:** A obra tem os responsáveis definidos e a ação consta na linha do tempo.
+**Pós-condição:** A equipe da programação está atualizada, com pessoas faltantes e pessoa-dia recalculados.
 
 **Regras de negócio:**
 
-- RN1 - Qualquer perfil ativo pode ser responsável nesta fase.
-- RN2 - Um usuário pode ser responsável por várias obras.
-- RN3 - A programação no Gantt (UC-22) exige ao menos um responsável.
+- RN1 - Somente instaladores de campo ativos integram equipes.
+- RN2 - Um instalador não pode estar em duas equipes no mesmo período.
+- RN3 - As datas de entrada e saída do integrante ficam dentro do período da programação.
+- RN4 - Equipe com menos integrantes que o previsto é destacada como incompleta, sem impedir a programação.
 
 **Prioridade:** Alta
 
@@ -872,35 +876,38 @@
 
 ### UC-22 - Programar Obra no Gantt
 
-**Descrição:** Permite programar a instalação de uma obra em um período no Gantt, com seus responsáveis.
+**Descrição:** Permite programar a instalação de uma obra em um período no Gantt, definindo quantas pessoas são previstas e, opcionalmente, já montando a equipe.
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado, a obra está apta para instalação e tem ao menos um responsável (UC-21).
+**Pré-condição:** O usuário está autenticado e a obra está apta para instalação.
 
 **Fluxo principal:**
 
 1. O usuário acessa o Gantt.
-2. O usuário seleciona a obra e o período.
-3. O usuário confirma a programação.
-4. O sistema verifica a disponibilidade dos responsáveis no período.
-5. O sistema salva a programação.
-6. O sistema executa o [UC-13](#uc-13) (Definir Obra para Instalação).
-7. O sistema exibe a programação no Gantt.
+2. O usuário seleciona a obra, o período e a quantidade de pessoas previstas.
+3. O sistema exibe os instaladores livres e ocupados no período.
+4. O usuário seleciona os integrantes da equipe (pode deixar para depois).
+5. O usuário confirma a programação.
+6. O sistema verifica a obra e a disponibilidade dos integrantes selecionados.
+7. O sistema salva a programação e a equipe.
+8. O sistema executa o [UC-13](#uc-13) (Definir Obra para Instalação).
+9. O sistema exibe a barra no Gantt com a equipe (alocadas/previstas).
 
 **Fluxos alternativos:**
 
-- FA1 - Responsável em conflito (passo 4): o sistema informa o conflito, indica quem está ocupado e retorna ao passo 2.
-- FA2 - Obra não apta para instalação (passo 4): o sistema informa a etapa pendente e cancela a programação.
-- FA3 - Obra sem responsável (passo 4): o sistema pede a definição de responsáveis ([UC-21](#uc-21)) e cancela a programação.
+- FA1 - Integrante em conflito (passo 6): o sistema informa o conflito, indica quem está ocupado e em qual obra, e retorna ao passo 4.
+- FA2 - Obra não apta para instalação (passo 6): o sistema informa a etapa pendente e cancela a programação.
+- FA3 - Equipe incompleta (passo 7): o sistema salva e destaca a barra com as pessoas faltantes; a equipe é completada depois pelo [UC-21](#uc-21).
 
-**Pós-condição:** A obra está programada no período definido e visível no Gantt.
+**Pós-condição:** A obra está programada no período definido, com sua equipe, e visível no Gantt.
 
 **Regras de negócio:**
 
-- RN1 - Um responsável não pode estar em duas obras no mesmo período (proposta; eixo do Gantt em Q10).
+- RN1 - Um instalador não pode estar em duas equipes no mesmo período.
 - RN2 - A programação só é permitida para obras aptas à instalação.
-- RN3 - Financeiro e Instalador de Campo não programam obras.
+- RN3 - Pessoas previstas é obrigatório e maior que zero.
+- RN4 - Financeiro e Instalador de Campo não programam obras.
 
 **Prioridade:** Alta
 
@@ -920,7 +927,7 @@
 
 1. O Administrador seleciona a obra.
 2. O Administrador solicita a exportação dos detalhes.
-3. O sistema reúne kit, endereço, responsáveis, período e instruções.
+3. O sistema reúne kit, endereço, equipe, período e instruções.
 4. O sistema gera o arquivo.
 5. O sistema disponibiliza o arquivo para download.
 
@@ -967,7 +974,7 @@
 
 **Regras de negócio:**
 
-- RN1 - O instalador só visualiza instalações das obras em que é responsável.
+- RN1 - O instalador só visualiza instalações das obras cujas equipes integra.
 - RN2 - O acesso é somente de leitura.
 - RN3 - O kit é exibido sem preços.
 
@@ -983,7 +990,7 @@
 
 **Atores:** Instalador de Campo
 
-**Pré-condição:** O usuário está autenticado e há manutenção de obra em que é responsável.
+**Pré-condição:** O usuário está autenticado e há manutenção de obra cuja equipe ele integrou.
 
 **Fluxo principal:**
 
@@ -1039,7 +1046,7 @@
 **Regras de negócio:**
 
 - RN1 - A rota usa o endereço registrado na obra.
-- RN2 - O instalador só abre rota de instalações das obras em que é responsável.
+- RN2 - O instalador só abre rota de instalações das obras cujas equipes integra.
 
 **Prioridade:** Média
 
@@ -1082,7 +1089,7 @@
 
 ### UC-28 - Consultar Cronograma (Gantt)
 
-**Descrição:** Permite consultar as programações de obras por período e responsável no Gantt, em modo somente leitura.
+**Descrição:** Permite consultar as programações de obras por período e equipe no Gantt, e a ocupação dos instaladores, em modo somente leitura.
 
 **Atores:** Financeiro
 
@@ -1091,9 +1098,9 @@
 **Fluxo principal:**
 
 1. O usuário acessa o Gantt.
-2. O sistema exibe as barras das obras por período, com responsáveis, duração estimada e status do material.
+2. O sistema exibe as barras das obras por período, com a equipe (alocadas/previstas), duração estimada e status do material.
 3. O usuário seleciona uma barra.
-4. O sistema exibe os detalhes da programação (obra, responsáveis e período), sem opções de edição.
+4. O sistema exibe os detalhes da programação (obra, integrantes da equipe, período e pessoa-dia), sem opções de edição.
 
 **Fluxos alternativos:**
 
@@ -1105,7 +1112,7 @@
 **Regras de negócio:**
 
 - RN1 - O acesso do Financeiro ao Gantt é somente de leitura.
-- RN2 - O Financeiro não define responsáveis, não programa obras e não reagenda.
+- RN2 - O Financeiro não altera equipes, não programa obras e não reagenda.
 
 **Prioridade:** Média
 

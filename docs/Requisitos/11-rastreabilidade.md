@@ -14,7 +14,7 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | RF-04 | UC-12, UC-15, UC-16, UC-18, UC-27 | RN-03, RN-05 | `KanbanBoard`, `ObraController` | `PATCH /api/obras/{id}/status` | CT-03, CT-21 | Em andamento |
 | RF-05 | UC-14, UC-20, UC-25 | RN-05 | `ManutencaoController` | `PATCH /api/manutencoes/{id}/concluir`, `POST /api/manutencoes/{id}/comentarios` | CT-07 | Pendente |
 | RF-06 | UC-27, UC-28, UC-40, UC-41 | RN-08 | `MaterialController`, `KanbanCard`, `GanttBar` | `POST /api/obras/{id}/materiais`, `PATCH /api/materiais/{id}` | CT-13, CT-19 | Em andamento |
-| RF-07 | UC-13, UC-21, UC-22 | RN-02, RN-09 | `ObraController`, `GanttController` | `PUT /api/obras/{id}/responsaveis`, `GET /api/responsaveis`, `POST /api/programacoes` | CT-04 | Em andamento |
+| RF-07 | UC-13, UC-21, UC-22 | RN-02, RN-09, RN-10 | `GanttController`, `EquipeService` | `POST /api/programacoes`, `POST/PATCH/DELETE /api/programacoes/{id}/integrantes`, `PATCH /api/programacoes/{id}/equipe`, `GET /api/instaladores/disponibilidade`, `GET /api/gantt/ocupacao` | CT-04 | Em andamento |
 | RF-08 | UC-22 | RN-01 | `DuracaoService` | Cálculo em `POST /api/programacoes` | CT-04 | Em andamento |
 | RF-09 | UC-22 | RN-02 | `GanttService` | `PUT /api/programacoes/{id}/reordenar` | CT-09 | Em andamento |
 | RF-10 | UC-12, UC-13, UC-18 | — | `SyncService`, handler SignalR | Evento interno | CT-10 | Pendente |
@@ -66,7 +66,7 @@ Cada requisito funcional e não funcional tem caso de uso, regra de negócio, co
 | UC-18 | `PATCH /api/obras/{id}/status` | Em andamento |
 | UC-19 | `POST /api/obras/{id}/comentarios` (página Obras) | Em andamento |
 | UC-20 | `RegistroAcaoService` | Em andamento |
-| UC-21 | `PUT /api/obras/{id}/responsaveis` | Pendente |
+| UC-21 | `POST/PATCH/DELETE /api/programacoes/{id}/integrantes`, `PATCH /api/programacoes/{id}/equipe` | Pendente |
 | UC-22 | `POST /api/programacoes`, `PUT /reordenar` | Em andamento |
 | UC-23 | `GET /api/obras/{id}/instalacao/export` | Pendente |
 | UC-24 | `GET /api/instalador/instalacoes/{obraId}` | Em andamento |

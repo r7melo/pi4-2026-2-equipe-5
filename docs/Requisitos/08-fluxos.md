@@ -70,19 +70,27 @@ sequenceDiagram
   participant GS as GanttService
   participant D as PostgreSQL
 
-  F->>F: marca os responsáveis ocupados no período
-  F->>G: POST /api/programacoes
-  G->>D: buscar obra, verificar se está apta e se tem responsável
+  F->>G: GET /api/instaladores/disponibilidade
+  F->>F: marca os instaladores livres e ocupados no período
+  F->>G: POST /api/programacoes (pessoasPrevistas, integrantesIds)
+  G->>D: buscar obra e verificar se está apta
   G->>DS: duração a partir de quantidade_paineis
   G->>GS: data final em dias úteis
-  G->>D: verificar conflito de cada responsável
+  G->>D: verificar conflito de cada integrante
   alt sem conflito
-    G->>D: INSERT programacao_obra
+    G->>D: INSERT programacao_obra, equipe e equipe_integrante
     G-->>F: 201
   else conflito
     G-->>F: 409 SCHEDULE_CONFLICT
   end
 ```
+
+## Ajuste da equipe durante a instalação
+
+1. A Engenharia abre a programação no Gantt e vê a equipe (alocadas/previstas), o pessoa-dia e os instaladores livres no período.
+2. Para incluir, o SPA envia `POST /api/programacoes/{id}/integrantes`; a API valida perfil, datas e conflito do instalador (`409 SCHEDULE_CONFLICT` se ocupado).
+3. Para remover, o SPA envia `DELETE /api/programacoes/{id}/integrantes/{usuarioId}`; se a instalação já começou, com `dataSaida`, preservando os dias trabalhados.
+4. A API grava `audit_log`, recalcula faltantes e pessoa-dia e publica o evento no SignalR; o Gantt e a visão de ocupação são atualizados sem recarregar.
 
 ## Status de material (Financeiro)
 

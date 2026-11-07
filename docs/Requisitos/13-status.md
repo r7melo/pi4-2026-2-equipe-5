@@ -9,12 +9,12 @@ Situação por módulo. Atualize esta tabela a cada entrega.
 | Autenticação | **Concluído** | — |
 | Cadastros (usuários, clientes) | Pendente | GET, POST, PUT e PATCH /api/usuarios; GET, POST, PUT e DELETE /api/clientes; telas /usuarios e /clientes (RF-22, RF-23); tela de cadastro de usuário indisponível no teste de 07/11/2026 |
 | Recuperação de senha | Pendente | esqueci-senha, redefinir-senha e alterar-senha; invalidação de tokens (RF-21); mensagem de falha da alteração autenticada (teste de 07/11/2026) |
-| Página Obras | Em andamento | Gestão oficial separada do Kanban; item de menu "Obras"; atalho "Página da Obra"; PUT /api/obras/{id}/responsaveis; DELETE /api/obras/{id} (exclusão lógica); remover campos de valor |
+| Página Obras | Em andamento | Gestão oficial separada do Kanban; item de menu "Obras"; atalho "Página da Obra"; DELETE /api/obras/{id} (exclusão lógica); remover campos de valor |
 | Kanban | Em andamento | Arraste livre com validação ao soltar (Q11); resumo do cartão sem valores; remover valor mockado |
-| Gantt e responsáveis | Em andamento | Responsáveis por obra (substituem equipes); conflito de agenda por responsável; eixo do Gantt (Q10); dias úteis e feriados |
+| Gantt e equipes | Em andamento | Equipes temporais por programação (integrantes com entrada e saída, pessoas previstas e faltantes, pessoa-dia); conflito de agenda por instalador; visão de ocupação por instalador; propagação por integrantes em comum (Q10); dias úteis e feriados |
 | Timeline | Em andamento | Registro de cadastro e comentários; comentário geral do Financeiro |
 | Materiais e produtos | Pendente | Catálogo de produtos com preço (RF-25); inclusão a partir de produtos; status de `EmSolicitacao` a `Utilizado` (RF-06); mecanismo de atualização (Q12) |
-| Instalador de campo | Em andamento | Rota com JWT; instalações das obras em que é responsável; manutenção; projeto e instruções |
+| Instalador de campo | Em andamento | Rota com JWT; instalações das obras cujas equipes integra; manutenção; projeto e instruções |
 | Financeiro | Pendente | Registro de custos e valor da obra; DRE; tela financeira; isolamento de valores (RF-26) |
 | Exportações | Pendente | PDF e Excel; detalhes da instalação; cronograma |
 | Cronograma compartilhado | Pendente | Geração de token; visualização somente leitura |
@@ -55,4 +55,4 @@ O projeto é considerado concluído quando todos os itens abaixo forem atendidos
 10. Aprovar ou recusar o complemento de dados de teste.
 11. Decidir o escopo de homologação (RF-17) e o acesso do instalador (RF-19).
 12. Corrigir os achados de usabilidade de severidade 4 e realizar as sessões com usuários.
-13. Validar com o solicitante as questões Q9 a Q13 da revisão de 07/11/2026.
+13. Validar com o solicitante as questões Q9 a Q14 da revisão de 07/11/2026.

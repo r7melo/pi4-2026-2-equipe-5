@@ -15,7 +15,7 @@ Cada decisão relevante tem um registro com contexto, decisão, alternativas e c
 | [ADR-009](#adr-009-postgresql) | PostgreSQL | Aceita |
 | [ADR-010](#adr-010-homologação-fora-do-escopo) | Homologação fora do escopo | Aceita |
 | [ADR-011](#adr-011-regras-de-cálculo-do-gantt) | Regras de cálculo do Gantt | Proposta |
-| [ADR-012](#adr-012-responsáveis-da-obra-substituem-equipes-cadastradas) | Responsáveis da obra substituem equipes cadastradas | Aceita (revisão de 07/11/2026) |
+| [ADR-012](#adr-012-equipes-temporais-no-gantt-no-lugar-de-equipes-cadastradas-e-responsáveis) | Equipes temporais no Gantt no lugar de equipes cadastradas e responsáveis | Aceita (revisão de 07/11/2026) |
 | [ADR-013](#adr-013-kanban-com-arraste-livre-e-edição-na-página-obras) | Kanban com arraste livre e edição na página Obras | Aceita (revisão de 07/11/2026) |
 | [ADR-014](#adr-014-valores-e-catálogo-de-produtos-no-módulo-financeiro) | Valores e catálogo de produtos no módulo financeiro | Aceita (revisão de 07/11/2026) |
 
@@ -111,7 +111,7 @@ Cada decisão relevante tem um registro com contexto, decisão, alternativas e c
 
 - Todo usuário, inclusive o instalador, faz login e recebe JWT com o perfil.
 - O servidor valida token e perfil em toda rota protegida.
-- O instalador só vê instalações das obras em que é responsável, com filtro no servidor.
+- O instalador só vê instalações das obras cujas equipes integra, com filtro no servidor.
 - O link público fica restrito ao cronograma somente leitura, sem dados financeiros.
 
 **Alternativas.** Token público por link para o instalador: expõe dados. Sessão em cookie: viável, mas o contrato já usa JWT.
@@ -174,21 +174,24 @@ Cada decisão relevante tem um registro com contexto, decisão, alternativas e c
 
 ---
 
-## ADR-012: Responsáveis da obra substituem equipes cadastradas
+## ADR-012: Equipes temporais no Gantt no lugar de equipes cadastradas e responsáveis
 
 **Status:** Aceita (revisão de 07/11/2026)
 
-**Contexto.** Equipes mudam com frequência. Cadastrar equipes fixas não representa a operação, e o vínculo real é entre a obra e as pessoas responsáveis por ela.
+**Contexto.** Equipes de campo mudam com frequência, então um cadastro fixo de equipes não representa a operação. A primeira proposta da revisão trocou equipes por "responsáveis da obra", mas isso perde o que o Gantt precisa gerir: o tempo das pessoas que instalam os painéis. A empresa precisa saber quantas pessoas estão em cada instalação, quantas faltam e quanto tempo cada instalador fica ocupado ou ocioso, para aproveitar ao máximo o tempo de cada trabalhador.
 
 **Decisão.**
 
-- Remover as entidades `equipe` e `equipe_instalador`. Criar `obra_responsavel`, relação N:N entre obra e usuário.
-- Nesta fase, qualquer perfil ativo pode ser responsável.
-- A programação no Gantt usa obra e período. O conflito é verificado por responsável.
+- Equipe é entidade temporal, 1:1 com a programação no Gantt (`equipe`). Não há cadastro de equipes nem nome fixo.
+- Integrantes (`equipe_integrante`) são instaladores de campo ativos, cada um com data de entrada e saída dentro do período da programação. Incluir e remover é imediato, sem recriar a programação.
+- A programação registra `pessoas_previstas`; o sistema deriva pessoas faltantes, pessoa-dia e ocupação por instalador.
+- O conflito de agenda é verificado por instalador, considerando os intervalos de cada integrante.
+- O Gantt tem uma linha por obra programada, com a equipe na barra, e uma visão complementar de ocupação por instalador.
+- `obra_responsavel` e a rota `PUT /api/obras/{id}/responsaveis` são descartadas.
 
-**Alternativas.** Manter equipes com edição livre: continua exigindo um cadastro que muda o tempo todo. Campo de texto livre com nome do instalador: impede o controle de conflito de agenda e o filtro de acesso.
+**Alternativas.** Equipes cadastradas e fixas: exigem manutenção constante e não registram entradas e saídas no meio da instalação. Responsáveis da obra (N:N obra-usuário): não têm período nem quantidade prevista, então não medem tempo nem pessoas faltantes. Campo de texto livre: impede controle de conflito e filtro de acesso.
 
-**Consequências.** RF-07, RF-09, RF-19, RN-02 e as rotas de equipes mudam. O eixo do Gantt depende da decisão Q10. O filtro de acesso do instalador passa a usar o vínculo com a obra.
+**Consequências.** RF-07, RF-09, RF-19, RN-02, RN-09, RN-10 e as rotas 13a, 26 a 29 mudam. A propagação de atrasos passa a seguir integrantes em comum (Q10). O filtro de acesso do instalador usa a participação em equipes. O token não carrega equipe, porque ela muda com o período.
 
 ---
 

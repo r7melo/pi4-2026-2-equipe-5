@@ -55,7 +55,7 @@ rectangle "Linha do Tempo da Obra" as Timeline {
 }
 
 rectangle "Gerenciar Gantt" as Gantt {
-  usecase "UC-21 - Definir Responsáveis da Obra" as DefinirResponsaveis
+  usecase "UC-21 - Gerenciar Equipe da Programação" as GerenciarEquipe
   usecase "UC-22 - Programar Obra no Gantt" as ProgramarObra
 }
 
@@ -103,7 +103,7 @@ Administrador --> ApagarObra
 Administrador --> EditarObra
 Administrador --> ComentarObra
 Administrador --> MoverCartao
-Administrador --> DefinirResponsaveis
+Administrador --> GerenciarEquipe
 Administrador --> ProgramarObra
 Administrador --> ExportarDetalhes
 Administrador --> ConsultarTimeline
@@ -120,7 +120,7 @@ Engenharia --> ApagarObra
 Engenharia --> EditarObra
 Engenharia --> ComentarObra
 Engenharia --> MoverCartao
-Engenharia --> DefinirResponsaveis
+Engenharia --> GerenciarEquipe
 Engenharia --> ProgramarObra
 Engenharia --> AdicionarMaterial
 Engenharia --> ConsultarTimeline

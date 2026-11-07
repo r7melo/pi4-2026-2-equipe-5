@@ -4,7 +4,7 @@
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | RSK-01 | Login aceita senha inválida por tratamento de erro no cliente | Segurança | Alta | Alta | Erro 401 mostra mensagem de credencial inválida. Mock só com `VITE_USE_MOCK=true` |
 | RSK-02 | Rotas sem validação de token e perfil no servidor | Segurança | Alta | Alta | Middleware de autorização em todas as rotas; testes de API por perfil |
-| RSK-03 | Dados de obra acessíveis por link ou por ID de obra sem vínculo de responsável | Segurança | Média | Alta | Login obrigatório para instalador; filtro por responsável no servidor |
+| RSK-03 | Dados de obra acessíveis por link ou por ID de obra de equipe que o instalador não integra | Segurança | Média | Alta | Login obrigatório para instalador; filtro por integrante de equipe no servidor |
 | RSK-04 | Credenciais de teste no código da interface | Segurança | Alta | Média | Campos vazios no login; credenciais só no guia de desenvolvimento |
 | RSK-05 | Dados pessoais de clientes e instaladores sem avaliação de impacto (LGPD) | Compliance | Média | Alta | Elaborar RIPD antes do desenvolvimento de produção |
 | RSK-06 | Regra de duração divergente entre tela, backend e testes | Negócio | Alta | Média | Resolver questão Q1 e atualizar dados de teste |
@@ -36,7 +36,7 @@
 | RSK-32 | Testes de exclusão de comentário dependem da ordem de execução | Dados | Média | Baixa | Comentário exclusivo para cada teste |
 | RSK-33 | Complemento de dados de teste sem aprovação do Backend | Dados | Alta | Média | Decidir sobre o complemento antes da rodada de testes |
 | RSK-34 | Filtro por categoria em `GET /api/obras` sem confirmação na implementação | Documentação | Média | Baixa | Confirmar que o filtro existe na implementação e no contrato |
-| RSK-35 | Troca de equipes por responsáveis altera RF-07, RF-09, RF-19 e o eixo do Gantt antes da decisão Q10 | Escopo | Alta | Alta | Resolver Q10 antes de implementar o Gantt; atualizar CT-04 e CT-09 |
+| RSK-35 | Troca de equipes cadastradas por equipes temporais altera RF-07, RF-09, RF-19, o modelo de dados e as rotas do Gantt; a propagação por integrantes em comum ainda depende de Q10 | Escopo | Alta | Alta | Resolver Q10 antes de implementar a propagação; atualizar CT-04 e CT-09; migrar `obra_responsavel` se já criada |
 | RSK-36 | Valores expostos à Engenharia pela API, mesmo sem exibição na tela | Segurança | Média | Alta | Campos de valor fora dos DTOs de Engenharia e Instalador; teste de ausência de campos (CT-20) |
 | RSK-37 | Arraste livre aceita movimento inválido se a validação não ocorrer no servidor | Técnico | Média | Alta | Validação de transição na API (`RegrasTransicaoService`); CT-21 |
 | RSK-38 | Alteração de senha informa falha quando a senha já foi trocada, ou sucesso quando não foi | Segurança | Média | Alta | Operação atômica; mensagem conforme o resultado real (RF-21); CT-15 |

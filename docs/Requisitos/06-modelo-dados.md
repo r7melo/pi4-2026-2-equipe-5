@@ -38,15 +38,6 @@ Banco PostgreSQL. Nomes de tabelas e colunas em `snake_case`. No JSON da API, os
 | tentativas_login | int | Sim | Zerado no login válido |
 | bloqueado_ate | timestamp | Não | Preenchido após 5 falhas |
 
-### obra_responsavel
-
-Relação N:N entre `obra` e `usuario`. Substitui as tabelas `equipe` e `equipe_instalador`, removidas na revisão de 07/11/2026. Um usuário pode ser responsável por várias obras, e uma obra pode ter vários responsáveis.
-
-| Coluna | Tipo | Observação |
-| :---- | :---- | :---- |
-| id_obra | int | FK `obra`, parte da PK |
-| id_usuario | int | FK `usuario`, parte da PK. Qualquer perfil ativo nesta fase |
-
 ### obra
 
 | Coluna | Tipo | Obrigatório | Observação |
@@ -106,9 +97,33 @@ Catálogo mantido pelo Financeiro e pelo Administrador (RF-25). Preço visível 
 | id | serial | Sim | PK |
 | data_inicio | date | Sim | |
 | data_fim | date | Sim | Dia útil |
-| prioridade | int | Não | Ordem de propagação dentro da linha do Gantt (ver Q10) |
+| prioridade | int | Não | Ordem de propagação entre programações com integrantes em comum (ver Q10) |
 | duracao_estimada_dias | numeric(5,1) | Não | |
 | id_obra | int | Sim | FK `obra` |
+
+### equipe
+
+Equipe temporal de uma programação no Gantt (1:1). Não existe cadastro fixo de equipes: a equipe nasce com a programação e é excluída com ela. Substitui `obra_responsavel` (revisão de 07/11/2026).
+
+| Coluna | Tipo | Obrigatório | Observação |
+| :---- | :---- | :---- | :---- |
+| id | serial | Sim | PK |
+| id_programacao | int | Sim | FK `programacao_obra`, UNIQUE (1:1), `ON DELETE CASCADE` |
+| pessoas_previstas | int | Sim | Maior que zero. Base para pessoas faltantes |
+
+### equipe_integrante
+
+Instalador vinculado a uma equipe em um intervalo de datas. Integrantes entram e saem a qualquer momento; o intervalo registra o tempo que cada pessoa dedicou à instalação.
+
+| Coluna | Tipo | Obrigatório | Observação |
+| :---- | :---- | :---- | :---- |
+| id | serial | Sim | PK |
+| id_equipe | int | Sim | FK `equipe` |
+| id_usuario | int | Sim | FK `usuario`. Perfil `InstaladorCampo` e ativo na inclusão |
+| data_entrada | date | Sim | Dentro do período da programação. Padrão: `data_inicio` da programação |
+| data_saida | date | Sim | Dentro do período e não anterior a `data_entrada`. Padrão: `data_fim` da programação. Remoção durante a execução antecipa esta data |
+
+Valores derivados (não armazenados): pessoas alocadas por dia, pessoas faltantes (`pessoas_previstas` − integrantes no dia), pessoa-dia (soma dos dias úteis entre `data_entrada` e `data_saida` de cada integrante) e ocupação por instalador (RN-10).
 
 ### comentario
 
@@ -195,8 +210,9 @@ erDiagram
   OBRA ||--o{ PROGRAMACAO_OBRA : agenda
   OBRA ||--o| RELATORIO_CUSTO : gera
   OBRA ||--o{ MANUTENCAO : exige
-  OBRA ||--o{ OBRA_RESPONSAVEL : tem
-  USUARIO ||--o{ OBRA_RESPONSAVEL : responde
+  PROGRAMACAO_OBRA ||--|| EQUIPE : executa
+  EQUIPE ||--o{ EQUIPE_INTEGRANTE : reune
+  USUARIO ||--o{ EQUIPE_INTEGRANTE : integra
   PRODUTO ||--o{ MATERIAL : referencia
   PERFIL_ACESSO ||--o{ USUARIO : define
   USUARIO ||--o{ COMENTARIO : escreve
@@ -212,8 +228,10 @@ erDiagram
 | `cliente` | UNIQUE (`cpf_cnpj`) |
 | `pagamento` | UNIQUE (`id_obra`) |
 | `relatorio_custo` | UNIQUE (`id_obra`) |
-| `obra_responsavel` | PK (`id_obra`, `id_usuario`) |
-| `programacao_obra` | Sobreposição proibida por responsável: restrição a implementar por trigger sobre `obra_responsavel` (ver Q10) |
+| `equipe` | UNIQUE (`id_programacao`); CHECK (`pessoas_previstas > 0`) |
+| `equipe_integrante` | UNIQUE (`id_equipe`, `id_usuario`); CHECK (`data_saida >= data_entrada`) |
+| `equipe_integrante` | Sobreposição proibida por instalador: intervalos [`data_entrada`, `data_saida`] do mesmo `id_usuario` não se sobrepõem (restrição de exclusão com `daterange` ou trigger) |
+| `equipe_integrante` | Índice em (`id_usuario`, `data_entrada`, `data_saida`) para disponibilidade e ocupação |
 | `obra` | Índice em (`status`) e parcial em `excluida_em IS NULL` |
 | `programacao_obra` | Índice em (`id_obra`, `data_inicio`) |
 | `historico_obra` | Índice em (`id_obra`, `data_alteracao`) |
@@ -222,6 +240,6 @@ erDiagram
 
 ## Exclusão lógica
 
-Obra excluída recebe `excluida_em`. Listagens, Gantt e Kanban filtram `excluida_em IS NULL`. Cartão e programações da obra são removidos. Histórico, comentários e custos são preservados.
+Obra excluída recebe `excluida_em`. Listagens, Gantt e Kanban filtram `excluida_em IS NULL`. Cartão, programações e equipes da obra são removidos; os instaladores ficam livres no período. Histórico, comentários e custos são preservados.
 
 Cliente com obras vinculadas, inclusive excluídas logicamente, não pode ser removido (RF-23). Os dados de cliente são preservados.

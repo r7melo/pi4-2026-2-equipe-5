@@ -96,27 +96,30 @@ curl -s -X POST http://localhost:8000/api/auth/login -H "Content-Type: applicati
 
 **Observação:** executar os passos 2 e 3 antes do passo 4, que altera o estado da obra 301.
 
-### CT-04: Programação no Gantt e conflito de agenda por responsável
+### CT-04: Programação no Gantt, equipe e conflito de agenda por instalador
 
 | Campo | Valor |
 | :---- | :---- |
 | Requisito | RF-07 (Must); apoio a RF-08 |
 | Tipo | Funcional, positivo e negativo |
 | Pré-condição | Logado como `engenharia@zlengenharia.com`; banco recém-carregado |
-| Dados | Obra 310 (200 painéis, com o usuário A como responsável); usuário A sem programações; usuário B com programações 601, 602 e 607 |
+| Dados | Obra 310 (200 painéis, sem programação); instalador A sem equipes; instalador B nas equipes das programações 601, 602 e 607; instalador C sem equipes |
 
 | # | Passo | Resultado esperado |
 | :---- | :---- | :---- |
-| 1 | Abrir o Gantt | Uma barra por programação (601 a 610), na linha do responsável, conforme o eixo definido em Q10 |
-| 2 | Filtrar pelo usuário B (`GET /api/programacoes?responsavelId=<id de B>`) | Programações 601, 602 e 607 |
+| 1 | Abrir o Gantt | Uma linha por obra programada (601 a 610), com a equipe na barra no formato alocadas/previstas |
+| 2 | Filtrar pelo instalador B (`GET /api/programacoes?instaladorId=<id de B>`) | Programações 601, 602 e 607 |
 | 3 | Nova programação: obra 310, início 2026-10-19 (segunda-feira) | Duração de 23 dias úteis (200 ÷ 9 = 22,2, arredondado para cima); término 2026-11-18; fins de semana fora da contagem |
-| 4 | Confirmar a programação | `201`; barra aparece na linha do usuário A no período informado |
-| 5 | Programar outra obra com o usuário B como responsável, com início em 2026-10-02 | Usuário B aparece marcado como ocupado no período; ao confirmar, `409 SCHEDULE_CONFLICT` com o período ocupado na mensagem; nada é gravado |
-| 6 | Redimensionar a janela para 360 px | Gantt utilizável, sem quebra de layout |
+| 4 | Confirmar com 2 pessoas previstas e o instalador A na equipe | `201`; barra da obra 310 no período informado com equipe "1/2", destacada como incompleta |
+| 5 | Adicionar o instalador C à equipe a partir de 2026-10-26 | `200`; equipe "2/2"; pessoa-dia recalculado (23 dias de A + dias úteis de C a partir de 26/10) |
+| 6 | Remover o instalador C com saída em 2026-11-06 | Vínculo encerrado em 06/11; dias trabalhados de C mantidos no pessoa-dia; C aparece livre a partir de 09/11 |
+| 7 | Adicionar o instalador B à equipe de outra obra, com início em 2026-10-02 | B aparece marcado como ocupado no período; ao confirmar, `409 SCHEDULE_CONFLICT` com a obra e o período ocupado na mensagem; nada é gravado |
+| 8 | Consultar `GET /api/gantt/ocupacao` de 2026-10-19 a 2026-10-23 | Por dia: alocados, livres e faltantes coerentes com as equipes; instalador A com 100% de ocupação |
+| 9 | Redimensionar a janela para 360 px | Gantt utilizável, sem quebra de layout |
 
-**Critério de aprovação:** programação criada com datas corretas e conflito de agenda bloqueado.
+**Critério de aprovação:** programação criada com datas corretas, equipe ajustável sem recriar a programação, pessoa-dia e faltantes corretos e conflito de agenda bloqueado.
 
-**Dependências:** regra de arredondamento (Q1), feriados (Q2) e eixo do Gantt (Q10). O resultado do passo 3 vale com a regra de [ADR-011](09-decisoes-arquiteturais.md#adr-011-regras-de-cálculo-do-gantt).
+**Dependências:** regra de arredondamento (Q1) e feriados (Q2). O resultado do passo 3 vale com a regra de [ADR-011](09-decisoes-arquiteturais.md#adr-011-regras-de-cálculo-do-gantt).
 
 ### CT-05: Cálculo do custo total da obra
 
@@ -164,7 +167,7 @@ Tarefas avaliadas:
 | T1 - Entrar no sistema | Todos | RF-01 |
 | T2 - Cadastrar uma nova obra | Engenharia | RF-03 |
 | T3 - Mover a obra para a próxima etapa e consultar o histórico | Engenharia | RF-04, RF-11 |
-| T4 - Programar uma obra no cronograma, definindo os responsáveis | Engenharia | RF-07, RF-08 |
+| T4 - Programar uma obra no cronograma e montar a equipe com instaladores livres | Engenharia | RF-07, RF-08 |
 | T5 - Atualizar a homologação de uma obra | Engenharia | RF-17 |
 | T6 - Consultar o custo total de uma obra concluída | Financeiro | RF-14 |
 | T7 - Ver o kit e abrir a rota do dia no celular | Instalador de Campo | RF-19 |
@@ -202,7 +205,7 @@ Resultado por tarefa:
 | UX-15 | Menu lateral | 4 | Itens "Financeiro", "Relatórios" e "Configurações" levam a rotas inexistentes, sem página de erro | Criar as telas ou ocultar os itens; adicionar página "Página não encontrada" |
 | UX-16 | Link de instaladores | 3 | Rota exige login; dados fixos; botões "Ligar" e "Marcar chegada" sem ação; sem tela de link expirado | Ajustar à decisão de acesso do instalador (Q3) |
 | UX-17 | Geral | 2 | Nenhuma tela tem ajuda contextual ou estado vazio com ação sugerida | Textos de ajuda nos formulários; estados vazios com ação ("Nenhuma obra. Cadastre a primeira") |
-| UX-18 | Gantt | 3 | Sem aviso de conflito ao programar; responsáveis ocupados não aparecem marcados | Marcar responsáveis ocupados no período; alerta antes de salvar |
+| UX-18 | Gantt | 3 | Sem aviso de conflito ao programar; instaladores ocupados não aparecem marcados | Marcar instaladores ocupados no período; alerta antes de salvar |
 
 ### Priorização
 
@@ -242,8 +245,8 @@ Metas: taxa de sucesso ≥ 80% por tarefa; SUS ≥ 68; taxa de erro < 5% (RNF-06
 | Caso | Requisito | Objetivo |
 | :---- | :---- | :---- |
 | CT-06 | RF-03 | Cadastro de obra com cliente existente; recusa sem cliente; cliente recém-cadastrado aparece na seleção |
-| CT-07 | RF-05 | Instalador vê só manutenções das obras em que é responsável; conclui manutenção; outros perfis não concluem |
-| CT-08 | RF-19 | Instalador autenticado acessa somente obras em que é responsável; não acessa DRE; kit sem preços |
+| CT-07 | RF-05 | Instalador vê só manutenções das obras cujas equipes integrou; conclui manutenção; outros perfis não concluem |
+| CT-08 | RF-19 | Instalador autenticado acessa somente obras cujas equipes integra; não acessa DRE; kit sem preços |
 | CT-09 | RF-09 | Propagação em cadeia de cinco programações, com dias úteis |
 | CT-10 | RF-10 | Alocação atualiza o Kanban; mudança no Kanban atualiza o Gantt |
 | CT-11 | RF-13 | E-mail na conclusão; falha de envio não reverte o status |
@@ -266,7 +269,7 @@ Metas: taxa de sucesso ≥ 80% por tarefa; SUS ≥ 68; taxa de erro < 5% (RNF-06
 
 - Um usuário por perfil (Administrador, Engenharia, Financeiro, Instalador de Campo) e o Leitor, com perfil em definição.
 - Obra 301 (`MaterialComprado`), obras 305 e 306 (`EmAndamento`), obra 307 (`Concluido`, com custo), obra 310 (200 painéis, com programação 608).
-- Usuário A sem programações; usuário B com programações 601, 602 e 607 (responsáveis, sem equipes).
+- Instaladores A e C sem equipes; instalador B nas equipes das programações 601, 602 e 607.
 - Comentário 710, usado somente no teste de bloqueio (CT-02).
 
 ### Problemas conhecidos nos dados atuais
@@ -282,7 +285,7 @@ Metas: taxa de sucesso ≥ 80% por tarefa; SUS ≥ 68; taxa de erro < 5% (RNF-06
 ### Complemento proposto (aguardando aprovação do Backend)
 
 - Clientes 11 a 16.
-- Obras 311 a 316: cadeia de cinco programações do mesmo responsável (311 a 315) e obra 316 sem programação e sem custo.
+- Obras 311 a 316: cadeia de cinco programações com o mesmo instalador na equipe (311 a 315) e obra 316 sem programação e sem custo.
 - Programações 611 a 615, só em dias úteis, para o teste de propagação (CT-09).
 - Histórico de criação das obras 309, 310 e 311 a 316.
 - Comentário 712, para o teste de exclusão pelo Administrador (CT-02).
