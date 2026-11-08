@@ -41,3 +41,103 @@ export function instanteISOValido(valor: unknown): valor is string {
     Number(valor.slice(14, 16)) < 60 && Number(valor.slice(17, 19)) < 60 &&
     Number.isFinite(Date.parse(valor));
 }
+
+function validarDataCivilOuErro(valor: unknown, rotulo: string): string {
+  if (!dataCivilValida(valor)) {
+    throw new RangeError(`${rotulo} civil inválida: ${String(valor)}`);
+  }
+  return valor;
+}
+
+function somarDiasCivisSeguroUTC(valor: string, dias: number): string {
+  try {
+    const resultado = somarDiasCivisUTC(valor, dias);
+    if (!dataCivilValida(resultado)) {
+      throw new RangeError(`Resultado fora do intervalo civil de 0001-01-01 a 9999-12-31: ${String(resultado)}`);
+    }
+    return resultado;
+  } catch (erro) {
+    if (erro instanceof RangeError) throw erro;
+    throw new RangeError("Resultado fora do intervalo civil de 0001-01-01 a 9999-12-31", { cause: erro });
+  }
+}
+
+/**
+ * Normaliza uma data civil ISO para o próprio dia útil ou, caso coincida com sábado ou domingo,
+ * avança para a segunda-feira útil imediatamente seguinte.
+ */
+export function proximoDiaUtilCivil(valor: string): string {
+  validarDataCivilOuErro(valor, "Data");
+  const data = new Date(valor + "T12:00:00Z");
+  const diaSemana = data.getUTCDay();
+  const incremento = diaSemana === 6 ? 2 : diaSemana === 0 ? 1 : 0;
+  if (incremento === 0) return valor;
+  return somarDiasCivisSeguroUTC(valor, incremento);
+}
+
+/**
+ * Calcula o deslocamento assinado em dias úteis entre duas datas civis.
+ * A data de origem ('de') é normalizada para o próximo dia útil.
+ * A data de destino ('ate') deve ser um dia útil civil válido, lançando RangeError caso contrário.
+ * A contagem exclui a origem e inclui o destino útil, compatível com C# (Gantt.DeslocamentoEmDiasUteis).
+ */
+export function deslocamentoDiasUteisCivil(de: string, ate: string): number {
+  const deNormalizado = proximoDiaUtilCivil(de);
+  if (!dataCivilValida(ate) || !diaUtilCivil(ate)) {
+    throw new RangeError(`Data final deve ser dia útil civil válido: ${String(ate)}`);
+  }
+  if (deNormalizado === ate) return 0;
+  if (deNormalizado < ate) {
+    return diasUteisCivis(deNormalizado, ate) - 1;
+  }
+  return -(diasUteisCivis(ate, deNormalizado) - 1);
+}
+
+/**
+ * Desloca uma data civil por uma quantidade assinada de dias úteis.
+ * A data informada é normalizada para o próximo dia útil antes do deslocamento.
+ * Deslocamento zero (delta zero) retorna a própria data normalizada.
+ * O cálculo decompõe semanas inteiras e limita as iterações do resto a no máximo seis passos.
+ */
+export function deslocarDiasUteisCivil(valor: string, dias: number): string {
+  if (typeof dias !== "number" || !Number.isFinite(dias) || !Number.isInteger(dias)) {
+    throw new RangeError(`Deslocamento em dias deve ser número inteiro finito: ${String(dias)}`);
+  }
+  const valorNormalizado = proximoDiaUtilCivil(valor);
+  if (dias === 0) return valorNormalizado;
+
+  if (Math.abs(dias) > 3_000_000) {
+    throw new RangeError(`Deslocamento excede o intervalo civil de 0001-01-01 a 9999-12-31: ${dias}`);
+  }
+
+  const semanas = Math.trunc(dias / 5);
+  const resto = dias - semanas * 5;
+
+  let atual = somarDiasCivisSeguroUTC(valorNormalizado, semanas * 7);
+
+  if (resto !== 0) {
+    const sinal = Math.sign(resto);
+    let restantes = Math.abs(resto);
+    while (restantes > 0) {
+      atual = somarDiasCivisSeguroUTC(atual, sinal);
+      if (diaUtilCivil(atual)) {
+        restantes--;
+      }
+    }
+  }
+
+  return atual;
+}
+
+/**
+ * Calcula a data de término de uma alocação a partir da data inicial e da duração em dias úteis.
+ * A duração deve ser um número inteiro estritamente positivo (>= 1).
+ * O dia inicial (normalizado para o próximo dia útil se coincidir com fim de semana) conta como o primeiro dia útil.
+ * Preserva compatibilidade estrita com C# (Gantt.DataFim).
+ */
+export function dataFimDiasUteisCivil(inicio: string, dias: number): string {
+  if (typeof dias !== "number" || !Number.isFinite(dias) || !Number.isInteger(dias) || dias <= 0) {
+    throw new RangeError(`Duração em dias úteis deve ser número inteiro positivo: ${String(dias)}`);
+  }
+  return deslocarDiasUteisCivil(inicio, dias - 1);
+}

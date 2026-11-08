@@ -1,17 +1,69 @@
+import { toast } from "sonner";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
-import { gantt, type Task, type SerializedTask } from "dhtmlx-gantt";
+import { gantt, type Task } from "dhtmlx-gantt";
 import type { NivelZoom } from "@/types";
+import type { JanelaDatasGantt } from "@/features/cronograma/lib/janelaProgramacoes";
+import {
+  arredondarDataGanttCivil,
+  dataCivilParaGantt,
+  dataGanttParaCivil,
+  dataJanelaParaGantt,
+  dataGanttParaJanela,
+  fimJanelaParaGanttExclusivo,
+  fimCivilParaGanttExclusivo,
+  fimGanttParaCivilInclusivo,
+} from "@/features/cronograma/lib/datasGantt";
+import {
+  capturarSnapshotGantt,
+  restaurarSnapshotGantt,
+  type SnapshotGantt,
+} from "@/features/cronograma/lib/snapshotGantt";
+import { registrarCosturaQa } from "@/features/cronograma/lib/costuraQa";
+import type { EstadoVisualGantt } from "@/features/cronograma/lib/estadoVisualGantt";
+import {
+  dataCivilValida,
+  dataFimDiasUteisCivil,
+  diasUteisCivis,
+  proximoDiaUtilCivil,
+} from "@/shared/lib/datasCivis";
 import {
   formatarDiasUteis,
   formatarDataBR,
-  normalizarDataMeioDiaUTC,
-  formatarDataISO,
-  proximoDiaUtil,
-  dataFimInclusivaParaDhtmlx,
-  dhtmlxFimParaDataInclusiva,
-  calcularDiasUteisInclusivos,
 } from "@/shared/lib/formatters";
+
+function escaparHtml(valor: string | number): string {
+  return String(valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function calcularPosicaoDataCivil(dataCivil: string): number | null {
+  try {
+    if (typeof gantt.posFromDate !== "function") {
+      return null;
+    }
+    const dataGantt = dataJanelaParaGantt(dataCivil);
+    const state = typeof gantt.getState === "function" ? gantt.getState() : null;
+    if (state?.min_date && dataGantt < state.min_date) {
+      return 0;
+    }
+    if (state?.max_date && dataGantt > state.max_date) {
+      const posMax = gantt.posFromDate(state.max_date);
+      return typeof posMax === "number" && !isNaN(posMax) ? Math.max(0, posMax) : null;
+    }
+    const rawPos = gantt.posFromDate(dataGantt);
+    if (typeof rawPos !== "number" || isNaN(rawPos)) {
+      return null;
+    }
+    return Math.max(0, rawPos);
+  } catch {
+    return null;
+  }
+}
 
 export interface GanttTask {
   id: string | number;
@@ -36,39 +88,64 @@ export interface GanttTask {
 interface GanttWrapperProps {
   tarefas: GanttTask[];
   canDrag: boolean;
+  janelaDatas?: JanelaDatasGantt;
   epochInteracao?: number;
   nivelZoom: NivelZoom;
   focarData?: Date | null;
   mostrarGrade?: boolean;
   onReorder?: (id: number, novaData: string, novaDataFim: string) => void;
   onSelectTask?: (id: number) => void;
+  modoAtivo?: boolean;
+  obterEstadoVisual?: () => EstadoVisualGantt;
+  salvarEstadoVisual?: (estado: EstadoVisualGantt) => void;
 }
 
 export function GanttDhtmlxWrapper({
   tarefas,
   canDrag,
+  janelaDatas,
   epochInteracao = 0,
   nivelZoom,
   focarData,
   mostrarGrade = true,
   onReorder,
   onSelectTask,
+  modoAtivo = false,
+  obterEstadoVisual,
+  salvarEstadoVisual,
 }: GanttWrapperProps) {
   const container = useRef<HTMLDivElement>(null);
   const onReorderRef = useRef(onReorder);
   const onSelectTaskRef = useRef(onSelectTask);
   const canDragRef = useRef(canDrag);
   const mostrarGradeRef = useRef(mostrarGrade);
+  const janelaDatasRef = useRef(janelaDatas);
+  const modoAtivoRef = useRef(modoAtivo);
+  const obterEstadoVisualRef = useRef(obterEstadoVisual);
+  const salvarEstadoVisualRef = useRef(salvarEstadoVisual);
+  const snapshotRef = useRef<SnapshotGantt | null>(null);
   const inicializado = useRef(false);
   const dragEmAndamentoRef = useRef(false);
   const tarefasRef = useRef(tarefas);
   const epochInteracaoRef = useRef(epochInteracao);
   const interacaoRef = useRef<{
-    id: string | number; epoch: number; invalidada: boolean;
+    id: string | number;
+    epoch: number;
+    invalidada: boolean;
+    modo?: string;
+    inicioOriginalCivil?: string;
+    fimOriginalCivil?: string;
+    duracaoUteisOriginal?: number;
+    candidatoCivil?: string;
+    inicioAceitoCivil?: string;
+    fimAceitoCivil?: string;
   } | null>(null);
   const gestoRef = useRef<typeof interacaoRef.current>(null);
+  const ultimoMenorInicioRef = useRef<string | null>(null);
   const sincronizacaoPendenteRef = useRef(false);
   const timerCliqueRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const primeiraSincronizacaoRef = useRef(true);
+  const mutacaoInternaRef = useRef(false);
 
   const sincronizarDados = useCallback((tarefasAtuais = tarefasRef.current) => {
     if (!inicializado.current) return;
@@ -76,27 +153,217 @@ export function GanttDhtmlxWrapper({
       sincronizacaoPendenteRef.current = true;
       return;
     }
-    const scrollState = gantt.getScrollState();
+    const scrollStateAntes = gantt.getScrollState();
+    const estadoVisualAntes = obterEstadoVisualRef.current?.();
+
     const openStates = new Map<string | number, boolean>();
+    if (estadoVisualAntes?.arvore) {
+      for (const [id, aberto] of Object.entries(estadoVisualAntes.arvore)) {
+        openStates.set(id, aberto);
+      }
+    }
     gantt.eachTask((t: { id: string | number; type?: string; open?: boolean }) => {
-      if (t.type === "project") {
+      if (t.type === "project" || String(t.id).startsWith("equipe-")) {
         openStates.set(t.id, Boolean((t as unknown as { $open?: boolean }).$open ?? t.open));
       }
     });
-    const dados = tarefasAtuais.map((tarefa) => ({
-      ...tarefa,
-      start_date: tarefa.start_date instanceof Date ? new Date(tarefa.start_date) : tarefa.start_date,
-      end_date: tarefa.end_date instanceof Date ? new Date(tarefa.end_date) : tarefa.end_date,
-    }));
-    gantt.clearAll();
-    gantt.parse({ data: dados as unknown as (Task | SerializedTask)[] });
-    openStates.forEach((isOpen, id) => {
-      if (gantt.isTaskExists(id)) {
-        if (isOpen) gantt.open(id);
-        else gantt.close(id);
-      }
+
+    const dados: Task[] = tarefasAtuais.map((tarefa) => {
+      const dataInicio =
+        tarefa.start_date instanceof Date
+          ? new Date(tarefa.start_date.getTime())
+          : dataCivilParaGantt(tarefa.start_date);
+      const dataFim =
+        tarefa.dataFimInclusiva
+          ? fimCivilParaGanttExclusivo(tarefa.dataFimInclusiva)
+          : tarefa.end_date instanceof Date
+          ? new Date(tarefa.end_date.getTime())
+          : dataCivilParaGantt(tarefa.end_date);
+
+      const ehProjeto = tarefa.type === "project" || String(tarefa.id).startsWith("equipe-");
+      const abertoSalvo = ehProjeto ? openStates.get(tarefa.id) : undefined;
+      const estaAberto = abertoSalvo !== undefined ? abertoSalvo : (tarefa.open ?? true);
+
+      return {
+        ...tarefa,
+        start_date: dataInicio,
+        end_date: dataFim,
+        ...(ehProjeto ? { open: estaAberto } : {}),
+      };
     });
-    gantt.scrollTo(scrollState.x, scrollState.y);
+
+    let menorInicioAtual: string | null = null;
+    for (const tarefa of tarefasAtuais) {
+      if (tarefa.type === "project" || String(tarefa.id).startsWith("equipe-")) {
+        continue;
+      }
+      const isoInicio =
+        tarefa.start_date instanceof Date
+          ? dataGanttParaCivil(tarefa.start_date)
+          : String(tarefa.start_date);
+      if (dataCivilValida(isoInicio)) {
+        if (menorInicioAtual === null || isoInicio < menorInicioAtual) {
+          menorInicioAtual = isoInicio;
+        }
+      }
+    }
+
+    const estaEmDisplay = modoAtivoRef.current;
+    const ehPrimeiraSincronizacao = primeiraSincronizacaoRef.current;
+    primeiraSincronizacaoRef.current = false;
+    const ultimoMenorConhecido = estadoVisualAntes?.ultimoMenorInicio ?? ultimoMenorInicioRef.current;
+
+    mutacaoInternaRef.current = true;
+    try {
+      gantt.clearAll();
+      gantt.parse({ data: dados });
+
+      openStates.forEach((isOpen, id) => {
+        if (gantt.isTaskExists(id)) {
+          if (isOpen) gantt.open(id);
+          else gantt.close(id);
+        }
+      });
+
+      if (estaEmDisplay) {
+        if (ehPrimeiraSincronizacao) {
+          const dataAlvoCivil = estadoVisualAntes?.dataCivilVisivel ?? menorInicioAtual;
+          const posAlvo = dataAlvoCivil ? calcularPosicaoDataCivil(dataAlvoCivil) : null;
+          const yAlvo = estadoVisualAntes ? estadoVisualAntes.scrollOperacao.y : scrollStateAntes.y;
+          if (posAlvo !== null) {
+            gantt.scrollTo(posAlvo, yAlvo);
+          } else {
+            gantt.scrollTo(0, yAlvo);
+          }
+          const posAposFoco = gantt.getScrollState();
+          if (estadoVisualAntes) {
+            estadoVisualAntes.scrollDisplay = { x: posAposFoco.x, y: posAposFoco.y };
+            salvarEstadoVisualRef.current?.(estadoVisualAntes);
+          }
+        } else {
+          const xAlvo = estadoVisualAntes ? estadoVisualAntes.scrollDisplay.x : scrollStateAntes.x;
+          const yAlvo = estadoVisualAntes ? estadoVisualAntes.scrollDisplay.y : scrollStateAntes.y;
+          gantt.scrollTo(xAlvo, yAlvo);
+          if (estadoVisualAntes) {
+            const posApos = gantt.getScrollState();
+            estadoVisualAntes.scrollDisplay = { x: posApos.x, y: posApos.y };
+            salvarEstadoVisualRef.current?.(estadoVisualAntes);
+          }
+        }
+      } else {
+        if (ehPrimeiraSincronizacao) {
+          if (
+            ultimoMenorConhecido !== null &&
+            menorInicioAtual !== null &&
+            menorInicioAtual !== ultimoMenorConhecido
+          ) {
+            ultimoMenorInicioRef.current = menorInicioAtual;
+            if (estadoVisualAntes) {
+              estadoVisualAntes.ultimoMenorInicio = menorInicioAtual;
+            }
+            gantt.showDate(dataCivilParaGantt(menorInicioAtual));
+            const posAposFoco = gantt.getScrollState();
+            const yAlvo = estadoVisualAntes ? estadoVisualAntes.scrollOperacao.y : scrollStateAntes.y;
+            gantt.scrollTo(posAposFoco.x, yAlvo);
+            if (estadoVisualAntes) {
+              estadoVisualAntes.scrollOperacao = { x: posAposFoco.x, y: yAlvo };
+              try {
+                if (typeof gantt.dateFromPos === "function") {
+                  const d = gantt.dateFromPos(posAposFoco.x);
+                  if (d instanceof Date && !isNaN(d.getTime())) {
+                    estadoVisualAntes.dataCivilVisivel = dataGanttParaJanela(d);
+                  }
+                }
+              } catch {
+                // Mantém data civil visível anterior
+              }
+              salvarEstadoVisualRef.current?.(estadoVisualAntes);
+            }
+          } else if (estadoVisualAntes && estadoVisualAntes.ultimoMenorInicio !== null) {
+            const xAlvo = estadoVisualAntes.scrollOperacao.x;
+            const yAlvo = estadoVisualAntes.scrollOperacao.y;
+            gantt.scrollTo(xAlvo, yAlvo);
+          } else {
+            ultimoMenorInicioRef.current = menorInicioAtual;
+            if (estadoVisualAntes) {
+              estadoVisualAntes.ultimoMenorInicio = menorInicioAtual;
+            }
+            if (menorInicioAtual !== null) {
+              gantt.showDate(dataCivilParaGantt(menorInicioAtual));
+              const posAposFoco = gantt.getScrollState();
+              const yAlvo = estadoVisualAntes ? estadoVisualAntes.scrollOperacao.y : scrollStateAntes.y;
+              gantt.scrollTo(posAposFoco.x, yAlvo);
+              if (estadoVisualAntes) {
+                estadoVisualAntes.scrollOperacao = { x: posAposFoco.x, y: yAlvo };
+                try {
+                  if (typeof gantt.dateFromPos === "function") {
+                    const d = gantt.dateFromPos(posAposFoco.x);
+                    if (d instanceof Date && !isNaN(d.getTime())) {
+                      estadoVisualAntes.dataCivilVisivel = dataGanttParaJanela(d);
+                    }
+                  }
+                } catch {
+                  // Mantém data civil visível anterior
+                }
+                salvarEstadoVisualRef.current?.(estadoVisualAntes);
+              }
+            } else {
+              gantt.scrollTo(scrollStateAntes.x, scrollStateAntes.y);
+            }
+          }
+        } else {
+          if (
+            menorInicioAtual !== null &&
+            ultimoMenorConhecido !== null &&
+            menorInicioAtual !== ultimoMenorConhecido
+          ) {
+            ultimoMenorInicioRef.current = menorInicioAtual;
+            if (estadoVisualAntes) {
+              estadoVisualAntes.ultimoMenorInicio = menorInicioAtual;
+            }
+            gantt.showDate(dataCivilParaGantt(menorInicioAtual));
+            const posAposFoco = gantt.getScrollState();
+            const yAlvo = estadoVisualAntes ? estadoVisualAntes.scrollOperacao.y : scrollStateAntes.y;
+            gantt.scrollTo(posAposFoco.x, yAlvo);
+            if (estadoVisualAntes) {
+              estadoVisualAntes.scrollOperacao = { x: posAposFoco.x, y: yAlvo };
+              try {
+                if (typeof gantt.dateFromPos === "function") {
+                  const d = gantt.dateFromPos(posAposFoco.x);
+                  if (d instanceof Date && !isNaN(d.getTime())) {
+                    estadoVisualAntes.dataCivilVisivel = dataGanttParaJanela(d);
+                  }
+                }
+              } catch {
+                // Mantém data civil visível anterior
+              }
+              salvarEstadoVisualRef.current?.(estadoVisualAntes);
+            }
+          } else {
+            const xAlvo = estadoVisualAntes ? estadoVisualAntes.scrollOperacao.x : scrollStateAntes.x;
+            const yAlvo = estadoVisualAntes ? estadoVisualAntes.scrollOperacao.y : scrollStateAntes.y;
+            gantt.scrollTo(xAlvo, yAlvo);
+            if (estadoVisualAntes) {
+              estadoVisualAntes.scrollOperacao = { x: xAlvo, y: yAlvo };
+              try {
+                if (typeof gantt.dateFromPos === "function") {
+                  const d = gantt.dateFromPos(xAlvo);
+                  if (d instanceof Date && !isNaN(d.getTime())) {
+                    estadoVisualAntes.dataCivilVisivel = dataGanttParaJanela(d);
+                  }
+                }
+              } catch {
+                // Mantém data civil visível anterior
+              }
+              salvarEstadoVisualRef.current?.(estadoVisualAntes);
+            }
+          }
+        }
+      }
+    } finally {
+      mutacaoInternaRef.current = false;
+    }
+
     sincronizacaoPendenteRef.current = false;
   }, []);
 
@@ -105,7 +372,11 @@ export function GanttDhtmlxWrapper({
     onReorderRef.current = onReorder;
     onSelectTaskRef.current = onSelectTask;
     canDragRef.current = canDrag;
+    janelaDatasRef.current = janelaDatas;
     epochInteracaoRef.current = epochInteracao;
+    modoAtivoRef.current = modoAtivo;
+    obterEstadoVisualRef.current = obterEstadoVisual;
+    salvarEstadoVisualRef.current = salvarEstadoVisual;
     const interacao = interacaoRef.current ?? gestoRef.current;
     if (interacao && (!canDrag || interacao.epoch !== epochInteracao)) {
       interacao.invalidada = true;
@@ -113,9 +384,9 @@ export function GanttDhtmlxWrapper({
     }
     if (inicializado.current) {
       gantt.config.drag_move = canDrag;
-      gantt.config.drag_resize = canDrag;
+      gantt.config.drag_resize = false;
     }
-  }, [onReorder, onSelectTask, canDrag, epochInteracao]);
+  }, [onReorder, onSelectTask, canDrag, epochInteracao, janelaDatas, modoAtivo, obterEstadoVisual, salvarEstadoVisual]);
 
   useEffect(() => {
     mostrarGradeRef.current = mostrarGrade;
@@ -123,6 +394,13 @@ export function GanttDhtmlxWrapper({
 
   useEffect(() => {
     if (inicializado.current) return;
+
+    const obterEstadoOrigem = obterEstadoVisualRef.current;
+    const salvarEstadoOrigem = salvarEstadoVisualRef.current;
+
+    if (snapshotRef.current === null) {
+      snapshotRef.current = capturarSnapshotGantt(gantt);
+    }
 
     gantt.plugins({ tooltip: true });
     gantt.i18n.setLocale("pt_br");
@@ -134,7 +412,7 @@ export function GanttDhtmlxWrapper({
     gantt.config.show_links = false;
     gantt.config.show_progress = false;
     gantt.config.date_format = "%Y-%m-%d";
-    gantt.config.row_height = 40;
+    gantt.config.row_height = onSelectTaskRef.current ? 48 : 40;
     gantt.config.bar_height = 28;
 
     // Configuração de Anti-Reparenting: impede arraste vertical entre equipes
@@ -154,6 +432,38 @@ export function GanttDhtmlxWrapper({
         min_width: 130,
         tree: true,
         resize: true,
+        template: (rawTask: unknown) => {
+          const task = rawTask as GanttTask;
+          const texto = task.text || "";
+          if (!onSelectTaskRef.current) {
+            return escaparHtml(texto);
+          }
+
+          const ehGrupo =
+            task.type === "project" || String(task.id).startsWith("equipe-");
+
+          if (ehGrupo) {
+            const estaAberto = Boolean(
+              (task as unknown as { $open?: boolean }).$open ?? task.open
+            );
+            const rotuloEquipe = texto || task.nomeEquipe || `Equipe ${task.id}`;
+            return `<button type="button" class="gantt-btn-equipe" data-task-id="${escaparHtml(task.id)}" aria-expanded="${estaAberto ? "true" : "false"}" aria-label="${escaparHtml(rotuloEquipe)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloEquipe)}</span></button>`;
+          }
+
+          const rotuloVisivel =
+            texto ||
+            (task.nomeCliente ? String(task.nomeCliente) : `Obra ${task.id}`);
+          const partesAcessiveis = [rotuloVisivel];
+          if (task.nomeEquipe && !rotuloVisivel.includes(task.nomeEquipe)) {
+            partesAcessiveis.push(task.nomeEquipe);
+          }
+          if (task.nomeCliente && !rotuloVisivel.includes(task.nomeCliente)) {
+            partesAcessiveis.push(task.nomeCliente);
+          }
+          const rotuloAcessivel = partesAcessiveis.join(" — ");
+
+          return `<button type="button" class="gantt-btn-alocacao" data-task-id="${escaparHtml(task.id)}" aria-label="${escaparHtml(rotuloAcessivel)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloVisivel)}</span></button>`;
+        },
       },
       {
         name: "start_date",
@@ -165,7 +475,11 @@ export function GanttDhtmlxWrapper({
         template: (rawTask: unknown) => {
           const task = rawTask as GanttTask;
           if (!task.start_date) return "—";
-          return formatarDataBR(formatarDataISO(normalizarDataMeioDiaUTC(task.start_date)));
+          const dataIni =
+            task.start_date instanceof Date
+              ? dataGanttParaCivil(task.start_date)
+              : String(task.start_date);
+          return formatarDataBR(dataIni);
         },
       },
       {
@@ -177,17 +491,21 @@ export function GanttDhtmlxWrapper({
         resize: true,
         template: (rawTask: unknown) => {
           const task = rawTask as GanttTask;
-          if (!task.end_date) return "—";
-          return formatarDataBR(task.dataFimInclusiva ?? dhtmlxFimParaDataInclusiva(task.end_date));
+          if (!task.end_date && !task.dataFimInclusiva) return "—";
+          const dataFim =
+            task.dataFimInclusiva ??
+            (task.end_date instanceof Date
+              ? fimGanttParaCivilInclusivo(task.end_date)
+              : fimGanttParaCivilInclusivo(dataCivilParaGantt(String(task.end_date))));
+          return formatarDataBR(dataFim);
         },
       },
     ];
 
-    // Weekends como não-trabalho e ajuste automático no drop (RF-08, RF-09)
-    gantt.config.work_time = true;
-    gantt.config.correct_work_time = true;
-    gantt.setWorkTime({ day: 0, hours: false });
-    gantt.setWorkTime({ day: 6, hours: false });
+    gantt.config.work_time = false;
+    gantt.config.correct_work_time = false;
+    gantt.config.round_dnd_dates = false;
+    gantt.config.time_step = 1440;
 
     gantt.templates.timeline_cell_class = (_item: unknown, date: Date) => {
       const classes = [];
@@ -250,8 +568,11 @@ export function GanttDhtmlxWrapper({
     // Tooltip dinâmico com guard para nó de projeto
     gantt.templates.tooltip_text = (start: Date, end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
-      const dataIni = formatarDataBR(formatarDataISO(start));
-      const dataFim = formatarDataBR(task.dataFimInclusiva ?? dhtmlxFimParaDataInclusiva(end));
+      const dataIniCivil = dataGanttParaCivil(start);
+      const dataFimCivil =
+        task.dataFimInclusiva ?? fimGanttParaCivilInclusivo(end);
+      const dataIni = formatarDataBR(dataIniCivil);
+      const dataFim = formatarDataBR(dataFimCivil);
 
       if (task.type === "project") {
         return `<div class="tooltip-title">${task.text}</div><div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`;
@@ -277,8 +598,10 @@ export function GanttDhtmlxWrapper({
       linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`);
 
       if (task.duracaoDias !== undefined || task.duration !== undefined) {
-        const dur = calcularDiasUteisInclusivos(start, dhtmlxFimParaDataInclusiva(end));
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(dur)}</span></div>`);
+        const dur = task.duracaoDias ?? diasUteisCivis(dataIniCivil, dataFimCivil);
+        if (dur > 0) {
+          linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(dur)}</span></div>`);
+        }
       }
 
       if (task.materialPronto !== undefined || task.statusObra !== undefined) {
@@ -293,9 +616,14 @@ export function GanttDhtmlxWrapper({
     };
 
     gantt.config.drag_move = canDragRef.current;
-    gantt.config.drag_resize = canDragRef.current;
+    gantt.config.drag_resize = false;
     gantt.config.drag_progress = false;
     gantt.config.drag_links = false;
+
+    if (janelaDatasRef.current) {
+      gantt.config.start_date = dataJanelaParaGantt(janelaDatasRef.current.inicio);
+      gantt.config.end_date = fimJanelaParaGanttExclusivo(janelaDatasRef.current.fim);
+    }
 
     gantt.init(container.current!);
     inicializado.current = true;
@@ -324,6 +652,51 @@ export function GanttDhtmlxWrapper({
 
     const scrollEventId = gantt.attachEvent("onGanttScroll", () => {
       esconderTooltipDhtmlx();
+      if (mutacaoInternaRef.current) return true;
+      const estado = obterEstadoVisualRef.current?.();
+      if (estado && !gestoRef.current?.invalidada && !interacaoRef.current?.invalidada) {
+        const atual = gantt.getScrollState();
+        if (modoAtivoRef.current) {
+          estado.scrollDisplay = { x: atual.x, y: atual.y };
+        } else {
+          estado.scrollOperacao = { x: atual.x, y: atual.y };
+          try {
+            if (typeof gantt.dateFromPos === "function") {
+              const d = gantt.dateFromPos(atual.x);
+              if (d instanceof Date && !isNaN(d.getTime())) {
+                estado.dataCivilVisivel = dataGanttParaJanela(d);
+              }
+            }
+          } catch {
+            // Mantém data civil visível anterior
+          }
+        }
+        salvarEstadoVisualRef.current?.(estado);
+      }
+      return true;
+    });
+
+    const taskOpenedEventId = gantt.attachEvent("onTaskOpened", (id) => {
+      const idStr = String(id);
+      if (idStr.startsWith("equipe-") || (gantt.isTaskExists(id) && gantt.getTask(id).type === "project")) {
+        const estado = obterEstadoVisualRef.current?.();
+        if (estado) {
+          estado.arvore[idStr] = true;
+          salvarEstadoVisualRef.current?.(estado);
+        }
+      }
+      return true;
+    });
+
+    const taskClosedEventId = gantt.attachEvent("onTaskClosed", (id) => {
+      const idStr = String(id);
+      if (idStr.startsWith("equipe-") || (gantt.isTaskExists(id) && gantt.getTask(id).type === "project")) {
+        const estado = obterEstadoVisualRef.current?.();
+        if (estado) {
+          estado.arvore[idStr] = false;
+          salvarEstadoVisualRef.current?.(estado);
+        }
+      }
       return true;
     });
 
@@ -411,6 +784,54 @@ export function GanttDhtmlxWrapper({
       if (evento.pointerType !== "mouse") agendarFim();
     };
 
+    const handleGradeClick = (evento: MouseEvent) => {
+      const alvo = evento.target;
+      if (!(alvo instanceof Element)) return;
+      const botao = alvo.closest<HTMLButtonElement>(
+        ".gantt-btn-alocacao, .gantt-btn-equipe"
+      );
+      if (!botao) return;
+
+      if (
+        dragEmAndamentoRef.current ||
+        interacaoRef.current?.invalidada ||
+        gestoRef.current?.invalidada
+      ) {
+        return;
+      }
+
+      const taskId = botao.getAttribute("data-task-id");
+      if (!taskId || !gantt.isTaskExists(taskId)) return;
+
+      esconderTooltipDhtmlx();
+
+      const task = gantt.getTask(taskId) as unknown as GanttTask;
+      if (botao.classList.contains("gantt-btn-equipe")) {
+        const estaAberto = Boolean(
+          (task as unknown as { $open?: boolean }).$open ?? task.open
+        );
+        if (estaAberto) {
+          gantt.close(taskId);
+        } else {
+          gantt.open(taskId);
+        }
+        requestAnimationFrame(() => {
+          if (!inicializado.current || !containerEl) return;
+          const novoBotao = containerEl.querySelector<HTMLButtonElement>(
+            `button.gantt-btn-equipe[data-task-id="${taskId}"]`
+          );
+          if (novoBotao && document.activeElement !== novoBotao) {
+            novoBotao.focus();
+          }
+        });
+      } else if (botao.classList.contains("gantt-btn-alocacao")) {
+        if (onSelectTaskRef.current) {
+          onSelectTaskRef.current(Number(taskId));
+        }
+      }
+    };
+
+    containerEl?.addEventListener("click", handleGradeClick);
     containerEl?.addEventListener("pointerdown", iniciarGesto, true);
     containerEl?.addEventListener("mousedown", iniciarGesto, true);
     containerEl?.addEventListener("touchstart", iniciarGesto, true);
@@ -435,26 +856,125 @@ export function GanttDhtmlxWrapper({
     });
     if (containerEl) resizeObserver.observe(containerEl);
 
-    // Guard onBeforeTaskDrag: bloqueia arraste de linhas de equipe
-    const beforeDragEventId = gantt.attachEvent("onBeforeTaskDrag", (id) => {
-      if (!canDragRef.current || !gantt.isTaskExists(id)) return false;
+    // Guard onBeforeTaskDrag: bloqueia arraste de linhas de equipe e captura tarefa autoritativa
+    const beforeDragEventId = gantt.attachEvent("onBeforeTaskDrag", (id, mode) => {
+      if (!canDragRef.current || mode !== "move" || !gantt.isTaskExists(id)) return false;
       const task = gantt.getTask(id) as unknown as GanttTask;
       if (task.type === "project" || String(task.id).startsWith("equipe-")) return false;
       const gesto = gestoRef.current;
       if (!gesto || gesto.invalidada || gesto.epoch !== epochInteracaoRef.current ||
           String(gesto.id) !== String(id)) return false;
+
+      const tarefaAutoritativa = tarefasRef.current.find((t) => String(t.id) === String(id));
+      if (!tarefaAutoritativa || tarefaAutoritativa.type === "project" || String(tarefaAutoritativa.id).startsWith("equipe-")) {
+        gesto.invalidada = true;
+        return false;
+      }
+
+      const inicio =
+        tarefaAutoritativa.start_date instanceof Date
+          ? dataGanttParaCivil(tarefaAutoritativa.start_date)
+          : String(tarefaAutoritativa.start_date);
+      const fimInclusivo =
+        tarefaAutoritativa.dataFimInclusiva ??
+        (tarefaAutoritativa.end_date instanceof Date
+          ? fimGanttParaCivilInclusivo(tarefaAutoritativa.end_date)
+          : fimGanttParaCivilInclusivo(dataCivilParaGantt(String(tarefaAutoritativa.end_date))));
+
+      const duracao = diasUteisCivis(inicio, fimInclusivo);
+      if (duracao <= 0) {
+        gesto.invalidada = true;
+        return false;
+      }
+
+      gesto.modo = mode;
+      gesto.inicioOriginalCivil = inicio;
+      gesto.fimOriginalCivil = fimInclusivo;
+      gesto.duracaoUteisOriginal = duracao;
+      gesto.candidatoCivil = inicio;
       interacaoRef.current = gesto;
       return true;
     });
 
-    const beforeChangedEventId = gantt.attachEvent("onBeforeTaskChanged", (id) => {
+    const taskDragEventId = gantt.attachEvent("onTaskDrag", (id, mode, task) => {
+      if (mode !== "move") return;
+      const gesto = interacaoRef.current ?? gestoRef.current;
+      if (
+        !gesto ||
+        gesto.invalidada ||
+        gesto.epoch !== epochInteracaoRef.current ||
+        String(gesto.id) !== String(id)
+      ) {
+        return;
+      }
+      try {
+        if (!(task.start_date instanceof Date) || !gesto.duracaoUteisOriginal) {
+          throw new RangeError("Candidato de arraste inválido.");
+        }
+        const candidato = arredondarDataGanttCivil(task.start_date);
+        const inicio = proximoDiaUtilCivil(candidato);
+        dataFimDiasUteisCivil(inicio, gesto.duracaoUteisOriginal);
+        gesto.candidatoCivil = candidato;
+      } catch {
+        // A biblioteca renderiza esta cópia logo após o callback. Restaurá-la
+        // impede que templates recebam datas fora do domínio público.
+        gesto.candidatoCivil = undefined;
+        if (gesto.inicioOriginalCivil && gesto.fimOriginalCivil) {
+          task.start_date = dataCivilParaGantt(gesto.inicioOriginalCivil);
+          task.end_date = fimCivilParaGanttExclusivo(gesto.fimOriginalCivil);
+          task.dataFimInclusiva = gesto.fimOriginalCivil;
+        }
+      }
+    });
+
+    const beforeChangedEventId = gantt.attachEvent("onBeforeTaskChanged", (id, mode, _tarefaOriginal) => {
       const interacao = interacaoRef.current;
-      const permitido = canDragRef.current && interacao !== null &&
-        !interacao.invalidada && interacao.epoch === epochInteracaoRef.current &&
-        String(interacao.id) === String(id) && gantt.isTaskExists(id);
-      if (!permitido) sincronizacaoPendenteRef.current = true;
-      agendarFim();
-      return permitido;
+      const taskAtual = gantt.isTaskExists(id) ? (gantt.getTask(id) as unknown as GanttTask) : null;
+      const ehGrupo = taskAtual?.type === "project" || String(id).startsWith("equipe-");
+      const duracaoOriginal = interacao?.duracaoUteisOriginal;
+
+      const permitido =
+        canDragRef.current &&
+        interacao !== null &&
+        !interacao.invalidada &&
+        interacao.epoch === epochInteracaoRef.current &&
+        String(interacao.id) === String(id) &&
+        mode === "move" &&
+        !ehGrupo &&
+        taskAtual !== null &&
+        duracaoOriginal !== undefined &&
+        duracaoOriginal > 0;
+
+      if (!permitido || !interacao || !taskAtual || !duracaoOriginal) {
+        if (interacao) interacao.invalidada = true;
+        sincronizacaoPendenteRef.current = true;
+        agendarFim();
+        return false;
+      }
+
+      try {
+        const candidatoBruto = interacao.candidatoCivil;
+        if (!candidatoBruto) throw new RangeError("Candidato de arraste inválido.");
+        const novoInicio = proximoDiaUtilCivil(candidatoBruto);
+        const novoFimInclusivo = dataFimDiasUteisCivil(novoInicio, duracaoOriginal);
+        const inicioGantt = dataCivilParaGantt(novoInicio);
+        const fimGantt = fimCivilParaGanttExclusivo(novoFimInclusivo);
+
+        taskAtual.start_date = inicioGantt;
+        taskAtual.end_date = fimGantt;
+        taskAtual.dataFimInclusiva = novoFimInclusivo;
+        taskAtual.duracaoDias = duracaoOriginal;
+        interacao.inicioAceitoCivil = novoInicio;
+        interacao.fimAceitoCivil = novoFimInclusivo;
+        agendarFim();
+        return true;
+      } catch {
+        interacao.invalidada = true;
+        sincronizacaoPendenteRef.current = true;
+        agendarFim();
+        toast.error("Essa data não permite manter a duração da alocação. Escolha outra data.");
+        return false;
+      }
     });
 
     // Guard onBeforeRowDragMove: bloqueia categoricamente reordenação vertical entre linhas
@@ -462,41 +982,34 @@ export function GanttDhtmlxWrapper({
 
     const dragEventId = gantt.attachEvent("onAfterTaskDrag", (id, _mode) => {
       const interacao = interacaoRef.current;
-      if (!canDragRef.current || !interacao || interacao.invalidada ||
-          interacao.epoch !== epochInteracaoRef.current || String(interacao.id) !== String(id) ||
-          !gantt.isTaskExists(id)) {
+      if (
+        !canDragRef.current ||
+        !interacao ||
+        interacao.invalidada ||
+        interacao.epoch !== epochInteracaoRef.current ||
+        String(interacao.id) !== String(id) ||
+        !gantt.isTaskExists(id)
+      ) {
         sincronizacaoPendenteRef.current = true;
         agendarFim();
         return;
       }
       suprimirClique();
 
-      const task = gantt.getTask(id) as Omit<GanttTask, "start_date" | "end_date"> & {
-        start_date: Date;
-        end_date: string | Date;
-        duracaoDias?: number;
-        duration?: number;
-      };
-
-      // Defesa em profundidade contra nós de equipe ou IDs não-numéricos
-      if (task.type === "project" || String(task.id).startsWith("equipe-")) {
+      const inicioAceito = interacao.inicioAceitoCivil;
+      const fimAceito = interacao.fimAceitoCivil;
+      if (!inicioAceito || !fimAceito) {
+        sincronizacaoPendenteRef.current = true;
+        agendarFim();
         return;
       }
 
-      const inicio = proximoDiaUtil(normalizarDataMeioDiaUTC(task.start_date));
-      const inicioISO = formatarDataISO(inicio);
-      let fimInclusivo = dhtmlxFimParaDataInclusiva(task.end_date);
-      if (fimInclusivo < inicioISO) fimInclusivo = inicioISO; // clamp string × string
-      const duracao = calcularDiasUteisInclusivos(inicio, fimInclusivo);
-
-      task.start_date = inicio;
-      task.dataFimInclusiva = fimInclusivo;
-      task.end_date = normalizarDataMeioDiaUTC(dataFimInclusivaParaDhtmlx(fimInclusivo)); // Date obrigatório em runtime
-      task.duracaoDias = duracao;
-      task.duration = duracao;
-
       gantt.refreshTask(id);
-      onReorderRef.current?.(Number(id), inicioISO, fimInclusivo); // 3º argumento = fim INCLUSIVO
+
+      if (inicioAceito !== interacao.inicioOriginalCivil) {
+        onReorderRef.current?.(Number(id), inicioAceito, fimAceito);
+      }
+      agendarFim();
     });
 
     // Guard onTaskClick com alternância segura de expansão para nós de projeto
@@ -508,9 +1021,13 @@ export function GanttDhtmlxWrapper({
 
       if (!id || !gantt.isTaskExists(id)) return true;
 
+      const target = e?.target as HTMLElement | null;
+      if (target?.closest?.(".gantt-btn-alocacao, .gantt-btn-equipe")) {
+        return false;
+      }
+
       const task = gantt.getTask(id) as unknown as GanttTask;
       if (task.type === "project" || String(task.id).startsWith("equipe-")) {
-        const target = e?.target as HTMLElement | null;
         if (!target?.closest?.(".gantt_tree_icon")) {
           const estaAberto = Boolean(
             (task as unknown as { $open?: boolean }).$open ?? task.open
@@ -544,25 +1061,67 @@ export function GanttDhtmlxWrapper({
       window.removeEventListener("pointercancel", finalizarCancelamento, true);
       window.removeEventListener("touchcancel", finalizarCancelamento, true);
       window.removeEventListener("blur", finalizarCancelamento);
+      containerEl?.removeEventListener("click", handleGradeClick);
       resizeObserver.disconnect();
       if (frameFim !== null) cancelAnimationFrame(frameFim);
       if (frameResize !== null) cancelAnimationFrame(frameResize);
       if (timerCliqueRef.current !== null) clearTimeout(timerCliqueRef.current);
       timerCliqueRef.current = null;
+      esconderTooltipDhtmlx();
+      document.querySelectorAll(".gantt_tooltip").forEach((el) => el.remove());
+      const estadoFinal = obterEstadoOrigem?.();
+      const salvarAtual = salvarEstadoVisualRef.current;
+      if (estadoFinal && salvarEstadoOrigem && salvarAtual === salvarEstadoOrigem) {
+        gantt.eachTask((t: { id: string | number; type?: string; open?: boolean }) => {
+          if (t.type === "project" || String(t.id).startsWith("equipe-")) {
+            estadoFinal.arvore[String(t.id)] = Boolean(
+              (t as unknown as { $open?: boolean }).$open ?? t.open
+            );
+          }
+        });
+        const scrollFinal = gantt.getScrollState();
+        if (modoAtivoRef.current) {
+          estadoFinal.scrollDisplay = { x: scrollFinal.x, y: scrollFinal.y };
+        } else if (!interacaoRef.current?.invalidada) {
+          estadoFinal.scrollOperacao = { x: scrollFinal.x, y: scrollFinal.y };
+          try {
+            if (typeof gantt.dateFromPos === "function") {
+              const d = gantt.dateFromPos(scrollFinal.x);
+              if (d instanceof Date && !isNaN(d.getTime())) {
+                estadoFinal.dataCivilVisivel = dataGanttParaJanela(d);
+              }
+            }
+          } catch {
+            // Preserva dataCivilVisivel anterior
+          }
+        }
+        salvarEstadoOrigem(estadoFinal);
+      }
       dragEmAndamentoRef.current = false;
       gestoRef.current = null;
       interacaoRef.current = null;
       sincronizacaoPendenteRef.current = false;
-      esconderTooltipDhtmlx();
-      document.querySelectorAll(".gantt_tooltip").forEach((el) => el.remove());
-      gantt.clearAll();
+      ultimoMenorInicioRef.current = null;
+      primeiraSincronizacaoRef.current = true;
+      gantt.detachEvent(scrollEventId);
+      gantt.detachEvent(taskOpenedEventId);
+      gantt.detachEvent(taskClosedEventId);
+      gantt.detachEvent(mouseMoveEventId);
       gantt.detachEvent(beforeDragEventId);
+      gantt.detachEvent(taskDragEventId);
       gantt.detachEvent(beforeChangedEventId);
       gantt.detachEvent(rowDragMoveEventId);
       gantt.detachEvent(dragEventId);
       gantt.detachEvent(clickEventId);
-      gantt.detachEvent(mouseMoveEventId);
-      gantt.detachEvent(scrollEventId);
+      mutacaoInternaRef.current = true;
+      try {
+        gantt.clearAll();
+      } finally {
+        mutacaoInternaRef.current = false;
+      }
+      if (snapshotRef.current) {
+        restaurarSnapshotGantt(gantt, snapshotRef.current);
+      }
       inicializado.current = false;
     };
   }, [sincronizarDados]);
@@ -571,8 +1130,30 @@ export function GanttDhtmlxWrapper({
   useEffect(() => {
     if (!inicializado.current) return;
     gantt.config.show_grid = mostrarGrade;
-    gantt.render();
+    mutacaoInternaRef.current = true;
+    try {
+      gantt.render();
+    } finally {
+      mutacaoInternaRef.current = false;
+    }
   }, [mostrarGrade]);
+
+  const janelaInicio = janelaDatas?.inicio;
+  const janelaFim = janelaDatas?.fim;
+
+  useEffect(() => {
+    if (!inicializado.current || !janelaInicio || !janelaFim) return;
+    const scroll = gantt.getScrollState();
+    gantt.config.start_date = dataJanelaParaGantt(janelaInicio);
+    gantt.config.end_date = fimJanelaParaGanttExclusivo(janelaFim);
+    mutacaoInternaRef.current = true;
+    try {
+      gantt.render();
+      gantt.scrollTo(scroll.x, scroll.y);
+    } finally {
+      mutacaoInternaRef.current = false;
+    }
+  }, [janelaInicio, janelaFim]);
 
   useEffect(() => {
     if (focarData && inicializado.current) {
@@ -610,11 +1191,58 @@ export function GanttDhtmlxWrapper({
         break;
     }
 
-    gantt.render();
+    mutacaoInternaRef.current = true;
+    try {
+      gantt.render();
+    } finally {
+      mutacaoInternaRef.current = false;
+    }
   }, [nivelZoom]);
 
   // Preservação do estado da árvore pós-render
   useEffect(() => { sincronizarDados(tarefas); }, [tarefas, sincronizarDados]);
+
+  const temJanelaOperacional = Boolean(janelaDatas);
+
+  useEffect(() => {
+    if (!inicializado.current || !temJanelaOperacional) return;
+
+    return registrarCosturaQa({
+      lerJanela: () => {
+        const atual = janelaDatasRef.current;
+        if (!atual) {
+          throw new Error("Janela de datas não disponível no Gantt operacional.");
+        }
+        return { inicio: atual.inicio, fim: atual.fim };
+      },
+      mostrarData: (iso: string) => {
+        gantt.showDate(dataCivilParaGantt(iso));
+      },
+      lerTarefa: (id: number) => {
+        if (!gantt.isTaskExists(id)) return null;
+        const task = gantt.getTask(id) as unknown as GanttTask;
+        if (!task || task.type === "project" || String(task.id).startsWith("equipe-")) {
+          return null;
+        }
+        try {
+          const inicioDate =
+            task.start_date instanceof Date
+              ? task.start_date
+              : dataCivilParaGantt(String(task.start_date));
+          const fimDate =
+            task.end_date instanceof Date
+              ? task.end_date
+              : dataCivilParaGantt(String(task.end_date));
+          return {
+            dataInicio: dataGanttParaCivil(inicioDate),
+            dataFim: fimGanttParaCivilInclusivo(fimDate),
+          };
+        } catch {
+          return null;
+        }
+      },
+    });
+  }, [temJanelaOperacional]);
 
   return <div ref={container} className="flex-1 w-full min-h-0" style={{ width: "100%", height: "100%" }} />;
 }

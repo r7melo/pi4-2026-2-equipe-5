@@ -1,4 +1,5 @@
-import type { ObraCard, ObraDetalhe, Programacao, Equipe, Material, HistoricoObra, ComentarioObra, RelatorioCusto, DadosHomologacao } from "@/types";
+import type { ObraCard, ObraDetalhe, Equipe, Material, HistoricoObra, ComentarioObra, RelatorioCusto, DadosHomologacao } from "@/types";
+import type { Programacao } from "@/shared/types/programacoes";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 import { dataCivilValida, diaUtilCivil, somarDiasCivisUTC, diasUteisCivis } from "@/shared/lib/datasCivis";
 

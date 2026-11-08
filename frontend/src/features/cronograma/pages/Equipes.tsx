@@ -1,5 +1,19 @@
-import { capturarSessaoOperacional, deveExibirErroLocal, assinarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
-import { useState, useMemo, useLayoutEffect, useRef, useSyncExternalStore, type SetStateAction, type ReactNode } from "react";
+import {
+  capturarSessaoOperacional,
+  deveExibirErroLocal,
+  assinarSessaoOperacional,
+  sessaoOperacionalVigente,
+} from "@/shared/lib/sessaoOperacao";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+  type SetStateAction,
+  type ReactNode,
+} from "react";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
 import type { GanttFiltrosAvancados } from "@/types";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
@@ -7,6 +21,9 @@ import {
   GanttDhtmlxWrapper,
   type GanttTask,
 } from "@/features/cronograma/components/GanttDhtmlxWrapper";
+import {
+  criarArmazenamentoEstadoVisual,
+} from "@/features/cronograma/lib/estadoVisualGantt";
 import { GanttToolbar } from "@/features/cronograma/components/GanttToolbar";
 import { GanttKpiBar } from "@/features/cronograma/components/GanttKpiBar";
 import { GanttFilterDrawer } from "@/features/cronograma/components/GanttFilterDrawer";
@@ -30,13 +47,14 @@ import { PageHeader } from "@/shared/components/ui/PageHeader";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
-import { CalendarX2, Search } from "lucide-react";
+import { CalendarX2, Search, AlertTriangle } from "lucide-react";
+import { formatarDataISO } from "@/shared/lib/formatters";
 import {
-  normalizarDataFimInclusiva,
-  dataFimInclusivaParaDhtmlx,
-  calcularDiasUteisInclusivos,
-  formatarDataISO,
-} from "@/shared/lib/formatters";
+  dataCivilParaGantt,
+  fimCivilParaGanttExclusivo,
+} from "@/features/cronograma/lib/datasGantt";
+import { calcularJanelaProgramacoes } from "@/features/cronograma/lib/janelaProgramacoes";
+import { diasUteisCivis } from "@/shared/lib/datasCivis";
 import { obterConflitosEquipe } from "@/features/cronograma/lib/ganttCalculos";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { podeVerModo } from "@/shared/lib/podeVerModo";
@@ -53,6 +71,11 @@ export default function Equipes({
   const { ativo: modoAtivo, elegivelParaModo, alturaSelo, lerEpoch, podeInteragir } = useModoDisplay();
   const epochRender = lerEpoch();
   const sessaoRender = useSyncExternalStore(assinarSessaoOperacional, capturarSessaoOperacional, capturarSessaoOperacional);
+  const { obterEstadoVisual, salvarEstadoVisual } = useMemo(
+    () => criarArmazenamentoEstadoVisual(sessaoRender),
+    [sessaoRender]
+  );
+
   const nivelZoom = useGanttStore((s) => s.nivelZoom);
   const setNivelZoom = useGanttStore((s) => s.setNivelZoom);
   const filtrosSalvos = useGanttStore((s) => s.filtrosSalvos);
@@ -98,7 +121,15 @@ export default function Equipes({
   const nomePerfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const canEdit =
     nomePerfil === "Administrador" || nomePerfil === "Engenharia";
-  const canDrag = canEdit && !modoAtivo;
+  const {
+    mutate: reordenar,
+    mutateAsync: reordenarAsync,
+    bloqueado: reagendamentoBloqueado,
+    fase: reagendamentoFase,
+    aviso: avisoReagendamento,
+    recuperar: recuperarReagendamento,
+  } = useReordenarProgramacao();
+  const canDrag = canEdit && !modoAtivo && !reagendamentoBloqueado;
   const canEditRef = useRef(canEdit);
   const montadoRef = useRef(false);
   useLayoutEffect(() => { canEditRef.current = canEdit; }, [canEdit]);
@@ -106,8 +137,14 @@ export default function Equipes({
     montadoRef.current = true;
     return () => { montadoRef.current = false; };
   }, []);
-  const podeUsarInterface = () => montadoRef.current && podeInteragir(epochRender);
-  const podeEditar = () => canEditRef.current && podeUsarInterface();
+  const podeUsarInterface = useCallback(
+    () => montadoRef.current && podeInteragir(epochRender),
+    [podeInteragir, epochRender]
+  );
+  const podeEditar = useCallback(
+    () => canEditRef.current && podeUsarInterface(),
+    [podeUsarInterface]
+  );
   const atualizarFiltros = (atualizacao: SetStateAction<GanttFiltrosAvancados>) => {
     if (!podeUsarInterface()) return;
     setFiltros(atualizacao);
@@ -130,7 +167,31 @@ export default function Equipes({
 
   const { data: homologacoesMap } = useHomologacoesObras(obraIdsUnicos);
 
-  const { mutate: reordenar } = useReordenarProgramacao();
+  const { janelaDatas, erroValidacaoJanela } = useMemo(() => {
+    if (!programacoes || programacoes.length === 0) {
+      return { janelaDatas: null, erroValidacaoJanela: null };
+    }
+    try {
+      const janela = calcularJanelaProgramacoes(programacoes);
+      return { janelaDatas: janela, erroValidacaoJanela: null };
+    } catch (err) {
+      return {
+        janelaDatas: null,
+        erroValidacaoJanela:
+          err instanceof Error ? err.message : "Dados de programação inválidos.",
+      };
+    }
+  }, [programacoes]);
+
+  const temBaseValida = Array.isArray(programacoes) && !erroValidacaoJanela;
+  const baseVazia = temBaseValida && programacoes.length === 0;
+  const reconciliacaoPendente = Boolean(
+    reagendamentoFase !== "livre"
+  );
+  const exibirErroProg = Boolean(
+    (erroProg && !(reconciliacaoPendente && temBaseValida)) || erroValidacaoJanela
+  );
+
   const { mutateAsync: criarAlocacao, isPending: criandoAlocacao } =
     useCriarProgramacao();
   const { mutateAsync: deletarAlocacao } = useDeletarProgramacao();
@@ -179,14 +240,10 @@ export default function Equipes({
 
     // 3. Período de Término
     if (filtros.dataFimDe) {
-      lista = lista.filter(
-        (p) => normalizarDataFimInclusiva(p.dataFim) >= filtros.dataFimDe!
-      );
+      lista = lista.filter((p) => p.dataFim >= filtros.dataFimDe!);
     }
     if (filtros.dataFimAte) {
-      lista = lista.filter(
-        (p) => normalizarDataFimInclusiva(p.dataFim) <= filtros.dataFimAte!
-      );
+      lista = lista.filter((p) => p.dataFim <= filtros.dataFimAte!);
     }
 
     // 4. Prioridade
@@ -249,7 +306,7 @@ export default function Equipes({
     if (filtros.apenasAtrasadas) {
       lista = lista.filter((p) => {
         const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        return normalizarDataFimInclusiva(p.dataFim) < HOJE_ISO && obra?.status !== "Concluido";
+        return p.dataFim < HOJE_ISO && obra?.status !== "Concluido";
       });
     }
 
@@ -298,13 +355,12 @@ export default function Equipes({
       );
 
       // 1. Nó Pai de Equipe (Projeto)
-      const maiorFimNormalizado = normalizarDataFimInclusiva(maiorFim);
       resultado.push({
         id: `equipe-${equipe.id}`,
         text: `${equipe.nome} — ${equipe.especialidade || "Instalação"}`,
-        start_date: menorInicio,
-        end_date: dataFimInclusivaParaDhtmlx(maiorFimNormalizado),
-        dataFimInclusiva: maiorFimNormalizado,
+        start_date: dataCivilParaGantt(menorInicio),
+        end_date: fimCivilParaGanttExclusivo(maiorFim),
+        dataFimInclusiva: maiorFim,
         type: "project",
         open: true,
         equipeId: equipe.id,
@@ -322,17 +378,16 @@ export default function Equipes({
 
         const homologacao = homologacoesMap?.[p.obraId];
         const homologacaoOk = homologacao?.parecerAcesso === "Aprovado";
-        const fimNormalizado = normalizarDataFimInclusiva(p.dataFim);
-        const duracaoCalculada = calcularDiasUteisInclusivos(p.dataInicio, fimNormalizado);
+        const duracaoCalculada = diasUteisCivis(p.dataInicio, p.dataFim);
 
         resultado.push({
           id: p.id,
           parent: `equipe-${equipe.id}`,
           type: "task",
           text: obra?.clienteNome || `Obra ${p.obraId}`,
-          start_date: p.dataInicio,
-          end_date: dataFimInclusivaParaDhtmlx(fimNormalizado),
-          dataFimInclusiva: fimNormalizado,
+          start_date: dataCivilParaGantt(p.dataInicio),
+          end_date: fimCivilParaGanttExclusivo(p.dataFim),
+          dataFimInclusiva: p.dataFim,
           duration: duracaoCalculada,
           equipeId: p.equipeId,
           nomeEquipe: equipe.nome,
@@ -342,6 +397,8 @@ export default function Equipes({
           statusObra: obra?.status,
           materialPronto,
           homologacaoOk,
+          ...(p.duracaoEstimadaDias !== undefined ? { duracaoEstimadaDias: p.duracaoEstimadaDias } : {}),
+          ...(p.prioridade !== undefined ? { priority: p.prioridade, prioridade: p.prioridade } : {}),
         });
       }
     }
@@ -365,16 +422,48 @@ export default function Equipes({
       nomeCliente: obra?.clienteNome || `Obra ID: ${prog.obraId}`,
       dataInicio: prog.dataInicio,
       dataFim: prog.dataFim,
-      duracaoDias: calcularDiasUteisInclusivos(prog.dataInicio, normalizarDataFimInclusiva(prog.dataFim)),
+      duracaoDias: diasUteisCivis(prog.dataInicio, prog.dataFim),
       paineis: obra?.quantidadePaineis,
       obra,
     };
   }, [tarefaSelecionadaId, programacoes, listaObras, equipes]);
 
-  const handleReorder = (id: number, novaData: string, novaDataFim: string) => {
-    if (!podeEditar()) return;
-    reordenar({ id, novaDataInicio: novaData, novaDataFim });
+  const handleReorder = (id: number, novaData: string) => {
+    if (!podeEditar() || reagendamentoBloqueado) return;
+    reordenar({ id, novaDataInicio: novaData });
   };
+
+  const handleReagendar = useCallback(
+    async (id: number, novaDataInicio: string): Promise<boolean | null> => {
+      if (!podeEditar() || reagendamentoBloqueado) return null;
+      const sessaoAntes = capturarSessaoOperacional();
+      try {
+        const resposta = await reordenarAsync({ id, novaDataInicio });
+        if (!sessaoOperacionalVigente(sessaoAntes)) return null;
+        return resposta !== null ? true : null;
+      } catch {
+        if (!sessaoOperacionalVigente(sessaoAntes)) return null;
+        return false;
+      }
+    },
+    [podeEditar, reagendamentoBloqueado, reordenarAsync]
+  );
+
+  const obterFocoRetorno = useCallback((): HTMLElement | null => {
+    if (tarefaSelecionadaId !== null) {
+      const elementoTarefa = document.querySelector<HTMLElement>(
+        `button.gantt-btn-alocacao[data-task-id="${tarefaSelecionadaId}"]`
+      );
+      if (elementoTarefa && elementoTarefa.isConnected) {
+        return elementoTarefa;
+      }
+    }
+    const fallback = document.querySelector<HTMLElement>(".gantt-toolbar button");
+    if (fallback && fallback.isConnected) {
+      return fallback;
+    }
+    return null;
+  }, [tarefaSelecionadaId]);
 
   const handleHoje = () => {
     setDataFoco(new Date());
@@ -453,7 +542,7 @@ export default function Equipes({
       <PageHeader title="Cronograma de Equipes"
         subtitle="Gestão de alocações e cronograma de obras (Gantt)"
         ocultarMenuLateral={modoAtivo}>
-        {!isLoading && !erroProg && Boolean(programacoes?.length) && (
+        {!isLoading && !exibirErroProg && temBaseValida && !baseVazia && (
           <GanttToolbar nivelAtual={nivelZoom} onMudarNivel={setNivelZoom}
             onHoje={handleHoje} mostrarGrade={mostrarGrade}
             onToggleGrade={() => setMostrarGrade((prev) => !prev)}
@@ -465,16 +554,16 @@ export default function Equipes({
         {podeVerModo(nomePerfil) && elegivelParaModo && <BotaoModoDisplay className="size-7.5 [&_svg]:size-3.5" />}
       </PageHeader>
 
-      {isLoading ? (
+      {isLoading && !temBaseValida ? (
         <div className="flex-1 flex items-center justify-center bg-background-app">
           <FeedbackLoading mensagem="Carregando cronograma..." />
         </div>
-      ) : erroProg ? (
+      ) : exibirErroProg ? (
         <div className="flex-1 flex items-center justify-center bg-background-app p-4">
-          <FeedbackErro mensagem={errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
+          <FeedbackErro mensagem={erroValidacaoJanela || errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
             onTentarNovamente={() => void refetchProg()} />
         </div>
-      ) : programacoesVisiveis.length === 0 && (modoAtivo || !programacoes?.length) ? (
+      ) : baseVazia ? (
         <div className="flex-1 flex items-center justify-center bg-background-app p-4">
           <EmptyState icone={CalendarX2} titulo="Nenhuma programação encontrada"
             descricao={modoAtivo ? undefined : "Aloque equipes a obras cadastradas para inicializar o cronograma."}
@@ -485,6 +574,31 @@ export default function Equipes({
         </div>
       ) : (
       <div className="flex-1 flex flex-col gap-2 w-full min-h-0 bg-background-app p-2 md:p-3 overflow-hidden">
+        {avisoReagendamento && (
+          <div
+            role="alert"
+            className="p-3 bg-warning-light border border-warning-border rounded-xl flex items-center justify-between gap-3 text-xs text-warning shrink-0"
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-warning" />
+              <span>{avisoReagendamento}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (reagendamentoFase === "recuperacao") {
+                  void recuperarReagendamento();
+                } else {
+                  void refetchProg();
+                }
+              }}
+              className="px-3 py-1.5 font-semibold text-xs bg-surface border border-border-subtle rounded-lg hover:bg-surface-subtle text-foreground-secondary transition-colors cursor-pointer shrink-0"
+            >
+              Consultar novamente
+            </button>
+          </div>
+        )}
+
         {/* Barra Rápida conectada 100% à Fonte Única de Verdade 'filtros': */}
         {!modoAtivo && (
         <GanttKpiBar
@@ -536,20 +650,25 @@ export default function Equipes({
           )}
 
           <GanttDhtmlxWrapper
+            key={modoAtivo ? "display" : "operacao"}
             tarefas={dadosFormatados}
             canDrag={canDrag}
+            janelaDatas={modoAtivo ? undefined : (janelaDatas ?? undefined)}
             epochInteracao={epochRender}
             nivelZoom={nivelZoom}
             focarData={dataFoco}
             mostrarGrade={mostrarGrade}
             onReorder={handleReorder}
             onSelectTask={modoAtivo ? undefined : handleSelectTask}
+            modoAtivo={modoAtivo}
+            obterEstadoVisual={obterEstadoVisual}
+            salvarEstadoVisual={salvarEstadoVisual}
           />
         </div>
       </div>
       )}
 
-      {!modoAtivo && !isLoading && !erroProg && (
+      {!modoAtivo && (!isLoading || temBaseValida) && temBaseValida && !exibirErroProg && (
       <>
       {canEdit && <GanttNovaAlocacaoModal
         isOpen={modalNovaAlocacaoAberto}
@@ -561,7 +680,7 @@ export default function Equipes({
         isLoading={criandoAlocacao}
       />}
 
-      {Boolean(programacoes?.length) && (
+      {!baseVazia && (
       <>
       {canEdit && <GanttNovaEquipeModal isOpen={modalNovaEquipeAberto} podeInteragir={podeEditar}
         onClose={() => { if (podeUsarInterface()) setModalNovaEquipeAberto(false); }}
@@ -578,6 +697,7 @@ export default function Equipes({
       />}
 
       <GanttTaskDrawer
+        key={tarefaDrawer?.id ?? "fechado"}
         tarefa={tarefaDrawer}
         onClose={() => { if (podeUsarInterface()) setTarefaSelecionadaId(null); }}
         canEdit={canEdit}
@@ -586,6 +706,11 @@ export default function Equipes({
         programacoes={programacoes || []}
         onMudarEquipe={handleMudarEquipe}
         renderizarAcoesObra={renderizarAcoesObra}
+        onReagendar={handleReagendar}
+        reagendamentoBloqueado={reagendamentoBloqueado}
+        reagendamentoFase={reagendamentoFase}
+        avisoReagendamento={avisoReagendamento}
+        focoRetorno={obterFocoRetorno}
       />
 
       {/* Gaveta de Filtros Avançados: */}
