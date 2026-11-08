@@ -1,4 +1,4 @@
-// Tipos do domínio de Relatórios, Balanço de Custos e Compartilhamento Público (RF-15, RF-16)
+// Tipos do domínio de Relatórios, Balanço de Custos e Compartilhamento Público (RF-15, RF-16, RF-20)
 import type { ObraCard } from "@/features/obras/types/obras";
 
 export interface BalancoMaterial {
@@ -17,7 +17,43 @@ export interface RelatorioCusto {
   balancoMateriais?: BalancoMaterial[];
 }
 
-/** Rota #37 do Contrato de API (07-api.md) — GET /api/cronograma/compartilhado/{token} (RF-16) */
+/** Rota #34 do Contrato de API (07-api.md) — GET /api/obras/{id}/dre (RF-20) */
+export interface DREObra {
+  obraId: number;
+  valorObra: number;
+  receitaBruta?: number; // Compatibilidade retroativa
+  receitaLiquida?: number; // Compatibilidade retroativa
+  deducoesImpostos?: number; // Compatibilidade retroativa
+  custoMateriais?: number;
+  custoMaoObra: number;
+  custoInsumos: number;
+  custoTotal: number;
+  resultado: number;
+  lucroLiquido?: number; // Alias para resultado
+  margemContribuicao?: number;
+  margemPercentual: number;
+  obraConcluida: boolean;
+  precificacaoCompleta: boolean;
+  observacoes?: string;
+}
+
+/** Rota #31 do Contrato de API (07-api.md) — GET /api/obras/{id}/custos (RF-14) */
+export interface CustosObra {
+  obraId: number;
+  custoMaoObra: number | null;
+  custoInsumos: number | null;
+  valorObra: number | null;
+  precificacaoCompleta: boolean;
+}
+
+/** Rota #32 do Contrato de API (07-api.md) — POST /api/obras/{id}/custos (RF-14) */
+export interface AtualizarCustosPayload {
+  custoMaoObra?: number | null;
+  custoInsumos?: number | null;
+  valorObra?: number | null;
+}
+
+/** Rota #43 do Contrato de API (07-api.md) — GET /api/cronograma/compartilhado/{token} (RF-16) */
 export interface RelatorioPublicoDados {
   periodoInicio: string;
   periodoFim: string;

@@ -1,213 +1,221 @@
-// RF-14/15: Financeiro — DRE (Demonstrativo de Resultado por Exercício) por obra
+// Financeiro — DRE (Demonstrativo de Resultado do Exercício) e Gestão de Custos por Obra
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
-
-import { useRelatorioCusto, useObrasSelect } from "@/features/financeiro/hooks/useRelatorios";
+import { Button } from "@/shared/components/ui/Button";
+import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
+import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
+import { EmptyState } from "@/shared/components/feedback/EmptyState";
+import { useObrasSelect, useDreObra, useCustosObra } from "@/features/financeiro/hooks/useRelatorios";
+import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { ModalLancamentoCustos } from "../components/ModalLancamentoCustos";
+import { formatarMoeda } from "@/shared/lib/formatters";
 import {
-  Loader2,
-  AlertCircle,
   TrendingUp,
   TrendingDown,
   DollarSign,
   BarChart3,
   Search,
   ExternalLink,
-  Package,
-  CheckCircle2,
+  PlusCircle,
+  FileText,
   AlertTriangle,
+  Building2,
+  HardHat,
+  Package,
 } from "lucide-react";
 
-function formatarMoeda(valor: number) {
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+interface PainelDREProps {
+  obraId: number;
+  clienteNome: string;
+  statusObra: string;
 }
 
-function PainelDRE({ obraId }: { obraId: number }) {
-  const { data, isLoading, isError } = useRelatorioCusto(obraId);
+function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
+  const navigate = useNavigate();
+  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const podeGerenciarCustos = perfil === "Administrador" || perfil === "Financeiro";
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-      </div>
-    );
+  const { data: dre, isLoading: loadingDre } = useDreObra(obraId, statusObra);
+  const { data: custos, isLoading: loadingCustos } = useCustosObra(obraId);
+  const [modalAberto, setModalAberto] = useState(false);
+
+  const obraConcluida = statusObra === "Concluido";
+
+  if (loadingDre || loadingCustos) {
+    return <FeedbackLoading mensagem="Consultando apuração contábil e custos no servidor..." />;
   }
-
-  if (isError || !data) {
-    return (
-      <div className="flex items-center justify-center py-12 text-slate-500 gap-2">
-        <AlertCircle className="w-5 h-5 text-slate-400" />
-        <span className="text-sm">Sem dados financeiros para esta obra.</span>
-      </div>
-    );
-  }
-
-  const lucroPercentual = data.receita > 0 ? ((data.lucro / data.receita) * 100).toFixed(1) : "0";
-  const isPositivo = data.lucro >= 0;
 
   return (
     <div className="space-y-6">
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Receita Total</p>
-            <div className="bg-blue-50 p-2 rounded-lg">
-              <DollarSign className="w-4 h-4 text-blue-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{formatarMoeda(data.receita)}</p>
+      {/* Barra de ações superior */}
+      <div className="bg-surface rounded-xl border border-border-subtle p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-foreground-muted" /> {clienteNome}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Obra #{obraId} • Situação: <strong className="text-foreground">{statusObra}</strong>
+          </p>
         </div>
 
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Custo Total</p>
-            <div className="bg-red-50 p-2 rounded-lg">
-              <TrendingDown className="w-4 h-4 text-red-500" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{formatarMoeda(data.custoTotal)}</p>
-        </div>
+        <div className="flex items-center gap-2">
+          {podeGerenciarCustos && (
+            <Button
+              onClick={() => setModalAberto(true)}
+              className="flex items-center gap-2 text-xs shadow-xs"
+            >
+              <PlusCircle className="w-4 h-4" />
+              Lançar / Atualizar Custos
+            </Button>
+          )}
 
-        <div className={`rounded-xl p-5 border shadow-sm ${isPositivo ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
-          <div className="flex items-center justify-between mb-2">
-            <p className={`text-xs font-semibold uppercase tracking-wider ${isPositivo ? "text-emerald-700" : "text-red-700"}`}>
-              Lucro / Margem
+          <Button
+            variant="outline"
+            onClick={() =>
+              navigate(`/obras/${obraId}`, {
+                state: { from: "/financeiro", selectedObraId: obraId },
+              })
+            }
+            className="flex items-center gap-2 text-xs"
+            title="Ir para página detalhada da obra"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Ver Obra
+          </Button>
+        </div>
+      </div>
+
+      {/* Alerta de Restrição RN-03 caso a obra ainda não esteja concluída */}
+      {!obraConcluida && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <div className="text-xs space-y-1">
+            <p className="font-semibold text-sm">Obra em Execução (Demonstrativo Parcial)</p>
+            <p>
+              O Demonstrativo de Resultado por Exercício (DRE) consolidado só é apurado oficialmente para obras com status <strong>Concluído</strong>. Os valores abaixo refletem previsões e lançamentos parciais.
             </p>
-            <div className={`p-2 rounded-lg ${isPositivo ? "bg-emerald-100" : "bg-red-100"}`}>
-              <TrendingUp className={`w-4 h-4 ${isPositivo ? "text-emerald-600" : "text-red-600"}`} />
-            </div>
-          </div>
-          <p className={`text-2xl font-bold ${isPositivo ? "text-emerald-800" : "text-red-800"}`}>
-            {formatarMoeda(data.lucro)}
-          </p>
-          <p className={`text-xs mt-1 font-medium ${isPositivo ? "text-emerald-600" : "text-red-600"}`}>
-            {lucroPercentual}% de margem
-          </p>
-        </div>
-      </div>
-
-      {/* Detalhamento de custos */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-slate-400" />
-          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Composição de Custos</h3>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {data.itens.map((item) => {
-            const percentual = data.custoTotal > 0 ? ((item.valor / data.custoTotal) * 100).toFixed(0) : 0;
-            return (
-              <div key={item.descricao} className="px-5 py-4 flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">{item.descricao}</p>
-                  <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full transition-all duration-700"
-                      style={{ width: `${percentual}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="ml-4 text-right shrink-0">
-                  <p className="text-sm font-bold text-slate-900">{formatarMoeda(item.valor)}</p>
-                  <p className="text-xs text-slate-500">{percentual}%</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Balanço de Materiais (RF-20) */}
-      {data.balancoMateriais && data.balancoMateriais.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-amber-500" />
-              <div>
-                <h4 className="font-semibold text-slate-800">Balanço de Materiais</h4>
-                <p className="text-xs text-slate-500">Comparativo entre materiais comprados e aplicados na obra</p>
-              </div>
-            </div>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full">
-              RF-20
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-slate-50/75 border-b border-slate-200/60 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  <th className="px-5 py-3">Insumo / Material</th>
-                  <th className="px-4 py-3 text-center">Comprado</th>
-                  <th className="px-4 py-3 text-center">Utilizado</th>
-                  <th className="px-4 py-3 text-center">Saldo / Sobra</th>
-                  <th className="px-5 py-3 text-right">Utilização (%)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.balancoMateriais.map((mat) => {
-                  const sobra = mat.quantidadeComprada - mat.quantidadeUtilizada;
-                  const pct =
-                    mat.quantidadeComprada > 0
-                      ? Math.min(100, Math.round((mat.quantidadeUtilizada / mat.quantidadeComprada) * 100))
-                      : 0;
-                  const isExcesso = mat.quantidadeUtilizada > mat.quantidadeComprada;
-                  const isCompleto = mat.quantidadeUtilizada === mat.quantidadeComprada;
-
-                  return (
-                    <tr key={mat.tipo} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-3.5 font-medium text-slate-800">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-400" />
-                          <span>{mat.tipo}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-center text-slate-600">
-                        <span className="font-semibold text-slate-900">{mat.quantidadeComprada}</span>{" "}
-                        <span className="text-xs text-slate-400">{mat.unidade}</span>
-                      </td>
-                      <td className="px-4 py-3.5 text-center text-slate-600">
-                        <span className="font-semibold text-slate-900">{mat.quantidadeUtilizada}</span>{" "}
-                        <span className="text-xs text-slate-400">{mat.unidade}</span>
-                      </td>
-                      <td className="px-4 py-3.5 text-center">
-                        {isExcesso ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
-                            <AlertTriangle className="w-3 h-3" />
-                            {sobra} {mat.unidade}
-                          </span>
-                        ) : isCompleto ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3" />
-                            0 {mat.unidade}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                            +{sobra} {mat.unidade}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden shrink-0">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                isExcesso ? "bg-red-500" : isCompleto ? "bg-emerald-500" : "bg-amber-500"
-                              }`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <span className="font-semibold text-xs text-slate-700 w-9 text-right">{pct}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
       )}
+
+      {/* Cards de Resumo Executivo (Anti-Slop com tipografia tabular) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-surface rounded-xl p-5 border border-border-subtle shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor da Obra (Receita)</p>
+            <div className="bg-surface-subtle p-2 rounded-lg text-foreground-muted">
+              <DollarSign className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
+            {formatarMoeda(dre?.valorObra ?? dre?.receitaBruta ?? custos?.valorObra ?? 0)}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Faturamento contratado da instalação
+          </p>
+        </div>
+
+        <div className="bg-surface rounded-xl p-5 border border-border-subtle shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Custo Total Apurado</p>
+            <div className="bg-destructive/10 p-2 rounded-lg text-destructive">
+              <TrendingDown className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
+            {formatarMoeda(dre?.custoTotal ?? ((custos?.custoMaoObra ?? 0) + (custos?.custoInsumos ?? 0)))}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Mão de obra + Insumos de instalação
+          </p>
+        </div>
+
+        {(() => {
+          const valor = dre?.valorObra ?? dre?.receitaBruta ?? custos?.valorObra ?? 0;
+          const custo = dre?.custoTotal ?? ((custos?.custoMaoObra ?? 0) + (custos?.custoInsumos ?? 0));
+          const resultado = dre?.resultado ?? dre?.lucroLiquido ?? (valor - custo);
+          const positivo = resultado >= 0;
+          return (
+            <div className={`rounded-xl p-5 border shadow-xs ${positivo ? "bg-success-light/40 border-success-border/60" : "bg-destructive/10 border-destructive/20"}`}>
+              <div className="flex items-center justify-between mb-2">
+                <p className={`text-xs font-semibold uppercase tracking-wider ${positivo ? "text-success" : "text-destructive"}`}>
+                  Resultado da Obra
+                </p>
+                <div className={`p-2 rounded-lg ${positivo ? "bg-success/10 text-success" : "bg-destructive/20 text-destructive"}`}>
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <p className={`text-2xl font-bold font-mono tracking-tight ${positivo ? "text-success" : "text-destructive"}`}>
+                {formatarMoeda(resultado)}
+              </p>
+              <p className={`text-xs mt-1 font-semibold ${positivo ? "text-success" : "text-destructive"}`}>
+                {dre?.margemPercentual ?? (valor > 0 ? Number(((resultado / valor) * 100).toFixed(2)) : 0)}% de margem
+              </p>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* Detalhamento Analítico Contábil */}
+      <div className="bg-surface rounded-xl border border-border-subtle shadow-xs overflow-hidden">
+        <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-foreground-muted" />
+            <h3 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
+              Demonstrativo de Resultado da Obra (DRE)
+            </h3>
+          </div>
+          <span className="text-xs text-muted-foreground font-mono">DRE Sintético</span>
+        </div>
+
+        <div className="divide-y divide-border-subtle text-sm">
+          <div className="px-5 py-3.5 flex items-center justify-between">
+            <span className="text-foreground-secondary font-medium">Valor da Obra (Receita Bruta)</span>
+            <span className="font-mono font-bold text-foreground">{formatarMoeda(dre?.valorObra ?? dre?.receitaBruta ?? custos?.valorObra ?? 0)}</span>
+          </div>
+          <div className="px-5 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <HardHat className="w-4 h-4 text-muted-foreground" />
+              <span className="text-foreground-secondary">(-) Custo de Mão de Obra e Instalação</span>
+            </div>
+            <span className="font-mono font-medium text-destructive">-{formatarMoeda(dre?.custoMaoObra ?? custos?.custoMaoObra ?? 0)}</span>
+          </div>
+          <div className="px-5 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-muted-foreground" />
+              <span className="text-foreground-secondary">(-) Custo de Insumos e Materiais</span>
+            </div>
+            <span className="font-mono font-medium text-destructive">-{formatarMoeda(dre?.custoInsumos ?? custos?.custoInsumos ?? 0)}</span>
+          </div>
+          <div className="px-5 py-3.5 flex items-center justify-between bg-surface-subtle/30 font-medium">
+            <span className="text-foreground-muted">(=) Custo Total Apurado</span>
+            <span className="font-mono text-destructive">-{formatarMoeda(dre?.custoTotal ?? ((custos?.custoMaoObra ?? 0) + (custos?.custoInsumos ?? 0)))}</span>
+          </div>
+          <div className="px-5 py-4 flex items-center justify-between bg-surface-subtle/50 font-bold border-t border-border-subtle">
+            <span className="text-foreground">(=) Resultado da Obra (Valor da Obra − Custo Total)</span>
+            {(() => {
+              const valor = dre?.valorObra ?? dre?.receitaBruta ?? custos?.valorObra ?? 0;
+              const custo = dre?.custoTotal ?? ((custos?.custoMaoObra ?? 0) + (custos?.custoInsumos ?? 0));
+              const resultado = dre?.resultado ?? dre?.lucroLiquido ?? (valor - custo);
+              return (
+                <span className={`font-mono text-base ${resultado >= 0 ? "text-success" : "text-destructive"}`}>
+                  {formatarMoeda(resultado)}
+                </span>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal de Lançamento */}
+      <ModalLancamentoCustos
+        isOpen={modalAberto}
+        onClose={() => setModalAberto(false)}
+        obraId={obraId}
+        clienteNome={clienteNome}
+        custosAtuais={custos}
+      />
     </div>
   );
 }
@@ -215,19 +223,12 @@ function PainelDRE({ obraId }: { obraId: number }) {
 export default function Financeiro() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: listaObras, isLoading: loadingObras } = useObrasSelect();
+  const { data: listaObras, isLoading: loadingObras, isError: erroObras, refetch: refetchObras } = useObrasSelect();
 
   const stateObraId = (location.state as { selectedObraId?: number } | null)?.selectedObraId ?? null;
   const [obraIdSelecionadaState, setObraIdSelecionada] = useState<number | null>(stateObraId);
-  const [prevStateObraId, setPrevStateObraId] = useState<number | null>(stateObraId);
   const [busca, setBusca] = useState("");
 
-  if (stateObraId !== prevStateObraId) {
-    setPrevStateObraId(stateObraId);
-    setObraIdSelecionada(stateObraId);
-  }
-
-  // Deriva o ID da primeira obra como padrão caso nenhuma obra esteja selecionada
   const primeiroObraId = listaObras?.itens?.[0]?.id ?? null;
   const obraIdSelecionada = obraIdSelecionadaState ?? primeiroObraId;
 
@@ -235,95 +236,107 @@ export default function Financeiro() {
     o.clienteNome.toLowerCase().includes(busca.toLowerCase())
   );
 
-  return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <PageHeader title="Financeiro" subtitle="DRE e análise de custos por obra">
-       
-      </PageHeader>
+  const obraAtual = listaObras?.itens.find((o) => o.id === obraIdSelecionada);
 
-      <div className="flex-1 overflow-hidden flex">
-        {/* Painel lateral: lista de obras */}
-        <div className="w-72 shrink-0 border-r border-slate-200 bg-white flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-slate-100">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar obra..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-400 transition-shadow"
-              />
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
+      <PageHeader title="Financeiro" subtitle="DRE e apuração de custos por obra" />
+
+      {/* Tratamento dos 4 estados da listagem de obras */}
+      {loadingObras ? (
+        <FeedbackLoading mensagem="Carregando obras do módulo financeiro..." />
+      ) : erroObras ? (
+        <FeedbackErro
+          titulo="Falha ao carregar obras financeiras"
+          mensagem="Não foi possível buscar a lista de obras. Verifique se o servidor está ativo."
+          onTentarNovamente={() => void refetchObras()}
+        />
+      ) : !listaObras || listaObras.itens.length === 0 ? (
+        <EmptyState
+          icone={DollarSign}
+          titulo="Nenhuma obra cadastrada"
+          descricao="Cadastre uma obra para iniciar os lançamentos de custos e acompanhamento do DRE."
+          acao={{
+            label: "Cadastrar Nova Obra",
+            onClick: () => void navigate("/cadastrarobra"),
+          }}
+        />
+      ) : (
+        <div className="flex-1 overflow-hidden flex">
+          {/* Painel lateral: lista de obras */}
+          <div className="w-80 shrink-0 border-r border-border-subtle bg-surface flex flex-col overflow-hidden">
+            <div className="p-3 border-b border-border-subtle">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar obra por cliente..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="w-full text-xs bg-surface-subtle border border-border-subtle rounded-lg pl-9 pr-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-border-subtle">
+              {obrasFiltradas.length === 0 ? (
+                <div className="p-6 text-center text-xs text-muted-foreground">
+                  Nenhuma obra corresponde à busca.
+                </div>
+              ) : (
+                obrasFiltradas.map((obra) => {
+                  const ativa = obra.id === obraIdSelecionada;
+                  return (
+                    <button
+                      key={obra.id}
+                      onClick={() => setObraIdSelecionada(obra.id)}
+                      className={`w-full text-left p-3.5 transition-colors flex flex-col gap-1 cursor-pointer ${
+                        ativa ? "bg-muted font-semibold border-l-4 border-primary" : "hover:bg-surface-subtle"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground truncate max-w-[170px]">
+                          {obra.clienteNome}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          obra.status === "Concluido"
+                            ? "bg-success-light text-success border border-success-border"
+                            : "bg-surface-subtle text-foreground-muted border border-border-subtle"
+                        }`}>
+                          {obra.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>#{obra.id}</span>
+                        <span>{obra.quantidadePaineis ?? 0} módulos</span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          <nav className="flex-1 overflow-y-auto custom-scrollbar">
-            {loadingObras ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
-              </div>
-            ) : obrasFiltradas.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm px-4">
-                Nenhuma obra encontrada.
-              </div>
-            ) : (
-              obrasFiltradas.map((obra) => (
-                <button
-                  key={obra.id}
-                  onClick={() => setObraIdSelecionada(obra.id)}
-                  className={`w-full text-left p-4 border-b border-slate-100 transition-colors cursor-pointer ${
-                    obraIdSelecionada === obra.id
-                      ? "bg-slate-900 text-white"
-                      : "hover:bg-slate-50 text-slate-700"
-                  }`}
-                >
-                  <p className="text-sm font-semibold truncate">{obra.clienteNome}</p>
-                  <p className={`text-xs mt-1 ${obraIdSelecionada === obra.id ? "text-slate-300" : "text-slate-500"}`}>
-                    {obra.status} • {obra.quantidadePaineis} Painéis
-                  </p>
-                </button>
-              ))
-            )}
-          </nav>
-        </div>
-
-        {/* Área principal: DRE */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50">
-          {!obraIdSelecionada ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400">
-              <BarChart3 className="w-16 h-16 mb-4 text-slate-200" />
-              <p className="text-lg font-medium text-slate-600">Selecione uma obra</p>
-              <p className="text-sm mt-1">Clique em uma obra na lista para visualizar o DRE</p>
-            </div>
-          ) : (
+          {/* Área principal: Painel DRE da obra selecionada */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
             <div className="max-w-4xl mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">
-                    DRE — Obra #{obraIdSelecionada}
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    {obrasFiltradas.find((o) => o.id === obraIdSelecionada)?.clienteNome}
-                  </p>
-                </div>
-                {/* Passa state.from e selectedObraId para que DetalheObra saiba retornar ao Financeiro */}
-                <button
-                  onClick={() =>
-                    navigate(`/obras/${obraIdSelecionada}`, {
-                      state: { from: "/financeiro", selectedObraId: obraIdSelecionada },
-                    })
-                  }
-                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors cursor-pointer"
-                >
-                  Ver Detalhes da Obra <ExternalLink className="w-4 h-4" />
-                </button>
-              </div>
-              <PainelDRE obraId={obraIdSelecionada} />
+              {obraAtual ? (
+                <PainelDRE
+                  obraId={obraAtual.id}
+                  clienteNome={obraAtual.clienteNome}
+                  statusObra={obraAtual.status}
+                />
+              ) : (
+                <EmptyState
+                  icone={FileText}
+                  titulo="Selecione uma obra"
+                  descricao="Escolha uma obra na lista lateral para visualizar sua demonstração de resultado."
+                />
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
