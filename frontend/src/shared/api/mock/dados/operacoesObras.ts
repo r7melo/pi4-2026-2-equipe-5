@@ -1,4 +1,5 @@
-import type { ObraDetalhe, ObraCard, Material, Programacao, DadosHomologacao, RelatorioCusto } from "@/types";
+import type { ObraDetalhe, ObraCard, Material, DadosHomologacao, RelatorioCusto } from "@/types";
+import type { Programacao } from "@/shared/types/programacoes";
 import { lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";
 import { obterObrasArmazenadas, salvarObrasArmazenadas } from "./obras";
 export function excluirObraArmazenada(id: number): boolean {
