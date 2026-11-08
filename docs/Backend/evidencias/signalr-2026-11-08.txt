@@ -1,0 +1,387 @@
+EVIDENCIAS SIGNALR - 08/11/2026
+Base: 2fc855f026ed26a89c7bd8db12fad6a2df740594
+Etapa 1: 40fc7ffeeb2f90d7bc4e715011a2a24f152f42a2
+Etapa 2: aa2afdc2b481d3d21c48c10d559cf8c74cf22f98
+
+Transcricao filtrada dos logs reais: omite restauracao de pacotes, IDs aleatorios e stack traces.
+As linhas PASSOU/FALHOU/Resultado/build e o inventario SQL abaixo foram extraidos sem reescrita.
+Saida observada: 0 nas execucoes finais; 1 intencional no controle contra a versao anterior.
+Todos os bancos e containers usados eram exclusivos e descartaveis.
+
+
+=== BASE ANTES: executar-backend1.ps1 - 35 grupos + 44 integridade ===
+Fonte: baseline-testes.log
+psql:/source/tests/database/testes_integridade.sql:62: NOTICE:  PASSOU: usuario.usuario_id_perfil_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:64: NOTICE:  PASSOU: usuario.usuario_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:67: NOTICE:  PASSOU: equipe.fk_equipe_responsavel_usuario rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:69: NOTICE:  PASSOU: equipe.fk_equipe_responsavel_membro rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:71: NOTICE:  PASSOU: equipe_instalador.equipe_instalador_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:73: NOTICE:  PASSOU: equipe_instalador.equipe_instalador_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:75: NOTICE:  PASSOU: obra.obra_id_cliente_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:77: NOTICE:  PASSOU: pagamento.pagamento_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:79: NOTICE:  PASSOU: material.material_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:81: NOTICE:  PASSOU: comentario.comentario_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:83: NOTICE:  PASSOU: comentario.comentario_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:85: NOTICE:  PASSOU: comentario.fk_comentario_manutencao rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:87: NOTICE:  PASSOU: historico_obra.historico_obra_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:89: NOTICE:  PASSOU: historico_obra.historico_obra_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:91: NOTICE:  PASSOU: programacao_obra.programacao_obra_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:93: NOTICE:  PASSOU: programacao_obra.programacao_obra_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:95: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:97: NOTICE:  PASSOU: manutencao.manutencao_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:99: NOTICE:  PASSOU: manutencao.manutencao_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:101: NOTICE:  PASSOU: audit_log.audit_log_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:103: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:107: NOTICE:  PASSOU: perfil_acesso.perfil_acesso_nome_perfil_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:110: NOTICE:  PASSOU: usuario.usuario_email_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:112: NOTICE:  PASSOU: usuario.idx_usuario_email_busca rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:114: NOTICE:  PASSOU: cliente.cliente_cpf_cnpj_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:116: NOTICE:  PASSOU: pagamento.pagamento_id_obra_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:118: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_id_obra_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:120: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_token_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:124: NOTICE:  PASSOU: schema_migrations.schema_migrations_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:126: NOTICE:  PASSOU: perfil_acesso.perfil_acesso_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:128: NOTICE:  PASSOU: equipe.equipe_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:130: NOTICE:  PASSOU: cliente.cliente_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:132: NOTICE:  PASSOU: usuario.usuario_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:134: NOTICE:  PASSOU: equipe_instalador.pk_equipe_instalador rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:136: NOTICE:  PASSOU: obra.obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:138: NOTICE:  PASSOU: pagamento.pagamento_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:140: NOTICE:  PASSOU: material.material_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:142: NOTICE:  PASSOU: comentario.comentario_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:144: NOTICE:  PASSOU: historico_obra.historico_obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:146: NOTICE:  PASSOU: programacao_obra.programacao_obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:148: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:150: NOTICE:  PASSOU: manutencao.manutencao_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:152: NOTICE:  PASSOU: audit_log.audit_log_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:154: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_pkey rejeitou dado inválido (23505)
+ FK           |      21 |                    21
+ INDICE_UNICO |       1 |                     1
+ PK           |      16 |                    16
+ UNIQUE       |       6 |                     6
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+PASSOU: Banco novo: seed canonico, hash e reinicializacao
+PASSOU: Banco expandido legado: preserva IDs, hashes, bloqueio, inativos e vinculos
+PASSOU: Adota expansao manual sem reaplicar SQL antigo
+PASSOU: Checksum antigo divergente bloqueia antes de renomear
+PASSOU: Checksum novo divergente bloqueia reinicializacao
+PASSOU: Perfis ambiguos recusados e adocao revertida atomicamente
+PASSOU: JWT real: novo/legado, perfis distintos, expirado e assinatura invalida
+Resultado: 7 casos aprovados; 0 reprovados.
+PASSOU: Lista quatro perfis sem remover o Leitor legado
+PASSOU: Cria quatro perfis, preserva consulta interna e retorna DTO sem segredos
+PASSOU: Senha tem salt aleatorio, preserva espacos e respeita limite UTF-8
+PASSOU: Duplicidade sem diferenca de caixa retorna erro do dominio
+PASSOU: Duplicidade concorrente e resolvida pela restricao PostgreSQL
+PASSOU: Perfil, equipe, nome e e-mail invalidos nao criam usuarios
+PASSOU: Falha na segunda gravacao reverte usuario e vinculo
+PASSOU: SQL parametrizado preserva texto e nao mascara outras constraints
+PASSOU: Usuario criado funciona com o AuthController existente
+PASSOU: Fluxo real: instalador livre, equipe e novo login sem ampliar token antigo
+Resultado: 10 casos aprovados; 0 reprovados.
+PASSOU: Cliente completo: mascara, campos opcionais e consulta independente
+PASSOU: Clientes: busca textual literal, campos nulos e paginacao
+PASSOU: Cliente invalido e rejeitado antes de persistir
+PASSOU: CPF/CNPJ duplicado e concorrente depende da constraint real
+PASSOU: Equipe nova grava responsavel, membros e vinculo singular
+PASSOU: Equipe invalida, usuario inexistente ou perfil errado nao persistem
+PASSOU: Equipe recusa mover membros existentes, mesmo com legado divergente
+PASSOU: Falha depois dos membros reverte equipe e todos os vinculos
+PASSOU: Equipes concorrentes nao disputam o mesmo instalador silenciosamente
+Resultado: 9 casos aprovados; 0 reprovados.
+PASSOU: Custos nulos, atualizacao parcial, zero explicito e total gerado
+PASSOU: Apuracao recusa obra aberta, nulos e ausentes; valores decimais exatos
+PASSOU: Validacao monetaria e exclusao logica nao gravam efeitos
+PASSOU: Falha na auditoria reverte custos e historico
+PASSOU: Instalacoes: equipe, kit sem custos, projeto/instrucoes e exclusao
+PASSOU: Manutencoes: filtro, equipe e dados invalidos sem efeitos
+PASSOU: Conclusao sem comentario, servico persistido e repeticao sem duplicidade
+PASSOU: Falhas na auditoria revertem conclusao e comentario de manutencao
+PASSOU: Conclusoes concorrentes geram um unico efeito e obra excluida fica oculta
+Resultado: 9 casos aprovados; 0 reprovados.
+PASSOU: build, integridade e suites Backend 1; ambiente descartavel removido.
+
+=== CONTROLE NEGATIVO: 8 grupos novos contra backend original - saida 1 esperada ===
+Fonte: controle-antes-signalr.log
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+FALHOU: Preflight com credenciais aceita localhost e rejeita origem externa: System.InvalidOperationException: Origem deve ser explicita.
+FALHOU: Negociacao real exige JWT valido e perfil autorizado: System.InvalidOperationException: Perfil Administrador perdeu acesso ao hub.
+FALHOU: JWT na query funciona somente no hub; rotas REST continuam exigindo Bearer: System.InvalidOperationException: Negociacao nao aceita JWT na query do hub.
+FALHOU: WebSocket real aceita JWT da query e origem permitida: System.Net.WebSockets.WebSocketException (0x80004005): The server returned status code '404' when status code '101' was expected.
+PASSOU: Upgrade WebSocket rejeita Origin externo mesmo com JWT valido
+FALHOU: Long polling real preserva fallback do cliente: System.Net.Http.HttpRequestException: Response status code does not indicate success: 404 (Not Found).
+FALHOU: Conexao fecha quando o JWT expira: System.Net.WebSockets.WebSocketException (0x80004005): The server returned status code '404' when status code '101' was expected.
+FALHOU: Origem adicional configurada vale no CORS e no WebSocket: System.InvalidOperationException: Configuracao CORS ignorada.
+Resultado SignalR: 1 grupos aprovados; 7 reprovados.
+
+=== ETAPA 1 - DEV: executar-signalr.ps1 ===
+Fonte: etapa1-dev.log
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+PASSOU: Preflight com credenciais aceita localhost e rejeita origem externa
+PASSOU: Negociacao real exige JWT valido e perfil autorizado
+PASSOU: JWT na query funciona somente no hub; rotas REST continuam exigindo Bearer
+PASSOU: WebSocket real aceita JWT da query e origem permitida
+PASSOU: Upgrade WebSocket rejeita Origin externo mesmo com JWT valido
+PASSOU: Long polling real preserva fallback do cliente
+PASSOU: Conexao fecha quando o JWT expira
+PASSOU: Origem adicional configurada vale no CORS e no WebSocket
+Resultado SignalR: 8 grupos aprovados; 0 reprovados.
+PASSOU: build e suite SignalR; ambiente descartavel removido.
+
+=== ETAPA 1 - QA INDEPENDENTE: executar-signalr.ps1 ===
+Fonte: etapa1-qa.log
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+PASSOU: Preflight com credenciais aceita localhost e rejeita origem externa
+PASSOU: Negociacao real exige JWT valido e perfil autorizado
+PASSOU: JWT na query funciona somente no hub; rotas REST continuam exigindo Bearer
+PASSOU: WebSocket real aceita JWT da query e origem permitida
+PASSOU: Upgrade WebSocket rejeita Origin externo mesmo com JWT valido
+PASSOU: Long polling real preserva fallback do cliente
+PASSOU: Conexao fecha quando o JWT expira
+PASSOU: Origem adicional configurada vale no CORS e no WebSocket
+Resultado SignalR: 8 grupos aprovados; 0 reprovados.
+PASSOU: build e suite SignalR; ambiente descartavel removido.
+
+=== ETAPA 1 - QA: callback real de autenticacao, prefixos ===
+Fonte: etapa1-qa-prefix.log
+PASSOU QA prefixo: /hubs/obras; aceita query=True
+PASSOU QA prefixo: /hubs/obras/negotiate; aceita query=True
+PASSOU QA prefixo: /hubs/obras-malicioso; aceita query=False
+PASSOU QA prefixo: /hubs/obrasmalicioso/negotiate; aceita query=False
+PASSOU QA prefixo: /api/auth/me; aceita query=False
+
+=== ETAPA 2 - DEV: executar-signalr.ps1 ===
+Fonte: etapa2-dev.log
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+PASSOU: Preflight com credenciais aceita localhost e rejeita origem externa
+PASSOU: Negociacao real exige JWT valido e perfil autorizado
+PASSOU: JWT na query funciona somente no hub; rotas REST continuam exigindo Bearer
+PASSOU: WebSocket real aceita JWT da query e origem permitida
+PASSOU: Upgrade WebSocket rejeita Origin externo mesmo com JWT valido
+PASSOU: Long polling real preserva fallback do cliente
+PASSOU: Conexao fecha quando o JWT expira
+PASSOU: Origem adicional configurada vale no CORS e no WebSocket
+PASSOU: Duas sessoes reais recebem os cinco topicos sem payload somente apos commit
+PASSOU: Mutacoes recusadas por 400, 403, 404 e 409 nao publicam nem alteram os dados
+PASSOU: Falha PostgreSQL real reverte criacao composta e nao publica evento
+PASSOU: Falha do transporte preserva resposta e gravacao concluida
+Resultado SignalR: 12 grupos aprovados; 0 reprovados.
+PASSOU: build e suite SignalR; ambiente descartavel removido.
+
+=== ETAPA 2 - DEV: executar-backend1.ps1 ===
+Fonte: etapa2-regressao-dev.log
+psql:/source/tests/database/testes_integridade.sql:62: NOTICE:  PASSOU: usuario.usuario_id_perfil_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:64: NOTICE:  PASSOU: usuario.usuario_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:67: NOTICE:  PASSOU: equipe.fk_equipe_responsavel_usuario rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:69: NOTICE:  PASSOU: equipe.fk_equipe_responsavel_membro rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:71: NOTICE:  PASSOU: equipe_instalador.equipe_instalador_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:73: NOTICE:  PASSOU: equipe_instalador.equipe_instalador_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:75: NOTICE:  PASSOU: obra.obra_id_cliente_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:77: NOTICE:  PASSOU: pagamento.pagamento_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:79: NOTICE:  PASSOU: material.material_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:81: NOTICE:  PASSOU: comentario.comentario_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:83: NOTICE:  PASSOU: comentario.comentario_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:85: NOTICE:  PASSOU: comentario.fk_comentario_manutencao rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:87: NOTICE:  PASSOU: historico_obra.historico_obra_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:89: NOTICE:  PASSOU: historico_obra.historico_obra_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:91: NOTICE:  PASSOU: programacao_obra.programacao_obra_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:93: NOTICE:  PASSOU: programacao_obra.programacao_obra_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:95: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:97: NOTICE:  PASSOU: manutencao.manutencao_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:99: NOTICE:  PASSOU: manutencao.manutencao_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:101: NOTICE:  PASSOU: audit_log.audit_log_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:103: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:107: NOTICE:  PASSOU: perfil_acesso.perfil_acesso_nome_perfil_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:110: NOTICE:  PASSOU: usuario.usuario_email_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:112: NOTICE:  PASSOU: usuario.idx_usuario_email_busca rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:114: NOTICE:  PASSOU: cliente.cliente_cpf_cnpj_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:116: NOTICE:  PASSOU: pagamento.pagamento_id_obra_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:118: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_id_obra_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:120: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_token_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:124: NOTICE:  PASSOU: schema_migrations.schema_migrations_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:126: NOTICE:  PASSOU: perfil_acesso.perfil_acesso_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:128: NOTICE:  PASSOU: equipe.equipe_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:130: NOTICE:  PASSOU: cliente.cliente_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:132: NOTICE:  PASSOU: usuario.usuario_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:134: NOTICE:  PASSOU: equipe_instalador.pk_equipe_instalador rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:136: NOTICE:  PASSOU: obra.obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:138: NOTICE:  PASSOU: pagamento.pagamento_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:140: NOTICE:  PASSOU: material.material_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:142: NOTICE:  PASSOU: comentario.comentario_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:144: NOTICE:  PASSOU: historico_obra.historico_obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:146: NOTICE:  PASSOU: programacao_obra.programacao_obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:148: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:150: NOTICE:  PASSOU: manutencao.manutencao_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:152: NOTICE:  PASSOU: audit_log.audit_log_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:154: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_pkey rejeitou dado inválido (23505)
+ FK           |      21 |                    21
+ INDICE_UNICO |       1 |                     1
+ PK           |      16 |                    16
+ UNIQUE       |       6 |                     6
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+PASSOU: Banco novo: seed canonico, hash e reinicializacao
+PASSOU: Banco expandido legado: preserva IDs, hashes, bloqueio, inativos e vinculos
+PASSOU: Adota expansao manual sem reaplicar SQL antigo
+PASSOU: Checksum antigo divergente bloqueia antes de renomear
+PASSOU: Checksum novo divergente bloqueia reinicializacao
+PASSOU: Perfis ambiguos recusados e adocao revertida atomicamente
+PASSOU: JWT real: novo/legado, perfis distintos, expirado e assinatura invalida
+Resultado: 7 casos aprovados; 0 reprovados.
+PASSOU: Lista quatro perfis sem remover o Leitor legado
+PASSOU: Cria quatro perfis, preserva consulta interna e retorna DTO sem segredos
+PASSOU: Senha tem salt aleatorio, preserva espacos e respeita limite UTF-8
+PASSOU: Duplicidade sem diferenca de caixa retorna erro do dominio
+PASSOU: Duplicidade concorrente e resolvida pela restricao PostgreSQL
+PASSOU: Perfil, equipe, nome e e-mail invalidos nao criam usuarios
+PASSOU: Falha na segunda gravacao reverte usuario e vinculo
+PASSOU: SQL parametrizado preserva texto e nao mascara outras constraints
+PASSOU: Usuario criado funciona com o AuthController existente
+PASSOU: Fluxo real: instalador livre, equipe e novo login sem ampliar token antigo
+Resultado: 10 casos aprovados; 0 reprovados.
+PASSOU: Cliente completo: mascara, campos opcionais e consulta independente
+PASSOU: Clientes: busca textual literal, campos nulos e paginacao
+PASSOU: Cliente invalido e rejeitado antes de persistir
+PASSOU: CPF/CNPJ duplicado e concorrente depende da constraint real
+PASSOU: Equipe nova grava responsavel, membros e vinculo singular
+PASSOU: Equipe invalida, usuario inexistente ou perfil errado nao persistem
+PASSOU: Equipe recusa mover membros existentes, mesmo com legado divergente
+PASSOU: Falha depois dos membros reverte equipe e todos os vinculos
+PASSOU: Equipes concorrentes nao disputam o mesmo instalador silenciosamente
+Resultado: 9 casos aprovados; 0 reprovados.
+PASSOU: Custos nulos, atualizacao parcial, zero explicito e total gerado
+PASSOU: Apuracao recusa obra aberta, nulos e ausentes; valores decimais exatos
+PASSOU: Validacao monetaria e exclusao logica nao gravam efeitos
+PASSOU: Falha na auditoria reverte custos e historico
+PASSOU: Instalacoes: equipe, kit sem custos, projeto/instrucoes e exclusao
+PASSOU: Manutencoes: filtro, equipe e dados invalidos sem efeitos
+PASSOU: Conclusao sem comentario, servico persistido e repeticao sem duplicidade
+PASSOU: Falhas na auditoria revertem conclusao e comentario de manutencao
+PASSOU: Conclusoes concorrentes geram um unico efeito e obra excluida fica oculta
+Resultado: 9 casos aprovados; 0 reprovados.
+PASSOU: build, integridade e suites Backend 1; ambiente descartavel removido.
+
+=== ETAPA 2 - QA INDEPENDENTE: executar-signalr.ps1 ===
+Fonte: etapa2-qa.log
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+PASSOU: Preflight com credenciais aceita localhost e rejeita origem externa
+PASSOU: Negociacao real exige JWT valido e perfil autorizado
+PASSOU: JWT na query funciona somente no hub; rotas REST continuam exigindo Bearer
+PASSOU: WebSocket real aceita JWT da query e origem permitida
+PASSOU: Upgrade WebSocket rejeita Origin externo mesmo com JWT valido
+PASSOU: Long polling real preserva fallback do cliente
+PASSOU: Conexao fecha quando o JWT expira
+PASSOU: Origem adicional configurada vale no CORS e no WebSocket
+PASSOU: Duas sessoes reais recebem os cinco topicos sem payload somente apos commit
+PASSOU: Mutacoes recusadas por 400, 403, 404 e 409 nao publicam nem alteram os dados
+PASSOU: Falha PostgreSQL real reverte criacao composta e nao publica evento
+PASSOU: Falha do transporte preserva resposta e gravacao concluida
+Resultado SignalR: 12 grupos aprovados; 0 reprovados.
+PASSOU: build e suite SignalR; ambiente descartavel removido.
+
+=== ETAPA 2 - QA INDEPENDENTE: executar-backend1.ps1 ===
+Fonte: etapa2-regressao-qa.log
+psql:/source/tests/database/testes_integridade.sql:62: NOTICE:  PASSOU: usuario.usuario_id_perfil_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:64: NOTICE:  PASSOU: usuario.usuario_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:67: NOTICE:  PASSOU: equipe.fk_equipe_responsavel_usuario rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:69: NOTICE:  PASSOU: equipe.fk_equipe_responsavel_membro rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:71: NOTICE:  PASSOU: equipe_instalador.equipe_instalador_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:73: NOTICE:  PASSOU: equipe_instalador.equipe_instalador_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:75: NOTICE:  PASSOU: obra.obra_id_cliente_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:77: NOTICE:  PASSOU: pagamento.pagamento_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:79: NOTICE:  PASSOU: material.material_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:81: NOTICE:  PASSOU: comentario.comentario_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:83: NOTICE:  PASSOU: comentario.comentario_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:85: NOTICE:  PASSOU: comentario.fk_comentario_manutencao rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:87: NOTICE:  PASSOU: historico_obra.historico_obra_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:89: NOTICE:  PASSOU: historico_obra.historico_obra_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:91: NOTICE:  PASSOU: programacao_obra.programacao_obra_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:93: NOTICE:  PASSOU: programacao_obra.programacao_obra_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:95: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:97: NOTICE:  PASSOU: manutencao.manutencao_id_obra_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:99: NOTICE:  PASSOU: manutencao.manutencao_id_equipe_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:101: NOTICE:  PASSOU: audit_log.audit_log_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:103: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_id_usuario_fkey rejeitou dado inválido (23503)
+psql:/source/tests/database/testes_integridade.sql:107: NOTICE:  PASSOU: perfil_acesso.perfil_acesso_nome_perfil_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:110: NOTICE:  PASSOU: usuario.usuario_email_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:112: NOTICE:  PASSOU: usuario.idx_usuario_email_busca rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:114: NOTICE:  PASSOU: cliente.cliente_cpf_cnpj_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:116: NOTICE:  PASSOU: pagamento.pagamento_id_obra_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:118: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_id_obra_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:120: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_token_key rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:124: NOTICE:  PASSOU: schema_migrations.schema_migrations_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:126: NOTICE:  PASSOU: perfil_acesso.perfil_acesso_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:128: NOTICE:  PASSOU: equipe.equipe_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:130: NOTICE:  PASSOU: cliente.cliente_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:132: NOTICE:  PASSOU: usuario.usuario_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:134: NOTICE:  PASSOU: equipe_instalador.pk_equipe_instalador rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:136: NOTICE:  PASSOU: obra.obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:138: NOTICE:  PASSOU: pagamento.pagamento_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:140: NOTICE:  PASSOU: material.material_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:142: NOTICE:  PASSOU: comentario.comentario_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:144: NOTICE:  PASSOU: historico_obra.historico_obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:146: NOTICE:  PASSOU: programacao_obra.programacao_obra_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:148: NOTICE:  PASSOU: relatorio_custo.relatorio_custo_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:150: NOTICE:  PASSOU: manutencao.manutencao_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:152: NOTICE:  PASSOU: audit_log.audit_log_pkey rejeitou dado inválido (23505)
+psql:/source/tests/database/testes_integridade.sql:154: NOTICE:  PASSOU: cronograma_compartilhado.cronograma_compartilhado_pkey rejeitou dado inválido (23505)
+ FK           |      21 |                    21
+ INDICE_UNICO |       1 |                     1
+ PK           |      16 |                    16
+ UNIQUE       |       6 |                     6
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+PASSOU: Banco novo: seed canonico, hash e reinicializacao
+PASSOU: Banco expandido legado: preserva IDs, hashes, bloqueio, inativos e vinculos
+PASSOU: Adota expansao manual sem reaplicar SQL antigo
+PASSOU: Checksum antigo divergente bloqueia antes de renomear
+PASSOU: Checksum novo divergente bloqueia reinicializacao
+PASSOU: Perfis ambiguos recusados e adocao revertida atomicamente
+PASSOU: JWT real: novo/legado, perfis distintos, expirado e assinatura invalida
+Resultado: 7 casos aprovados; 0 reprovados.
+PASSOU: Lista quatro perfis sem remover o Leitor legado
+PASSOU: Cria quatro perfis, preserva consulta interna e retorna DTO sem segredos
+PASSOU: Senha tem salt aleatorio, preserva espacos e respeita limite UTF-8
+PASSOU: Duplicidade sem diferenca de caixa retorna erro do dominio
+PASSOU: Duplicidade concorrente e resolvida pela restricao PostgreSQL
+PASSOU: Perfil, equipe, nome e e-mail invalidos nao criam usuarios
+PASSOU: Falha na segunda gravacao reverte usuario e vinculo
+PASSOU: SQL parametrizado preserva texto e nao mascara outras constraints
+PASSOU: Usuario criado funciona com o AuthController existente
+PASSOU: Fluxo real: instalador livre, equipe e novo login sem ampliar token antigo
+Resultado: 10 casos aprovados; 0 reprovados.
+PASSOU: Cliente completo: mascara, campos opcionais e consulta independente
+PASSOU: Clientes: busca textual literal, campos nulos e paginacao
+PASSOU: Cliente invalido e rejeitado antes de persistir
+PASSOU: CPF/CNPJ duplicado e concorrente depende da constraint real
+PASSOU: Equipe nova grava responsavel, membros e vinculo singular
+PASSOU: Equipe invalida, usuario inexistente ou perfil errado nao persistem
+PASSOU: Equipe recusa mover membros existentes, mesmo com legado divergente
+PASSOU: Falha depois dos membros reverte equipe e todos os vinculos
+PASSOU: Equipes concorrentes nao disputam o mesmo instalador silenciosamente
+Resultado: 9 casos aprovados; 0 reprovados.
+PASSOU: Custos nulos, atualizacao parcial, zero explicito e total gerado
+PASSOU: Apuracao recusa obra aberta, nulos e ausentes; valores decimais exatos
+PASSOU: Validacao monetaria e exclusao logica nao gravam efeitos
+PASSOU: Falha na auditoria reverte custos e historico
+PASSOU: Instalacoes: equipe, kit sem custos, projeto/instrucoes e exclusao
+PASSOU: Manutencoes: filtro, equipe e dados invalidos sem efeitos
+PASSOU: Conclusao sem comentario, servico persistido e repeticao sem duplicidade
+PASSOU: Falhas na auditoria revertem conclusao e comentario de manutencao
+PASSOU: Conclusoes concorrentes geram um unico efeito e obra excluida fica oculta
+Resultado: 9 casos aprovados; 0 reprovados.
+PASSOU: build, integridade e suites Backend 1; ambiente descartavel removido.
