@@ -1,29 +1,38 @@
+import { Fragment } from "react";
+import type { AplicacaoProps } from "@/shared/types/demonstracao";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import Kanban from "./pages/Kanban";
-import CadastrarObra from "./pages/CadastrarObra";
-import AndamentoHomologacao from "./pages/AndamentoHomologacao";
-import LinkInstaladores from "./pages/LinkInstaladores";
-import Equipes from "./pages/Equipes";
-import DetalheObra from "./pages/DetalheObra";
-import MateriaisObra from "./pages/MateriaisObra";
-import Relatorios from "./pages/Relatorios";
-import Financeiro from "./pages/Financeiro";
-import RelatorioPublico from "./pages/RelatorioPublico";
-import CronogramaPublico from "./pages/CronogramaPublico";
+import Login from "@/features/auth/pages/Login";
+import EsqueciSenha from "@/features/auth/pages/EsqueciSenha";
+import RedefinirSenha from "@/features/auth/pages/RedefinirSenha";
+import Configuracoes from "@/features/auth/pages/Configuracoes";
+import SemPermissao from "@/features/auth/pages/SemPermissao";
+import { statusHttp } from "@/shared/lib/sessaoOperacao";
+import { Kanban, Equipes } from "@/composition/RotasOperacionais";
+import CadastrarObra from "@/features/obras/pages/CadastrarObra";
+import AndamentoHomologacao from "@/features/homologacao/pages/AndamentoHomologacao";
+import LinkInstaladores from "@/features/materiais/pages/LinkInstaladores";
+import DetalheObra from "@/features/obras/pages/DetalheObra";
+import MateriaisObra from "@/features/materiais/pages/MateriaisObra";
+import Relatorios from "@/features/financeiro/pages/Relatorios";
+import Financeiro from "@/features/financeiro/pages/Financeiro";
+import RelatorioPublico from "@/features/financeiro/pages/RelatorioPublico";
+import CronogramaPublico from "@/features/cronograma/pages/CronogramaPublico";
+import { Usuarios, CadastroUsuario } from "@/composition/RotasUsuarios";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
-import { ReloadPrompt } from "./components/pwa/ReloadPrompt";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import DashboardLayout from "./layouts/DashboardLayout";
-import { useThemeStore, aplicarTemaNoDOM } from "./stores/useThemeStore";
+import { ReloadPrompt } from "@/shared/components/pwa/ReloadPrompt";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
+import DashboardLayout from "@/shared/layouts/DashboardLayout";
+import { useThemeStore, aplicarTemaNoDOM } from "@/shared/stores/useThemeStore";
+import SessionLifecycleSentinel from "@/features/auth/components/SessionLifecycleSentinel";
+import { ApiModeSwitcher } from "@/shared/components/dev/ApiModeSwitcher";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (tentativa, erro) => ![401, 403].includes(statusHttp(erro) ?? 0) && tentativa < 1,
       networkMode: "offlineFirst",
     },
     mutations: {
@@ -32,7 +41,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
   const tema = useThemeStore((s) => s.tema);
 
   useEffect(() => {
@@ -46,15 +55,25 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-right" theme={tema} />
+      <Toaster richColors position="top-right" theme={tema} toastOptions={{ className: "avisos-acesso" }} />
       <ReloadPrompt />
+      {/* Popup de seleção de API — visível somente em desenvolvimento */}
+      <ApiModeSwitcher />
       <BrowserRouter>
+        <Ambiente>
+        <SessionLifecycleSentinel />
         <Routes>
           {/* Rotas Públicas (sem Sidebar, sem DashboardLayout) */}
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route path="/cronograma/compartilhado/:token" element={<CronogramaPublico />} />
           <Route path="/relatorio-publico/:token" element={<RelatorioPublico />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/sem-permissao" element={<SemPermissao />} />
+          </Route>
 
           {/* Rota Mobile Standalone (layout próprio, sem Sidebar) */}
           <Route element={<ProtectedRoute allowedRoles={["Administrador", "InstaladorCampo"]} />}>
@@ -67,6 +86,7 @@ function App() {
               {/* Kanban: Visível para Admin, Engenharia e Financeiro */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia", "Financeiro"]} />}>
                 <Route path="/kanban" element={<Kanban />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
               </Route>
 
               {/* Equipes (Gantt): Visível para Admin, Engenharia e Financeiro */}
@@ -90,6 +110,12 @@ function App() {
                 <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
               </Route>
 
+              {/* Cadastro de usuários: apenas Administrador (RF-01) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador"]} />}>
+                <Route path="/usuarios" element={<Usuarios />} />
+                <Route path="/usuarios/novo" element={<CadastroUsuario />} />
+              </Route>
+
               {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "Financeiro"]} />}>
                 <Route path="/relatorios" element={<Relatorios />} />
@@ -98,6 +124,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+      </Ambiente>
       </BrowserRouter>
     </QueryClientProvider>
   );

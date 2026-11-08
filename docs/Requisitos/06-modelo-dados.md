@@ -34,28 +34,9 @@ Banco PostgreSQL. Nomes de tabelas e colunas em `snake_case`. No JSON da API, os
 | email | varchar | Sim | Único |
 | senha_hash | varchar | Sim | bcrypt |
 | id_perfil | int | Sim | FK `perfil_acesso` |
-| id_equipe | int | Não | FK `equipe`. Obrigatório para `InstaladorCampo` |
 | ativo | boolean | Sim | Padrão `true` |
 | tentativas_login | int | Sim | Zerado no login válido |
 | bloqueado_ate | timestamp | Não | Preenchido após 5 falhas |
-
-### equipe
-
-| Coluna | Tipo | Obrigatório | Observação |
-| :---- | :---- | :---- | :---- |
-| id | serial | Sim | PK |
-| nome | varchar | Sim | |
-| especialidade | varchar | Não | |
-| id_responsavel | int | Sim | FK `usuario`, deve ser instalador da equipe |
-
-### equipe_instalador
-
-Relação N:N entre `equipe` e `usuario` (instaladores).
-
-| Coluna | Tipo | Observação |
-| :---- | :---- | :---- |
-| id_equipe | int | FK, parte da PK |
-| id_usuario | int | FK, parte da PK |
 
 ### obra
 
@@ -66,7 +47,7 @@ Relação N:N entre `equipe` e `usuario` (instaladores).
 | categoria | varchar | Não | Residencial, Comercial |
 | quantidade_paineis | int | Sim | Maior que zero |
 | quantidade_inversores | int | Não | A adicionar ao schema |
-| endereco | varchar | Sim | Usado no link de navegação. A adicionar ao schema |
+| endereco | varchar | Sim | Usado no link de navegação. A adicionar ao schema. Origem em definição (Q9) |
 | descricao | text | Não | |
 | data_inicio_estimada | date | Não | |
 | data_fim_estimada | date | Não | Não pode ser anterior à data de início |
@@ -80,20 +61,33 @@ Relação N:N entre `equipe` e `usuario` (instaladores).
 | Coluna | Tipo | Obrigatório | Observação |
 | :---- | :---- | :---- | :---- |
 | id | serial | Sim | PK |
-| data_confirmacao | date | Sim | |
-| prazo_contratual_dias | int | Sim | |
+| data_confirmacao | date | Sim | Visível somente a Administrador e Financeiro (RF-26) |
+| prazo_contratual_dias | int | Sim | Prazo logístico, visível na gestão de obras |
 | id_obra | int | Sim | FK `obra`, UNIQUE (1:1) |
+
+### produto
+
+Catálogo mantido pelo Financeiro e pelo Administrador (RF-25). Preço visível somente a Administrador e Financeiro.
+
+| Coluna | Tipo | Obrigatório | Observação |
+| :---- | :---- | :---- | :---- |
+| id | serial | Sim | PK |
+| nome | varchar | Sim | |
+| tipo | varchar | Sim | Ex.: painel, inversor, cabo, disjuntor |
+| unidade | varchar | Sim | Ex.: un, m |
+| preco_unitario | numeric(12,2) | Sim | Visível somente a Administrador e Financeiro |
+| ativo | boolean | Sim | Padrão `true`. Produto inativo não entra em novas inclusões |
 
 ### material
 
 | Coluna | Tipo | Obrigatório | Observação |
 | :---- | :---- | :---- | :---- |
 | id | serial | Sim | PK |
-| tipo | varchar | Sim | Ex.: painel, inversor, cabo, disjuntor |
+| id_produto | int | Sim | FK `produto`. Substitui o campo `tipo` |
 | quantidade | int | Sim | |
 | quantidade_utilizada | int | Não | Para balanço de materiais. A adicionar ao schema |
-| custo_unitario | numeric(12,2) | Não | A adicionar ao schema |
-| status_logistico | varchar | Não | `Comprado`, `EmTransito`, `Disponivel`, `Utilizado` |
+| custo_unitario | numeric(12,2) | Não | Preço do produto na inclusão na obra; visível somente a Administrador e Financeiro. Ver Q13. A adicionar ao schema |
+| status_logistico | varchar | Sim | `EmSolicitacao`, `Comprado`, `EmTransito`, `Disponivel`, `Utilizado`. Padrão `EmSolicitacao` |
 | id_obra | int | Sim | FK `obra` |
 
 ### programacao_obra
@@ -103,10 +97,33 @@ Relação N:N entre `equipe` e `usuario` (instaladores).
 | id | serial | Sim | PK |
 | data_inicio | date | Sim | |
 | data_fim | date | Sim | Dia útil |
-| prioridade | int | Não | Ordem de propagação dentro da equipe |
+| prioridade | int | Não | Ordem de propagação entre programações com integrantes em comum (ver Q10) |
 | duracao_estimada_dias | numeric(5,1) | Não | |
 | id_obra | int | Sim | FK `obra` |
+
+### equipe
+
+Equipe temporal de uma programação no Gantt (1:1). Não existe cadastro fixo de equipes: a equipe nasce com a programação e é excluída com ela. Substitui `obra_responsavel` (revisão de 07/11/2026).
+
+| Coluna | Tipo | Obrigatório | Observação |
+| :---- | :---- | :---- | :---- |
+| id | serial | Sim | PK |
+| id_programacao | int | Sim | FK `programacao_obra`, UNIQUE (1:1), `ON DELETE CASCADE` |
+| pessoas_previstas | int | Sim | Maior que zero. Base para pessoas faltantes |
+
+### equipe_integrante
+
+Instalador vinculado a uma equipe em um intervalo de datas. Integrantes entram e saem a qualquer momento; o intervalo registra o tempo que cada pessoa dedicou à instalação.
+
+| Coluna | Tipo | Obrigatório | Observação |
+| :---- | :---- | :---- | :---- |
+| id | serial | Sim | PK |
 | id_equipe | int | Sim | FK `equipe` |
+| id_usuario | int | Sim | FK `usuario`. Perfil `InstaladorCampo` e ativo na inclusão |
+| data_entrada | date | Sim | Dentro do período da programação. Padrão: `data_inicio` da programação |
+| data_saida | date | Sim | Dentro do período e não anterior a `data_entrada`. Padrão: `data_fim` da programação. Remoção durante a execução antecipa esta data |
+
+Valores derivados (não armazenados): pessoas alocadas por dia, pessoas faltantes (`pessoas_previstas` − integrantes no dia), pessoa-dia (soma dos dias úteis entre `data_entrada` e `data_saida` de cada integrante) e ocupação por instalador (RN-10).
 
 ### comentario
 
@@ -117,7 +134,7 @@ Relação N:N entre `equipe` e `usuario` (instaladores).
 | data_registro | timestamp | Sim | Padrão `now()` |
 | id_obra | int | Sim | FK `obra` |
 | id_usuario | int | Sim | FK `usuario` |
-| tipo | varchar | Sim | `Cartao`, `Manutencao` ou `Timeline` |
+| tipo | varchar | Sim | `Cartao` (comentário de gestão da obra, criado na página Obras), `Manutencao` ou `Timeline` |
 
 ### historico_obra
 
@@ -156,7 +173,6 @@ Precificação completa: `custo_mao_obra`, `custo_insumos` e `valor_obra` preenc
 | status | varchar | Sim | `Pendente`, `Concluida` |
 | data_conclusao | timestamp | Não | |
 | id_obra | int | Sim | FK `obra` |
-| id_equipe | int | Sim | FK `equipe` |
 
 ### audit_log
 
@@ -177,7 +193,7 @@ Log de auditoria. Somente INSERT. Sem UPDATE nem DELETE, nem para o Administrado
 | Campo | Valores |
 | :---- | :---- |
 | `obra.status` | `MaterialComprado`, `NoDeposito`, `Separado`, `EmAndamento`, `Concluido`, `Assistencia` |
-| `material.status_logistico` | `Comprado`, `EmTransito`, `Disponivel`, `Utilizado` |
+| `material.status_logistico` | `EmSolicitacao`, `Comprado`, `EmTransito`, `Disponivel`, `Utilizado` |
 | `perfil_acesso.nome_perfil` | `Administrador`, `Engenharia`, `Financeiro`, `InstaladorCampo` |
 | `comentario.tipo` | `Cartao`, `Manutencao`, `Timeline` |
 | `manutencao.status` | `Pendente`, `Concluida` |
@@ -194,9 +210,10 @@ erDiagram
   OBRA ||--o{ PROGRAMACAO_OBRA : agenda
   OBRA ||--o| RELATORIO_CUSTO : gera
   OBRA ||--o{ MANUTENCAO : exige
-  EQUIPE ||--o{ PROGRAMACAO_OBRA : executa
-  EQUIPE ||--o{ USUARIO : contem
-  EQUIPE ||--o{ MANUTENCAO : atende
+  PROGRAMACAO_OBRA ||--|| EQUIPE : executa
+  EQUIPE ||--o{ EQUIPE_INTEGRANTE : reune
+  USUARIO ||--o{ EQUIPE_INTEGRANTE : integra
+  PRODUTO ||--o{ MATERIAL : referencia
   PERFIL_ACESSO ||--o{ USUARIO : define
   USUARIO ||--o{ COMENTARIO : escreve
   USUARIO ||--o{ HISTORICO_OBRA : realiza
@@ -211,13 +228,18 @@ erDiagram
 | `cliente` | UNIQUE (`cpf_cnpj`) |
 | `pagamento` | UNIQUE (`id_obra`) |
 | `relatorio_custo` | UNIQUE (`id_obra`) |
-| `programacao_obra` | Exclusão de sobreposição por equipe (`id_equipe`, `daterange(data_inicio, data_fim)`) |
+| `equipe` | UNIQUE (`id_programacao`); CHECK (`pessoas_previstas > 0`) |
+| `equipe_integrante` | UNIQUE (`id_equipe`, `id_usuario`); CHECK (`data_saida >= data_entrada`) |
+| `equipe_integrante` | Sobreposição proibida por instalador: intervalos [`data_entrada`, `data_saida`] do mesmo `id_usuario` não se sobrepõem (restrição de exclusão com `daterange` ou trigger) |
+| `equipe_integrante` | Índice em (`id_usuario`, `data_entrada`, `data_saida`) para disponibilidade e ocupação |
 | `obra` | Índice em (`status`) e parcial em `excluida_em IS NULL` |
-| `programacao_obra` | Índice em (`id_equipe`, `data_inicio`) |
+| `programacao_obra` | Índice em (`id_obra`, `data_inicio`) |
 | `historico_obra` | Índice em (`id_obra`, `data_alteracao`) |
 | `audit_log` | Índice em (`entidade`, `entidade_id`) |
 | Todas as tabelas de ação | Trigger ou permissão que bloqueia UPDATE e DELETE em `historico_obra` e `audit_log` |
 
 ## Exclusão lógica
 
-Obra excluída recebe `excluida_em`. Listagens, Gantt e Kanban filtram `excluida_em IS NULL`. Cartão e programações da obra são removidos. Histórico, comentários e custos são preservados.
+Obra excluída recebe `excluida_em`. Listagens, Gantt e Kanban filtram `excluida_em IS NULL`. Cartão, programações e equipes da obra são removidos; os instaladores ficam livres no período. Histórico, comentários e custos são preservados.
+
+Cliente com obras vinculadas, inclusive excluídas logicamente, não pode ser removido (RF-23). Os dados de cliente são preservados.

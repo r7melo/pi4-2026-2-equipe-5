@@ -31,6 +31,8 @@ sequenceDiagram
 
 ## Mudança de status (cartão no Kanban)
 
+O arraste é livre: o cartão pode ser solto em qualquer coluna, e a API valida a transição ao receber a tentativa (Q11).
+
 ```mermaid
 sequenceDiagram
   participant F as KanbanBoard
@@ -58,7 +60,7 @@ sequenceDiagram
   end
 ```
 
-## Alocação de equipe no Gantt
+## Programação de obra no Gantt
 
 ```mermaid
 sequenceDiagram
@@ -68,19 +70,43 @@ sequenceDiagram
   participant GS as GanttService
   participant D as PostgreSQL
 
-  F->>F: marca as equipes ocupadas no período
-  F->>G: POST /api/programacoes
+  F->>G: GET /api/instaladores/disponibilidade
+  F->>F: marca os instaladores livres e ocupados no período
+  F->>G: POST /api/programacoes (pessoasPrevistas, integrantesIds)
   G->>D: buscar obra e verificar se está apta
   G->>DS: duração a partir de quantidade_paineis
   G->>GS: data final em dias úteis
-  G->>D: verificar conflito da equipe
+  G->>D: verificar conflito de cada integrante
   alt sem conflito
-    G->>D: INSERT programacao_obra
+    G->>D: INSERT programacao_obra, equipe e equipe_integrante
     G-->>F: 201
   else conflito
     G-->>F: 409 SCHEDULE_CONFLICT
   end
 ```
+
+## Ajuste da equipe durante a instalação
+
+1. A Engenharia abre a programação no Gantt e vê a equipe (alocadas/previstas), o pessoa-dia e os instaladores livres no período.
+2. Para incluir, o SPA envia `POST /api/programacoes/{id}/integrantes`; a API valida perfil, datas e conflito do instalador (`409 SCHEDULE_CONFLICT` se ocupado).
+3. Para remover, o SPA envia `DELETE /api/programacoes/{id}/integrantes/{usuarioId}`; se a instalação já começou, com `dataSaida`, preservando os dias trabalhados.
+4. A API grava `audit_log`, recalcula faltantes e pessoa-dia e publica o evento no SignalR; o Gantt e a visão de ocupação são atualizados sem recarregar.
+
+## Status de material (Financeiro)
+
+1. O Financeiro abre o material na aba Materiais da obra e escolhe o próximo status.
+2. O SPA envia `PATCH /api/materiais/{id}` com `statusNovo`.
+3. A API valida a ordem (Q12), grava o novo status e o `audit_log`.
+4. O Kanban e o Gantt recebem o evento em tempo real e exibem o novo rótulo e cor.
+5. Se a Engenharia enviar a mesma chamada, a API responde `403 ACCESS_DENIED`.
+
+## Alteração de senha autenticada
+
+1. O usuário informa a senha atual, a nova senha e a confirmação.
+2. O SPA confere a confirmação e a política mínima antes de enviar.
+3. A API valida a senha atual e grava o novo hash em uma única operação.
+4. Sucesso: a API invalida os tokens, e o SPA exibe confirmação e leva ao login.
+5. Falha: a senha anterior continua válida, e o SPA exibe "Não foi possível alterar a senha. Tente novamente.", sem sugerir link de redefinição.
 
 ## Atualização em tempo real
 

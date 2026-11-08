@@ -37,7 +37,7 @@ public sealed class Autenticacao
         var claims = new Dictionary<string, object>
         {
             [ClaimId] = usuario.Id.ToString(),
-            [ClaimPerfil] = usuario.NomePerfil,
+            [ClaimPerfil] = usuario.NomePerfil == "EngenhariaObras" ? Perfis.Engenharia : usuario.NomePerfil,
         };
         if (usuario.EquipeId is int equipe) claims[ClaimEquipe] = equipe.ToString();
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
@@ -66,10 +66,25 @@ public sealed class Autenticacao
         {
             OnMessageReceived = contexto =>
             {
-                // SignalR usa a query string no transporte WebSocket; limita a leitura do token ao hub.
+                // WebSocket/SSE do navegador enviam JWT pela query. Fora do hub, so Bearer.
                 var token = contexto.Request.Query["access_token"];
                 if (!string.IsNullOrEmpty(token) && contexto.HttpContext.Request.Path.StartsWithSegments("/hubs/obras"))
                     contexto.Token = token;
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = contexto =>
+            {
+                // Compativel com JWTs assinados antes da migracao, apenas ate a expiracao original.
+                // A normalizacao ocorre depois de o middleware validar assinatura e validade.
+                if (contexto.Principal is not null)
+                    foreach (var identidade in contexto.Principal.Identities)
+                        foreach (var claim in identidade.FindAll(ClaimPerfil)
+                                     .Where(c => c.Value == "EngenhariaObras").ToArray())
+                        {
+                            identidade.RemoveClaim(claim);
+                            identidade.AddClaim(new Claim(ClaimPerfil, Perfis.Engenharia,
+                                claim.ValueType, claim.Issuer, claim.OriginalIssuer));
+                        }
                 return Task.CompletedTask;
             },
             OnChallenge = async contexto =>

@@ -9,6 +9,8 @@ internal static class SchemaMigrator
     private const string MigrationVersion = "20261018_expansao_modelo.sql";
     private const string BaselineChecksum = "baseline-schema-v1";
     private const string MigrationResource = "Backend.Api.Migrations.20261018_expansao_modelo.sql";
+    private const string ProfileMigrationVersion = "20261031_padroniza_perfil_engenharia.sql";
+    private const string ProfileMigrationResource = "Backend.Api.Migrations.20261031_padroniza_perfil_engenharia.sql";
 
     public static async Task ApplyAndValidateAsync(string connectionString)
     {
@@ -67,14 +69,40 @@ internal static class SchemaMigrator
                 $"Checksum da migration {MigrationVersion} diverge do arquivo aplicado. Banco={installedChecksum}; arquivo={checksum}.");
         }
 
+        await ApplyProfileMigrationAsync(connection, transaction);
         await ValidateSchemaAsync(connection, transaction);
         await transaction.CommitAsync();
     }
 
-    private static string ReadMigration()
+    private static async Task ApplyProfileMigrationAsync(NpgsqlConnection connection, NpgsqlTransaction transaction)
     {
-        using var stream = typeof(SchemaMigrator).Assembly.GetManifestResourceStream(MigrationResource)
-            ?? throw new InvalidOperationException($"Recurso da migration não encontrado: {MigrationResource}.");
+        var sql = ReadMigration(ProfileMigrationResource);
+        var checksum = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sql))).ToLowerInvariant();
+        await using var lookup = new NpgsqlCommand(
+            "SELECT checksum FROM schema_migrations WHERE version = @version", connection, transaction);
+        lookup.Parameters.AddWithValue("version", ProfileMigrationVersion);
+        var installedChecksum = (string?)await lookup.ExecuteScalarAsync();
+        if (installedChecksum is not null)
+        {
+            if (installedChecksum != checksum)
+                throw new InvalidOperationException(
+                    $"Checksum da migration {ProfileMigrationVersion} diverge do arquivo aplicado. Banco={installedChecksum}; arquivo={checksum}.");
+            return;
+        }
+
+        await using (var apply = new NpgsqlCommand(sql, connection, transaction))
+            await apply.ExecuteNonQueryAsync();
+        await using var record = new NpgsqlCommand(
+            "INSERT INTO schema_migrations (version, checksum) VALUES (@version, @checksum)", connection, transaction);
+        record.Parameters.AddWithValue("version", ProfileMigrationVersion);
+        record.Parameters.AddWithValue("checksum", checksum);
+        await record.ExecuteNonQueryAsync();
+    }
+
+    private static string ReadMigration(string resource = MigrationResource)
+    {
+        using var stream = typeof(SchemaMigrator).Assembly.GetManifestResourceStream(resource)
+            ?? throw new InvalidOperationException($"Recurso da migration não encontrado: {resource}.");
         using var reader = new StreamReader(stream, Encoding.UTF8);
         var sql = reader.ReadToEnd();
         // A transação é controlada pelo migrador para registrar a versão atomicamente.
@@ -99,6 +127,10 @@ internal static class SchemaMigrator
                            WHERE tgname = 'trg_audit_somente_insert' AND NOT tgisinternal)
                AND EXISTS (SELECT 1 FROM pg_indexes
                            WHERE schemaname = 'public' AND indexname = 'idx_audit_entidade')
+               AND EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'public.nome_perfil_enum'::regtype
+                           AND enumlabel = 'Engenharia')
+               AND NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'public.nome_perfil_enum'::regtype
+                               AND enumlabel = 'EngenhariaObras')
             """, connection, transaction);
         if ((bool?)await command.ExecuteScalarAsync() != true)
             throw new InvalidOperationException(

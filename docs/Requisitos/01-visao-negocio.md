@@ -2,14 +2,15 @@
 
 ## Contexto
 
-A ZL Engenharia executa instalações de sistemas de energia solar. Cada obra passa por pagamento confirmado, compra e recebimento de materiais, separação de kit, programação de equipe, instalação e, quando necessário, manutenção pós-instalação. O sistema centraliza essas etapas em uma única base, com controle de acesso por perfil e rastreabilidade de cada alteração.
+A ZL Engenharia executa instalações de sistemas de energia solar. Cada obra passa por pagamento confirmado, compra e recebimento de materiais, separação de kit, programação da instalação com a equipe de instaladores, instalação e, quando necessário, manutenção pós-instalação. O sistema centraliza essas etapas em uma única base, com controle de acesso por perfil e rastreabilidade de cada alteração.
 
 ## Objetivos
 
 | # | Objetivo | Indicador | Meta |
 | :---- | :---- | :---- | :---- |
 | O1 | Toda obra vinculada a um cliente e com cartão no Kanban | Obras sem cliente ou sem cartão | 0 |
-| O2 | Nenhuma equipe alocada em dois locais no mesmo período | Alocações conflitantes gravadas | 0 |
+| O2 | Nenhum instalador em duas equipes no mesmo período | Alocações conflitantes gravadas | 0 |
+| O8 | Tempo dos instaladores bem aproveitado | Dias úteis com instaladores livres enquanto há equipes incompletas | 0 |
 | O3 | Exportação de relatórios rápida | Tempo de geração com 1.000 registros | ≤ 5 s (P95) |
 | O4 | Baixo custo de treinamento | Tempo até o primeiro uso concluído | < 2 h |
 | O5 | Tarefas principais concluídas pelos usuários | Taxa de sucesso por tarefa | ≥ 80% |
@@ -21,13 +22,14 @@ A ZL Engenharia executa instalações de sistemas de energia solar. Cada obra pa
 ### Incluído
 
 - Autenticação e perfis de acesso com autorização no servidor.
-- Cadastro de clientes, obras e usuários; exclusão lógica de obras.
-- Funil Kanban de obras com movimentação, edição, comentários e raia de assistência.
-- Status de materiais por obra.
-- Equipes de campo e alocação no Gantt, com duração estimada, reordenação e propagação de atrasos em dias úteis.
+- Gestão de clientes (cadastro, listagem, edição e exclusão), de obras e de usuários; exclusão lógica de obras.
+- Página de gestão de obras, separada do Kanban, com edição, materiais, comentários e linha do tempo.
+- Funil Kanban de obras com visualização, movimentação (arraste livre) e raia de assistência.
+- Catálogo de produtos com preços, mantido pelo Financeiro, e status de materiais por obra.
+- Programação no Gantt com equipes temporais de instaladores (integrantes flexíveis), ocupação por instalador, duração estimada, reordenação e propagação de atrasos em dias úteis.
 - Linha do tempo por obra, com registros automáticos imutáveis.
 - Módulo do instalador (celular): detalhes da instalação, abertura de rota, manutenção e comentários.
-- Custos, custo total e DRE da obra; exportação de relatórios em PDF e Excel.
+- Valores da obra, custos, custo total e DRE, restritos ao módulo financeiro; exportação de relatórios em PDF e Excel.
 - Cronograma compartilhado em modo somente leitura e modo display para monitores.
 - Notificação por e-mail na conclusão da obra.
 
@@ -42,14 +44,15 @@ A ZL Engenharia executa instalações de sistemas de energia solar. Cada obra pa
 | Perfil | Valor no sistema | Principais permissões |
 | :---- | :---- | :---- |
 | Administrador | `Administrador` | Todas as funções, inclusive cadastro de usuários, DRE e edição da timeline |
-| Engenharia | `Engenharia` | Obras, Kanban, equipes e Gantt. Sem financeiro nem cadastro de usuários |
-| Financeiro | `Financeiro` | Custos, DRE e exportações. Leitura de obras, Kanban, Gantt e timeline |
-| Instalador de Campo | `InstaladorCampo` | Instalações da própria equipe, rota, manutenção e comentários |
+| Engenharia | `Engenharia` | Obras, clientes, Kanban e Gantt; adiciona materiais a partir de produtos cadastrados. Sem valores, financeiro nem cadastro de usuários |
+| Financeiro | `Financeiro` | Valores, custos, DRE, exportações, catálogo de produtos e status de materiais. Leitura de obras, Kanban, Gantt e timeline |
+| Instalador de Campo | `InstaladorCampo` | Instalações das obras cujas equipes integra, rota, manutenção e comentários |
 
 ## Premissas
 
 - Interface e documentação em português do Brasil.
 - Instaladores têm conta com login próprio.
+- Equipe não é cadastro fixo: existe somente dentro de uma programação do Gantt, e seus integrantes são instaladores de campo ativos.
 - Produtividade padrão de 9 painéis por dia, ajustável por obra.
 - Dias não úteis: sábados e domingos (feriados ver questões em aberto).
 - Dados de carga inicial são de teste, não dados reais.
@@ -76,6 +79,12 @@ Estas decisões precisam ser tomadas com o solicitante antes de fechar a impleme
 | Q6 | Provedor de nuvem, RTO e RPO | A definir | Infraestrutura, backup e operação |
 | Q7 | Criticidade do sistema | A definir (proposta: média) | Nível de testes, monitoramento e SLA |
 | Q8 | Estimativa de custo e prazo | A definir | Planejamento |
+| Q9 | Origem do endereço da obra | Campo próprio no cadastro da obra, ou endereço padrão do cliente | Cadastro de obra, link de navegação (RF-19) e exportação de detalhes |
+| Q10 | Propagação de atraso com equipes flexíveis | Deslocar em cadeia as programações seguintes que têm integrantes em comum (proposta), ou só alertar o conflito para a Engenharia realocar as pessoas. Eixo do Gantt definido: uma linha por obra, com visão complementar por instalador | RF-07, RF-09 e RN-02 |
+| Q11 | Validação do arraste livre no Kanban | Aceitar qualquer coluna no arraste e validar a transição ao soltar (proposta da revisão), ou aceitar o movimento sem validar o fluxo | RF-04, UC-18 e regra de transições |
+| Q12 | Atualização do status de materiais pelo Financeiro | Tela por material, atualização em lote ou importação de planilha; mecanismo em estudo. Também definir se é permitido pular ou retroceder status | RF-06, UC-41 e endpoint de materiais |
+| Q13 | Custo de material na obra | Custo calculado a partir do preço do produto no catálogo, ou lançado manualmente pelo Financeiro | UC-31, RF-14 e `material.custo_unitario` |
+| Q14 | Equipe e duração da instalação | Manter a produtividade por obra (9 painéis/dia, adotado), ou calcular por pessoa, de forma que a duração dependa do tamanho da equipe | RF-08, RF-07 e programação no Gantt |
 
 ## Glossário
 
@@ -83,7 +92,13 @@ Estas decisões precisam ser tomadas com o solicitante antes de fechar a impleme
 | :---- | :---- |
 | Obra | Instalação de sistema solar para um cliente, com um cartão no Kanban |
 | Cartão | Representação visual da obra no Kanban |
-| Programação | Alocação de uma equipe a uma obra em um período no Gantt |
+| Programação | Alocação de uma obra a um período no Gantt, com a equipe que executa a instalação |
+| Equipe | Grupo temporário de instaladores de uma programação no Gantt. Não é cadastro fixo: integrantes entram e saem a qualquer momento, cada um com data de entrada e saída |
+| Integrante | Instalador de campo vinculado a uma equipe em um intervalo de datas dentro da programação |
+| Pessoas previstas | Quantidade de instaladores planejada para a programação; a diferença para os integrantes alocados indica quantos faltam |
+| Pessoa-dia | Unidade de esforço: um instalador trabalhando um dia útil. Soma dos dias úteis de cada integrante da equipe |
+| Produto | Item do catálogo, com preço, cadastrado pelo Financeiro e usado para incluir materiais nas obras |
+| Material | Unidade de um produto incluída em uma obra, com status logístico |
 | Assistência | Raia de manutenção pós-instalação |
 | Dia útil | Dia que não é sábado, domingo nem feriado (conforme Q2) |
 | Timeline | Registro cronológico de ações de uma obra |

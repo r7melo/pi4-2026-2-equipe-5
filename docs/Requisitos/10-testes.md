@@ -96,25 +96,28 @@ curl -s -X POST http://localhost:8000/api/auth/login -H "Content-Type: applicati
 
 **Observação:** executar os passos 2 e 3 antes do passo 4, que altera o estado da obra 301.
 
-### CT-04: Alocação no Gantt e conflito de agenda
+### CT-04: Programação no Gantt, equipe e conflito de agenda por instalador
 
 | Campo | Valor |
 | :---- | :---- |
 | Requisito | RF-07 (Must); apoio a RF-08 |
 | Tipo | Funcional, positivo e negativo |
 | Pré-condição | Logado como `engenharia@zlengenharia.com`; banco recém-carregado |
-| Dados | Obra 310 (200 painéis); Equipe 05 (sem alocações); Equipe 01 (programações 601, 602 e 607) |
+| Dados | Obra 310 (200 painéis, sem programação); instalador A sem equipes; instalador B nas equipes das programações 601, 602 e 607; instalador C sem equipes |
 
 | # | Passo | Resultado esperado |
 | :---- | :---- | :---- |
-| 1 | Abrir o Gantt | Uma barra por programação (601 a 610), na linha da equipe |
-| 2 | Filtrar por Equipe 01 (`GET /api/programacoes?equipeId=1`) | Programações 601, 602 e 607 |
-| 3 | Nova alocação: obra 310, Equipe 05, início 2026-10-19 (segunda-feira) | Duração de 23 dias úteis (200 ÷ 9 = 22,2, arredondado para cima); término 2026-11-18; fins de semana fora da contagem |
-| 4 | Confirmar a alocação | `201`; barra aparece na linha da Equipe 05 no período informado |
-| 5 | Alocar a Equipe 01 em uma obra com início em 2026-10-02 | Equipe 01 aparece marcada como ocupada no período; ao confirmar, `409 SCHEDULE_CONFLICT` com o período ocupado na mensagem; nada é gravado |
-| 6 | Redimensionar a janela para 360 px | Gantt utilizável, sem quebra de layout |
+| 1 | Abrir o Gantt | Uma linha por obra programada (601 a 610), com a equipe na barra no formato alocadas/previstas |
+| 2 | Filtrar pelo instalador B (`GET /api/programacoes?instaladorId=<id de B>`) | Programações 601, 602 e 607 |
+| 3 | Nova programação: obra 310, início 2026-10-19 (segunda-feira) | Duração de 23 dias úteis (200 ÷ 9 = 22,2, arredondado para cima); término 2026-11-18; fins de semana fora da contagem |
+| 4 | Confirmar com 2 pessoas previstas e o instalador A na equipe | `201`; barra da obra 310 no período informado com equipe "1/2", destacada como incompleta |
+| 5 | Adicionar o instalador C à equipe a partir de 2026-10-26 | `200`; equipe "2/2"; pessoa-dia recalculado (23 dias de A + dias úteis de C a partir de 26/10) |
+| 6 | Remover o instalador C com saída em 2026-11-06 | Vínculo encerrado em 06/11; dias trabalhados de C mantidos no pessoa-dia; C aparece livre a partir de 09/11 |
+| 7 | Adicionar o instalador B à equipe de outra obra, com início em 2026-10-02 | B aparece marcado como ocupado no período; ao confirmar, `409 SCHEDULE_CONFLICT` com a obra e o período ocupado na mensagem; nada é gravado |
+| 8 | Consultar `GET /api/gantt/ocupacao` de 2026-10-19 a 2026-10-23 | Por dia: alocados, livres e faltantes coerentes com as equipes; instalador A com 100% de ocupação |
+| 9 | Redimensionar a janela para 360 px | Gantt utilizável, sem quebra de layout |
 
-**Critério de aprovação:** alocação criada com datas corretas e conflito de agenda bloqueado.
+**Critério de aprovação:** programação criada com datas corretas, equipe ajustável sem recriar a programação, pessoa-dia e faltantes corretos e conflito de agenda bloqueado.
 
 **Dependências:** regra de arredondamento (Q1) e feriados (Q2). O resultado do passo 3 vale com a regra de [ADR-011](09-decisoes-arquiteturais.md#adr-011-regras-de-cálculo-do-gantt).
 
@@ -164,7 +167,7 @@ Tarefas avaliadas:
 | T1 - Entrar no sistema | Todos | RF-01 |
 | T2 - Cadastrar uma nova obra | Engenharia | RF-03 |
 | T3 - Mover a obra para a próxima etapa e consultar o histórico | Engenharia | RF-04, RF-11 |
-| T4 - Alocar uma equipe no cronograma | Engenharia | RF-07, RF-08 |
+| T4 - Programar uma obra no cronograma e montar a equipe com instaladores livres | Engenharia | RF-07, RF-08 |
 | T5 - Atualizar a homologação de uma obra | Engenharia | RF-17 |
 | T6 - Consultar o custo total de uma obra concluída | Financeiro | RF-14 |
 | T7 - Ver o kit e abrir a rota do dia no celular | Instalador de Campo | RF-19 |
@@ -191,18 +194,18 @@ Resultado por tarefa:
 | UX-04 | Login | 1 | Rótulos não associados aos campos; sem opção de mostrar senha | Associar rótulos aos campos; adicionar "mostrar senha" |
 | UX-05 | Kanban | 3 | Cartão não abre detalhes (histórico, comentários, materiais) | Painel lateral com abas Dados, Materiais, Histórico e Comentários |
 | UX-06 | Kanban | 2 | Botão "Filtros / Busca" sem ação | Busca por cliente e filtro por status e categoria, com mensagem para lista vazia |
-| UX-07 | Kanban | 3 | Transição inválida exibe só "Falha ao mover o card", sem o motivo | Destacar as colunas permitidas durante o arraste; exibir a mensagem retornada pela API |
+| UX-07 | Kanban | 3 | Transição inválida exibe só "Falha ao mover o card", sem o motivo | Exibir a mensagem retornada pela API ao devolver o cartão (arraste livre, sem destaque prévio de colunas) |
 | UX-08 | Kanban | 2 | Cores de badge dependem de categorias inexistentes; status do material não aparece | Badge pela categoria real; selo do status do material (Comprado, Em trânsito, Disponível) |
-| UX-09 | Kanban | 3 | Movimentação só por arraste com mouse ou toque; colunas largas exigem rolagem no celular | Adicionar teclado e menu "Mover para..."; no celular, mostrar uma coluna por vez |
+| UX-09 | Kanban | 3 | Movimentação só por arraste com mouse ou toque; colunas largas exigem rolagem no celular | Adicionar movimentação por teclado; menu "Mover para..." fica como Could após correção (RF-04); no celular, mostrar uma coluna por vez |
 | UX-10 | Kanban | 1 | Cartão de perfil somente leitura não arrasta, sem indicação do motivo | Ícone ou tooltip "Somente leitura para o seu perfil" |
 | UX-11 | Kanban | 2 | Mover para "Concluído" dispara e-mail sem confirmação | Pedir confirmação antes de concluir a obra |
-| UX-12 | Nova obra | 3 | Faltam data de pagamento, quantidade de inversores e categoria; cliente fixo | Adicionar os campos; selecionar cliente existente ou criar novo |
+| UX-12 | Nova obra | 3 | Faltam data de pagamento, quantidade de inversores e categoria; cliente fixo | Adicionar categoria e inversores; selecionar cliente existente (criação só na gestão de clientes). Data de pagamento sai da gestão (RF-26) |
 | UX-13 | Nova obra | 1 | Campo de prazo na seção de dados do cliente; sucesso exibe duas notificações | Mover o campo para a seção de prazos; manter uma notificação |
 | UX-14 | Homologação | 3 | Tela fixa, sem seleção de obra; botões sem ação | Remover ou ocultar a tela enquanto a homologação estiver fora do escopo |
 | UX-15 | Menu lateral | 4 | Itens "Financeiro", "Relatórios" e "Configurações" levam a rotas inexistentes, sem página de erro | Criar as telas ou ocultar os itens; adicionar página "Página não encontrada" |
 | UX-16 | Link de instaladores | 3 | Rota exige login; dados fixos; botões "Ligar" e "Marcar chegada" sem ação; sem tela de link expirado | Ajustar à decisão de acesso do instalador (Q3) |
 | UX-17 | Geral | 2 | Nenhuma tela tem ajuda contextual ou estado vazio com ação sugerida | Textos de ajuda nos formulários; estados vazios com ação ("Nenhuma obra. Cadastre a primeira") |
-| UX-18 | Gantt | 3 | Sem aviso de conflito ao alocar; equipes ocupadas não aparecem marcadas | Marcar equipes ocupadas no período; alerta antes de salvar |
+| UX-18 | Gantt | 3 | Sem aviso de conflito ao programar; instaladores ocupados não aparecem marcados | Marcar instaladores ocupados no período; alerta antes de salvar |
 
 ### Priorização
 
@@ -241,16 +244,23 @@ Metas: taxa de sucesso ≥ 80% por tarefa; SUS ≥ 68; taxa de erro < 5% (RNF-06
 
 | Caso | Requisito | Objetivo |
 | :---- | :---- | :---- |
-| CT-06 | RF-03 | Cadastro de obra com cliente existente; recusa sem cliente |
-| CT-07 | RF-05 | Instalador vê só a própria equipe; conclui manutenção; outros perfis não concluem |
-| CT-08 | RF-19 | Instalador autenticado acessa somente a própria equipe; não acessa DRE |
+| CT-06 | RF-03 | Cadastro de obra com cliente existente; recusa sem cliente; cliente recém-cadastrado aparece na seleção |
+| CT-07 | RF-05 | Instalador vê só manutenções das obras cujas equipes integrou; conclui manutenção; outros perfis não concluem |
+| CT-08 | RF-19 | Instalador autenticado acessa somente obras cujas equipes integra; não acessa DRE; kit sem preços |
 | CT-09 | RF-09 | Propagação em cadeia de cinco programações, com dias úteis |
 | CT-10 | RF-10 | Alocação atualiza o Kanban; mudança no Kanban atualiza o Gantt |
 | CT-11 | RF-13 | E-mail na conclusão; falha de envio não reverte o status |
 | CT-12 | RF-16 | Link válido exibe cronograma; link inválido exibe mensagem; sem dados financeiros |
 | CT-13 | RF-06 | Mudança de status logístico reflete no cartão e na barra |
 | CT-14 | RF-20 | DRE com custo, valor da obra e resultado |
-| CT-RNF-01 a 05 | RNF-01 a RNF-05 | Renderização em 4 larguras; HTTPS; RBAC em todas as rotas; log; exportação em 5 s |
+| CT-15 | RF-21 | Redefinição de senha por link, alteração autenticada, política de senha, invalidação de tokens, link de uso único; falha da alteração autenticada sem sugerir link; confirmação diferente |
+| CT-16 | RF-22 | Gestão de usuários: listagem, cadastro (tela disponível), desativação, reativação, edição de perfil e acesso negado a outros perfis |
+| CT-17 | RF-23 | Gestão de clientes (cadastro, listagem, edição e exclusão, com e sem obras); CPF/CNPJ válido e único; acesso negado ao Financeiro e ao Instalador |
+| CT-19 | RF-25, RF-06 | Catálogo: Financeiro cadastra produto; Engenharia vê lista sem preço; inclusão só de produto ativo; status inicial em solicitação |
+| CT-20 | RF-26 | Valores só para Administrador e Financeiro: painel da obra sem valor estimado; respostas de API de Engenharia e Instalador sem campos de valor |
+| CT-21 | RF-04 | Arraste livre: movimento inválido devolve o cartão com o motivo; cartão sem valores |
+| CT-18 | RF-24 | Página não encontrada, estados vazios por perfil e mensagem amigável de erro de API |
+| CT-RNF-01 a 05 | RNF-01 a RNF-05 | Renderização em 4 larguras; HTTPS; RBAC em todas as rotas da [matriz de autorização](04-regras-negocio.md#8-matriz-de-autorização-das-rotas-da-api), por perfil; log irremovível para exclusões e mudanças financeiras; exportação em 5 s |
 | CT-RNF-06 | RNF-06 | Sessões com usuários e avaliação heurística (roteiro acima) |
 
 ## Dados de teste
@@ -259,7 +269,7 @@ Metas: taxa de sucesso ≥ 80% por tarefa; SUS ≥ 68; taxa de erro < 5% (RNF-06
 
 - Um usuário por perfil (Administrador, Engenharia, Financeiro, Instalador de Campo) e o Leitor, com perfil em definição.
 - Obra 301 (`MaterialComprado`), obras 305 e 306 (`EmAndamento`), obra 307 (`Concluido`, com custo), obra 310 (200 painéis, com programação 608).
-- Equipe 05 livre; Equipe 01 com programações 601, 602 e 607.
+- Instaladores A e C sem equipes; instalador B nas equipes das programações 601, 602 e 607.
 - Comentário 710, usado somente no teste de bloqueio (CT-02).
 
 ### Problemas conhecidos nos dados atuais
@@ -275,12 +285,29 @@ Metas: taxa de sucesso ≥ 80% por tarefa; SUS ≥ 68; taxa de erro < 5% (RNF-06
 ### Complemento proposto (aguardando aprovação do Backend)
 
 - Clientes 11 a 16.
-- Obras 311 a 316: cadeia de cinco programações na Equipe 06 (311 a 315) e obra 316 sem programação e sem custo.
+- Obras 311 a 316: cadeia de cinco programações com o mesmo instalador na equipe (311 a 315) e obra 316 sem programação e sem custo.
 - Programações 611 a 615, só em dias úteis, para o teste de propagação (CT-09).
 - Histórico de criação das obras 309, 310 e 311 a 316.
 - Comentário 712, para o teste de exclusão pelo Administrador (CT-02).
-- Materiais 516 e 517 (cabo e disjuntor da obra 307), para o balanço de materiais.
+- Materiais 516 e 517 (cabo e disjuntor da obra 307, vinculados a produtos cadastrados), para o balanço de materiais.
 
 ## Execução
 
 Registrar cada rodada com data, executor, commit, resultado (Passou, Falhou ou Bloqueado) e issue aberta. Falhas que dependem de decisão pendente registram o número da questão em [visão de negócio](01-visao-negocio.md#questões-em-aberto).
+
+### Rodada de 07/11/2026 (revisão do solicitante)
+
+Registro do que consta no documento de revisão. Itens sem resultado no documento aparecem como "Não registrado"; não houve execução adicional. Credenciais citadas na revisão não são reproduzidas aqui.
+
+| # | Item testado | Resultado | Observação | Requisito |
+| :---- | :---- | :---- | :---- | :---- |
+| R-01 | Download e instalação do sistema | Passou | "Baixa e instala sem problemas" | — |
+| R-02 | Login com o usuário Administrador de teste | Não registrado | Credenciais citadas no documento, sem resultado informado | RF-01 |
+| R-03 | Alteração de senha em Configurações | Falhou | Com senha atual e nova válidas, a tela exibe "Não foi possível confirmar a troca. Tente entrar com a nova senha; se necessário, solicite outro link". Ver CT-15 | RF-21 |
+| R-04 | Clientes pré-cadastrados na seleção de obra | Passou | "Selecione o Cliente" exibe os clientes cadastrados | RF-03 |
+| R-05 | Cliente cadastrado na seleção de obra | Falhou | "Cliente cadastrado, mas não aparece" em "Selecione o Cliente". Ver CT-06 e CT-17 | RF-03, RF-23 |
+| R-06 | Criação de obra | Passou | "OBRA foi criada" | RF-03 |
+| R-07 | Cadastro de usuário | Falhou | "Cadastro de usuário indisponível"; tela não disponível. RF-22 pendente | RF-22 |
+| R-08 | Valores na obra | Falhou | Painel da obra exibe valor mockado; não há campo para definir o valor na gestão. Ver CT-20 | RF-26 |
+| R-09 | Menu flutuante "Mover para..." | Falhou | Descrito como "bugado" e de uso pouco frequente. Reclassificado como Could | RF-04 |
+| R-10 | Arraste de cartão | Observação de requisito | Solicitado como livre, sem restrição de colunas. Não é resultado de execução; ver CT-21 e Q11 | RF-04 |

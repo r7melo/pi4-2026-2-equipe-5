@@ -4,7 +4,7 @@
 | :---- | :---- | :---- | :---- | :---- | :---- |
 | RSK-01 | Login aceita senha inválida por tratamento de erro no cliente | Segurança | Alta | Alta | Erro 401 mostra mensagem de credencial inválida. Mock só com `VITE_USE_MOCK=true` |
 | RSK-02 | Rotas sem validação de token e perfil no servidor | Segurança | Alta | Alta | Middleware de autorização em todas as rotas; testes de API por perfil |
-| RSK-03 | Dados de obra acessíveis por link ou por ID de outra equipe | Segurança | Média | Alta | Login obrigatório para instalador; filtro por equipe no servidor |
+| RSK-03 | Dados de obra acessíveis por link ou por ID de obra de equipe que o instalador não integra | Segurança | Média | Alta | Login obrigatório para instalador; filtro por integrante de equipe no servidor |
 | RSK-04 | Credenciais de teste no código da interface | Segurança | Alta | Média | Campos vazios no login; credenciais só no guia de desenvolvimento |
 | RSK-05 | Dados pessoais de clientes e instaladores sem avaliação de impacto (LGPD) | Compliance | Média | Alta | Elaborar RIPD antes do desenvolvimento de produção |
 | RSK-06 | Regra de duração divergente entre tela, backend e testes | Negócio | Alta | Média | Resolver questão Q1 e atualizar dados de teste |
@@ -12,7 +12,7 @@
 | RSK-08 | Conflito de agenda não bloqueado no servidor | Técnico | Alta | Alta | Validação no `GanttService` com `409 SCHEDULE_CONFLICT` |
 | RSK-09 | Menu com itens que levam a telas inexistentes | Entrega | Alta | Alta | Criar as telas ou ocultar itens; rota coringa de "não encontrado" |
 | RSK-10 | Fluxo de status da API diferente do fluxo de negócio (sem pagamento e programação) | Técnico | Alta | Alta | Definir colunas oficiais; alinhar regras, API e Kanban |
-| RSK-11 | Cadastro de obra com cliente inexistente | Técnico | Alta | Alta | Exigir cliente existente ou criar cliente explicitamente no cadastro |
+| RSK-11 | Cadastro de obra com cliente inexistente | Técnico | Alta | Alta | Exigir cliente existente; criação de cliente só na gestão de clientes (RF-23) |
 | RSK-12 | Sincronização em tempo real não automática | Técnico | Média | Média | Handler dedicado com invalidação do cache; teste de CT-10 |
 | RSK-13 | Histórico de dados de teste incompleto | Técnico | Alta | Média | Carga de teste com registro de criação e transições completas |
 | RSK-14 | Custo de obra não concluída sem regra clara | Negócio | Alta | Média | Erro descritivo para obra não concluída (questão Q5) |
@@ -32,7 +32,13 @@
 | RSK-28 | Hash das senhas do seed não confirmado; testes autenticados ficam bloqueados se não corresponder | Dados | Média | Alta | Confirmar o hash com a biblioteca usada pela API antes da primeira rodada |
 | RSK-29 | Tempo de expiração do token não configurável no ambiente de teste | Técnico | Média | Baixa | Variável `JWT_EXPIRES_MINUTES` no arquivo de exemplo de ambiente; 2 minutos no ambiente de teste |
 | RSK-30 | Transição de status recusada sem indicar o motivo na interface | Usabilidade | Alta | Média | Usar as transições válidas no cliente e exibir a mensagem retornada pela API |
-| RSK-31 | Obra sem endereço no schema atual; link de rota sem dado real | Técnico | Alta | Média | Adicionar coluna `endereco` em `obra` |
+| RSK-31 | Obra sem endereço no schema atual; link de rota sem dado real | Técnico | Alta | Média | Adicionar coluna `endereco` em `obra`; definir a origem do endereço (Q9) |
 | RSK-32 | Testes de exclusão de comentário dependem da ordem de execução | Dados | Média | Baixa | Comentário exclusivo para cada teste |
 | RSK-33 | Complemento de dados de teste sem aprovação do Backend | Dados | Alta | Média | Decidir sobre o complemento antes da rodada de testes |
 | RSK-34 | Filtro por categoria em `GET /api/obras` sem confirmação na implementação | Documentação | Média | Baixa | Confirmar que o filtro existe na implementação e no contrato |
+| RSK-35 | Troca de equipes cadastradas por equipes temporais altera RF-07, RF-09, RF-19, o modelo de dados e as rotas do Gantt; a propagação por integrantes em comum ainda depende de Q10 | Escopo | Alta | Alta | Resolver Q10 antes de implementar a propagação; atualizar CT-04 e CT-09; migrar `obra_responsavel` se já criada |
+| RSK-36 | Valores expostos à Engenharia pela API, mesmo sem exibição na tela | Segurança | Média | Alta | Campos de valor fora dos DTOs de Engenharia e Instalador; teste de ausência de campos (CT-20) |
+| RSK-37 | Arraste livre aceita movimento inválido se a validação não ocorrer no servidor | Técnico | Média | Alta | Validação de transição na API (`RegrasTransicaoService`); CT-21 |
+| RSK-38 | Alteração de senha informa falha quando a senha já foi trocada, ou sucesso quando não foi | Segurança | Média | Alta | Operação atômica; mensagem conforme o resultado real (RF-21); CT-15 |
+| RSK-39 | Mecanismo de atualização de status de material pelo Financeiro sem definição | Negócio | Alta | Média | Definir o mecanismo (Q12) antes de implementar UC-41 |
+| RSK-40 | Cliente cadastrado não aparece na seleção de obra por cache desatualizado | Técnico | Alta | Média | Invalidar o cache de clientes após o cadastro; CT-06 |

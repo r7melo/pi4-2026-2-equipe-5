@@ -25,7 +25,7 @@
 | [UC-05](#uc-05) Cadastrar administrador | ✔ | | | |
 | [UC-06](#uc-06) Cadastrar engenheiro | ✔ | | | |
 | [UC-07](#uc-07) Cadastrar financeiro | ✔ | | | |
-| [UC-08](#uc-08) Cadastrar clientes | ✔ | | | |
+| [UC-08](#uc-08) Gerenciar clientes (CRUD) | ✔ | ✔ | | |
 | [UC-09](#uc-09) Cadastrar instalador de campo | ✔ | | | |
 | [UC-10](#uc-10) Cadastrar obra | ✔ | ✔ | | |
 | [UC-11](#uc-11) Apagar obra | ✔ | ✔ | | |
@@ -34,12 +34,12 @@
 | [UC-14](#uc-14) Criar comentário sobre a manutenção | | | | ✔ |
 | [UC-15](#uc-15) Inserir cartão no Kanban | ✔ | ✔ | | |
 | [UC-16](#uc-16) Deletar cartão no Kanban | ✔ | ✔ | | |
-| [UC-17](#uc-17) Editar cartão no Kanban | ✔ | ✔ | | |
+| [UC-17](#uc-17) Editar obra (página Obras) | ✔ | ✔ | | |
 | [UC-18](#uc-18) Mover cartão no Kanban | ✔ | ✔ | | |
-| [UC-19](#uc-19) Adicionar comentário no cartão | ✔ | ✔ | | |
+| [UC-19](#uc-19) Adicionar comentário na obra | ✔ | ✔ | | |
 | [UC-20](#uc-20) Registrar ação | ✔ | ✔ | | |
-| [UC-21](#uc-21) Criar equipe de campo | ✔ | ✔ | | |
-| [UC-22](#uc-22) Alocar equipe | ✔ | ✔ | | |
+| [UC-21](#uc-21) Gerenciar equipe da programação | ✔ | ✔ | | |
+| [UC-22](#uc-22) Programar obra no Gantt | ✔ | ✔ | | |
 | [UC-23](#uc-23) Exportar detalhes de instalação | ✔ | | | |
 | [UC-24](#uc-24) Visualizar detalhes da instalação | ✔ | ✔ | | ✔ |
 | [UC-25](#uc-25) Realizar manutenção | | | | ✔ |
@@ -52,6 +52,13 @@
 | [UC-32](#uc-32) Apurar custo total | ✔ | | ✔ | |
 | [UC-33](#uc-33) Emitir DRE | ✔ | | ✔ | |
 | [UC-34](#uc-34) Exportar relatório financeiro | ✔ | | ✔ | |
+| [UC-35](#uc-35) Solicitar recuperação de senha | ✔ | ✔ | ✔ | ✔ |
+| [UC-36](#uc-36) Atualizar senha | ✔ | ✔ | ✔ | ✔ |
+| [UC-37](#uc-37) Desativar usuário | ✔ | | | |
+| [UC-38](#uc-38) Reativar usuário | ✔ | | | |
+| [UC-39](#uc-39) Gerenciar produtos | ✔ | | ✔ | |
+| [UC-40](#uc-40) Adicionar material à obra | ✔ | ✔ | | |
+| [UC-41](#uc-41) Atualizar status do material | ✔ | | ✔ | |
 
 ## Descrição dos casos de uso
 
@@ -64,33 +71,40 @@
 | [UC-05](#uc-05) | Cadastrar administrador | Administrador | Informa nome, e-mail e senha inicial; sistema valida e salva | Somente Administrador cadastra Administrador |
 | [UC-06](#uc-06) | Cadastrar engenheiro | Administrador | Seleciona perfil Engenharia; informa dados; salva | E-mail único |
 | [UC-07](#uc-07) | Cadastrar financeiro | Administrador | Seleciona perfil Financeiro; informa dados; salva | E-mail único |
-| [UC-08](#uc-08) | Cadastrar clientes | Administrador | Informa nome, CPF/CNPJ, telefone, e-mail e endereço; salva | CPF/CNPJ válido e único; nome e CPF/CNPJ obrigatórios |
+| [UC-08](#uc-08) | Gerenciar clientes (CRUD) | Administrador, Engenharia | Lista, cadastra, edita ou exclui clientes na tela de clientes | CPF/CNPJ válido e único; nome e CPF/CNPJ obrigatórios; exclusão só sem obras vinculadas |
 | [UC-09](#uc-09) | Cadastrar instalador de campo | Administrador | Seleciona perfil InstaladorCampo; informa dados; salva | Instalador tem leitura da instalação e registro de manutenção |
 | [UC-10](#uc-10) | Cadastrar obra | Administrador, Engenharia | Seleciona cliente; informa endereço, descrição e dados do projeto; salva; cria cartão e registra ação | Toda obra tem cliente; nasce no status inicial |
 | [UC-11](#uc-11) | Apagar obra | Administrador, Engenharia | Seleciona obra; confirma; remove cartão; marca obra como excluída | Confirmação explícita; obra em execução não é apagada; exclusão lógica |
 | [UC-12](#uc-12) | Alterar status da obra | Sistema | Recebe obra e novo status; valida transição; atualiza; registra ação | Status segue o fluxo; toda mudança é registrada |
-| [UC-13](#uc-13) | Definir obra para instalação | Administrador, Engenharia | Seleciona obra; associa equipe e período; move cartão para a coluna de instalação | Obra apta; equipe sem conflito de período |
+| [UC-13](#uc-13) | Definir obra para instalação | Administrador, Engenharia | Seleciona obra; define período e equipe; move cartão para a coluna de instalação | Obra apta; integrante sem conflito de período |
 | [UC-14](#uc-14) | Criar comentário sobre a manutenção | Instalador | Escreve comentário durante a manutenção; sistema salva com autor, data e hora | Comentário é opcional e estende UC-25 |
 | [UC-15](#uc-15) | Inserir cartão no Kanban | Sistema | Cria cartão com dados resumidos na primeira coluna | Um cartão por obra |
 | [UC-16](#uc-16) | Deletar cartão no Kanban | Sistema | Remove o cartão da coluna | Só junto com a exclusão da obra |
-| [UC-17](#uc-17) | Editar cartão no Kanban | Administrador, Engenharia | Altera título, descrição, responsável e datas; salva | Mudança de coluna só por UC-18 |
-| [UC-18](#uc-18) | Mover cartão no Kanban | Administrador, Engenharia | Arrasta cartão; sistema valida; executa UC-12; atualiza posição | Respeita a ordem do fluxo; todo movimento altera status e gera registro |
-| [UC-19](#uc-19) | Adicionar comentário no cartão | Administrador, Engenharia | Escreve comentário durante a edição; sistema salva | Comentário guarda autor, data e hora |
+| [UC-17](#uc-17) | Editar obra (página Obras) | Administrador, Engenharia | Altera dados, endereço, quantidades e datas da obra; salva | Sem campos de valor; mudança de coluna só por UC-18 |
+| [UC-18](#uc-18) | Mover cartão no Kanban | Administrador, Engenharia | Arrasta cartão livremente até qualquer coluna; sistema valida ao soltar; executa UC-12; atualiza posição | Respeita a ordem do fluxo (Q11); movimento válido altera status e gera registro |
+| [UC-19](#uc-19) | Adicionar comentário na obra | Administrador, Engenharia | Escreve comentário na página da obra; sistema salva | Comentário guarda autor, data e hora |
 | [UC-20](#uc-20) | Registrar ação | Sistema | Recebe evento; adiciona data e hora; grava na timeline | Registros não podem ser editados nem removidos; identifica o usuário |
-| [UC-21](#uc-21) | Criar equipe de campo | Administrador, Engenharia | Informa nome; seleciona instaladores e responsável; salva; pode definir obra | Equipe tem ao menos um instalador e um responsável; instalador em uma equipe por período |
-| [UC-22](#uc-22) | Alocar equipe | Administrador, Engenharia | Seleciona obra, equipe e período; sistema verifica disponibilidade; salva; executa UC-13 | Sem dupla alocação; obra apta |
+| [UC-21](#uc-21) | Gerenciar equipe da programação | Administrador, Engenharia | Abre a programação; adiciona ou remove instaladores com datas de entrada e saída; salva | Só instaladores ativos; sem dupla alocação no período; recalcula faltantes e pessoa-dia |
+| [UC-22](#uc-22) | Programar obra no Gantt | Administrador, Engenharia | Seleciona obra, período e pessoas previstas; escolhe integrantes livres; salva; executa UC-13 | Sem dupla alocação por instalador; obra apta; equipe incompleta é destacada |
 | [UC-23](#uc-23) | Exportar detalhes de instalação | Administrador | Seleciona obra; sistema reúne kit, endereço, equipe, período e instruções; gera arquivo | Somente dados da obra selecionada |
-| [UC-24](#uc-24) | Visualizar detalhes da instalação | Instalador | Abre lista; seleciona instalação; vê kit, endereço, projeto e instruções | Somente instalações da própria equipe; somente leitura |
-| [UC-25](#uc-25) | Realizar manutenção | Instalador | Abre manutenção; registra serviço; marca como concluída; sistema salva e registra ação | Somente manutenção da própria equipe; conclusão gera registro |
-| [UC-26](#uc-26) | Abrir rota | Instalador | Seleciona instalação; aciona rota; sistema abre o aplicativo de mapas com o endereço | Usa o endereço da obra; só da própria equipe |
+| [UC-24](#uc-24) | Visualizar detalhes da instalação | Instalador | Abre lista; seleciona instalação; vê kit, endereço, projeto e instruções | Somente obras cujas equipes integra; somente leitura; kit sem preços |
+| [UC-25](#uc-25) | Realizar manutenção | Instalador | Abre manutenção; registra serviço; marca como concluída; sistema salva e registra ação | Somente manutenção de obra cuja equipe integrou; conclusão gera registro |
+| [UC-26](#uc-26) | Abrir rota | Instalador | Seleciona instalação; aciona rota; sistema abre o aplicativo de mapas com o endereço | Usa o endereço da obra; só de obra cuja equipe integra |
 | [UC-27](#uc-27) | Consultar obras e quadro Kanban | Financeiro | Abre o quadro; vê cartões e status de material; abre detalhes | Somente leitura |
-| [UC-28](#uc-28) | Consultar cronograma (Gantt) | Financeiro | Abre o Gantt; vê barras por equipe e período; abre detalhes | Somente leitura |
+| [UC-28](#uc-28) | Consultar cronograma (Gantt) | Financeiro | Abre o Gantt; vê programações por período, equipe e ocupação dos instaladores; abre detalhes | Somente leitura |
 | [UC-29](#uc-29) | Consultar linha do tempo | Administrador, Engenharia, Financeiro | Seleciona obra; abre timeline; vê registros em ordem cronológica | Ordem cronológica; registros de ação são imutáveis |
 | [UC-30](#uc-30) | Incluir comentário na linha do tempo | Financeiro | Escreve comentário; sistema salva com autor, data e hora | Somente Administrador edita ou exclui |
 | [UC-31](#uc-31) | Registrar custos e precificação | Financeiro | Seleciona obra; informa itens de custo e valor da obra; salva; grava log | Precificação completa exige todos os itens e o valor |
 | [UC-32](#uc-32) | Apurar custo total | Administrador, Financeiro | Seleciona obra; sistema verifica conclusão e precificação; soma itens | Só obra concluída com precificação completa |
 | [UC-33](#uc-33) | Emitir DRE | Administrador, Financeiro | Solicita DRE; executa UC-32; calcula resultado; exibe | Somente obra concluída; somente leitura |
 | [UC-34](#uc-34) | Exportar relatório financeiro | Financeiro | Seleciona tipo e período; escolhe PDF ou Excel; gera e disponibiliza | Formatos PDF e Excel; 5 s para 1.000 registros |
+| [UC-35](#uc-35) | Solicitar recuperação de senha | Usuário (não autenticado) | Informa e-mail; sistema envia link de uso único por e-mail; exibe mensagem genérica | Link expira em 1 h; resposta idêntica para e-mail existente ou não |
+| [UC-36](#uc-36) | Atualizar senha | Usuário | Redefine a senha via link (UC-35) ou altera a senha atual estando autenticado | Nova senha deve atender à política; todos os tokens são invalidados após a alteração |
+| [UC-37](#uc-37) | Desativar usuário | Administrador | Seleciona usuário ativo; confirma; sistema marca como inativo e invalida os tokens | Exclusão lógica; sem novos logins; registro preservado |
+| [UC-38](#uc-38) | Reativar usuário | Administrador | Seleciona usuário inativo; confirma; sistema marca como ativo e envia nova senha por e-mail | Acesso restaurado somente com a nova senha |
+| [UC-39](#uc-39) | Gerenciar produtos | Administrador, Financeiro | Cadastra, altera e desativa produtos com preço unitário | Preço obrigatório; produto desativado não entra em novas inclusões |
+| [UC-40](#uc-40) | Adicionar material à obra | Administrador, Engenharia | Escolhe produto cadastrado e quantidade; sistema cria o material em solicitação | Somente produto cadastrado e ativo; status inicial em solicitação |
+| [UC-41](#uc-41) | Atualizar status do material | Administrador, Financeiro | Seleciona material; escolhe o próximo status; sistema grava log | Ordem: solicitação, comprado, em trânsito, disponível, utilizado; Engenharia não altera |
 
 ## Relações entre casos de uso
 
@@ -103,11 +117,13 @@
 | [UC-12](#uc-12) Alterar status | include | UC-20 Registrar ação |
 | [UC-18](#uc-18) Mover cartão | include | UC-12 Alterar status |
 | [UC-13](#uc-13) Definir obra | include | UC-18 Mover cartão |
+| [UC-22](#uc-22) Programar obra | include | UC-13 Definir obra |
 | [UC-25](#uc-25) Realizar manutenção | include | UC-20 Registrar ação |
 | [UC-33](#uc-33) Emitir DRE | include | UC-32 Apurar custo total |
 | [UC-14](#uc-14) Comentário de manutenção | extend | UC-25 Realizar manutenção |
 | [UC-19](#uc-19) Comentário no cartão | extend | UC-17 Editar cartão |
 | [UC-30](#uc-30) Comentário na timeline | extend | UC-29 Consultar linha do tempo |
+| [UC-35](#uc-35) Solicitar recuperação de senha | include | UC-36 Atualizar senha |
 
 ## Casos de Uso - Textual
 
@@ -360,35 +376,39 @@
 
 <a id="uc-08"></a>
 
-### UC-08 - Cadastrar Clientes
+### UC-08 - Gerenciar Clientes (CRUD)
 
-**Descrição:** Permite cadastrar os clientes da empresa, que serão vinculados às obras.
+**Descrição:** Permite listar, cadastrar, editar e excluir os clientes da empresa, que serão vinculados às obras. Essa é a única tela de criação de clientes.
 
-**Atores:** Administrador
+**Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado com perfil Administrador.
+**Pré-condição:** O usuário está autenticado com perfil Administrador ou Engenharia.
 
-**Fluxo principal:**
+**Fluxo principal (cadastro):**
 
-1. O Administrador acessa a tela de cadastro de clientes.
-2. O Administrador informa nome, CPF/CNPJ, telefone, e-mail e endereço.
-3. O Administrador confirma o cadastro.
+1. O usuário acessa a tela de clientes e aciona "Novo cliente".
+2. O usuário informa nome, CPF/CNPJ, telefone, e-mail e endereço.
+3. O usuário confirma o cadastro.
 4. O sistema valida os dados.
 5. O sistema salva o cliente.
-6. O sistema exibe mensagem de sucesso.
+6. O sistema exibe mensagem de sucesso e atualiza a lista de clientes.
 
 **Fluxos alternativos:**
 
 - FA1 - CPF/CNPJ inválido (passo 4): o sistema informa o erro e retorna ao passo 2.
 - FA2 - Cliente já cadastrado (passo 4): o sistema informa a duplicidade e oferece abrir o cadastro existente.
-- FA3 - Cancelamento (qualquer passo): o sistema descarta os dados e retorna à lista de clientes.
+- FA3 - Edição (a partir da lista): o usuário altera os dados; o sistema valida e salva com as mesmas regras do cadastro.
+- FA4 - Exclusão (a partir da lista): o sistema exclui o cliente somente se ele não tiver obras vinculadas, inclusive obras excluídas logicamente. Caso contrário, informa "Cliente possui obras vinculadas" e mantém o cadastro.
+- FA5 - Cancelamento (qualquer passo): o sistema descarta os dados e retorna à lista de clientes.
 
-**Pós-condição:** O cliente está cadastrado e disponível para vinculação a obras.
+**Pós-condição:** O cliente está cadastrado, editado ou excluído. Clientes não excluídos ficam disponíveis para vinculação a obras.
 
 **Regras de negócio:**
 
 - RN1 - O CPF/CNPJ deve ser válido e único.
 - RN2 - Nome e CPF/CNPJ são obrigatórios.
+- RN3 - Cliente com obras vinculadas não pode ser excluído.
+- RN4 - Obras não criam clientes: o cadastro de obra só seleciona clientes existentes.
 
 **Prioridade:** Alta
 
@@ -420,7 +440,7 @@
 - FA2 - Dados obrigatórios ausentes ou inválidos (passo 5): o sistema destaca os campos e retorna ao passo 3.
 - FA3 - Cancelamento (qualquer passo): o sistema descarta os dados e retorna à lista de usuários.
 
-**Pós-condição:** O Instalador de Campo está cadastrado e pode ser incluído em equipes de campo.
+**Pós-condição:** O Instalador de Campo está cadastrado e pode ser incluído em equipes de obras programadas no Gantt.
 
 **Regras de negócio:**
 
@@ -445,7 +465,7 @@
 
 1. O usuário acessa a tela de cadastro de obras.
 2. O usuário seleciona o cliente.
-3. O usuário informa endereço da obra, descrição e demais dados do projeto.
+3. O usuário informa endereço da obra, categoria, quantidades e datas estimadas. Não há campos de valor (ver UC-31).
 4. O usuário confirma o cadastro.
 5. O sistema valida os dados.
 6. O sistema salva a obra com o status inicial.
@@ -455,7 +475,7 @@
 
 **Fluxos alternativos:**
 
-- FA1 - Cliente não cadastrado (passo 2): o usuário pode acionar o [UC-08](#uc-08) e retornar ao passo 2.
+- FA1 - Cliente não cadastrado (passo 2): o sistema informa que o cliente deve ser cadastrado na tela de clientes ([UC-08](#uc-08)). O cadastro da obra é retomado depois que o cliente existir.
 - FA2 - Dados obrigatórios ausentes (passo 5): o sistema destaca os campos e retorna ao passo 3.
 - FA3 - Cancelamento (qualquer passo): o sistema descarta os dados e retorna à lista de obras.
 
@@ -494,7 +514,7 @@
 **Fluxos alternativos:**
 
 - FA1 - Cancelamento (passo 4): o sistema mantém a obra e retorna à tela anterior.
-- FA2 - Obra em instalação ou com equipe alocada (passo 3): o sistema bloqueia a exclusão e informa o motivo.
+- FA2 - Obra em instalação ou com programação de instalação (passo 3): o sistema bloqueia a exclusão e informa o motivo.
 
 **Pós-condição:** A obra e seu cartão foram removidos.
 
@@ -544,16 +564,16 @@
 
 ### UC-13 - Definir Obra para Instalação
 
-**Descrição:** Marca uma obra como pronta para instalação, associando-a a uma equipe de campo e movendo seu cartão no Kanban.
+**Descrição:** Marca uma obra como pronta para instalação, associando-a a um período e à sua equipe, e movendo seu cartão no Kanban.
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado, a obra está apta para instalação e existe uma equipe de campo criada ou alocada.
+**Pré-condição:** O usuário está autenticado, a obra está apta para instalação.
 
 **Fluxo principal:**
 
 1. O usuário seleciona a obra.
-2. O usuário associa a equipe de campo e o período da instalação.
+2. O usuário define o período da instalação, as pessoas previstas e a equipe (UC-22).
 3. O usuário confirma a definição.
 4. O sistema valida as informações.
 5. O sistema executa o [UC-18](#uc-18) (Mover Cartão no Kanban) para a coluna de instalação.
@@ -562,14 +582,14 @@
 **Fluxos alternativos:**
 
 - FA1 - Obra não apta (passo 4): o sistema informa a etapa pendente (ex.: material ou pagamento) e cancela o fluxo.
-- FA2 - Conflito de agenda da equipe (passo 4): o sistema informa o conflito e retorna ao passo 2.
+- FA2 - Conflito de agenda de um integrante da equipe (passo 4): o sistema informa o conflito e retorna ao passo 2.
 
 **Pós-condição:** A obra está definida para instalação e seu cartão foi movido para a coluna correspondente.
 
 **Regras de negócio:**
 
 - RN1 - A obra só pode ser definida para instalação após as etapas anteriores do fluxo.
-- RN2 - Uma equipe não pode ter duas obras no mesmo período.
+- RN2 - Um instalador não pode estar em duas equipes no mesmo período.
 
 **Prioridade:** Alta
 
@@ -674,36 +694,37 @@
 
 <a id="uc-17"></a>
 
-### UC-17 - Editar Cartão no Kanban
+### UC-17 - Editar Obra (página Obras)
 
-**Descrição:** Permite alterar as informações de um cartão de obra no Kanban.
+**Descrição:** Permite alterar os dados de uma obra na página Obras.
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado e o cartão existe.
+**Pré-condição:** O usuário está autenticado e a obra existe.
 
 **Fluxo principal:**
 
-1. O usuário abre o cartão.
-2. O usuário altera os campos editáveis (título, descrição, responsável e datas).
+1. O usuário abre a obra na página Obras.
+2. O usuário altera os campos editáveis (dados, endereço, categoria, quantidades e datas).
 3. O usuário salva as alterações.
 4. O sistema valida os dados.
-5. O sistema atualiza o cartão.
-6. O sistema exibe o cartão atualizado.
+5. O sistema atualiza a obra e registra a ação na linha do tempo.
+6. O sistema exibe a obra atualizada.
 
 **Fluxos alternativos:**
 
 - FA1 - Dados inválidos (passo 4): o sistema destaca os campos e retorna ao passo 2.
-- FA2 - Cartão alterado por outro usuário (passo 4): o sistema informa o conflito e recarrega os dados atuais.
+- FA2 - Obra alterada por outro usuário (passo 4): o sistema informa o conflito e recarrega os dados atuais.
 - FA3 - Adicionar comentário (passo 2): o usuário pode acionar o [UC-19](#uc-19).
 - FA4 - Cancelamento (passo 3): o sistema descarta as alterações.
 
-**Pós-condição:** O cartão está atualizado com as novas informações.
+**Pós-condição:** A obra está atualizada e a alteração consta na linha do tempo.
 
 **Regras de negócio:**
 
 - RN1 - A mudança de coluna/status só pode ser feita pelo [UC-18](#uc-18).
-- RN2 - Somente Administrador e Engenharia podem editar cartões.
+- RN2 - Somente Administrador e Engenharia podem editar obras.
+- RN3 - A edição não inclui campos de valor (RF-26).
 
 **Prioridade:** Média
 
@@ -721,7 +742,7 @@
 
 **Fluxo principal:**
 
-1. O usuário arrasta o cartão para outra coluna.
+1. O usuário arrasta o cartão e o solta em qualquer coluna (arraste livre, sem destaque prévio).
 2. O sistema valida o movimento.
 3. O sistema executa o [UC-12](#uc-12) (Alterar Status da Obra).
 4. O sistema atualiza a posição do cartão.
@@ -736,7 +757,7 @@
 
 **Regras de negócio:**
 
-- RN1 - O movimento deve respeitar a ordem do fluxo da obra.
+- RN1 - O movimento deve respeitar a ordem do fluxo da obra, validada ao soltar (Q11).
 - RN2 - Todo movimento altera o status da obra e é registrado na linha do tempo.
 
 **Prioridade:** Alta
@@ -745,33 +766,33 @@
 
 <a id="uc-19"></a>
 
-### UC-19 - Adicionar Comentario no Cartão
+### UC-19 - Adicionar Comentário na Obra
 
-**Descrição:** Permite adicionar um comentário a um cartão durante sua edição.
+**Descrição:** Permite adicionar um comentário de gestão à obra, na página Obras.
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado e está editando um cartão ([UC-17](#uc-17)).
+**Pré-condição:** O usuário está autenticado e está com a obra aberta na página Obras ([UC-17](#uc-17)).
 
 **Fluxo principal:**
 
-1. Durante a edição do cartão, o usuário escolhe adicionar um comentário.
+1. Na página da obra, o usuário escolhe adicionar um comentário.
 2. O usuário digita o texto.
 3. O usuário confirma.
 4. O sistema valida o texto.
 5. O sistema salva o comentário no cartão.
-6. O sistema exibe o comentário no histórico do cartão.
+6. O sistema exibe o comentário na aba Comentários da obra.
 
 **Fluxos alternativos:**
 
 - FA1 - Comentário vazio (passo 4): o sistema informa que o texto é obrigatório e retorna ao passo 2.
 - FA2 - Cancelamento (passo 3): o sistema descarta o texto.
 
-**Pós-condição:** O comentário está salvo no cartão.
+**Pós-condição:** O comentário está salvo na obra.
 
 **Regras de negócio:**
 
-- RN1 - O comentário é opcional e estende o [UC-17](#uc-17) (Editar Cartão no Kanban).
+- RN1 - O comentário é opcional e estende o [UC-17](#uc-17) (Editar Obra).
 - RN2 - O comentário deve guardar autor, data e hora.
 
 **Prioridade:** Baixa
@@ -812,36 +833,40 @@
 
 <a id="uc-21"></a>
 
-### UC-21 - Criar Equipe de Campo
+### UC-21 - Gerenciar Equipe da Programação
 
-**Descrição:** Permite montar uma equipe de campo com instaladores para execução das obras.
+**Descrição:** Permite montar e ajustar a equipe de instaladores de uma obra programada no Gantt, incluindo e removendo integrantes a qualquer momento. A equipe é temporal: existe somente dentro da programação e serve para gerir o tempo de cada instalador. Substitui os responsáveis da obra (revisão de 07/11/2026).
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado e existem Instaladores de Campo cadastrados.
+**Pré-condição:** O usuário está autenticado e a obra está programada no Gantt (UC-22).
 
 **Fluxo principal:**
 
-1. O usuário acessa o Gantt e escolhe criar equipe.
-2. O usuário informa o nome da equipe.
-3. O usuário seleciona os instaladores e define o responsável.
-4. O usuário confirma a criação.
-5. O sistema valida os dados.
-6. O sistema salva a equipe.
-7. O sistema oferece executar o [UC-13](#uc-13) (Definir Obra para Instalação).
+1. O usuário abre a programação da obra no Gantt.
+2. O sistema exibe a equipe atual (alocadas/previstas), o esforço em pessoa-dia e a lista de instaladores ativos, marcando quem está livre ou ocupado no período.
+3. O usuário adiciona ou remove integrantes e, se necessário, ajusta as datas de entrada e saída de cada um.
+4. O usuário confirma.
+5. O sistema verifica conflito de agenda de cada integrante incluído ou alterado.
+6. O sistema salva a equipe e recalcula pessoas faltantes e pessoa-dia.
+7. O sistema registra a alteração em log de auditoria e atualiza a barra no Gantt.
 
 **Fluxos alternativos:**
 
-- FA1 - Instalador já alocado no mesmo período (passo 5): o sistema informa o conflito e retorna ao passo 3.
-- FA2 - Nenhum instalador selecionado (passo 5): o sistema informa que é necessário ao menos um e retorna ao passo 3.
-- FA3 - Definir obra agora (passo 7): o usuário aciona o [UC-13](#uc-13).
+- FA1 - Instalador ocupado (passo 5): o sistema informa a obra e o período em que ele está ocupado e retorna ao passo 3.
+- FA2 - Usuário que não é instalador ativo (passo 5): o sistema recusa a inclusão e retorna ao passo 3.
+- FA3 - Remoção durante a execução (passo 3): o sistema pede a data de saída, encerra o vínculo nessa data e preserva os dias já trabalhados.
+- FA4 - Ajuste da quantidade de pessoas previstas (passo 3): o sistema atualiza o indicador de pessoas faltantes.
+- FA5 - Cancelamento (passo 4): o sistema descarta as alterações.
 
-**Pós-condição:** A equipe de campo está criada e disponível para alocação.
+**Pós-condição:** A equipe da programação está atualizada, com pessoas faltantes e pessoa-dia recalculados.
 
 **Regras de negócio:**
 
-- RN1 - Toda equipe deve ter ao menos um instalador e um responsável.
+- RN1 - Somente instaladores de campo ativos integram equipes.
 - RN2 - Um instalador não pode estar em duas equipes no mesmo período.
+- RN3 - As datas de entrada e saída do integrante ficam dentro do período da programação.
+- RN4 - Equipe com menos integrantes que o previsto é destacada como incompleta, sem impedir a programação.
 
 **Prioridade:** Alta
 
@@ -849,35 +874,40 @@
 
 <a id="uc-22"></a>
 
-### UC-22 - Alocar Equipe
+### UC-22 - Programar Obra no Gantt
 
-**Descrição:** Permite alocar uma equipe de campo a uma obra em um período no Gantt.
+**Descrição:** Permite programar a instalação de uma obra em um período no Gantt, definindo quantas pessoas são previstas e, opcionalmente, já montando a equipe.
 
 **Atores:** Administrador, Engenharia
 
-**Pré-condição:** O usuário está autenticado, a equipe existe e há obra aguardando instalação.
+**Pré-condição:** O usuário está autenticado e a obra está apta para instalação.
 
 **Fluxo principal:**
 
 1. O usuário acessa o Gantt.
-2. O usuário seleciona a obra, a equipe e o período.
-3. O usuário confirma a alocação.
-4. O sistema verifica a disponibilidade da equipe.
-5. O sistema salva a alocação.
-6. O sistema executa o [UC-13](#uc-13) (Definir Obra para Instalação).
-7. O sistema exibe a alocação no Gantt.
+2. O usuário seleciona a obra, o período e a quantidade de pessoas previstas.
+3. O sistema exibe os instaladores livres e ocupados no período.
+4. O usuário seleciona os integrantes da equipe (pode deixar para depois).
+5. O usuário confirma a programação.
+6. O sistema verifica a obra e a disponibilidade dos integrantes selecionados.
+7. O sistema salva a programação e a equipe.
+8. O sistema executa o [UC-13](#uc-13) (Definir Obra para Instalação).
+9. O sistema exibe a barra no Gantt com a equipe (alocadas/previstas).
 
 **Fluxos alternativos:**
 
-- FA1 - Conflito de agenda (passo 4): o sistema informa o conflito e retorna ao passo 2.
-- FA2 - Obra não apta para instalação (passo 4): o sistema informa a etapa pendente e cancela a alocação.
+- FA1 - Integrante em conflito (passo 6): o sistema informa o conflito, indica quem está ocupado e em qual obra, e retorna ao passo 4.
+- FA2 - Obra não apta para instalação (passo 6): o sistema informa a etapa pendente e cancela a programação.
+- FA3 - Equipe incompleta (passo 7): o sistema salva e destaca a barra com as pessoas faltantes; a equipe é completada depois pelo [UC-21](#uc-21).
 
-**Pós-condição:** A equipe está alocada à obra no período definido e visível no Gantt.
+**Pós-condição:** A obra está programada no período definido, com sua equipe, e visível no Gantt.
 
 **Regras de negócio:**
 
-- RN1 - Uma equipe não pode ser alocada a duas obras no mesmo período.
-- RN2 - A alocação só é permitida para obras aptas à instalação.
+- RN1 - Um instalador não pode estar em duas equipes no mesmo período.
+- RN2 - A programação só é permitida para obras aptas à instalação.
+- RN3 - Pessoas previstas é obrigatório e maior que zero.
+- RN4 - Financeiro e Instalador de Campo não programam obras.
 
 **Prioridade:** Alta
 
@@ -944,8 +974,9 @@
 
 **Regras de negócio:**
 
-- RN1 - O instalador só visualiza instalações da sua equipe.
+- RN1 - O instalador só visualiza instalações das obras cujas equipes integra.
 - RN2 - O acesso é somente de leitura.
+- RN3 - O kit é exibido sem preços.
 
 **Prioridade:** Alta
 
@@ -959,7 +990,7 @@
 
 **Atores:** Instalador de Campo
 
-**Pré-condição:** O usuário está autenticado e há manutenção atribuída à sua equipe.
+**Pré-condição:** O usuário está autenticado e há manutenção de obra cuja equipe ele integrou.
 
 **Fluxo principal:**
 
@@ -1015,7 +1046,7 @@
 **Regras de negócio:**
 
 - RN1 - A rota usa o endereço registrado na obra.
-- RN2 - O instalador só abre rota de instalações da sua equipe.
+- RN2 - O instalador só abre rota de instalações das obras cujas equipes integra.
 
 **Prioridade:** Média
 
@@ -1058,7 +1089,7 @@
 
 ### UC-28 - Consultar Cronograma (Gantt)
 
-**Descrição:** Permite consultar as alocações de equipes por obra e período no Gantt, em modo somente leitura.
+**Descrição:** Permite consultar as programações de obras por período e equipe no Gantt, e a ocupação dos instaladores, em modo somente leitura.
 
 **Atores:** Financeiro
 
@@ -1067,9 +1098,9 @@
 **Fluxo principal:**
 
 1. O usuário acessa o Gantt.
-2. O sistema exibe as barras das obras por equipe e período, com a duração estimada e o status do material.
+2. O sistema exibe as barras das obras por período, com a equipe (alocadas/previstas), duração estimada e status do material.
 3. O usuário seleciona uma barra.
-4. O sistema exibe os detalhes da alocação (obra, equipe e período), sem opções de edição.
+4. O sistema exibe os detalhes da programação (obra, integrantes da equipe, período e pessoa-dia), sem opções de edição.
 
 **Fluxos alternativos:**
 
@@ -1081,7 +1112,7 @@
 **Regras de negócio:**
 
 - RN1 - O acesso do Financeiro ao Gantt é somente de leitura.
-- RN2 - O Financeiro não cria equipes, não aloca equipes e não reagenda obras.
+- RN2 - O Financeiro não altera equipes, não programa obras e não reagenda.
 
 **Prioridade:** Média
 
@@ -1189,6 +1220,7 @@
 - RN1 - Somente o Financeiro registra custos e precificação.
 - RN2 - A precificação só é completa quando todos os itens de custo e o valor da obra estão informados.
 - RN3 - Toda criação ou alteração financeira grava log irremovível com ID do usuário e timestamp.
+- RN4 - Valor da obra e custos são visíveis somente a Administrador e Financeiro (RF-26).
 
 **Prioridade:** Alta
 
@@ -1300,3 +1332,273 @@
 - RN3 - Somente perfis autorizados exportam dados financeiros.
 
 **Prioridade:** Média
+
+---
+
+<a id="uc-35"></a>
+
+### UC-35 - Solicitar Recuperação de Senha
+
+**Descrição:** Permite que um usuário não autenticado solicite a redefinição de sua senha, recebendo um link de uso único por e-mail.
+
+**Atores:** Usuário (não autenticado)
+
+**Pré-condição:** O usuário acessa a tela de login.
+
+**Fluxo principal:**
+
+1. O usuário clica em "Esqueci minha senha" na tela de login.
+2. O usuário informa seu e-mail.
+3. O usuário confirma a solicitação.
+4. O sistema gera um token de redefinição de uso único com validade de 1 hora.
+5. O sistema envia o e-mail com o link de redefinição.
+6. O sistema exibe a mensagem "Se o e-mail informado estiver cadastrado, você receberá as instruções de redefinição".
+
+**Fluxos alternativos:**
+
+- FA1 - E-mail não cadastrado (passo 4): o sistema exibe a mesma mensagem genérica do passo 6 sem revelar a inexistência do e-mail.
+- FA2 - Falha no envio do e-mail (passo 5): o sistema registra o erro em log técnico e exibe a mesma mensagem genérica.
+- FA3 - Cancelamento (qualquer passo): o sistema retorna à tela de login.
+
+**Pós-condição:** Um e-mail com link de redefinição foi enviado (se o e-mail existir) e o usuário recebeu a mensagem genérica.
+
+**Regras de negócio:**
+
+- RN1 - O token de redefinição é de uso único e expira em 1 hora.
+- RN2 - A resposta é sempre idêntica, independente de o e-mail existir ou não (proteção contra enumeração de usuários).
+- RN3 - O link de redefinição aciona o [UC-36](#uc-36) (Atualizar Senha).
+
+**Prioridade:** Média
+
+---
+
+<a id="uc-36"></a>
+
+### UC-36 - Atualizar Senha
+
+**Descrição:** Permite que o usuário redefina a senha por meio de link de recuperação ou altere a própria senha estando autenticado.
+
+**Atores:** Usuário
+
+**Pré-condição:** O usuário possui um token de redefinição válido (via link do [UC-35](#uc-35)) ou está autenticado no sistema.
+
+**Fluxo principal (via link de recuperação):**
+
+1. O usuário acessa o link de redefinição recebido por e-mail.
+2. O sistema valida o token do link.
+3. O usuário informa a nova senha e confirma.
+4. O sistema valida a política mínima de segurança da nova senha.
+5. O sistema atualiza o hash da senha.
+6. O sistema invalida todos os tokens de acesso ativos do usuário.
+7. O sistema exibe mensagem de sucesso e redireciona para a tela de login.
+
+**Fluxo alternativo A - Alterar senha com usuário autenticado:**
+
+1. O usuário acessa a tela de alteração de senha.
+2. O usuário informa a senha atual e a nova senha.
+3. O sistema valida a senha atual.
+4. O sistema valida a política mínima de segurança da nova senha.
+5. O sistema atualiza o hash da senha.
+6. O sistema invalida todos os tokens de acesso ativos do usuário.
+7. O sistema exibe mensagem de sucesso e exige novo login.
+
+**Fluxos alternativos:**
+
+- FA1 - Token inválido ou expirado (passo 2): o sistema exibe "Link inválido ou expirado" e encerra o fluxo.
+- FA2 - Nova senha não atende à política (passo 4): o sistema informa os requisitos mínimos e retorna ao passo 3.
+- FA3 - Senha atual incorreta (FA-A, passo 3): o sistema exibe "Senha atual incorreta" e retorna ao passo 2.
+- FA4 - Confirmação diferente da nova senha (FA-A, passo 2): o sistema exibe "As senhas não coincidem" e retorna ao passo 2.
+- FA5 - Falha na gravação (FA-A, passo 5): o sistema exibe "Não foi possível alterar a senha. Tente novamente.", sem sugerir solicitar outro link. A senha anterior continua válida e nenhum token é invalidado.
+
+**Pós-condição:** A senha do usuário está atualizada e todos os tokens de acesso anteriores foram invalidados.
+
+**Regras de negócio:**
+
+- RN1 - A nova senha deve ter ao menos 8 caracteres, uma letra maiúscula, uma minúscula e um número.
+- RN2 - A senha é armazenada somente como hash (bcrypt).
+- RN3 - Todos os tokens de acesso ativos são invalidados após a alteração da senha.
+- RN4 - O token de redefinição é invalidado após o primeiro uso.
+
+**Prioridade:** Média
+
+---
+
+<a id="uc-37"></a>
+
+### UC-37 - Desativar Usuário
+
+**Descrição:** Permite ao Administrador desativar um usuário, impedindo novos logins e invalidando suas sessões, sem apagar o registro.
+
+**Atores:** Administrador
+
+**Pré-condição:** O Administrador está autenticado e o usuário-alvo está ativo.
+
+**Fluxo principal:**
+
+1. O Administrador acessa a tela de gestão de usuários.
+2. O Administrador seleciona o usuário ativo e aciona "Desativar".
+3. O sistema solicita confirmação.
+4. O Administrador confirma.
+5. O sistema marca o usuário como inativo (exclusão lógica).
+6. O sistema invalida todos os tokens de acesso ativos do usuário.
+7. O sistema exibe mensagem de sucesso.
+
+**Fluxos alternativos:**
+
+- FA1 - Cancelamento (passo 3 ou 4): o sistema não altera o usuário e retorna à lista.
+
+**Pós-condição:** O usuário está inativo, não consegue fazer login e seus tokens anteriores deixaram de valer. O registro permanece no sistema.
+
+**Regras de negócio:**
+
+- RN1 - Somente o Administrador desativa usuários.
+- RN2 - A desativação é lógica: o registro e o histórico são preservados.
+- RN3 - Conta inativa retorna a mensagem genérica de credenciais inválidas e não incrementa tentativas (RN-06.4).
+
+**Prioridade:** Alta
+
+---
+
+<a id="uc-38"></a>
+
+### UC-38 - Reativar Usuário
+
+**Descrição:** Permite ao Administrador reativar um usuário inativo, restaurando seu acesso com uma nova senha enviada por e-mail.
+
+**Atores:** Administrador
+
+**Pré-condição:** O Administrador está autenticado e o usuário-alvo está inativo.
+
+**Fluxo principal:**
+
+1. O Administrador acessa a tela de gestão de usuários.
+2. O Administrador seleciona o usuário inativo e aciona "Reativar".
+3. O sistema solicita confirmação.
+4. O Administrador confirma.
+5. O sistema marca o usuário como ativo.
+6. O sistema gera uma nova senha e a envia por e-mail ao usuário.
+7. O sistema exibe mensagem de sucesso.
+
+**Fluxos alternativos:**
+
+- FA1 - Cancelamento (passo 3 ou 4): o sistema não altera o usuário e retorna à lista.
+
+**Pós-condição:** O usuário está ativo e pode fazer login com a nova senha.
+
+**Regras de negócio:**
+
+- RN1 - Somente o Administrador reativa usuários.
+- RN2 - A nova senha segue a política mínima de segurança (RN-06.15).
+
+**Prioridade:** Alta
+
+<a id="uc-39"></a>
+
+### UC-39 - Gerenciar Produtos
+
+**Descrição:** Permite ao Financeiro e ao Administrador cadastrar, alterar e desativar produtos do catálogo, com preço unitário.
+
+**Atores:** Administrador, Financeiro
+
+**Pré-condição:** O usuário está autenticado com perfil Administrador ou Financeiro.
+
+**Fluxo principal:**
+
+1. O usuário acessa a tela de produtos.
+2. O usuário informa nome, tipo, unidade e preço unitário, ou seleciona um produto existente.
+3. O usuário confirma.
+4. O sistema valida os dados.
+5. O sistema salva o produto.
+6. O sistema exibe mensagem de sucesso.
+
+**Fluxos alternativos:**
+
+- FA1 - Preço ausente ou inválido (passo 4): o sistema destaca o campo e retorna ao passo 2.
+- FA2 - Desativação (passo 2): o usuário marca o produto como inativo. Ele deixa de aparecer para novas inclusões, e os materiais já incluídos são mantidos.
+- FA3 - Cancelamento (passo 3): o sistema descarta os dados.
+
+**Pós-condição:** O produto está cadastrado, alterado ou desativado no catálogo.
+
+**Regras de negócio:**
+
+- RN1 - Somente Administrador e Financeiro gerenciam produtos e preços.
+- RN2 - Produto desativado não entra em novas inclusões de material (RN-08).
+- RN3 - Alterar o preço não altera o custo de materiais já incluídos (ver Q13).
+
+**Prioridade:** Alta
+
+---
+
+<a id="uc-40"></a>
+
+### UC-40 - Adicionar Material à Obra
+
+**Descrição:** Permite à Engenharia e ao Administrador incluir materiais em uma obra a partir do catálogo de produtos.
+
+**Atores:** Administrador, Engenharia
+
+**Pré-condição:** O usuário está autenticado e a obra existe.
+
+**Fluxo principal:**
+
+1. O usuário abre a obra na página Obras e acessa a aba Materiais.
+2. O usuário escolhe um produto da lista de produtos ativos.
+3. O usuário informa a quantidade.
+4. O usuário confirma.
+5. O sistema valida o produto e a quantidade.
+6. O sistema cria o material com status "em solicitação".
+7. O sistema registra a ação na linha do tempo.
+
+**Fluxos alternativos:**
+
+- FA1 - Produto inexistente ou inativo (passo 5): o sistema recusa a inclusão e retorna ao passo 2.
+- FA2 - Quantidade inválida (passo 5): o sistema destaca o campo e retorna ao passo 3.
+- FA3 - Cancelamento (passo 4): o sistema descarta a inclusão.
+
+**Pós-condição:** O material está incluído na obra com status "em solicitação".
+
+**Regras de negócio:**
+
+- RN1 - Só é possível incluir produto cadastrado e ativo (RN-08).
+- RN2 - A Engenharia não vê preços na lista de produtos.
+- RN3 - O status inicial é sempre "em solicitação".
+
+**Prioridade:** Alta
+
+---
+
+<a id="uc-41"></a>
+
+### UC-41 - Atualizar Status do Material
+
+**Descrição:** Permite ao Financeiro e ao Administrador atualizar o status logístico de um material da obra.
+
+**Atores:** Administrador, Financeiro
+
+**Pré-condição:** O usuário está autenticado com perfil Administrador ou Financeiro e o material existe.
+
+**Fluxo principal:**
+
+1. O usuário abre o material na aba Materiais da obra.
+2. O usuário escolhe o novo status.
+3. O usuário confirma.
+4. O sistema valida a ordem do status (Q12).
+5. O sistema atualiza o status e grava o registro de auditoria.
+6. O sistema atualiza o rótulo e a cor no Kanban e no Gantt.
+
+**Fluxos alternativos:**
+
+- FA1 - Transição não prevista (passo 4): o sistema informa o status atual e os próximos permitidos, sem alterar o material.
+- FA2 - Cancelamento (passo 3): o sistema mantém o status atual.
+
+**Pós-condição:** O material está com o novo status, visível no Kanban e no Gantt, com registro de auditoria.
+
+**Regras de negócio:**
+
+- RN1 - Ordem: EmSolicitacao, Comprado, EmTransito, Disponivel, Utilizado (RN-08).
+- RN2 - A Engenharia não altera o status (resposta `403`).
+- RN3 - Toda alteração grava log com usuário, data e hora.
+
+**Prioridade:** Média
+
+---
