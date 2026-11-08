@@ -109,7 +109,7 @@ export function ExportarDetalhesInstalacao({ obraId, contextoValido, sinalContex
           role="menu"
           aria-label="Opções de exportação"
           aria-orientation="vertical"
-          className="absolute right-0 mt-1 w-48 rounded-lg bg-surface border border-border-subtle shadow-xl z-[70] py-1 text-xs"
+          className="absolute right-0 mt-1 w-48 rounded-lg bg-surface border border-border-subtle z-[70] py-1 text-xs"
         >
           <div className="px-3 py-1.5 text-[10px] text-muted-foreground border-b border-border-subtle/60 select-none">
             Exporta os dados salvos da obra

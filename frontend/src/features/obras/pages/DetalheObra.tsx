@@ -311,7 +311,7 @@ export default function DetalheObra() {
                     value={novoComentario}
                     onChange={(e) => setNovoComentario(e.target.value)}
                     placeholder="Adicionar um comentário ou observação na obra..."
-                    className="flex-1 bg-surface border border-border-subtle rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-info/20 focus:border-info transition-colors"
+                    className="flex-1 bg-surface border border-border-subtle rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border-strong focus:border-border-strong transition-colors"
                     disabled={addComentario.isPending}
                   />
                   <Button
