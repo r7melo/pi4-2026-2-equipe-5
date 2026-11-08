@@ -13,15 +13,16 @@ const campos = {
   tipo: z.string().trim().min(1).max(200),
   quantidade: z.number().int().nonnegative().refine(Number.isSafeInteger),
   statusLogistico: z.enum(["Comprado", "EmTransito", "Disponivel", "Utilizado"]).nullable().optional(),
+  custoUnitario: z.number().nonnegative().nullable().optional(),
 };
 // Preservar POST legado de MateriaisObra e ignorar identidade enviada pelo cliente.
-const criar = z.object({ ...campos, tipo: campos.tipo.optional(), descricao: z.string().optional(), unidade: z.string().optional(), custoUnitario: z.number().nonnegative().optional() }).refine(d => Boolean(d.tipo || d.descricao));
+const criar = z.object({ ...campos, tipo: campos.tipo.optional(), descricao: z.string().optional(), unidade: z.string().optional() }).refine(d => Boolean(d.tipo || d.descricao));
 const alterar = z.object(campos).partial().strict().refine(d => Object.keys(d).length > 0);
 const erroValidacao: [number, unknown] = [400, { error: { code: "VALIDATION_ERROR", message: "Dados do material inválidos." } }];
 const erroPermissao: [number, unknown] = [403, { error: { code: "FORBIDDEN", message: "Operação não permitida para este perfil." } }];
 const podeAlterar = (authorization: unknown) => {
   const perfil = resolverUsuarioAutenticadoMock(authorization)?.perfil.nomePerfil;
-  return perfil === "Administrador" || perfil === "Engenharia";
+  return perfil === "Administrador" || perfil === "Engenharia" || perfil === "Financeiro";
 };
 
 export function registrarMateriais(mock: MockAdapter): void {

@@ -4,7 +4,7 @@ import { obterObrasArmazenadas } from "../dados/obras";
 import { obterMateriaisArmazenados } from "../dados/materiais";
 import { obterProgramacoesArmazenadas } from "../dados/programacoes";
 import { obterEquipesArmazenadas } from "../dados/equipes";
-import { obterDetalhesArmazenados } from "../dados/detalhes";
+import { detalheCenario } from "../dados/detalhes";
 
 export function registrarInstalador(mock: MockAdapter): void {
   // GET /api/instalador/instalacoes — Rota #37
@@ -17,7 +17,7 @@ export function registrarInstalador(mock: MockAdapter): void {
 
     const equipeId = usuario.equipeId;
     const equipes = obterEquipesArmazenadas();
-    const equipe = equipes.find((e) => e.id === equipeId || e.instaladorIds.includes(usuario.id)) || equipes[0];
+    const equipe = equipes.find((e) => e.id === equipeId || e.membros?.some((m) => m.id === usuario.id)) || equipes[0];
 
     const programacoes = obterProgramacoesArmazenadas();
     const progsEquipe = equipe
@@ -29,6 +29,7 @@ export function registrarInstalador(mock: MockAdapter): void {
 
     const resultado = progsFiltradas.map((p) => {
       const obra = obras.find((o) => o.id === p.obraId);
+      const equipeProg = equipes.find((e) => e.id === p.equipeId);
       return {
         obraId: p.obraId,
         clienteNome: obra?.clienteNome || "Cliente",
@@ -36,7 +37,7 @@ export function registrarInstalador(mock: MockAdapter): void {
         status: obra?.status || "EmAndamento",
         dataInicio: p.dataInicio,
         dataFim: p.dataFim,
-        equipeNome: p.nomeEquipe || equipe?.nome || "Equipe Alfa",
+        equipeNome: equipeProg?.nome || equipe?.nome || "Equipe Alfa",
       };
     });
 
@@ -58,8 +59,7 @@ export function registrarInstalador(mock: MockAdapter): void {
     const obra = obras.find((o) => o.id === obraId);
     if (!obra) return [404, { error: { code: "OBRA_NOT_FOUND", message: "Obra não encontrada." } }];
 
-    const detalhesMap = obterDetalhesArmazenados();
-    const detalheObra = detalhesMap[obraId];
+    const detalheObra = detalheCenario(obraId);
 
     const materiais = obterMateriaisArmazenados().filter((m) => m.obraId === obraId);
     const kit = materiais.length > 0
@@ -72,6 +72,8 @@ export function registrarInstalador(mock: MockAdapter): void {
 
     const programacoes = obterProgramacoesArmazenadas();
     const prog = programacoes.find((p) => p.obraId === obraId);
+    const equipes = obterEquipesArmazenadas();
+    const equipeProg = prog ? equipes.find((e) => e.id === prog.equipeId) : undefined;
 
     const endereco = obra.endereco || detalheObra?.endereco || `${obra.cidade || "Crateús/CE"}`;
     const linkNavegacao = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
@@ -87,7 +89,7 @@ export function registrarInstalador(mock: MockAdapter): void {
       instrucoes: detalheObra?.descricao || "Fixar trilhos de alumínio antes de subir os painéis. Aterrar inversor na carcaça.",
       dataInicio: prog?.dataInicio || obra.dataFimEstimada,
       dataFim: prog?.dataFim || obra.dataFimEstimada,
-      equipeNome: prog?.nomeEquipe || "Equipe Alfa",
+      equipeNome: equipeProg?.nome || "Equipe Alfa",
     }];
   });
 }

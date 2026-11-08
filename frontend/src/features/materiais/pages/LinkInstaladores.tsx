@@ -68,8 +68,8 @@ export default function InstaladorMobile() {
               titulo="Falha ao carregar instalação"
               mensagem="Não foi possível obter as informações de instalação da equipe."
               onTentarNovamente={() => {
-                refetchLista();
-                refetchDetalhes();
+                void refetchLista();
+                void refetchDetalhes();
               }}
             />
           </div>
@@ -158,8 +158,8 @@ export default function InstaladorMobile() {
                 <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
                   {detalhes.kit && detalhes.kit.length > 0 ? (
                     <ul className="divide-y divide-border-subtle">
-                      {detalhes.kit.map((item, idx) => (
-                        <li key={`${item.tipo}-${idx}`} className="py-2.5 px-4 flex items-center justify-between">
+                      {detalhes.kit.map((item) => (
+                        <li key={item.tipo} className="py-2.5 px-4 flex items-center justify-between">
                           <span className="text-xs font-medium text-foreground">{item.tipo}</span>
                           <span className="text-xs font-bold font-mono text-foreground">{item.quantidade} unid.</span>
                         </li>

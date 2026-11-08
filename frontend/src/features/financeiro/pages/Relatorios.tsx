@@ -247,18 +247,25 @@ export default function Relatorios() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
-                      <th className="px-5 py-3">Cliente</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-right">Painéis</th>
-                      <th className="px-4 py-3">Cidade</th>
+                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="py-3 px-6 text-left min-w-[240px]">Cliente / Obra</th>
+                      <th className="py-3 px-5 text-left w-36">Status</th>
+                      <th className="py-3 px-6 text-right w-36">Painéis</th>
+                      <th className="py-3 px-6 text-left min-w-[160px]">Cidade</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-subtle">
                     {obrasDoPeriodo.map((obra) => (
-                      <tr key={obra.id} className="hover:bg-surface-subtle/70 transition-colors">
-                        <td className="px-5 py-3.5 font-medium text-foreground">{obra.clienteNome}</td>
-                        <td className="px-4 py-3.5">
+                      <tr key={obra.id} className="hover:bg-surface-subtle/50 transition-colors">
+                        <td className="py-3.5 px-6">
+                          <p className="font-semibold text-foreground text-sm leading-snug">
+                            {obra.clienteNome}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                            Obra #{obra.id} • {obra.categoria || "Residencial"}
+                          </p>
+                        </td>
+                        <td className="py-3.5 px-5">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                             obra.status === "Concluido"
                               ? "bg-success-light text-success border-success-border"
@@ -269,10 +276,12 @@ export default function Relatorios() {
                             {obra.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-right font-mono font-medium text-foreground">
+                        <td className="py-3.5 px-6 text-right font-mono text-sm font-bold text-foreground">
                           {obra.quantidadePaineis ? obra.quantidadePaineis.toLocaleString("pt-BR") : "—"}
                         </td>
-                        <td className="px-4 py-3.5 text-muted-foreground">{obra.cidade || "—"}</td>
+                        <td className="py-3.5 px-6 text-left text-sm text-foreground-secondary">
+                          {obra.cidade || "—"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

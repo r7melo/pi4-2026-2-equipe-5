@@ -98,7 +98,11 @@ export function gerarDadosCenario(base: string): Record<string, string> {
     detalhes[id] = { id, status, cliente: { id: cliente.id, nome: cliente.nome, cidade: cliente.cidade }, pagamento: { id: 1000 + id, prazoContratualDias, dataConfirmacao: pagamentoEm }, dataInicioEstimada: estimadoInicio, dataFimEstimada: estimadoFim, dataInicioReal: inicioReal, dataFimReal: fimReal, categoria: obra.categoria, quantidadePaineis, quantidadeInversores: 1 + i % 3, ...(parcial ? {} : { endereco: cliente.endereco, descricao: observacoes }), ...(valorTotal !== undefined ? { valorTotal } : {}) };
     if (!parcial) {
       const statusLogistico = ["EmAndamento", "Concluido", "Assistencia"].includes(status) ? "Utilizado" : status === "MaterialComprado" ? (i % 3 ? "EmTransito" : "Comprado") : "Disponivel";
-      const itens = [{ descricao: "Módulo fotovoltaico 550 W", quantidade: quantidadePaineis, unidade: "un" }, { descricao: "Inversor fotovoltaico", quantidade: 1 + i % 3, unidade: "un" }, { descricao: "Cabo solar 6 mm", quantidade: 40 + i * 10, unidade: "m" }];
+      const itens = [
+        { descricao: "Módulo fotovoltaico 550 W", quantidade: quantidadePaineis, unidade: "un", custoUnitario: 350 },
+        { descricao: "Inversor fotovoltaico", quantidade: 1 + i % 3, unidade: "un", custoUnitario: 1200 },
+        { descricao: "Cabo solar 6 mm", quantidade: 40 + i * 10, unidade: "m", custoUnitario: 8.5 },
+      ];
       itens.forEach(item => materiais.push({ id: 501 + materiais.length, obraId: id, ...item, statusLogistico }));
     }
     const caminho: StatusObra[] = ["MaterialComprado", "NoDeposito", "Separado", "EmAndamento", "Concluido", "Assistencia"];
