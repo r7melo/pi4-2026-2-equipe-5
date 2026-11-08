@@ -6,7 +6,7 @@ namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api/obras")]
-public class ObrasController(BancoDados banco) : ControllerBase
+public class ObrasController(BancoDados banco, ObrasNotificador notificador) : ControllerBase
 {
     static readonly string[] Categorias = ["Residencial", "Comercial"];
 
@@ -26,7 +26,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     // Rota 7 — UC-01, RF-03
     [Authorize(Roles = Perfis.Gestao)]
     [HttpPost]
-    public IActionResult Criar(CriarObraEntrada e)
+    public async Task<IActionResult> Criar(CriarObraEntrada e)
     {
         if (e.QuantidadePaineis is null or <= 0)
             return Validacao("quantidadePaineis é obrigatório e deve ser maior que zero.");
@@ -62,6 +62,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
                 e.QuantidadeInversores, e.Endereco.Trim(), Limpar(e.Descricao), e.DataInicioEstimada,
                 e.DataFimEstimada, e.Pagamento.DataConfirmacao.Value, e.Pagamento.PrazoContratualDias.Value,
                 this.UsuarioAtualId());
+            await notificador.ObraAtualizadaAsync();
             return Created($"/api/obras/{obra.Id}", obra);
         }
         catch (RegraVioladaException ex)
@@ -95,7 +96,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     // Rota 9 — UC-01, RF-03
     [Authorize(Roles = Perfis.Gestao)]
     [HttpPut("{id:int}")]
-    public IActionResult Editar(int id, EditarObraEntrada e)
+    public async Task<IActionResult> Editar(int id, EditarObraEntrada e)
     {
         var atual = banco.BuscarObra(id);
         if (atual is null) return ObraNaoEncontrada(id);
@@ -119,13 +120,15 @@ public class ObrasController(BancoDados banco) : ControllerBase
         var obra = banco.EditarObra(id, e.Cidade, e.Categoria, e.QuantidadePaineis, e.QuantidadeInversores,
             e.Endereco?.Trim(), Limpar(e.Descricao), e.DataInicioEstimada, e.DataFimEstimada,
             e.Pagamento?.PrazoContratualDias, e.Pagamento?.DataConfirmacao);
-        return obra is null ? ObraNaoEncontrada(id) : Ok(Detalhe(obra));
+        if (obra is null) return ObraNaoEncontrada(id);
+        await notificador.ObraAtualizadaAsync();
+        return Ok(Detalhe(obra));
     }
 
     // Rota 11 — UC-02, RF-04, RF-06, RF-10, RF-13
     [Authorize(Roles = Perfis.Gestao)]
     [HttpPatch("{id:int}/status")]
-    public IActionResult MoverStatus(int id, MoverStatusEntrada e)
+    public async Task<IActionResult> MoverStatus(int id, MoverStatusEntrada e)
     {
         if (string.IsNullOrWhiteSpace(e.StatusNovo))
             return Erro.Criar(400, "MISSING_STATUS", "Novo status não informado (campo statusNovo).");
@@ -138,6 +141,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
             return Erro.Criar(400, "INVALID_STATUS_TRANSITION",
                 $"Não é possível mover a obra de {movimento.StatusAnterior} para {e.StatusNovo}. " +
                 $"Próxima(s) etapa(s) permitida(s): {string.Join(", ", movimento.Permitidos)}.");
+        await notificador.ObraAtualizadaAsync();
         return Ok(new
         {
             movimento.Id, movimento.StatusAnterior, movimento.StatusNovo,
@@ -161,7 +165,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
     // Rota 13 — RF-06
     [Authorize(Roles = Perfis.Gestao)]
     [HttpPost("{id:int}/materiais")]
-    public IActionResult RegistrarMaterial(int id, MaterialEntrada e)
+    public async Task<IActionResult> RegistrarMaterial(int id, MaterialEntrada e)
     {
         if (string.IsNullOrWhiteSpace(e.Tipo) || e.Tipo.Trim().Length > 200)
             return Validacao("tipo é obrigatório e deve ter no máximo 200 caracteres.");
@@ -175,6 +179,7 @@ public class ObrasController(BancoDados banco) : ControllerBase
         if (banco.BuscarObra(id) is null) return ObraNaoEncontrada(id);
 
         var material = banco.CriarMaterial(id, e.Tipo.Trim(), e.Quantidade.Value, e.CustoUnitario, e.StatusLogistico);
+        await notificador.MaterialAtualizadoAsync();
         return Created($"/api/obras/{id}/materiais", material);
     }
 

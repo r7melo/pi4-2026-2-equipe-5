@@ -5,7 +5,7 @@ namespace Backend.Api.Controllers;
 
 [ApiController]
 [Route("api")]
-public class ComentariosController(BancoDados banco) : ControllerBase
+public class ComentariosController(BancoDados banco, ObrasNotificador notificador) : ControllerBase
 {
     static readonly string[] Tipos = ["Cartao", "Manutencao", "Timeline"];
     // Comentário de manutenção é criado pela rota do instalador (#35), não por esta.
@@ -29,7 +29,7 @@ public class ComentariosController(BancoDados banco) : ControllerBase
     // Rota 17 — RF-04, RF-11 (04-regras-negocio.md, seção 5)
     [Authorize(Roles = Perfis.Comentaristas)]
     [HttpPost("obras/{id:int}/comentarios")]
-    public IActionResult Criar(int id, CriarComentarioEntrada e)
+    public async Task<IActionResult> Criar(int id, CriarComentarioEntrada e)
     {
         if (e.Tipo == "Manutencao")
             return Validacao("Comentário de manutenção é criado em POST /api/manutencoes/{id}/comentarios.");
@@ -44,6 +44,7 @@ public class ComentariosController(BancoDados banco) : ControllerBase
             return this.AcessoNegado("O perfil Financeiro comenta somente na timeline (tipo Timeline).", "FinanceiroForaDaTimeline");
 
         var comentario = banco.CriarComentario(id, tipo, e.Descricao.Trim(), this.UsuarioAtualId());
+        await notificador.ComentarioCriadoAsync();
         return Created($"/api/obras/{id}/comentarios", comentario);
     }
 

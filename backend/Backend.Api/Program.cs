@@ -14,6 +14,7 @@ builder.Services.AddSingleton(autenticacao);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(autenticacao.Configurar);
 builder.Services.AddAuthorization();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<ObrasNotificador>();
 
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
 {

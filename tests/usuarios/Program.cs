@@ -170,7 +170,10 @@ await Case("Fluxo real: instalador livre, equipe e novo login sem ampliar token 
     host.Configuration["JWT_SECRET"] = "segredo-isolado-do-fluxo-de-equipes-2026";
     var autenticacao = new Autenticacao(host.Configuration, host.Environment);
     var auth = new AuthController(banco, autenticacao);
-    using var services = new ServiceCollection().AddSingleton(banco).BuildServiceProvider();
+    var setup = new ServiceCollection().AddSingleton(banco).AddLogging();
+    setup.AddSignalR();
+    setup.AddSingleton<ObrasNotificador>();
+    using var services = setup.BuildServiceProvider();
     string Login()
     {
         var result = auth.Login(new AuthController.LoginEntrada(primeiro.Email, "SenhaTeste123!"));
@@ -178,7 +181,7 @@ await Case("Fluxo real: instalador livre, equipe e novo login sem ampliar token 
         var body = JsonSerializer.SerializeToElement(((OkObjectResult)result).Value, publicJson);
         return body.GetProperty("token").GetString()!;
     }
-    ProgramacoesController Cronograma(string token) => new(banco)
+    ProgramacoesController Cronograma(string token) => new(banco, services.GetRequiredService<ObrasNotificador>())
     {
         ControllerContext = new ControllerContext
         {
