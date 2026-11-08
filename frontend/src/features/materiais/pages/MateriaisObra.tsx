@@ -339,7 +339,7 @@ export default function MateriaisObra() {
             </Button>
             <Button
               type="button"
-              variant="destructive"
+              variant="danger"
               disabled={excluirMutation.isPending}
               onClick={handleConfirmarExclusao}
               className="h-9 px-3.5 text-xs font-medium cursor-pointer"
