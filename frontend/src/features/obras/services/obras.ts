@@ -39,9 +39,9 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCadastra
   };
 
   const enderecoEfetivo =
-    payload.endereco ||
-    (payload.cliente?.endereco ? `${payload.cliente.endereco}` : undefined) ||
-    `${payload.cidade || "Campinas"} - Centro`;
+    payload.endereco?.trim() ||
+    payload.cliente?.endereco?.trim() ||
+    "";
 
   const corpo = payload.cliente
     ? {
@@ -63,7 +63,7 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCadastra
         pagamento,
       }
     : {
-        clienteId: payload.clienteId || 1,
+        clienteId: payload.clienteId!,
         categoria: payload.categoria || "Residencial",
         quantidadePaineis: payload.quantidadePaineis,
         quantidadeInversores: payload.quantidadeInversores ?? 1,
@@ -77,8 +77,8 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCadastra
   return {
     id: resposta.id,
     clienteId: resposta.clienteId,
-    clienteNome: payload.cliente?.nome || payload.clienteNome || "Cliente Cadastrado",
-    status: (resposta.status as StatusObra) || "MaterialComprado",
+    clienteNome: payload.cliente?.nome || payload.clienteNome || "",
+    status: resposta.status as StatusObra,
     categoria: (payload.categoria as CategoriaObra) || "Residencial",
     quantidadePaineis: payload.quantidadePaineis,
     dataFimEstimada: resposta.dataFimEstimada || payload.dataFimEstimada,

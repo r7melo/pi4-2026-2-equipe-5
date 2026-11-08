@@ -146,7 +146,7 @@ export default function CadastrarObra() {
           clienteId: dados.clienteId,
           clienteNome: dados.clienteNome,
           cidade: dados.cidade,
-          endereco: dados.endereco || `${dados.cidade} - Centro`,
+          endereco: dados.endereco?.trim() || "",
           categoria: dados.categoria,
           quantidadePaineis: Number(dados.quantidadePaineis),
           quantidadeInversores: Number(dados.quantidadeInversores ?? 1),
