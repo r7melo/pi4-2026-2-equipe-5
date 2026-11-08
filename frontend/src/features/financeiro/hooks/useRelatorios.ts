@@ -5,7 +5,7 @@ import type { PedidoExportacaoRelatorio, AtualizarCustosPayload } from '@/types'
 import { exportarRelatorio } from '../services/relatorios';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  gerarLinkRelatorioDemonstracao,
+  gerarLinkCompartilhadoRelatorio,
   buscarRelatorioCusto,
   buscarDreObra,
   buscarCustosObra,
@@ -63,7 +63,10 @@ export function useObrasSelect() {
 }
 
 export function useLinkRelatorioDemonstracao() {
-  return useMutation({ mutationFn: gerarLinkRelatorioDemonstracao, retry: false });
+  return useMutation({
+    mutationFn: (periodo: { dataInicio: string; dataFim: string }) => gerarLinkCompartilhadoRelatorio(periodo),
+    retry: false,
+  });
 }
 
 export function useExportarRelatorio() {

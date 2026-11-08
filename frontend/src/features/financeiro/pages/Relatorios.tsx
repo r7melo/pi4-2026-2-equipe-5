@@ -68,10 +68,11 @@ export default function Relatorios() {
     const origem = contextoDemonstracao();
     setGerandoLink(true);
     try {
-      // RF-16: Link compartilhável público para cronograma/relatório
-      const token = MOCK_ATIVO
-        ? await gerarLinkMock.mutateAsync({ periodoInicio, periodoFim, clienteFiltro: clienteSelecionado })
-        : await new Promise<string>(r => setTimeout(() => r(btoa(`${periodoInicio}|${periodoFim}|${clienteSelecionado}`)), 900));
+      // Rota #42 (RF-16): Link compartilhável público para cronograma/relatório
+      const token = await gerarLinkMock.mutateAsync({
+        dataInicio: periodoInicio,
+        dataFim: periodoFim,
+      });
       if (!contextoDemonstracaoVigente(origem)) return;
       const link = `${window.location.origin}/relatorio-publico/${token}`;
       await executarEfeitoDemonstracao(origem, () => navigator.clipboard.writeText(link));
@@ -271,7 +272,7 @@ export default function Relatorios() {
                         <td className="px-4 py-3.5 text-right font-mono font-medium text-foreground">
                           {obra.quantidadePaineis ? obra.quantidadePaineis.toLocaleString("pt-BR") : "—"}
                         </td>
-                        <td className="px-4 py-3.5 text-muted-foreground">—</td>
+                        <td className="px-4 py-3.5 text-muted-foreground">{obra.cidade || "—"}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -49,8 +49,17 @@ export async function exportarRelatorio(formato: "pdf" | "excel", filtros?: Filt
   }
 }
 
-/** Extensao interna: consumidor habilitado somente quando o mock esta ativo. */
-export async function gerarLinkRelatorioDemonstracao(filtros: FiltrosRelatorioDemonstracao): Promise<string> {
-  const { data } = await api.post<{ token: string }>("/mock/relatorios/compartilhado", filtros);
+/** POST /api/cronograma/compartilhado — Rota #42 (RF-16) */
+export async function gerarLinkCompartilhadoRelatorio(
+  periodo: { dataInicio: string; dataFim: string },
+  sessao?: number
+): Promise<string> {
+  const { data } = await api.post<{ token: string }>("/cronograma/compartilhado", periodo, {
+    ...(sessao ? { sessao403: sessao } : {}),
+  });
   return data.token;
 }
+
+// Retrocompatibilidade
+export const gerarLinkRelatorioDemonstracao = (filtros: FiltrosRelatorioDemonstracao) =>
+  gerarLinkCompartilhadoRelatorio({ dataInicio: filtros.periodoInicio, dataFim: filtros.periodoFim });
