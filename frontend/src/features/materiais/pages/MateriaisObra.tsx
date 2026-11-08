@@ -113,7 +113,7 @@ export default function MateriaisObra() {
         />
         <FeedbackErro
           titulo="Não foi possível carregar os materiais"
-          mensagem={(error as Error)?.message || "Erro ao conectar com a API de materiais. Verifique se o servidor está ativo."}
+          mensagem={error instanceof Error ? error.message : "Erro ao conectar com a API de materiais. Verifique se o servidor está ativo."}
           onTentarNovamente={() => void refetch()}
         />
       </div>
@@ -129,7 +129,7 @@ export default function MateriaisObra() {
         backState={locationState}
       />
 
-      <div className="bg-surface border-b border-border-subtle px-6 py-4 flex items-center justify-between shrink-0 shadow-2xs">
+      <div className="bg-surface border-b border-border-subtle px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(`/obras/${obraId}`, { state: locationState })}
@@ -150,7 +150,7 @@ export default function MateriaisObra() {
 
         <Button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 cursor-pointer shadow-xs"
+          className="flex items-center gap-2 cursor-pointer"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {showForm ? "Fechar Formulário" : "Adicionar Insumo"}
@@ -162,7 +162,7 @@ export default function MateriaisObra() {
           {showForm && (
             <form
               onSubmit={handleAdd}
-              className="bg-surface p-5 rounded-xl border border-border-subtle shadow-xs flex flex-col md:flex-row gap-4 items-end animate-in fade-in slide-in-from-top-4"
+              className="bg-surface p-5 rounded-xl border border-border-subtle flex flex-col md:flex-row gap-4 items-end animate-in fade-in slide-in-from-top-4"
             >
               <div className="flex-1 w-full">
                 <label className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
@@ -235,7 +235,7 @@ export default function MateriaisObra() {
           )}
 
           {/* 3. ESTADO VAZIO OU 4. ESTADO COM DADOS */}
-          <div className="bg-surface rounded-xl border border-border-subtle shadow-xs overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
             {!materiais || materiais.length === 0 ? (
               <EmptyState
                 icone={Package}
@@ -249,10 +249,10 @@ export default function MateriaisObra() {
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-surface-subtle border-b border-border-subtle text-xs uppercase font-bold text-foreground-muted tracking-wider">
+                  <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
                     <th className="p-4">Item / Insumo</th>
-                    <th className="p-4">Quantidade</th>
-                    <th className="p-4">Custo Unitário</th>
+                    <th className="p-4 text-right">Quantidade</th>
+                    <th className="p-4 text-right">Custo Unitário</th>
                     <th className="p-4">Status Logístico</th>
                   </tr>
                 </thead>
@@ -263,15 +263,15 @@ export default function MateriaisObra() {
                         <p className="font-semibold text-foreground">{mat.tipo || mat.descricao || "Item sem descrição"}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">Identificador #{mat.id}</p>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 text-right font-mono">
                         <span className="font-bold text-foreground">{mat.quantidade}</span>
                         {mat.quantidadeUtilizada ? (
-                          <span className="text-xs text-muted-foreground ml-1.5">
-                            ({mat.quantidadeUtilizada} instalados)
+                          <span className="text-xs text-muted-foreground ml-1.5 font-sans font-normal">
+                            ({mat.quantidadeUtilizada} inst.)
                           </span>
                         ) : null}
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 text-right font-mono">
                         <span className="text-sm font-medium text-foreground">
                           {mat.custoUnitario ? formatarMoeda(mat.custoUnitario) : "—"}
                         </span>

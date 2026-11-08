@@ -66,6 +66,9 @@ export function useEditarObra() {
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
       void queryClient.invalidateQueries({ queryKey: ["obra", variables.id] });
+      void queryClient.invalidateQueries({ queryKey: ["dre"] });
+      void queryClient.invalidateQueries({ queryKey: ["custos"] });
+      void queryClient.invalidateQueries({ queryKey: ["relatorio-custo"] });
       toast.success("Dados da obra atualizados com sucesso.");
     },
     onError: (err: unknown) => {

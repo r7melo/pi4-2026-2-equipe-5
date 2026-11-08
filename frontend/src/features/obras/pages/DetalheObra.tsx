@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useObraDetalhe, useHistoricoObra, useComentariosObra, useAdicionarComentario } from "@/features/obras/hooks/useObraDetalhe";
+import { useAuthStore } from "@/features/auth/stores/useAuthStore";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
+import { ModalEditarObra } from "../components/ModalEditarObra";
+import { ExportarDetalhesInstalacao } from "../components/ExportarDetalhesInstalacao";
 import {
   Calendar,
   MapPin,
@@ -17,6 +20,7 @@ import {
   Package,
   Zap,
   FileQuestion,
+  Edit3,
 } from "lucide-react";
 import { formatarDataBR } from "@/shared/lib/formatters";
 
@@ -25,6 +29,10 @@ export default function DetalheObra() {
   const navigate = useNavigate();
   const location = useLocation();
   const obraId = Number(id);
+
+  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const podeEditarObra = perfil === "Administrador" || perfil === "Engenharia";
+  const podeExportarInstalacao = perfil === "Administrador";
 
   const stateFrom = location.state as { from?: string; selectedObraId?: number } | null;
   const paginaOrigem = stateFrom?.from ?? "/kanban";
@@ -36,6 +44,7 @@ export default function DetalheObra() {
   const addComentario = useAdicionarComentario();
 
   const [novoComentario, setNovoComentario] = useState("");
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
 
   const handleComentar = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,13 +109,32 @@ export default function DetalheObra() {
         subtitle={`#${obra.id} • Status: ${obra.status}`}
         backTo={paginaOrigem}
         backState={backState}
-      />
+      >
+        <div className="flex items-center gap-2">
+          {podeEditarObra && (
+            <Button
+              onClick={() => setModalEditarAberto(true)}
+              className="flex items-center gap-2 text-xs"
+            >
+              <Edit3 className="w-4 h-4" />
+              Editar Obra
+            </Button>
+          )}
+
+          {podeExportarInstalacao && (
+            <ExportarDetalhesInstalacao
+              obraId={obra.id}
+              contextoValido={() => true}
+            />
+          )}
+        </div>
+      </PageHeader>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* COLUNA ESQUERDA: Dados Técnicos e Contratuais */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-surface p-5 rounded-xl border border-border-subtle shadow-xs space-y-5">
+            <div className="bg-surface p-5 rounded-xl border border-border-subtle space-y-5">
               <div className="flex items-center justify-between border-b border-border-subtle pb-3">
                 <h2 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
                   Dados do Contrato e Local
@@ -187,7 +215,7 @@ export default function DetalheObra() {
                       state: { from: paginaOrigem, selectedObraId: obraId },
                     })
                   }
-                  className="w-full flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                  className="w-full flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Package className="w-4 h-4" />
                   Gerenciar Materiais da Obra
@@ -198,7 +226,7 @@ export default function DetalheObra() {
 
           {/* COLUNA DIREITA: Feed (Histórico e Comentários) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-surface rounded-xl border border-border-subtle shadow-xs flex flex-col h-[620px]">
+            <div className="bg-surface rounded-xl border border-border-subtle flex flex-col h-[620px]">
               <div className="p-4 border-b border-border-subtle flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-5 h-5 text-foreground-muted" />
@@ -299,6 +327,13 @@ export default function DetalheObra() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Edição */}
+      <ModalEditarObra
+        isOpen={modalEditarAberto}
+        onClose={() => setModalEditarAberto(false)}
+        obra={obra}
+      />
     </div>
   );
 }

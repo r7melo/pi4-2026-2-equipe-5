@@ -63,7 +63,7 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
           {podeGerenciarCustos && (
             <Button
               onClick={() => setModalAberto(true)}
-              className="flex items-center gap-2 text-xs shadow-xs"
+              className="flex items-center gap-2 text-xs"
             >
               <PlusCircle className="w-4 h-4" />
               Lançar / Atualizar Custos
@@ -99,14 +99,12 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
         </div>
       )}
 
-      {/* Cards de Resumo Executivo (Anti-Slop com tipografia tabular) */}
+      {/* Cards de Resumo Executivo (Anti-Slop com painéis planos e tipografia tabular) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-surface rounded-xl p-5 border border-border-subtle shadow-xs">
+        <div className="bg-surface rounded-xl p-5 border border-border-subtle">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valor da Obra (Receita)</p>
-            <div className="bg-surface-subtle p-2 rounded-lg text-foreground-muted">
-              <DollarSign className="w-4 h-4" />
-            </div>
+            <p className="text-xs font-semibold text-muted-foreground">Valor da Obra (Receita)</p>
+            <DollarSign className="w-4 h-4 text-muted-foreground" />
           </div>
           <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
             {formatarMoeda(dre?.valorObra ?? dre?.receitaBruta ?? custos?.valorObra ?? 0)}
@@ -116,12 +114,10 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
           </p>
         </div>
 
-        <div className="bg-surface rounded-xl p-5 border border-border-subtle shadow-xs">
+        <div className="bg-surface rounded-xl p-5 border border-border-subtle">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Custo Total Apurado</p>
-            <div className="bg-destructive/10 p-2 rounded-lg text-destructive">
-              <TrendingDown className="w-4 h-4" />
-            </div>
+            <p className="text-xs font-semibold text-muted-foreground">Custo Total Apurado</p>
+            <TrendingDown className="w-4 h-4 text-destructive" />
           </div>
           <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
             {formatarMoeda(dre?.custoTotal ?? ((custos?.custoMaoObra ?? 0) + (custos?.custoInsumos ?? 0)))}
@@ -137,14 +133,12 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
           const resultado = dre?.resultado ?? dre?.lucroLiquido ?? (valor - custo);
           const positivo = resultado >= 0;
           return (
-            <div className={`rounded-xl p-5 border shadow-xs ${positivo ? "bg-success-light/40 border-success-border/60" : "bg-destructive/10 border-destructive/20"}`}>
+            <div className={`rounded-xl p-5 border ${positivo ? "bg-success-light/30 border-success-border/60" : "bg-destructive-light/30 border-destructive-border/60"}`}>
               <div className="flex items-center justify-between mb-2">
-                <p className={`text-xs font-semibold uppercase tracking-wider ${positivo ? "text-success" : "text-destructive"}`}>
+                <p className={`text-xs font-semibold ${positivo ? "text-success" : "text-destructive"}`}>
                   Resultado da Obra
                 </p>
-                <div className={`p-2 rounded-lg ${positivo ? "bg-success/10 text-success" : "bg-destructive/20 text-destructive"}`}>
-                  <TrendingUp className="w-4 h-4" />
-                </div>
+                <TrendingUp className={`w-4 h-4 ${positivo ? "text-success" : "text-destructive"}`} />
               </div>
               <p className={`text-2xl font-bold font-mono tracking-tight ${positivo ? "text-success" : "text-destructive"}`}>
                 {formatarMoeda(resultado)}
@@ -158,7 +152,7 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
       </div>
 
       {/* Detalhamento Analítico Contábil */}
-      <div className="bg-surface rounded-xl border border-border-subtle shadow-xs overflow-hidden">
+      <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
         <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-foreground-muted" />

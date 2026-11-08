@@ -99,23 +99,23 @@ export default function Relatorios() {
         <button
           onClick={() => handleExportar("excel")}
           disabled={exportando}
-          className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+          className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
-          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-success" />}
           Exportar Excel
         </button>
         <button
           onClick={() => handleExportar("pdf")}
           disabled={exportando}
-          className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+          className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
-          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-red-500 dark:text-red-400" />}
+          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-destructive" />}
           Exportar PDF
         </button>
         <button
           onClick={handleGerarLink}
           disabled={gerandoLink}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer shadow-xs"
+          className="bg-primary hover:bg-primary-hover text-primary-foreground px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
           {gerandoLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
           Gerar link compartilhável
@@ -126,7 +126,7 @@ export default function Relatorios() {
         <div className="max-w-5xl mx-auto space-y-6">
 
           {/* Barra de filtros */}
-          <div className="bg-surface rounded-xl border border-border-subtle shadow-xs p-4 flex flex-wrap items-center gap-4">
+          <div className="bg-surface rounded-xl border border-border-subtle p-4 flex flex-wrap items-center gap-4">
             {/* Filtro: Período */}
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
@@ -187,55 +187,49 @@ export default function Relatorios() {
             </div>
           </div>
 
-          {/* Cards de métricas do período */}
+          {/* Cards de métricas do período (Anti-Slop com tipografia monoespaçada tabular e sem halos decorativos) */}
           {loadingObras ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-surface rounded-xl p-5 border border-border-subtle shadow-xs">
+              <div className="bg-surface rounded-xl p-5 border border-border-subtle">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Obras no Período</p>
-                  <div className="bg-blue-50 dark:bg-blue-950/40 p-2 rounded-lg">
-                    <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
+                  <p className="text-xs font-semibold text-muted-foreground">Obras no Período</p>
+                  <FileText className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <p className="text-3xl font-bold text-foreground">{totalObras}</p>
+                <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{totalObras}</p>
                 <p className="text-xs text-muted-foreground mt-1">obras no filtro atual</p>
               </div>
 
-              <div className="bg-surface rounded-xl p-5 border border-border-subtle shadow-xs">
+              <div className="bg-surface rounded-xl p-5 border border-border-subtle">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Concluídas</p>
-                  <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg">
-                    <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  </div>
+                  <p className="text-xs font-semibold text-muted-foreground">Concluídas</p>
+                  <TrendingUp className="w-4 h-4 text-success" />
                 </div>
-                <p className="text-3xl font-bold text-foreground">{obrasConcluidasCount}</p>
+                <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{obrasConcluidasCount}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {totalObras > 0 ? Math.round((obrasConcluidasCount / totalObras) * 100) : 0}% de conclusão
                 </p>
               </div>
 
-              <div className="bg-surface rounded-xl p-5 border border-border-subtle shadow-xs">
+              <div className="bg-surface rounded-xl p-5 border border-border-subtle">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total de Painéis</p>
-                  <div className="bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg">
-                    <BarChart3 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  </div>
+                  <p className="text-xs font-semibold text-muted-foreground">Total de Painéis</p>
+                  <BarChart3 className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <p className="text-3xl font-bold text-foreground">{totalPaineis.toLocaleString("pt-BR")}</p>
+                <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{totalPaineis.toLocaleString("pt-BR")}</p>
                 <p className="text-xs text-muted-foreground mt-1">painéis instalados / previstos</p>
               </div>
             </div>
           )}
 
           {/* Área de gráfico / tabela resumo do período */}
-          <div className="bg-surface rounded-xl border border-border-subtle shadow-xs overflow-hidden">
+          <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
             <div className="px-5 py-4 border-b border-border-subtle flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Resumo do Período</h3>
+              <h3 className="text-sm font-semibold text-foreground">Resumo do Período</h3>
             </div>
 
             {loadingObras ? (
@@ -252,10 +246,10 @@ export default function Relatorios() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
                       <th className="px-5 py-3">Cliente</th>
                       <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3 text-center">Painéis</th>
+                      <th className="px-4 py-3 text-right">Painéis</th>
                       <th className="px-4 py-3">Cidade</th>
                     </tr>
                   </thead>
@@ -266,15 +260,17 @@ export default function Relatorios() {
                         <td className="px-4 py-3.5">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                             obra.status === "Concluido"
-                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                              ? "bg-success-light text-success border-success-border"
                               : obra.status === "EmAndamento"
-                              ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                              ? "bg-info-light text-info border-info-border"
                               : "bg-surface-subtle text-foreground-secondary border-border-subtle"
                           }`}>
                             {obra.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-center font-semibold text-foreground">{obra.quantidadePaineis}</td>
+                        <td className="px-4 py-3.5 text-right font-mono font-medium text-foreground">
+                          {obra.quantidadePaineis ? obra.quantidadePaineis.toLocaleString("pt-BR") : "—"}
+                        </td>
                         <td className="px-4 py-3.5 text-muted-foreground">—</td>
                       </tr>
                     ))}

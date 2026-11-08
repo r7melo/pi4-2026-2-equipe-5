@@ -276,7 +276,7 @@ export function ModalLancamentoCustos({
           <Button
             type="submit"
             disabled={isSalvando}
-            className="flex items-center gap-2 cursor-pointer shadow-xs"
+            className="flex items-center gap-2 cursor-pointer"
           >
             {isSalvando ? (
               <>
