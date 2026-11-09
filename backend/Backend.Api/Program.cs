@@ -13,6 +13,8 @@ var autenticacao = new Autenticacao(builder.Configuration, builder.Environment);
 builder.Services.AddSingleton(autenticacao);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(autenticacao.Configurar);
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ObrasNotificador>();
 
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
 {
@@ -38,8 +40,12 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
 var swagger = Swagger.Habilitado(builder.Configuration);
 if (swagger) Swagger.Adicionar(builder.Services);
 
-// Front (porta 3000) chama a API (porta 8000)
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+// SignalR usa credenciais: a origem precisa ser explicita, nunca '*'.
+// Outras origens (inclusive homologacao na rede) usam Cors__AllowedOrigins__0, __1 etc.
+var origensCors = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:3000", "http://127.0.0.1:3000"];
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
+    .WithOrigins(origensCors).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 var app = builder.Build();
 
@@ -63,10 +69,15 @@ app.UseStatusCodePages(ctx =>
 if (swagger) Swagger.Usar(app);
 
 app.UseCors();
+// CORS nao valida o Origin do upgrade WebSocket; aplica a mesma lista no transporte.
+var webSockets = new WebSocketOptions();
+foreach (var origem in origensCors) webSockets.AllowedOrigins.Add(origem);
+app.UseWebSockets(webSockets);
 app.UseAuthentication();
 app.UseAuthorization();
 // Toda rota exige token, a não ser que tenha [AllowAnonymous] (RF-02). Rota inexistente continua 404.
 app.MapControllers().RequireAuthorization();
+app.MapHub<ObrasHub>(ObrasHub.Caminho, opcoes => opcoes.CloseOnAuthenticationExpiration = true);
 app.Run();
 
 static Task Responder(HttpContext ctx, int status, string code, string message)
