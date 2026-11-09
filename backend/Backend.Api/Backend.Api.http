@@ -142,5 +142,32 @@ Content-Type: application/json
 
 { "novaDataInicio": "2026-10-05" }
 
+### Login do instalador da equipe 3 (token usado nas rotas 31 a 33)
+# @name loginInstalador
+POST {{api}}/auth/login
+Content-Type: application/json
+
+{ "email": "instalador@zl.com.br", "senha": "Senha123!" }
+
+### 31. Instalações da equipe do instalador (no seed: obras 304 e 306)
+GET {{api}}/instalador/instalacoes
+Authorization: Bearer {{loginInstalador.response.body.token}}
+
+### 32. Detalhe da instalação: kit sem preços, endereço e linkNavegacao
+GET {{api}}/instalador/instalacoes/304
+Authorization: Bearer {{loginInstalador.response.body.token}}
+
+### 32. Obra de outra equipe -> 404 OBRA_NOT_FOUND
+GET {{api}}/instalador/instalacoes/301
+Authorization: Bearer {{loginInstalador.response.body.token}}
+
+### 33. Manutenções da equipe (filtro opcional status=Pendente|Concluida; outro valor -> 400 INVALID_PARAMETER)
+GET {{api}}/instalador/manutencoes?status=Pendente
+Authorization: Bearer {{loginInstalador.response.body.token}}
+
+### 31. Administrador nas rotas do instalador -> 403 ACCESS_DENIED
+GET {{api}}/instalador/instalacoes
+Authorization: Bearer {{token}}
+
 ### Rota inexistente -> 404 ROUTE_NOT_FOUND
 GET {{api}}/xyz
