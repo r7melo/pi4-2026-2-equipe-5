@@ -11,16 +11,12 @@ import {
   useLayoutEffect,
   useRef,
   useSyncExternalStore,
-  type SetStateAction,
   type ReactNode,
 } from "react";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
-import type { GanttFiltrosAvancados } from "@/types";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
-import {
-  GanttDhtmlxWrapper,
-  type GanttTask,
-} from "@/features/cronograma/components/GanttDhtmlxWrapper";
+import { GanttDhtmlxWrapper } from "@/features/cronograma/components/GanttDhtmlxWrapper";
+import type { GanttTask } from "@/features/cronograma/types/gantt";
 import {
   criarArmazenamentoEstadoVisual,
 } from "@/features/cronograma/lib/estadoVisualGantt";
@@ -48,20 +44,16 @@ import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { CalendarX2, Search, AlertTriangle } from "lucide-react";
-import { formatarDataISO } from "@/shared/lib/formatters";
-import {
-  dataCivilParaGantt,
-  fimCivilParaGanttExclusivo,
-} from "@/features/cronograma/lib/datasGantt";
 import { calcularJanelaProgramacoes } from "@/features/cronograma/lib/janelaProgramacoes";
 import { diasUteisCivis } from "@/shared/lib/datasCivis";
 import { obterConflitosEquipe } from "@/features/cronograma/lib/ganttCalculos";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { podeVerModo } from "@/shared/lib/podeVerModo";
 import { BotaoModoDisplay } from "@/shared/components/display/BotaoModoDisplay";
+import { transformarTarefasGantt } from "@/features/cronograma/lib/transformarTarefasGantt";
+import { useGanttFiltros } from "@/features/cronograma/hooks/useGanttFiltros";
+import { useEquipesOverlays } from "@/features/cronograma/hooks/useEquipesOverlays";
 import "@/features/cronograma/components/gantt.css";
-
-const HOJE_ISO = formatarDataISO(new Date());
 
 export default function Equipes({
   renderizarAcoesObra,
@@ -78,20 +70,9 @@ export default function Equipes({
 
   const nivelZoom = useGanttStore((s) => s.nivelZoom);
   const setNivelZoom = useGanttStore((s) => s.setNivelZoom);
-  const filtrosSalvos = useGanttStore((s) => s.filtrosSalvos);
   const salvarFiltrosNaStore = useGanttStore((s) => s.salvarFiltros);
 
-  const [prevFiltrosSalvos, setPrevFiltrosSalvos] = useState(filtrosSalvos);
   const [dataFoco, setDataFoco] = useState<Date | null>(null);
-  const [drawerFiltrosAberto, setDrawerFiltrosAberto] = useState(false);
-  const [filtros, setFiltros] = useState<GanttFiltrosAvancados>(() => filtrosSalvos || {});
-
-  if (filtrosSalvos !== prevFiltrosSalvos) {
-    setPrevFiltrosSalvos(filtrosSalvos);
-    if (filtrosSalvos) {
-      setFiltros(filtrosSalvos);
-    }
-  }
 
   const [mostrarGrade, setMostrarGrade] = useState(() => {
     if (typeof window !== "undefined") {
@@ -99,25 +80,19 @@ export default function Equipes({
     }
     return true;
   });
-  const [modalNovaAlocacaoAberto, setModalNovaAlocacaoAberto] = useState(false);
-  const [modalNovaEquipeAberto, setModalNovaEquipeAberto] = useState(false);
-  const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
-  const [sessaoCompartilhamento, setSessaoCompartilhamento] = useState(sessaoRender);
-  if (sessaoCompartilhamento !== sessaoRender) {
-    setSessaoCompartilhamento(sessaoRender);
-    setModalCompartilharAberto(false);
-  }
-  const [tarefaSelecionadaId, setTarefaSelecionadaId] = useState<number | null>(null);
-  const [epochOverlays, setEpochOverlays] = useState(epochRender);
-  if (epochOverlays !== epochRender) {
-    setEpochOverlays(epochRender);
-    setDrawerFiltrosAberto(false);
-    setModalNovaAlocacaoAberto(false);
-    setModalNovaEquipeAberto(false);
-    setModalCompartilharAberto(false);
-    setTarefaSelecionadaId(null);
-  }
 
+  const {
+    drawerFiltrosAberto,
+    setDrawerFiltrosAberto,
+    modalNovaAlocacaoAberto,
+    setModalNovaAlocacaoAberto,
+    modalNovaEquipeAberto,
+    setModalNovaEquipeAberto,
+    modalCompartilharAberto,
+    setModalCompartilharAberto,
+    tarefaSelecionadaId,
+    setTarefaSelecionadaId,
+  } = useEquipesOverlays(epochRender, sessaoRender);
   const nomePerfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const canEdit =
     nomePerfil === "Administrador" || nomePerfil === "Engenharia";
@@ -145,10 +120,7 @@ export default function Equipes({
     () => canEditRef.current && podeUsarInterface(),
     [podeUsarInterface]
   );
-  const atualizarFiltros = (atualizacao: SetStateAction<GanttFiltrosAvancados>) => {
-    if (!podeUsarInterface()) return;
-    setFiltros(atualizacao);
-  };
+
 
   const {
     data: programacoes,
@@ -204,208 +176,32 @@ export default function Equipes({
     return listaObras.filter((o) => o.status !== "Concluido");
   }, [listaObras]);
 
-  const totalFiltrosAtivos = useMemo(() => {
-    return [
-      filtros.termoBusca,
-      filtros.categoria,
-      filtros.equipeId,
-      filtros.statusObra,
-      filtros.prioridade !== undefined,
-      filtros.responsavel,
-      filtros.dataInicioDe,
-      filtros.dataInicioAte,
-      filtros.dataFimDe,
-      filtros.dataFimAte,
-      filtros.statusMaterial && filtros.statusMaterial !== "todos",
-      filtros.apenasAtrasadas,
-    ].filter(Boolean).length;
-  }, [filtros]);
 
-  const programacoesFiltradas = useMemo(() => {
-    if (!programacoes) return [];
-    let lista = programacoes;
-
-    // 1. Equipe
-    if (filtros.equipeId) {
-      lista = lista.filter((p) => p.equipeId === filtros.equipeId);
-    }
-
-    // 2. Período de Início
-    if (filtros.dataInicioDe) {
-      lista = lista.filter((p) => p.dataInicio >= filtros.dataInicioDe!);
-    }
-    if (filtros.dataInicioAte) {
-      lista = lista.filter((p) => p.dataInicio <= filtros.dataInicioAte!);
-    }
-
-    // 3. Período de Término
-    if (filtros.dataFimDe) {
-      lista = lista.filter((p) => p.dataFim >= filtros.dataFimDe!);
-    }
-    if (filtros.dataFimAte) {
-      lista = lista.filter((p) => p.dataFim <= filtros.dataFimAte!);
-    }
-
-    // 4. Prioridade
-    if (filtros.prioridade !== undefined) {
-      lista = lista.filter((p) => p.prioridade === filtros.prioridade);
-    }
-
-    // 5. Termo de Busca (Texto livre)
-    if (filtros.termoBusca?.trim()) {
-      const termo = filtros.termoBusca.toLowerCase().trim();
-      lista = lista.filter((p) => {
-        const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        const equipe = equipes?.find((e) => e.id === p.equipeId);
-        return (
-          Boolean(obra?.clienteNome?.toLowerCase().includes(termo)) ||
-          String(p.obraId).includes(termo) ||
-          String(p.id).includes(termo) ||
-          Boolean(obra?.categoria?.toLowerCase().includes(termo)) ||
-          Boolean(equipe?.nome?.toLowerCase().includes(termo))
-        );
-      });
-    }
-
-    // 6. Categoria da Obra
-    if (filtros.categoria) {
-      lista = lista.filter((p) => {
-        const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        return obra?.categoria === filtros.categoria;
-      });
-    }
-
-    // 7. Status da Obra no Funil
-    if (filtros.statusObra) {
-      lista = lista.filter((p) => {
-        const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        return obra?.status === filtros.statusObra;
-      });
-    }
-
-    // 8. Responsável pela Atualização
-    if (filtros.responsavel?.trim()) {
-      const respTermo = filtros.responsavel.toLowerCase().trim();
-      lista = lista.filter((p) => {
-        const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        return Boolean(obra?.atualizadoPor?.toLowerCase().includes(respTermo));
-      });
-    }
-
-    // 9. Prontidão dos Materiais
-    if (filtros.statusMaterial && filtros.statusMaterial !== "todos") {
-      lista = lista.filter((p) => {
-        const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        const st = obra?.status;
-        const pronto = st === "Separado" || st === "EmAndamento" || st === "Concluido";
-        return filtros.statusMaterial === "pronto" ? pronto : !pronto;
-      });
-    }
-
-    // 10. Checkbox: Apenas Tarefas Atrasadas
-    if (filtros.apenasAtrasadas) {
-      lista = lista.filter((p) => {
-        const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        return p.dataFim < HOJE_ISO && obra?.status !== "Concluido";
-      });
-    }
-
-    return lista;
-  }, [
-    programacoes,
+  const {
     filtros,
-    listaObras,
+    atualizarFiltros,
+    totalFiltrosAtivos,
+    programacoesFiltradas,
+  } = useGanttFiltros({
+    programacoes,
+    obras: listaObras,
     equipes,
-  ]);
-
+    podeUsarInterface,
+  });
 
   const programacoesVisiveis = useMemo(
-    () => modoAtivo ? programacoes ?? [] : programacoesFiltradas,
+    () => (modoAtivo ? programacoes ?? [] : programacoesFiltradas),
     [modoAtivo, programacoes, programacoesFiltradas]
   );
 
   const dadosFormatados: GanttTask[] = useMemo(() => {
-    if (!equipes) return [];
-
-    const resultado: GanttTask[] = [];
-
-    // Agrupa programações por equipe
-    const mapaEquipes = new Map<number, typeof programacoesVisiveis>();
-    for (const p of programacoesVisiveis) {
-      const lista = mapaEquipes.get(p.equipeId) || [];
-      lista.push(p);
-      mapaEquipes.set(p.equipeId, lista);
-    }
-
-    // Para cada equipe que possui obras correspondentes aos filtros (supressão de vazias)
-    for (const equipe of equipes) {
-      const progsEquipe = mapaEquipes.get(equipe.id);
-      if (!progsEquipe || progsEquipe.length === 0) continue;
-
-      progsEquipe.sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
-
-      // Cálculo exato do span de datas da equipe (menor início e maior fim)
-      const menorInicio = progsEquipe.reduce(
-        (min, p) => (p.dataInicio < min ? p.dataInicio : min),
-        progsEquipe[0].dataInicio
-      );
-      const maiorFim = progsEquipe.reduce(
-        (max, p) => (p.dataFim > max ? p.dataFim : max),
-        progsEquipe[0].dataFim
-      );
-
-      // 1. Nó Pai de Equipe (Projeto)
-      resultado.push({
-        id: `equipe-${equipe.id}`,
-        text: `${equipe.nome} — ${equipe.especialidade || "Instalação"}`,
-        start_date: dataCivilParaGantt(menorInicio),
-        end_date: fimCivilParaGanttExclusivo(maiorFim),
-        dataFimInclusiva: maiorFim,
-        type: "project",
-        open: true,
-        equipeId: equipe.id,
-        nomeEquipe: equipe.nome,
-      });
-
-      // 2. Nós Filhos (Obras)
-      for (const p of progsEquipe) {
-        const obra = listaObras?.find((o) => Number(o.id) === Number(p.obraId));
-        const materialStatus = obra?.status;
-        const materialPronto =
-          materialStatus === "Separado" ||
-          materialStatus === "EmAndamento" ||
-          materialStatus === "Concluido";
-
-        const homologacao = homologacoesMap?.[p.obraId];
-        const homologacaoOk = homologacao?.parecerAcesso === "Aprovado";
-        const duracaoCalculada = diasUteisCivis(p.dataInicio, p.dataFim);
-
-        resultado.push({
-          id: p.id,
-          parent: `equipe-${equipe.id}`,
-          type: "task",
-          text: obra?.clienteNome || `Obra ${p.obraId}`,
-          start_date: dataCivilParaGantt(p.dataInicio),
-          end_date: fimCivilParaGanttExclusivo(p.dataFim),
-          dataFimInclusiva: p.dataFim,
-          duration: duracaoCalculada,
-          equipeId: p.equipeId,
-          nomeEquipe: equipe.nome,
-          nomeCliente: obra?.clienteNome,
-          paineis: obra?.quantidadePaineis,
-          duracaoDias: duracaoCalculada,
-          statusObra: obra?.status,
-          materialPronto,
-          homologacaoOk,
-          ...(p.duracaoEstimadaDias !== undefined ? { duracaoEstimadaDias: p.duracaoEstimadaDias } : {}),
-          ...(p.prioridade !== undefined ? { priority: p.prioridade, prioridade: p.prioridade } : {}),
-        });
-      }
-    }
-
-    return resultado;
-  }, [equipes, programacoesVisiveis, listaObras, homologacoesMap]);
-
+    return transformarTarefasGantt({
+      programacoesVisiveis,
+      equipes,
+      obras: listaObras,
+      homologacoesMap,
+    });
+  }, [programacoesVisiveis, equipes, listaObras, homologacoesMap]);
   const tarefaDrawer = useMemo<TarefaDetalhes | null>(() => {
     if (!tarefaSelecionadaId) return null;
     const prog = programacoes?.find((p) => p.id === tarefaSelecionadaId);

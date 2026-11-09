@@ -27,20 +27,15 @@ import {
   diasUteisCivis,
   proximoDiaUtilCivil,
 } from "@/shared/lib/datasCivis";
+
 import {
-  formatarDiasUteis,
-  formatarDataBR,
-} from "@/shared/lib/formatters";
+  configurarDhtmlxBase,
+  aplicarConfiguracaoZoom,
+} from "@/features/cronograma/components/ganttConfiguracao";
+import { configurarTemplatesGantt } from "@/features/cronograma/components/ganttTemplates";
+import type { GanttTask } from "@/features/cronograma/types/gantt";
 
-function escaparHtml(valor: string | number): string {
-  return String(valor)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
+export type { GanttTask } from "@/features/cronograma/types/gantt";
 function calcularPosicaoDataCivil(dataCivil: string): number | null {
   try {
     if (typeof gantt.posFromDate !== "function") {
@@ -65,25 +60,6 @@ function calcularPosicaoDataCivil(dataCivil: string): number | null {
   }
 }
 
-export interface GanttTask {
-  id: string | number;
-  parent?: string | number;
-  type?: "project" | "task";
-  open?: boolean;
-  text: string;
-  start_date: string | Date;
-  end_date: string | Date;
-  dataFimInclusiva?: string;
-  duration?: number;
-  equipeId?: number;
-  nomeEquipe?: string;
-  nomeCliente?: string;
-  paineis?: number;
-  duracaoDias?: number;
-  statusObra?: string;
-  materialPronto?: boolean;
-  homologacaoOk?: boolean;
-}
 
 interface GanttWrapperProps {
   tarefas: GanttTask[];
@@ -402,218 +378,12 @@ export function GanttDhtmlxWrapper({
       snapshotRef.current = capturarSnapshotGantt(gantt);
     }
 
-    gantt.plugins({ tooltip: true });
-    gantt.i18n.setLocale("pt_br");
 
-    gantt.config.tooltip_hide_timeout = 30;
-    gantt.config.tooltip_timeout = 150;
-
-    gantt.config.details_on_dblclick = false;
-    gantt.config.show_links = false;
-    gantt.config.show_progress = false;
-    gantt.config.date_format = "%Y-%m-%d";
-    gantt.config.row_height = onSelectTaskRef.current ? 48 : 40;
-    gantt.config.bar_height = 28;
-
-    // Configuração de Anti-Reparenting: impede arraste vertical entre equipes
-    gantt.config.order_branch = false;
-    gantt.config.order_branch_free = false;
-
-    // Habilita redimensionamento individual e independente de colunas e da grade inteira
-    gantt.config.grid_resize = true;
-    gantt.config.keep_grid_width = false;
-
-    gantt.config.show_grid = mostrarGradeRef.current;
-    gantt.config.columns = [
-      {
-        name: "text",
-        label: "Obra",
-        width: 200,
-        min_width: 130,
-        tree: true,
-        resize: true,
-        template: (rawTask: unknown) => {
-          const task = rawTask as GanttTask;
-          const texto = task.text || "";
-          if (!onSelectTaskRef.current) {
-            return escaparHtml(texto);
-          }
-
-          const ehGrupo =
-            task.type === "project" || String(task.id).startsWith("equipe-");
-
-          if (ehGrupo) {
-            const estaAberto = Boolean(
-              (task as unknown as { $open?: boolean }).$open ?? task.open
-            );
-            const rotuloEquipe = texto || task.nomeEquipe || `Equipe ${task.id}`;
-            return `<button type="button" class="gantt-btn-equipe" data-task-id="${escaparHtml(task.id)}" aria-expanded="${estaAberto ? "true" : "false"}" aria-label="${escaparHtml(rotuloEquipe)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloEquipe)}</span></button>`;
-          }
-
-          const rotuloVisivel =
-            texto ||
-            (task.nomeCliente ? String(task.nomeCliente) : `Obra ${task.id}`);
-          const partesAcessiveis = [rotuloVisivel];
-          if (task.nomeEquipe && !rotuloVisivel.includes(task.nomeEquipe)) {
-            partesAcessiveis.push(task.nomeEquipe);
-          }
-          if (task.nomeCliente && !rotuloVisivel.includes(task.nomeCliente)) {
-            partesAcessiveis.push(task.nomeCliente);
-          }
-          const rotuloAcessivel = partesAcessiveis.join(" — ");
-
-          return `<button type="button" class="gantt-btn-alocacao" data-task-id="${escaparHtml(task.id)}" aria-label="${escaparHtml(rotuloAcessivel)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloVisivel)}</span></button>`;
-        },
-      },
-      {
-        name: "start_date",
-        label: "Início",
-        align: "center",
-        width: 85,
-        min_width: 70,
-        resize: true,
-        template: (rawTask: unknown) => {
-          const task = rawTask as GanttTask;
-          if (!task.start_date) return "—";
-          const dataIni =
-            task.start_date instanceof Date
-              ? dataGanttParaCivil(task.start_date)
-              : String(task.start_date);
-          return formatarDataBR(dataIni);
-        },
-      },
-      {
-        name: "end_date",
-        label: "Fim",
-        align: "center",
-        width: 85,
-        min_width: 70,
-        resize: true,
-        template: (rawTask: unknown) => {
-          const task = rawTask as GanttTask;
-          if (!task.end_date && !task.dataFimInclusiva) return "—";
-          const dataFim =
-            task.dataFimInclusiva ??
-            (task.end_date instanceof Date
-              ? fimGanttParaCivilInclusivo(task.end_date)
-              : fimGanttParaCivilInclusivo(dataCivilParaGantt(String(task.end_date))));
-          return formatarDataBR(dataFim);
-        },
-      },
-    ];
-
-    gantt.config.work_time = false;
-    gantt.config.correct_work_time = false;
-    gantt.config.round_dnd_dates = false;
-    gantt.config.time_step = 1440;
-
-    gantt.templates.timeline_cell_class = (_item: unknown, date: Date) => {
-      const classes = [];
-      if (date.getDay() === 0 || date.getDay() === 6) classes.push("weekend");
-
-      const hoje = new Date();
-      if (
-        date.getDate() === hoje.getDate() &&
-        date.getMonth() === hoje.getMonth() &&
-        date.getFullYear() === hoje.getFullYear()
-      ) {
-        classes.push("today-cell");
-      }
-      return classes.join(" ");
-    };
-
-    gantt.templates.scale_cell_class = (date: Date) => {
-      if (date.getDay() === 0 || date.getDay() === 6) return "weekend";
-      return "";
-    };
-
-    gantt.templates.task_class = (_start: Date, _end: Date, rawTask: unknown) => {
-      const task = rawTask as GanttTask;
-      if (task.type === "project") {
-        return "gantt-project-team";
-      }
-      if (task.statusObra === "Assistencia") {
-        return "gantt-material-assistencia";
-      }
-      if (task.materialPronto === true) {
-        return "gantt-material-pronto";
-      }
-      if (task.materialPronto === false) {
-        return "gantt-material-pendente";
-      }
-      const indice = (Number(task.equipeId) % 8) || 8;
-      return `gantt-color-${indice}`;
-    };
-
-    gantt.templates.grid_row_class = (_start: Date, _end: Date, rawTask: unknown) => {
-      const task = rawTask as GanttTask;
-      return task.type === "project" ? "gantt-row-project" : "";
-    };
-
-    gantt.templates.task_text = (_start: Date, _end: Date, rawTask: unknown) => {
-      const task = rawTask as GanttTask;
-      if (task.type === "project") {
-        return `<strong>${task.text || ""}</strong>`;
-      }
-      const matBadge = task.materialPronto
-        ? `<span class="gantt-bar-badge" title="Materiais prontos p/ obra">📦</span>`
-        : "";
-      const homBadge = task.homologacaoOk
-        ? `<span class="gantt-bar-badge" title="Homologação concluída na concessionária">⚡</span>`
-        : "";
-      const rotuloBarra = task.nomeCliente || task.text || "";
-      return `<span>${rotuloBarra}</span> ${matBadge} ${homBadge}`;
-    };
-
-    // Tooltip dinâmico com guard para nó de projeto
-    gantt.templates.tooltip_text = (start: Date, end: Date, rawTask: unknown) => {
-      const task = rawTask as GanttTask;
-      const dataIniCivil = dataGanttParaCivil(start);
-      const dataFimCivil =
-        task.dataFimInclusiva ?? fimGanttParaCivilInclusivo(end);
-      const dataIni = formatarDataBR(dataIniCivil);
-      const dataFim = formatarDataBR(dataFimCivil);
-
-      if (task.type === "project") {
-        return `<div class="tooltip-title">${task.text}</div><div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`;
-      }
-
-      const matRotulo =
-        task.statusObra === "Assistencia"
-          ? "Peças p/ Manutenção 🔧"
-          : task.materialPronto
-          ? "Separado p/ Obra 📦"
-          : "Em trânsito / depósito";
-
-      const linhas = [
-        `<div class="tooltip-title">${task.text || ""}</div>`,
-        `<div class="tooltip-row"><span class="tooltip-label">Equipe:</span> <span class="tooltip-value">${task.nomeEquipe || "—"}</span></div>`,
-        `<div class="tooltip-row"><span class="tooltip-label">Cliente:</span> <span class="tooltip-value">${task.nomeCliente || "—"}</span></div>`,
-      ];
-
-      if (task.paineis !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Painéis:</span> <span class="tooltip-value">${task.paineis} un.</span></div>`);
-      }
-
-      linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`);
-
-      if (task.duracaoDias !== undefined || task.duration !== undefined) {
-        const dur = task.duracaoDias ?? diasUteisCivis(dataIniCivil, dataFimCivil);
-        if (dur > 0) {
-          linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(dur)}</span></div>`);
-        }
-      }
-
-      if (task.materialPronto !== undefined || task.statusObra !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Materiais:</span> <span class="tooltip-value">${matRotulo}</span></div>`);
-      }
-
-      if (task.homologacaoOk !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Homologação:</span> <span class="tooltip-value">${task.homologacaoOk ? "Parecer Aprovado ⚡" : "Em análise / pendente"}</span></div>`);
-      }
-
-      return linhas.join("");
-    };
+    configurarDhtmlxBase(gantt, {
+      mostrarGrade: mostrarGradeRef.current,
+      temOnSelectTask: () => Boolean(onSelectTaskRef.current),
+    });
+    configurarTemplatesGantt(gantt);
 
     gantt.config.drag_move = canDragRef.current;
     gantt.config.drag_resize = false;
@@ -1164,32 +934,7 @@ export function GanttDhtmlxWrapper({
   useEffect(() => {
     if (!inicializado.current) return;
 
-    switch (nivelZoom) {
-      case "day":
-        gantt.config.scale_height = 54;
-        gantt.config.scales = [
-          { unit: "month", step: 1, format: "%F %Y" },
-          { unit: "day", step: 1, format: "%d %D" },
-        ];
-        gantt.config.min_column_width = 40;
-        break;
-      case "week":
-        gantt.config.scale_height = 54;
-        gantt.config.scales = [
-          { unit: "month", step: 1, format: "%F %Y" },
-          { unit: "week", step: 1, format: "Sem %W" },
-        ];
-        gantt.config.min_column_width = 80;
-        break;
-      case "month":
-        gantt.config.scale_height = 54;
-        gantt.config.scales = [
-          { unit: "year", step: 1, format: "%Y" },
-          { unit: "month", step: 1, format: "%M" },
-        ];
-        gantt.config.min_column_width = 60;
-        break;
-    }
+    aplicarConfiguracaoZoom(gantt, nivelZoom);
 
     mutacaoInternaRef.current = true;
     try {
