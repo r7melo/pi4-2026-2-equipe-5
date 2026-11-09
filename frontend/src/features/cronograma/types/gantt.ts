@@ -26,3 +26,31 @@ export interface GanttUIState {
   salvarFiltros: (filtros: GanttFiltrosAvancados) => void;
   limparFiltrosSalvos: () => void;
 }
+
+export const CLASSE_BOTAO_ALOCACAO = "gantt-btn-alocacao";
+export const SELETOR_BOTAO_ALOCACAO = "button.gantt-btn-alocacao[data-task-id]";
+
+export function ehLinhaProjeto(task: { type?: string; id?: string | number }): boolean {
+  return task.type === "project" || (task.id != null && String(task.id).startsWith("equipe-"));
+}
+
+export interface GanttTask {
+  id: string | number;
+  parent?: string | number;
+  type?: "project" | "task";
+  open?: boolean;
+  text: string;
+  start_date: string | Date;
+  end_date: string | Date;
+  dataFimInclusiva?: string;
+  duration?: number;
+  equipeId?: number;
+  nomeEquipe?: string;
+  nomeCliente?: string;
+  paineis?: number;
+  duracaoDias?: number;
+  statusObra?: string;
+  materialPronto?: boolean;
+  homologacaoOk?: boolean;
+}
+
