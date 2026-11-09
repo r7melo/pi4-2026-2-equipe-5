@@ -19,3 +19,5 @@ export interface CriarMaterialPayload {
   custoUnitario?: number;
   statusLogistico?: StatusLogistico | null;
 }
+
+export type AtualizarMaterialPayload = Partial<CriarMaterialPayload>;

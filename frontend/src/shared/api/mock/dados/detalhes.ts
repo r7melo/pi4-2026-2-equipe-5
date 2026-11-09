@@ -8,6 +8,10 @@ import { adicionarHistoricoArmazenado } from "./registros";
 export const clienteCenarioSchema = z.object({ id: z.number().int().positive(), nome: z.string().min(1), cidade: z.string(), endereco: z.string(), cpfCnpj: z.string().optional(), telefone: z.string().optional(), email: z.string().optional() });
 export type ClienteCenario = z.infer<typeof clienteCenarioSchema>;
 export function clientesCenario(): ClienteCenario[] { return lerDadosCenario("mock_clientes_v1"); }
+export function obterDetalhesArmazenados(): Record<number, ObraDetalhe> {
+  return lerDadosCenario<Record<number, ObraDetalhe>>("mock_detalhes_v1") ?? {};
+}
+
 export function detalheCenario(id: number): ObraDetalhe | undefined {
   if (!obterObrasArmazenadas().some(o => o.id === id)) return undefined;
   return lerDadosCenario<Record<number, ObraDetalhe>>("mock_detalhes_v1")[id];

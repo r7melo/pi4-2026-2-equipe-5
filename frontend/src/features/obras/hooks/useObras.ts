@@ -47,9 +47,7 @@ export function useHomologacoesObras(obraIds: number[]) {
             return h;
           } catch (erro) {
             if (erroDaSessaoAnterior(erro)) throw erro;
-            const fallback: DadosHomologacao = { obraId: id, parecerAcesso: "Pendente" as const };
-            queryClient.setQueryData(["homologacao", id], fallback);
-            return fallback;
+            return { obraId: id, parecerAcesso: "Pendente" as const };
           }
         })
       );

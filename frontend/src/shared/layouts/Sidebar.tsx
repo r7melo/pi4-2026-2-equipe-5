@@ -4,7 +4,6 @@ import {
   Settings, 
   LayoutDashboard, 
   Users, 
-  FileCheck, 
   DollarSign, 
   BarChart2,
   Moon,
@@ -65,12 +64,6 @@ export default function Sidebar() {
       path: "/equipes",
       icon: Users,
       roles: ["Administrador", "Engenharia", "Financeiro"],
-    },
-    {
-      label: "Homologação",
-      path: "/acompanharhomologacao",
-      icon: FileCheck,
-      roles: ["Administrador", "Engenharia"],
     },
     {
       label: "Financeiro",

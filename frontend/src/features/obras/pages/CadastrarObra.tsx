@@ -1,6 +1,5 @@
-import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 import { contextoDemonstracao, contextoDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
-import { useClientesDemonstracao } from "../hooks/useClientesDemonstracao";
+import { useClientes } from "../hooks/useClientes";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
@@ -50,55 +49,6 @@ interface ToastState {
   mensagem: string;
 }
 
-export interface ClienteBaseItem {
-  id: number;
-  nome: string;
-  cidade: string;
-  endereco: string;
-}
-
-const CHAVE_CLIENTES_NOVOS_LOCAL = "zl_clientes_cadastrados_novos";
-
-const CLIENTES_BASE: ClienteBaseItem[] = [
-  { id: 1, nome: "Rede Alfa Supermercados", cidade: "Campinas", endereco: "Rua Alfa, 101" },
-  { id: 2, nome: "Indústria Metalúrgica Ramos", cidade: "Sorocaba", endereco: "Rua Industrial, 202" },
-  { id: 3, nome: "Residencial Vista Verde — Bloco A", cidade: "Campinas", endereco: "Rua Verde, 303" },
-  { id: 4, nome: "Fazenda Santa Maria", cidade: "Itapetininga", endereco: "Estrada Rural, km 4" },
-  { id: 5, nome: "Hospital São Lucas", cidade: "Santos", endereco: "Avenida Saúde, 505" },
-  { id: 6, nome: "Condomínio Solar das Flores", cidade: "São Paulo", endereco: "Rua das Flores, 606" },
-  { id: 7, nome: "Posto Alvorada Combustíveis", cidade: "Guarulhos", endereco: "Avenida Alvorada, 707" },
-  { id: 8, nome: "Granja Silva", cidade: "Itu", endereco: "Estrada da Granja, km 8" },
-  { id: 9, nome: "Escola Estadual Dom Pedro II", cidade: "Campinas", endereco: "Rua Escolar, 909" },
-  { id: 10, nome: "Shopping Bela Vista", cidade: "São Bernardo do Campo", endereco: "Avenida Bela Vista, 1010" },
-  { id: 11, nome: "Carlos Eduardo Souza Silva", cidade: "Campinas", endereco: "Rua das Acácias, 777" },
-];
-
-function obterClientesDisponiveis(): ClienteBaseItem[] {
-  try {
-    const salvos = localStorage.getItem(CHAVE_CLIENTES_NOVOS_LOCAL);
-    if (!salvos) return CLIENTES_BASE;
-    const parse = JSON.parse(salvos) as ClienteBaseItem[];
-    const mapa = new Map<number, ClienteBaseItem>();
-    for (const c of CLIENTES_BASE) mapa.set(c.id, c);
-    for (const c of parse) mapa.set(c.id, c);
-    return Array.from(mapa.values());
-  } catch {
-    return CLIENTES_BASE;
-  }
-}
-
-function salvarNovoClienteLocal(cliente: ClienteBaseItem) {
-  try {
-    const atuais = obterClientesDisponiveis();
-    const filtrados = atuais.filter((c) => c.id !== cliente.id);
-    const atualizados = [...filtrados, cliente];
-    const apenasNovos = atualizados.filter((c) => !CLIENTES_BASE.some((b) => b.id === c.id));
-    localStorage.setItem(CHAVE_CLIENTES_NOVOS_LOCAL, JSON.stringify(apenasNovos));
-  } catch (e) {
-    console.warn("Falha ao salvar cliente localmente:", e);
-  }
-}
-
 const CATEGORIAS_OBRA = [
   "Residencial",
   "Comercial",
@@ -109,16 +59,10 @@ export default function CadastrarObra() {
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<ToastState | null>(null);
   const [tipoCliente, setTipoCliente] = useState<"existente" | "novo">("existente");
-  const catalogo = useClientesDemonstracao();
-  const [clientesReais, setListaClientes] = useState<ClienteBaseItem[]>(() => MOCK_ATIVO ? [] : obterClientesDisponiveis());
-  const listaClientes = MOCK_ATIVO ? catalogo.data ?? [] : clientesReais;
+  const catalogo = useClientes();
+  const listaClientes = catalogo.data ?? [];
   const catalogoAplicado = useRef(false);
-  const [clienteIdSelecionadoState, setClienteIdSelecionado] = useState<number | undefined>(() => {
-    if (MOCK_ATIVO) return undefined;
-    const disponiveis = obterClientesDisponiveis();
-    return disponiveis[0]?.id || 1;
-  });
-
+  const [clienteIdSelecionadoState, setClienteIdSelecionado] = useState<number | undefined>(undefined);
 
   const {
     register,
@@ -132,10 +76,10 @@ export default function CadastrarObra() {
     mode: "onBlur",
     defaultValues: {
       tipoCliente: "existente",
-      clienteId: MOCK_ATIVO ? undefined : 1,
-      clienteNome: MOCK_ATIVO ? "" : CLIENTES_BASE[0].nome,
-      cidade: MOCK_ATIVO ? "" : CLIENTES_BASE[0].cidade,
-      endereco: MOCK_ATIVO ? "" : CLIENTES_BASE[0].endereco,
+      clienteId: undefined,
+      clienteNome: "",
+      cidade: "",
+      endereco: "",
       cpfCnpj: "",
       telefone: "",
       email: "",
@@ -152,13 +96,16 @@ export default function CadastrarObra() {
 
   useEffect(() => {
     const primeiro = catalogo.data?.[0];
-    if (!MOCK_ATIVO || !primeiro || catalogoAplicado.current || tipoCliente !== "existente") return;
+    if (!primeiro || catalogoAplicado.current || tipoCliente !== "existente") return;
     catalogoAplicado.current = true;
-    setValue("clienteId", primeiro.id); setValue("clienteNome", primeiro.nome);
-    setValue("cidade", primeiro.cidade); setValue("endereco", primeiro.endereco);
+    setClienteIdSelecionado(primeiro.id);
+    setValue("clienteId", primeiro.id);
+    setValue("clienteNome", primeiro.nome);
+    setValue("cidade", primeiro.cidade);
+    setValue("endereco", primeiro.endereco);
   }, [catalogo.data, tipoCliente, setValue]);
 
-  const clienteIdSelecionado = clienteIdSelecionadoState ?? (MOCK_ATIVO ? catalogo.data?.[0]?.id : undefined);
+  const clienteIdSelecionado = clienteIdSelecionadoState ?? catalogo.data?.[0]?.id;
 
   const cpfCnpjValue = useWatch({ control, name: "cpfCnpj" });
   const telefoneValue = useWatch({ control, name: "telefone" });
@@ -169,9 +116,7 @@ export default function CadastrarObra() {
     clearErrors();
 
     if (novoTipo === "existente") {
-      const clientesAtuais = MOCK_ATIVO ? listaClientes : obterClientesDisponiveis();
-      setListaClientes(clientesAtuais);
-      const clientePadrao = clientesAtuais.find((c) => c.id === clienteIdSelecionado) || clientesAtuais[0];
+      const clientePadrao = listaClientes.find((c) => c.id === clienteIdSelecionado) || listaClientes[0];
       if (!clientePadrao) return;
       setClienteIdSelecionado(clientePadrao.id);
       setValue("clienteId", clientePadrao.id);
@@ -201,7 +146,7 @@ export default function CadastrarObra() {
           clienteId: dados.clienteId,
           clienteNome: dados.clienteNome,
           cidade: dados.cidade,
-          endereco: dados.endereco || `${dados.cidade} - Centro`,
+          endereco: dados.endereco?.trim() || "",
           categoria: dados.categoria,
           quantidadePaineis: Number(dados.quantidadePaineis),
           quantidadeInversores: Number(dados.quantidadeInversores ?? 1),
@@ -238,20 +183,7 @@ export default function CadastrarObra() {
       const novaObra = await criarObra(payload);
       if (!contextoDemonstracaoVigente(origem)) return;
 
-      if (dados.tipoCliente === "novo" && !MOCK_ATIVO) {
-        const idGerado = (novaObra as { id?: number; clienteId?: number }).clienteId || Date.now();
-        const novoItem: ClienteBaseItem = {
-          id: idGerado,
-          nome: dados.clienteNome!.trim(),
-          cidade: dados.cidade?.trim() || "Campinas",
-          endereco: dados.endereco?.trim() || `${dados.cidade || "Campinas"} - Centro`,
-        };
-        salvarNovoClienteLocal(novoItem);
-        setListaClientes(obterClientesDisponiveis());
-      }
-
-
-      if (MOCK_ATIVO) void queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      void queryClient.invalidateQueries({ queryKey: ["clientes"] });
       // Atualiza o cache do React Query imediatamente e agenda revalidação
       queryClient.setQueryData<ListaObras>(["obras"], (old) => {
         if (!old) return old;
@@ -293,18 +225,18 @@ export default function CadastrarObra() {
       {/* Toast flutuante de feedback */}
       {toast && (
         <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
+          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
             toast.tipo === "sucesso"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-red-50 border-red-200 text-red-800"
+              ? "bg-success-light border-success-border text-success"
+              : "bg-destructive-light border-destructive-border text-destructive"
           }`}
           role="status"
           aria-live="polite"
         >
           {toast.tipo === "sucesso" ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
           )}
           <span className="font-medium">{toast.mensagem}</span>
           <button
@@ -313,7 +245,7 @@ export default function CadastrarObra() {
             className="p-1 hover:bg-black/5 rounded-md transition-colors cursor-pointer"
             aria-label="Fechar notificação"
           >
-            <X className="w-4 h-4 text-slate-500" />
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
       )}
@@ -325,30 +257,32 @@ export default function CadastrarObra() {
         backTo="/kanban"
       />
 
-      {MOCK_ATIVO && catalogo.isLoading && <FeedbackLoading />}
-      {MOCK_ATIVO && catalogo.isError && <FeedbackErro mensagem={catalogo.error.message} />}
-      {MOCK_ATIVO && catalogo.isSuccess && listaClientes.length === 0 && <EmptyState titulo="Nenhum cliente cadastrado" descricao="Cadastre um novo cliente junto com a obra." />}
+      {catalogo.isLoading && <FeedbackLoading />}
+      {catalogo.isError && <FeedbackErro mensagem={catalogo.error.message} />}
+      {catalogo.isSuccess && tipoCliente === "existente" && listaClientes.length === 0 && (
+        <EmptyState titulo="Nenhum cliente cadastrado" descricao="Cadastre um novo cliente junto com a obra." />
+      )}
       {/* Área do Formulário */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
-        <div className="w-full max-w-3xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-fit my-auto">
+        <div className="w-full max-w-3xl bg-surface rounded-2xl border border-border-subtle overflow-hidden h-fit my-auto">
           <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="p-6 md:p-8 space-y-8" noValidate>
 
             {/* Seção: Dados do Cliente com Alternador */}
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                <h3 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
+                <h3 className="text-base md:text-lg font-bold text-foreground flex items-center gap-2">
                   <User className="w-5 h-5 text-amber-500" /> Identificação do Cliente
                 </h3>
 
                 {/* Alternador Visual (Tabs) */}
-                <div className="flex items-center p-1 bg-slate-100 rounded-xl w-fit border border-slate-200/60">
+                <div className="flex items-center p-1 bg-surface-subtle rounded-xl w-fit border border-border-subtle">
                   <button
                     type="button"
                     onClick={() => handleMudarTipoCliente("existente")}
                     className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       tipoCliente === "existente"
-                        ? "bg-white text-slate-900 shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-surface text-foreground border border-border-subtle"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <UserCheck className="w-4 h-4" />
@@ -359,8 +293,8 @@ export default function CadastrarObra() {
                     onClick={() => handleMudarTipoCliente("novo")}
                     className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       tipoCliente === "novo"
-                        ? "bg-white text-slate-900 shadow-xs"
-                        : "text-slate-600 hover:text-slate-900"
+                        ? "bg-surface text-foreground border border-border-subtle"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <UserPlus className="w-4 h-4" />
@@ -371,9 +305,9 @@ export default function CadastrarObra() {
 
               {/* Modo: Cliente Existente */}
               {tipoCliente === "existente" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-slate-50/80 rounded-2xl border border-slate-200/60">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-surface-subtle/80 rounded-2xl border border-border-subtle">
                   <div className="md:col-span-2 flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-slate-700">
+                    <label className="text-sm font-semibold text-foreground-secondary">
                       Selecione o Cliente <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -389,10 +323,10 @@ export default function CadastrarObra() {
                           setValue("endereco", c.endereco, { shouldValidate: true });
                         }
                       }}
-                      className="w-full text-sm px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition-colors"
+                      className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition-colors"
                     >
                       {listaClientes.map((c) => (
-                        <option key={c.id} value={c.id}>
+                        <option key={c.id} value={c.id} className="bg-surface text-foreground">
                           {c.nome} — {c.cidade}
                         </option>
                       ))}
@@ -409,7 +343,7 @@ export default function CadastrarObra() {
                       required
                       icon={<User className="w-4 h-4" />}
                       readOnly
-                      className="bg-slate-100 cursor-not-allowed"
+                      className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
                       error={errors.clienteNome?.message}
                       {...register("clienteNome")}
                     />
@@ -420,7 +354,7 @@ export default function CadastrarObra() {
                       required
                       icon={<Building2 className="w-4 h-4" />}
                       readOnly
-                      className="bg-slate-100 cursor-not-allowed"
+                      className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
                       error={errors.cidade?.message}
                       {...register("cidade")}
                     />
@@ -431,7 +365,7 @@ export default function CadastrarObra() {
                       required
                       icon={<MapPin className="w-4 h-4" />}
                       readOnly
-                      className="bg-slate-100 cursor-not-allowed"
+                      className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
                       error={errors.endereco?.message}
                       {...register("endereco")}
                     />
@@ -439,7 +373,7 @@ export default function CadastrarObra() {
                 </div>
               ) : (
                 /* Modo: Novo Cliente */
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-amber-50/30 rounded-2xl border border-amber-200/50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-surface-subtle/80 rounded-2xl border border-border-subtle">
                   <div className="md:col-span-2">
                     <Input
                       label="Nome Completo ou Razão Social"
@@ -512,21 +446,21 @@ export default function CadastrarObra() {
               )}
             </div>
 
-            <hr className="border-slate-100" />
+            <hr className="border-border-subtle" />
 
             {/* Seção: Dimensionamento e Categoria */}
             <div>
-              <h3 className="text-base md:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <h3 className="text-base md:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                 <Zap className="w-5 h-5 text-amber-500" /> Dimensionamento e Categoria
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-slate-700">
+                  <label className="text-sm font-semibold text-foreground-secondary">
                     Categoria da Obra <span className="text-red-500">*</span>
                   </label>
                   <select
                     {...register("categoria")}
-                    className="w-full text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition-colors"
+                    className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition-colors"
                   >
                     {CATEGORIAS_OBRA.map((cat) => (
                       <option key={cat} value={cat}>
@@ -562,12 +496,12 @@ export default function CadastrarObra() {
               </div>
             </div>
 
-            <hr className="border-slate-100" />
+            <hr className="border-border-subtle" />
 
             {/* Seção: Contrato e Prazos */}
             <div>
-              <h3 className="text-base md:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-slate-400" /> Contrato e Cronograma Estimado
+              <h3 className="text-base md:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-muted-foreground" /> Contrato e Cronograma Estimado
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div>
@@ -606,19 +540,19 @@ export default function CadastrarObra() {
             </div>
 
             {/* Ações */}
-            <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-slate-100">
+            <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-border-subtle">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => void navigate("/kanban")}
-                disabled={isSubmitting || (MOCK_ATIVO && (catalogo.isLoading || catalogo.isError))}
+                disabled={isSubmitting || (tipoCliente === "existente" && (catalogo.isLoading || catalogo.isError))}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isSubmitting || (MOCK_ATIVO && (catalogo.isLoading || catalogo.isError))}
+                disabled={isSubmitting || (tipoCliente === "existente" && (catalogo.isLoading || catalogo.isError))}
                 className="min-w-36"
               >
                 {isSubmitting ? (

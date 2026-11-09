@@ -15,6 +15,7 @@ import { registrarHomologacao } from "./handlers/homologacao";
 import { registrarCronogramaPublico } from "./handlers/publico";
 import { registrarEquipes } from "./handlers/equipes";
 import { registrarUsuarios } from "./handlers/usuarios";
+import { registrarInstalador } from "./handlers/instalador";
 import { protegerRevogacaoSenhaMock } from "./core/revogacaoSenha";
 
 const mock = new MockAdapter(api, { delayResponse: 0 });
@@ -35,6 +36,7 @@ registrarExclusaoObra(mock);
 registrarEquipes(mock);
 registrarUsuarios(mock);
 registrarGestaoUsuarios(mock);
+registrarInstalador(mock);
 
 // Ultimo registro: transporte real para requisicoes nao atendidas.
 mock.onAny().passThrough();
