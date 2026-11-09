@@ -123,19 +123,14 @@ export function salvarRotaRetorno(rota: string): void {
 function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePerfil): boolean {
   if (!perfilNome) return false;
 
-  // Administrador possui acesso irrestrito a todas as rotas (incluindo /linkparainstaladores)
+  // InstaladorCampo possui acesso exclusivo a /linkparainstaladores (Rotas #37-#39); perfis de escritório não acessam
+  if (pathname === "/linkparainstaladores") {
+    return perfilNome === "InstaladorCampo";
+  }
+
+  // Administrador possui acesso irrestrito às rotas operacionais do sistema
   if (perfilNome === "Administrador") {
     return true;
-  }
-
-  // InstaladorCampo possui acesso exclusivo a /linkparainstaladores
-  if (perfilNome === "InstaladorCampo") {
-    return pathname === "/linkparainstaladores";
-  }
-
-  // Perfis desktop não acessam /linkparainstaladores
-  if (pathname === "/linkparainstaladores") {
-    return false;
   }
 
   if (perfilNome === "Financeiro") {

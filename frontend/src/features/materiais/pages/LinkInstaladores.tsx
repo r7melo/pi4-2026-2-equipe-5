@@ -1,15 +1,26 @@
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Navigation, Package, CheckCircle2, AlertCircle, Phone, MapPin } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { Navigation, Package, CheckCircle2, AlertCircle, Phone, MapPin, LogOut } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import EmptyState from "@/shared/components/feedback/EmptyState";
+import { useAuthStore } from "@/features/auth/stores/useAuthStore";
 import { useInstalacoesInstalador, useDetalhesInstalacao } from "../hooks/useInstalador";
 
 export default function InstaladorMobile() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const logout = useAuthStore((s) => s.logout);
   const [chegadaMarcada, setChegadaMarcada] = useState(false);
+
+  const handleLogout = () => {
+    queryClient.clear();
+    logout();
+    void navigate("/login", { replace: true });
+  };
 
   const {
     data: instalacoes,
@@ -59,44 +70,102 @@ export default function InstaladorMobile() {
             <FeedbackLoading mensagem="Carregando lista de instalações..." />
           </div>
         ) : erroLista ? (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <FeedbackErro
-              titulo="Falha ao carregar instalações"
-              mensagem="Não foi possível obter as informações de instalação da equipe."
-              onTentarNovamente={() => void refetchLista()}
-            />
+          <div className="flex-1 flex flex-col">
+            <div className="flex justify-end p-3.5 border-b border-border-subtle bg-surface-subtle">
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Sair da conta"
+                aria-label="Sair da conta"
+                className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border-subtle transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair</span>
+              </button>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-4">
+              <FeedbackErro
+                titulo="Falha ao carregar instalações"
+                mensagem="Não foi possível obter as informações de instalação da equipe."
+                onTentarNovamente={() => void refetchLista()}
+              />
+            </div>
           </div>
         ) : !instalacoes || instalacoes.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <EmptyState
-              icone={Package}
-              titulo="Nenhuma instalação escalada"
-              descricao="Não há instalações agendadas para sua equipe no momento."
-            />
+          <div className="flex-1 flex flex-col">
+            <div className="flex justify-end p-3.5 border-b border-border-subtle bg-surface-subtle">
+              <button
+                type="button"
+                onClick={handleLogout}
+                title="Sair da conta"
+                aria-label="Sair da conta"
+                className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border-subtle transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 text-xs font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair</span>
+              </button>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-4">
+              <EmptyState
+                icone={Package}
+                titulo="Nenhuma instalação escalada"
+                descricao="Não há instalações agendadas para sua equipe no momento."
+              />
+            </div>
           </div>
         ) : (
           <>
             {/* Header Curto Canônico — Fixo e Estável */}
             <div className="bg-surface-subtle border-b border-border-subtle pt-6 pb-5 px-5 relative space-y-3">
-              {instalacoes.length > 1 && (
-                <div className="space-y-1">
-                  <label htmlFor="select-obra-instalador" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                    Alternar Instalação
-                  </label>
-                  <select
-                    id="select-obra-instalador"
-                    value={selectedObraId ?? ""}
-                    onChange={handleSelectObra}
-                    className="w-full text-xs bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    {instalacoes.map((item) => (
-                      <option key={item.obraId} value={item.obraId}>
-                        {item.clienteNome} • {item.endereco}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                {instalacoes.length > 1 ? (
+                  <>
+                    <label htmlFor="select-obra-instalador" className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                      Alternar Instalação
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        id="select-obra-instalador"
+                        value={selectedObraId ?? ""}
+                        onChange={handleSelectObra}
+                        className="flex-1 text-xs bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-8"
+                      >
+                        {instalacoes.map((item) => (
+                          <option key={item.obraId} value={item.obraId}>
+                            {item.clienteNome} • {item.endereco}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        title="Sair da conta"
+                        aria-label="Sair da conta"
+                        className="h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border-subtle transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Sair</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Painel do Instalador
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      title="Sair da conta"
+                      aria-label="Sair da conta"
+                      className="h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border-subtle transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sair</span>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {detalhes && (
                 <>
