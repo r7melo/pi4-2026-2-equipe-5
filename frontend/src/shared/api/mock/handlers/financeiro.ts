@@ -59,8 +59,8 @@ export function registrarFinanceiro(mock: MockAdapter): void {
   mock.onPost(/\/obras\/\d+\/custos\/?(\?.*)?$/).reply((config) => {
     const auth = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
     if (!auth) return [401, { error: { code: "UNAUTHORIZED", message: "Sessão ausente ou expirada." } }];
-    if (!["Administrador", "Financeiro"].includes(auth.perfil.nomePerfil)) {
-      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para lançar custos." } }];
+    if (auth.perfil.nomePerfil !== "Financeiro") {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Apenas o perfil Financeiro pode lançar custos da obra." } }];
     }
     const match = config.url?.match(/\/obras\/(\d+)\/custos/);
     const obraId = match ? Number(match[1]) : 0;

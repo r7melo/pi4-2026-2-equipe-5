@@ -1,5 +1,5 @@
-// Tipos do domínio de Materiais e Logística de Obra (RF-05, RF-06)
-export type StatusLogistico = "Comprado" | "EmTransito" | "Disponivel" | "Utilizado";
+// Tipos do domínio de Materiais e Logística de Obra (RF-05, RF-06, RN-08)
+export type StatusLogistico = "EmSolicitacao" | "Comprado" | "EmTransito" | "Disponivel" | "Utilizado";
 
 export interface Material {
   id: number;

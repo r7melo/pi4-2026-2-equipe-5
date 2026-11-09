@@ -34,7 +34,7 @@ interface PainelDREProps {
 function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
   const navigate = useNavigate();
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
-  const podeGerenciarCustos = perfil === "Administrador" || perfil === "Financeiro";
+  const podeGerenciarCustos = perfil === "Financeiro";
 
   const { data: dre, isLoading: loadingDre } = useDreObra(obraId, statusObra);
   const { data: custos, isLoading: loadingCustos } = useCustosObra(obraId);

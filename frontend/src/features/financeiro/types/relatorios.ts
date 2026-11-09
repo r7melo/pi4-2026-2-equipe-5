@@ -31,9 +31,9 @@ export interface DREObra {
   resultado: number;
   lucroLiquido?: number; // Alias para resultado
   margemContribuicao?: number;
-  margemPercentual: number;
-  obraConcluida: boolean;
-  precificacaoCompleta: boolean;
+  margemPercentual?: number;
+  obraConcluida?: boolean;
+  precificacaoCompleta?: boolean;
   observacoes?: string;
 }
 
@@ -44,6 +44,12 @@ export interface CustosObra {
   custoInsumos: number | null;
   valorObra: number | null;
   precificacaoCompleta: boolean;
+  materiais?: {
+    id: number;
+    tipo: string;
+    quantidade: number;
+    custoUnitario?: number | null;
+  }[];
 }
 
 /** Rota #32 do Contrato de API (07-api.md) — POST /api/obras/{id}/custos (RF-14) */

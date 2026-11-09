@@ -3,14 +3,16 @@ import type { StatusLogistico, Material, NomePerfil } from "@/types";
 
 describe("Gestão de Materiais e Ciclo Logístico (Frente Materiais - 02 Railton)", () => {
   const STATUS_CICLO: StatusLogistico[] = [
+    "EmSolicitacao",
     "Comprado",
     "EmTransito",
     "Disponivel",
     "Utilizado",
   ];
 
-  it("deve cobrir todos os 4 status do ciclo logístico canônico da API (RN-08)", () => {
-    expect(STATUS_CICLO).toHaveLength(4);
+  it("deve cobrir todos os 5 status do ciclo logístico canônico da API (RN-08)", () => {
+    expect(STATUS_CICLO).toHaveLength(5);
+    expect(STATUS_CICLO).toContain("EmSolicitacao");
     expect(STATUS_CICLO).toContain("Comprado");
     expect(STATUS_CICLO).toContain("EmTransito");
     expect(STATUS_CICLO).toContain("Disponivel");

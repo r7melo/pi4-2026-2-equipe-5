@@ -39,6 +39,7 @@ export default function MateriaisObra() {
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const podeAlterarStatus = perfil === "Administrador" || perfil === "Financeiro";
   const podeVerCustos = perfil === "Administrador" || perfil === "Financeiro";
+  const podeAdicionar = perfil === "Administrador" || perfil === "Engenharia";
 
   const { data: materiais, isLoading, isError, error, refetch } = useMateriais(obraId);
   const { data: obra } = useObraContextoMateriais(obraId);
@@ -73,6 +74,12 @@ export default function MateriaisObra() {
 
   const getStatusBadge = (status?: string | null) => {
     switch (status) {
+      case "EmSolicitacao":
+        return (
+          <span className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-500 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-amber-500/20">
+            <Clock className="w-3.5 h-3.5" /> Em Solicitação
+          </span>
+        );
       case "Disponivel":
         return (
           <span className="inline-flex items-center gap-1.5 bg-success-light text-success px-2.5 py-0.5 rounded-full text-xs font-semibold border border-success-border">
@@ -150,16 +157,18 @@ export default function MateriaisObra() {
         backTo={`/obras/${obraId}`}
         backState={locationState}
       >
-        <Button
-          onClick={() => {
-            setMaterialParaEditar(null);
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-1.5 h-8 sm:h-9 px-3 text-xs font-medium cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Novo Insumo
-        </Button>
+        {podeAdicionar && (
+          <Button
+            onClick={() => {
+              setMaterialParaEditar(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 h-8 sm:h-9 px-3 text-xs font-medium cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Novo Insumo
+          </Button>
+        )}
       </PageHeader>
 
       {/* ÁREA DE CONTEÚDO */}
@@ -236,6 +245,8 @@ export default function MateriaisObra() {
                                 }
                                 className={cn(
                                   "appearance-none text-xs font-semibold pl-2.5 pr-6 py-1 rounded-full border cursor-pointer focus:outline-none transition-colors",
+                                  mat.statusLogistico === "EmSolicitacao" &&
+                                    "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20",
                                   mat.statusLogistico === "Comprado" &&
                                     "bg-surface-subtle text-foreground-muted border-border-subtle hover:bg-surface",
                                   mat.statusLogistico === "EmTransito" &&
@@ -247,6 +258,7 @@ export default function MateriaisObra() {
                                 )}
                                 title="Alterar status logístico"
                               >
+                                <option value="EmSolicitacao" className="bg-surface text-foreground">Em Solicitação</option>
                                 <option value="Comprado" className="bg-surface text-foreground">Pedido Comprado</option>
                                 <option value="EmTransito" className="bg-surface text-foreground">Em Trânsito</option>
                                 <option value="Disponivel" className="bg-surface text-foreground">Disponível no Depósito</option>

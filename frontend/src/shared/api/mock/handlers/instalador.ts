@@ -11,8 +11,8 @@ export function registrarInstalador(mock: MockAdapter): void {
   mock.onGet(/\/instalador\/instalacoes\/?(\?.*)?$/).reply((config) => {
     const usuario = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
     if (!usuario) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
-    if (!["Administrador", "InstaladorCampo"].includes(usuario.perfil.nomePerfil)) {
-      return erroUsuarioMock(403, "ACCESS_DENIED", "Acesso restrito ao instalador.");
+    if (usuario.perfil.nomePerfil !== "InstaladorCampo") {
+      return erroUsuarioMock(403, "ACCESS_DENIED", "Acesso restrito ao instalador de campo.");
     }
 
     const equipeId = usuario.equipeId;
@@ -51,8 +51,8 @@ export function registrarInstalador(mock: MockAdapter): void {
 
     const usuario = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
     if (!usuario) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
-    if (!["Administrador", "InstaladorCampo"].includes(usuario.perfil.nomePerfil)) {
-      return erroUsuarioMock(403, "ACCESS_DENIED", "Acesso restrito ao instalador.");
+    if (usuario.perfil.nomePerfil !== "InstaladorCampo") {
+      return erroUsuarioMock(403, "ACCESS_DENIED", "Acesso restrito ao instalador de campo.");
     }
 
     const obras = obterObrasArmazenadas();
@@ -73,6 +73,14 @@ export function registrarInstalador(mock: MockAdapter): void {
     const programacoes = obterProgramacoesArmazenadas();
     const prog = programacoes.find((p) => p.obraId === obraId);
     const equipes = obterEquipesArmazenadas();
+    const equipeUsuario = equipes.find((e) => e.id === usuario.equipeId || e.membros?.some((m) => m.id === usuario.id));
+
+    // Regra Condicional E na Rota #38 (RN-06.12): instalador só acessa se fizer parte da equipe da obra
+    const temVinculo = prog && equipeUsuario && prog.equipeId === equipeUsuario.id;
+    if (!temVinculo) {
+      return [403, { error: { code: "ACCESS_DENIED", motivo: "ObraSemVinculoEquipe", message: "O instalador não possui vínculo com a equipe desta obra." } }];
+    }
+
     const equipeProg = prog ? equipes.find((e) => e.id === prog.equipeId) : undefined;
 
     const endereco = obra.endereco || detalheObra?.endereco || `${obra.cidade || "Crateús/CE"}`;
