@@ -35,6 +35,9 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
     };
 });
 
+var swagger = Swagger.Habilitado(builder.Configuration);
+if (swagger) Swagger.Adicionar(builder.Services);
+
 // Front (porta 3000) chama a API (porta 8000)
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
@@ -55,6 +58,9 @@ app.UseStatusCodePages(ctx =>
         _ => Task.CompletedTask,
     };
 });
+
+// Fora do pipeline de autenticação: a documentação abre sem token
+if (swagger) Swagger.Usar(app);
 
 app.UseCors();
 app.UseAuthentication();
