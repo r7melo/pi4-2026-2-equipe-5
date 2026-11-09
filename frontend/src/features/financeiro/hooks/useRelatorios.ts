@@ -1,9 +1,10 @@
 import { useMutacaoSessao } from '@/shared/hooks/useMutacaoSessao';
 import { assinarSessaoOperacional, capturarSessaoOperacional, exigirSessaoOperacional } from '@/shared/lib/sessaoOperacao';
 import { useSyncExternalStore } from 'react';
-import type { PedidoExportacaoRelatorio, AtualizarCustosPayload } from '@/types';
+import type { PedidoExportacaoRelatorio, AtualizarCustosPayload, ListaObras } from '@/types';
 import { exportarRelatorio } from '../services/relatorios';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/shared/api/api";
 import {
   gerarLinkCompartilhadoRelatorio,
   buscarRelatorioCusto,
@@ -11,7 +12,6 @@ import {
   buscarCustosObra,
   atualizarCustosObra,
 } from "@/features/financeiro/services/relatorios";
-import { useObras } from "@/features/obras/hooks/useObras";
 
 export function useRelatorioCusto(obraId: number) {
   return useQuery({
@@ -57,9 +57,18 @@ export function useAtualizarCustosObra(obraId: number) {
   });
 }
 
-/** Hook de listagem de obras para o Financeiro e Relatórios, perfeitamente sincronizado com o Kanban */
+/** Hook leve de listagem de obras para dropdowns financeiros, desacoplado de outras fatias */
 export function useObrasSelect() {
-  return useObras();
+  return useQuery({
+    queryKey: ["obras", "select"],
+    queryFn: async () => {
+      const { data } = await api.get<ListaObras>("/obras", {
+        params: { pageSize: 100 },
+      });
+      return data;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
 }
 
 export function useLinkRelatorioDemonstracao() {

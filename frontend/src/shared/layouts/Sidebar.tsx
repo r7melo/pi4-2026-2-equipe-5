@@ -94,7 +94,6 @@ export default function Sidebar() {
     return (
       location.pathname === path ||
       (path === "/kanban" && (location.pathname === "/kanban" || location.pathname === "/cadastrarobra")) ||
-      (path === "/acompanharhomologacao" && location.pathname.startsWith("/acompanharhomologacao")) ||
       (path === "/usuarios" && location.pathname.startsWith("/usuarios"))
     );
   };

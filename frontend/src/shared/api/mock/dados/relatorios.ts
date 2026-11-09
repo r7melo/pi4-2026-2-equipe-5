@@ -2,7 +2,7 @@ import type { RelatorioCusto, CustosObra, DREObra, AtualizarCustosPayload } from
 import { obterObrasArmazenadas } from "./obras";
 import { obterMateriaisArmazenados } from "./materiais";
 import { lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";
-import { calcularDRE } from "@/features/financeiro/lib/dreCalculos";
+import { calcularDRE } from "@/shared/lib/dreCalculos";
 
 interface CustosArmazenadosObra {
   custoMaoObra: number | null;

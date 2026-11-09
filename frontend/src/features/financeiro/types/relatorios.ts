@@ -1,5 +1,5 @@
 // Tipos do domínio de Relatórios, Balanço de Custos e Compartilhamento Público (RF-15, RF-16, RF-20)
-import type { ObraCard } from "@/features/obras/types/obras";
+import type { ObraCard } from "@/types";
 
 export interface BalancoMaterial {
   tipo: string;

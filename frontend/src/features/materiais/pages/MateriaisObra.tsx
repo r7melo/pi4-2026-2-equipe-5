@@ -3,10 +3,10 @@ import { useParams, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/stores/useAuthStore";
 import {
   useMateriais,
+  useObraContextoMateriais,
   useAtualizarStatusMaterial,
   useExcluirMaterial,
 } from "@/features/materiais/hooks/useMateriais";
-import { useObraDetalhe } from "@/features/obras/hooks/useObraDetalhe";
 import { ModalMaterial } from "@/features/materiais/components/ModalMaterial";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
@@ -41,7 +41,7 @@ export default function MateriaisObra() {
   const podeVerCustos = perfil === "Administrador" || perfil === "Financeiro";
 
   const { data: materiais, isLoading, isError, error, refetch } = useMateriais(obraId);
-  const { data: obra } = useObraDetalhe(obraId);
+  const { data: obra } = useObraContextoMateriais(obraId);
 
   const atualizarStatusMutation = useAtualizarStatusMaterial();
   const excluirMutation = useExcluirMaterial();

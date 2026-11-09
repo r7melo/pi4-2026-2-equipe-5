@@ -1,6 +1,12 @@
 import { api } from "@/shared/api/api";
 import type { Material, CriarMaterialPayload, StatusLogistico, AtualizarMaterialPayload } from "@/types";
 
+/** GET /api/obras/{obraId} — Consulta contextual simplificada para cabeçalhos sem acoplar fatias */
+export async function buscarContextoObra(obraId: number): Promise<{ id: number; cliente?: { nome: string } }> {
+  const { data } = await api.get<{ id: number; cliente?: { nome: string } }>(`/obras/${obraId}`);
+  return data;
+}
+
 /** GET /api/obras/{obraId}/materiais — Rota #18 do Contrato */
 export async function listarMateriais(obraId: number): Promise<Material[]> {
   const { data } = await api.get<Material[]>(`/obras/${obraId}/materiais`);

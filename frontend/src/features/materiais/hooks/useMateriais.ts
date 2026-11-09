@@ -3,6 +3,7 @@ import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao
 import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
 import {
   listarMateriais,
+  buscarContextoObra,
   registrarMaterial,
   atualizarStatusMaterial,
   atualizarDadosMaterial,
@@ -16,6 +17,16 @@ export function useMateriais(obraId: number) {
     queryKey: ["materiais", obraId],
     queryFn: () => listarMateriais(obraId),
     staleTime: 1000 * 30,
+    enabled: !!obraId,
+  });
+}
+
+/** Hook autônomo para metadados da obra no módulo de materiais */
+export function useObraContextoMateriais(obraId: number) {
+  return useQuery({
+    queryKey: ["obra-contexto-materiais", obraId],
+    queryFn: () => buscarContextoObra(obraId),
+    staleTime: 1000 * 60 * 5,
     enabled: !!obraId,
   });
 }

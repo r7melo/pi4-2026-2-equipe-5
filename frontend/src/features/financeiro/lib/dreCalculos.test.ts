@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcularDRE } from "./dreCalculos";
+import { calcularDRE } from "@/shared/lib/dreCalculos";
 
 describe("Cálculos de DRE e Regras Financeiras (RF-20 / RN-03)", () => {
   it("Cenário 1: Cálculo oficial (Resultado = Valor da Obra (30.000) - Custo Total (14.500) = 15.500)", () => {
