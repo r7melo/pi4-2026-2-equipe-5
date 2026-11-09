@@ -157,7 +157,7 @@ Authorization: Bearer {{loginInstalador.response.body.token}}
 GET {{api}}/instalador/instalacoes/304
 Authorization: Bearer {{loginInstalador.response.body.token}}
 
-### 32. Obra de outra equipe -> 404 OBRA_NOT_FOUND
+### 32. Obra de outra equipe -> 403 ACCESS_DENIED (inexistente -> 404 OBRA_NOT_FOUND)
 GET {{api}}/instalador/instalacoes/301
 Authorization: Bearer {{loginInstalador.response.body.token}}
 

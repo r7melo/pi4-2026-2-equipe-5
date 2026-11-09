@@ -18,14 +18,17 @@ public class InstaladorController(BancoDados banco) : ControllerBase
         Ok(User.EquipeId() is int equipe ? banco.ListarInstalacoesEquipe(equipe) : []);
 
     /// <summary>Detalhe da instalação: kit sem preços, endereço, projeto, instruções e link de navegação (rota 32, RF-19).</summary>
-    /// <remarks>Obra de outra equipe responde 404, como obra inexistente, para não revelar que ela existe.</remarks>
+    /// <remarks>Obra inexistente responde 404; obra de outra equipe responde 403 e grava o audit_log (matriz de rotas, 04-regras-negocio.md).</remarks>
     [HttpGet("instalacoes/{obraId:int}")]
     [ProducesResponseType(typeof(InstalacaoDetalheSaida), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErroSaida), StatusCodes.Status404NotFound)]
     public IActionResult DetalharInstalacao(int obraId)
     {
         var detalhe = User.EquipeId() is int equipe ? banco.BuscarInstalacaoEquipe(obraId, equipe) : null;
-        if (detalhe is null) return Erro.Criar(404, "OBRA_NOT_FOUND", $"Obra {obraId} não encontrada.");
+        if (detalhe is null)
+            return banco.BuscarObra(obraId) is null
+                ? Erro.Criar(404, "OBRA_NOT_FOUND", $"Obra {obraId} não encontrada.")
+                : this.ObraDeOutraEquipe(obraId);
         return Ok(new InstalacaoDetalheSaida(detalhe.ObraId, detalhe.ClienteNome, detalhe.Endereco,
             LinkNavegacao(detalhe.Endereco), detalhe.Kit, detalhe.Projeto, detalhe.Instrucoes));
     }
