@@ -37,6 +37,9 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(o =>
     };
 });
 
+var swagger = Swagger.Habilitado(builder.Configuration);
+if (swagger) Swagger.Adicionar(builder.Services);
+
 // SignalR usa credenciais: a origem precisa ser explicita, nunca '*'.
 // Outras origens (inclusive homologacao na rede) usam Cors__AllowedOrigins__0, __1 etc.
 var origensCors = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -61,6 +64,9 @@ app.UseStatusCodePages(ctx =>
         _ => Task.CompletedTask,
     };
 });
+
+// Fora do pipeline de autenticação: a documentação abre sem token
+if (swagger) Swagger.Usar(app);
 
 app.UseCors();
 // CORS nao valida o Origin do upgrade WebSocket; aplica a mesma lista no transporte.
