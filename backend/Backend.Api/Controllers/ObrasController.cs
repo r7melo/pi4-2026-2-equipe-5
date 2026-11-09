@@ -225,6 +225,38 @@ public class ObrasController(BancoDados banco, ObrasNotificador notificador) : C
         return Ok(custos);
     }
 
+    // Rota 33 — RF-14, RF-20
+    [Authorize(Roles = Perfis.Administrador + "," + Perfis.Financeiro)]
+    [HttpGet("{id:int}/relatorio-custo")]
+    public IActionResult BuscarRelatorioCusto(int id)
+    {
+        try
+        {
+            var relatorio = banco.BuscarRelatorioCusto(id);
+            return relatorio is null ? ObraNaoEncontrada(id) : Ok(relatorio);
+        }
+        catch (RegraVioladaException ex)
+        {
+            return Erro.Criar(ex.Status, ex.Code, ex.Message);
+        }
+    }
+
+    // Rota 34 — RF-14, RF-20
+    [Authorize(Roles = Perfis.Administrador + "," + Perfis.Financeiro)]
+    [HttpGet("{id:int}/dre")]
+    public IActionResult BuscarDre(int id)
+    {
+        try
+        {
+            var dre = banco.BuscarDreObra(id);
+            return dre is null ? ObraNaoEncontrada(id) : Ok(dre);
+        }
+        catch (RegraVioladaException ex)
+        {
+            return Erro.Criar(ex.Status, ex.Code, ex.Message);
+        }
+    }
+
     static object Detalhe(ObraBanco obra) => new
     {
         obra.Id, obra.Status, obra.Categoria, obra.QuantidadePaineis, obra.QuantidadeInversores,

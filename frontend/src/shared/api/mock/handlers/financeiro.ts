@@ -17,6 +17,11 @@ import type { AtualizarCustosPayload } from "@/types";
 export function registrarFinanceiro(mock: MockAdapter): void {
   // GET /obras/:id/relatorio-custo — Rota #33
   mock.onGet(/\/obras\/\d+\/relatorio-custo\/?(\?.*)?$/).reply((config) => {
+    const auth = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!auth) return [401, { error: { code: "UNAUTHORIZED", message: "Sessão ausente ou expirada." } }];
+    if (!["Administrador", "Financeiro"].includes(auth.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para visualizar o relatório de custos." } }];
+    }
     const match = config.url?.match(/\/obras\/(\d+)\/relatorio-custo/);
     const obraId = match ? Number(match[1]) : 0;
     const relatorio = obterRelatorioArmazenado(obraId);
@@ -59,8 +64,8 @@ export function registrarFinanceiro(mock: MockAdapter): void {
   mock.onPost(/\/obras\/\d+\/custos\/?(\?.*)?$/).reply((config) => {
     const auth = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
     if (!auth) return [401, { error: { code: "UNAUTHORIZED", message: "Sessão ausente ou expirada." } }];
-    if (!["Administrador", "Financeiro"].includes(auth.perfil.nomePerfil)) {
-      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para lançar custos." } }];
+    if (auth.perfil.nomePerfil !== "Financeiro") {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para lançar custos. Ação restrita ao Financeiro." } }];
     }
     const match = config.url?.match(/\/obras\/(\d+)\/custos/);
     const obraId = match ? Number(match[1]) : 0;

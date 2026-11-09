@@ -13,8 +13,13 @@ import { excluirObraArmazenada } from "../dados/operacoesObras";
 export function registrarObras(mock: MockAdapter): void {
   // --- ROTAS DE OBRAS ---
   
-  // GET /obras (com suporte a filtros por status, clienteNome e paginação)
+  // GET /obras — Rota #12 (Admin, Engenharia e Financeiro. Instalador: 403)
   mock.onGet(/\/obras\/?(\?.*)?$/).reply((config) => {
+    const auth = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (auth && auth.perfil.nomePerfil === "InstaladorCampo") {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Instalador não possui acesso à lista geral de obras." } }];
+    }
+
     const params = extrairQueryParams(config);
     let itens = obterObrasArmazenadas();
   
@@ -41,9 +46,13 @@ export function registrarObras(mock: MockAdapter): void {
     ];
   });
   
+  // POST /obras — Rota #13 (Admin e Engenharia)
   mock.onPost(/\/obras\/?(\?.*)?$/).reply(config => {
     const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
     if (!operador) return [401];
+    if (!["Administrador", "Engenharia"].includes(operador.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para cadastrar obras." } }];
+    }
     try {
       const detalhe = cadastrarObraCenario(extrairDados<unknown>(config.data), operador);
       return [201, { ...detalhe, clienteId: detalhe.cliente.id, criadoEm: new Date().toISOString() }];
@@ -52,9 +61,15 @@ export function registrarObras(mock: MockAdapter): void {
     }
   });
 
-  // PATCH /obras/:id/status (atualiza status no agregado transacional)
+  // PATCH /obras/:id/status — Rota #17 (Admin e Engenharia)
   mock.onPatch(/\/obras\/\d+\/status\/?(\?.*)?$/).reply((config) => {
     try {
+      const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+      if (!operador) return [401];
+      if (!["Administrador", "Engenharia"].includes(operador.perfil.nomePerfil)) {
+        return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para mover cartões no Kanban." } }];
+      }
+
       const match = config.url?.match(/\/obras\/(\d+)\/status/);
       const id = match ? Number(match[1]) : 0;
       const { statusNovo, observacao } = extrairDados<{ statusNovo?: StatusObra; observacao?: string }>(config.data);
@@ -88,8 +103,6 @@ export function registrarObras(mock: MockAdapter): void {
         ];
       }
   
-      const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
-      if (!operador) return [401];
       const obraAtualizada = atualizarStatusObraArmazenada(id, statusNovo, operador.nome);
       registrarDatasReais(id, statusNovo);
   
@@ -121,12 +134,20 @@ export function registrarObras(mock: MockAdapter): void {
     }
   });
   
+  // GET /obras/:id — Rota #14
   mock.onGet(/\/obras\/\d+\/?(\?.*)?$/).reply(config => {
     const id = Number(config.url?.match(/\/obras\/(\d+)/)?.[1]);
     const detalhe = detalheCenario(id);
     return detalhe ? [200, detalhe] : [404, { error: { code: "OBRA_NOT_FOUND", message: "Obra não encontrada." } }];
   });
+
+  // PUT /obras/:id — Rota #15 (Admin e Engenharia)
   mock.onPut(/\/obras\/\d+\/?$/).reply(config => {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return [401];
+    if (!["Administrador", "Engenharia"].includes(operador.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para editar obras." } }];
+    }
     const id = Number(config.url?.match(/\/obras\/(\d+)/)?.[1]);
     try {
       const detalhe = editarDetalheCenario(id, extrairDados<EditarObraPayload>(config.data));
@@ -136,8 +157,14 @@ export function registrarObras(mock: MockAdapter): void {
 }
 
 export function registrarExclusaoObra(mock: MockAdapter): void {
-  // DELETE /obras/:id — UC-11 / UC-16 com bloqueio severo UC-11 RN2 / FA2
+  // DELETE /obras/:id — Rota #16 (Admin e Engenharia)
   mock.onDelete(/\/obras\/\d+\/?(\?.*)?$/).reply((config) => {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return [401];
+    if (!["Administrador", "Engenharia"].includes(operador.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para excluir obras." } }];
+    }
+
     const match = config.url?.match(/\/obras\/(\d+)/);
     const id = match ? Number(match[1]) : NaN;
     if (isNaN(id)) {

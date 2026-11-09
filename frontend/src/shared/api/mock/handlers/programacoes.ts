@@ -6,6 +6,7 @@ import type { CriarProgramacaoPayload } from "@/types";
 import { obterObrasArmazenadas } from "../dados/obras";
 import { proximoDiaUtil, normalizarDataMeioDiaUTC, calcularUltimoDiaUtil, formatarDataISO, formatarDataBR, normalizarDataFimInclusiva } from "@/shared/lib/formatters";
 import { verificarSobreposicaoPeriodos } from "@/shared/lib/intervalosDiasUteis";
+import { resolverUsuarioAutenticadoMock } from "../core/auth";
 
 export function registrarConsultasCronograma(mock: MockAdapter): void {
   // --- ROTAS DO GANTT ---
@@ -13,11 +14,25 @@ export function registrarConsultasCronograma(mock: MockAdapter): void {
   // GET /equipes
   mock.onGet(/\/equipes\/?(\?.*)?$/).reply(() => [200, obterEquipesArmazenadas()]);
   
-  // GET /programacoes
-  mock.onGet(/\/programacoes\/?(\?.*)?$/).reply(() => [200, obterProgramacoesArmazenadas()]);
+  // GET /programacoes — Rota #28
+  mock.onGet(/\/programacoes\/?(\?.*)?$/).reply((config) => {
+    const auth = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    let progs = obterProgramacoesArmazenadas();
+    if (auth && auth.perfil.nomePerfil === "InstaladorCampo") {
+      const equipeId = auth.equipeId;
+      progs = equipeId ? progs.filter(p => p.equipeId === equipeId) : [];
+    }
+    return [200, progs];
+  });
   
-  // PUT /programacoes/:id/reordenar (Contrato Rota #24 — com programacoesAfetadas)
+  // PUT /programacoes/:id/reordenar — Rota #30 (Admin e Engenharia)
   mock.onPut(/\/programacoes\/\d+\/reordenar\/?(\?.*)?$/).reply((config) => {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return [401];
+    if (!["Administrador", "Engenharia"].includes(operador.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para reordenar o cronograma." } }];
+    }
+
     try {
       const match = config.url?.match(/\/programacoes\/(\d+)\/reordenar/);
       const id = match ? Number(match[1]) : 0;
@@ -28,7 +43,7 @@ export function registrarConsultasCronograma(mock: MockAdapter): void {
       const resultado = atualizarProgramacaoDataArmazenada(id, body.novaDataInicio, body.novaDataFim);
       if (!resultado) return [404, { error: { message: "Não encontrada" } }];
   
-      // Resposta espelhando fielmente o contrato da API (Rota #24)
+      // Resposta espelhando fielmente o contrato da API (Rota #24 / #30)
       return [
         200,
         {
@@ -45,8 +60,14 @@ export function registrarConsultasCronograma(mock: MockAdapter): void {
 }
 
 export function registrarAlocacoes(mock: MockAdapter): void {
-  // POST /programacoes (Rota #23 do Contrato Canônico)
+  // POST /programacoes — Rota #29 (Admin e Engenharia)
   mock.onPost(/\/programacoes\/?(\?.*)?$/).reply((config) => {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return [401];
+    if (!["Administrador", "Engenharia"].includes(operador.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para alocar programações no Gantt." } }];
+    }
+
     try {
       const body = extrairDados<CriarProgramacaoPayload>(config.data);
       if (!body.obraId || !body.equipeId || !body.dataInicio) {
@@ -107,8 +128,14 @@ export function registrarAlocacoes(mock: MockAdapter): void {
     }
   });
   
-  // DELETE /programacoes/:id (dívida restrita ao mock (sem rota no contrato canônico))
+  // DELETE /programacoes/:id (Admin e Engenharia)
   mock.onDelete(/\/programacoes\/\d+\/?(\?.*)?$/).reply((config) => {
+    const operador = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!operador) return [401];
+    if (!["Administrador", "Engenharia"].includes(operador.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para desalocar programações." } }];
+    }
+
     const match = config.url?.match(/\/programacoes\/(\d+)/);
     if (!match) return [400, { error: { code: "BAD_REQUEST", message: "ID inválido" } }];
     const id = Number(match[1]);

@@ -4,8 +4,8 @@
  * Código de saída 0 = sucesso total, 1 = falha.
  */
 
-import { calcularDRE } from "../src/features/financeiro/lib/dreCalculos.js";
-import { formatarCpfCnpj, formatarTelefone } from "../src/shared/lib/validacoesDocumento.js";
+import { calcularDRE } from "../src/features/financeiro/lib/dreCalculos.ts";
+import { formatarCpfCnpj, formatarTelefone } from "../src/shared/lib/validacoesDocumento.ts";
 
 let aprovados = 0;
 let total = 0;

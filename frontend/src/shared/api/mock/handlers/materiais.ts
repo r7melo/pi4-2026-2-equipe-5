@@ -19,10 +19,21 @@ const campos = {
 const criar = z.object({ ...campos, tipo: campos.tipo.optional(), descricao: z.string().optional(), unidade: z.string().optional() }).refine(d => Boolean(d.tipo || d.descricao));
 const alterar = z.object(campos).partial().strict().refine(d => Object.keys(d).length > 0);
 const erroValidacao: [number, unknown] = [400, { error: { code: "VALIDATION_ERROR", message: "Dados do material inválidos." } }];
-const erroPermissao: [number, unknown] = [403, { error: { code: "FORBIDDEN", message: "Operação não permitida para este perfil." } }];
-const podeAlterar = (authorization: unknown) => {
+const erroPermissao: [number, unknown] = [403, { error: { code: "ACCESS_DENIED", message: "Operação não permitida para este perfil." } }];
+
+const podeAdicionar = (authorization: unknown) => {
   const perfil = resolverUsuarioAutenticadoMock(authorization)?.perfil.nomePerfil;
-  return perfil === "Administrador" || perfil === "Engenharia" || perfil === "Financeiro";
+  return perfil === "Administrador" || perfil === "Engenharia";
+};
+
+const podeAlterarStatus = (authorization: unknown) => {
+  const perfil = resolverUsuarioAutenticadoMock(authorization)?.perfil.nomePerfil;
+  return perfil === "Administrador" || perfil === "Financeiro";
+};
+
+const podeExcluir = (authorization: unknown) => {
+  const perfil = resolverUsuarioAutenticadoMock(authorization)?.perfil.nomePerfil;
+  return perfil === "Administrador" || perfil === "Engenharia";
 };
 
 export function registrarMateriais(mock: MockAdapter): void {
@@ -35,11 +46,11 @@ export function registrarMateriais(mock: MockAdapter): void {
     return [200, itens];
   });
 
-  // POST /obras/:id/materiais
+  // POST /obras/:id/materiais — Rota #19 (Admin e Engenharia)
   mock.onPost(/\/obras\/\d+\/materiais\/?$/).reply((config) => {
     const match = config.url?.match(/\/obras\/(\d+)\/materiais/);
     const obraId = match ? Number(match[1]) : 0;
-    if (!podeAlterar(config.headers?.Authorization)) return erroPermissao;
+    if (!podeAdicionar(config.headers?.Authorization)) return erroPermissao;
     try {
       const validacao = criar.safeParse(extrairDados<unknown>(config.data));
       if (!validacao.success) return erroValidacao;
@@ -52,11 +63,11 @@ export function registrarMateriais(mock: MockAdapter): void {
     }
   });
 
-  // PATCH /materiais/:id — Rota #20 (tipo/quantidade são extensão proposta)
+  // PATCH /materiais/:id — Rota #20 (Admin e Financeiro)
   mock.onPatch(/\/materiais\/\d+\/?$/).reply((config) => {
     const match = config.url?.match(/\/materiais\/(\d+)/);
     const id = match ? Number(match[1]) : 0;
-    if (!podeAlterar(config.headers?.Authorization)) return erroPermissao;
+    if (!podeAlterarStatus(config.headers?.Authorization)) return erroPermissao;
     try {
       const validacao = alterar.safeParse(extrairDados<unknown>(config.data));
       if (!validacao.success) return erroValidacao;
@@ -72,11 +83,11 @@ export function registrarMateriais(mock: MockAdapter): void {
     }
   });
 
-  // DELETE /materiais/:id
+  // DELETE /materiais/:id — Admin e Engenharia
   mock.onDelete(/\/materiais\/\d+\/?$/).reply((config) => {
     const match = config.url?.match(/\/materiais\/(\d+)/);
     const id = match ? Number(match[1]) : 0;
-    if (!podeAlterar(config.headers?.Authorization)) return erroPermissao;
+    if (!podeExcluir(config.headers?.Authorization)) return erroPermissao;
     const removido = removerMaterialArmazenado(id);
     if (!removido) {
       return [404, { error: { code: "MATERIAL_NOT_FOUND", message: "Material não encontrado." } }];
