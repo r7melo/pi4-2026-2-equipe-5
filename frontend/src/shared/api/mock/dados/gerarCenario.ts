@@ -51,6 +51,7 @@ export function gerarDadosCenario(base: string): Record<string, string> {
   const comentarios: ComentarioObra[] = [];
   const homologacoes: Record<number, DadosHomologacao> = {};
   const relatorios: Record<number, RelatorioCusto> = {};
+  const custosObras: Record<number, { custoMaoObra: number; custoInsumos: number; valorObra: number }> = {};
   const finsConcluidos: Record<number, number> = { 307: 3, 312: 7, 313: 65, 318: 90, 324: 1, 308: 30, 319: 40 };
   const andando: Record<number, number> = { 305: 1, 306: 2, 317: 3, 323: 4 };
   const futuros = new Map<number, string>();
@@ -114,6 +115,13 @@ export function gerarDadosCenario(base: string): Record<string, string> {
     }
     if (i % 4 !== 0) comentarios.push({ id: 701 + comentarios.length, obraId: id, descricao: i % 2 ? "Acesso e local de descarga confirmados com o cliente." : "Conferir fixação e proteção durante a visita técnica.", dataRegistro: somarDiasCivisUTC(ultimoDia, -1) + "T14:00:00Z", usuario: { id: 2, nome: "Ana Souza" } });
     homologacoes[id] = { obraId: id, parecerAcesso: ["Concluido", "Assistencia", "EmAndamento"].includes(status) ? "Aprovado" : i % 2 ? "Pendente" : "EmAnalise", artTrt: parcial ? undefined : `ART-DEMO-${id}` };
+    if (valorTotal !== undefined) {
+      custosObras[id] = {
+        valorObra: valorTotal,
+        custoMaoObra: Math.round(valorTotal * 0.25),
+        custoInsumos: Math.round(valorTotal * 0.45),
+      };
+    }
     if (status === "Concluido" && valorTotal !== undefined) {
       const itens = [{ descricao: "Equipamentos e instalação", valor: 17000 }, { descricao: "Projeto e comissionamento", valor: 3000 }];
       relatorios[id] = { obraId: id, receita: valorTotal, custoTotal: 20000, lucro: valorTotal - 20000, itens };
@@ -125,6 +133,7 @@ export function gerarDadosCenario(base: string): Record<string, string> {
     mock_obras_v3: obras, mock_detalhes_v1: detalhes, mock_clientes_v1: clientes,
     mock_programacoes_v4: programacoes, mock_materiais: materiais, mock_historico: historico,
     mock_comentarios: comentarios, mock_homologacoes_v1: homologacoes, mock_relatorios_v1: relatorios,
+    mock_custos_obras_v1: custosObras,
     mock_gestao_usuarios_v1: gestao,
     mock_links_cronograma_v1: [], mock_seguranca_senhas_v1: { versao: 1, contas: {}, links: {} },
     mock_links_relatorios_v1: {}, mock_tentativas_v1: {}, mock_excluidas_v1: {},

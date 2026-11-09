@@ -46,13 +46,6 @@ function obterMapaCustos(): Record<number, CustosArmazenadosObra> {
     };
   }
 
-  // Tenta persistir no cenário apenas se estivermos em uma transação com escrita permitida
-  try {
-    salvarDadosCenario(CHAVE_CUSTOS_MOCK, inicial);
-  } catch {
-    // Ignora quando estiver em leitura pura (evita quebrar a consulta GET)
-  }
-
   return inicial;
 }
 

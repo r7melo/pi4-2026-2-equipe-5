@@ -17,14 +17,14 @@ export function registrarInstalador(mock: MockAdapter): void {
 
     const equipeId = usuario.equipeId;
     const equipes = obterEquipesArmazenadas();
-    const equipe = equipes.find((e) => e.id === equipeId || e.membros?.some((m) => m.id === usuario.id)) || equipes[0];
+    const equipe = equipes.find((e) => e.id === equipeId || e.membros?.some((m) => m.id === usuario.id));
+
+    if (!equipe) {
+      return [200, []];
+    }
 
     const programacoes = obterProgramacoesArmazenadas();
-    const progsEquipe = equipe
-      ? programacoes.filter((p) => p.equipeId === equipe.id)
-      : programacoes;
-
-    const progsFiltradas = progsEquipe.length > 0 ? progsEquipe : programacoes.slice(0, 3);
+    const progsFiltradas = programacoes.filter((p) => p.equipeId === equipe.id);
     const obras = obterObrasArmazenadas();
 
     const resultado = progsFiltradas.map((p) => {
