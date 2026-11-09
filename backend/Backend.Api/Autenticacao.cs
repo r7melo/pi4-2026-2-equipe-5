@@ -64,6 +64,14 @@ public sealed class Autenticacao
         // 401 e 403 no formato do contrato, com registro no audit_log (RF-02, RNF-03).
         opcoes.Events = new JwtBearerEvents
         {
+            OnMessageReceived = contexto =>
+            {
+                // WebSocket/SSE do navegador enviam JWT pela query. Fora do hub, so Bearer.
+                var token = contexto.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && contexto.HttpContext.Request.Path.StartsWithSegments("/hubs/obras"))
+                    contexto.Token = token;
+                return Task.CompletedTask;
+            },
             OnTokenValidated = contexto =>
             {
                 // Compativel com JWTs assinados antes da migracao, apenas ate a expiracao original.

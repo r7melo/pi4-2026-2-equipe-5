@@ -126,3 +126,4 @@ Thumbs.db
 
 # Backup local do banco de dados
 /pi4_db_backup.sql
+/backend/backups/
