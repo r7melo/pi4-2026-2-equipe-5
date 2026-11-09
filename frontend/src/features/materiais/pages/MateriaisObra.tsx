@@ -238,8 +238,11 @@ export default function MateriaisObra() {
                           {podeAlterarStatus ? (
                             <div className="relative inline-flex items-center">
                               <select
-                                value={mat.statusLogistico || "Comprado"}
-                                disabled={atualizarStatusMutation.isPending}
+                                value={mat.statusLogistico || "EmSolicitacao"}
+                                disabled={
+                                  atualizarStatusMutation.isPending &&
+                                  atualizarStatusMutation.variables?.id === mat.id
+                                }
                                 onChange={(e) =>
                                   handleAlterarStatus(mat.id, e.target.value as StatusLogistico)
                                 }

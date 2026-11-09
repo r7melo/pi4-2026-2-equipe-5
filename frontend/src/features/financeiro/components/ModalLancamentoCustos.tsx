@@ -41,6 +41,11 @@ export function ModalLancamentoCustos({
   const [erroValidacao, setErroValidacao] = useState<string | null>(null);
   const atualizarCustos = useAtualizarCustosObra(obraId);
 
+  const handleClose = () => {
+    setErroValidacao(null);
+    onClose();
+  };
+
   const {
     register,
     handleSubmit,
@@ -49,9 +54,9 @@ export function ModalLancamentoCustos({
     reset,
   } = useForm<FormValores>({
     values: {
-      valorObra: custosAtuais?.valorObra ? String(custosAtuais.valorObra) : "",
-      custoMaoObra: custosAtuais?.custoMaoObra ? String(custosAtuais.custoMaoObra) : "",
-      custoInsumos: custosAtuais?.custoInsumos ? String(custosAtuais.custoInsumos) : "",
+      valorObra: custosAtuais?.valorObra != null ? String(custosAtuais.valorObra) : "",
+      custoMaoObra: custosAtuais?.custoMaoObra != null ? String(custosAtuais.custoMaoObra) : "",
+      custoInsumos: custosAtuais?.custoInsumos != null ? String(custosAtuais.custoInsumos) : "",
     },
     resetOptions: {
       keepDirtyValues: true,
@@ -111,7 +116,8 @@ export function ModalLancamentoCustos({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
+      fecharBloqueado={isSubmitting}
       titulo="Lançamento de Custos e Valor da Obra"
       subtitulo={`Obra #${obraId} • Cliente: ${clienteNome}`}
       icone={
@@ -267,7 +273,7 @@ export function ModalLancamentoCustos({
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isSalvando}
             className="cursor-pointer"
           >

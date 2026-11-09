@@ -35,6 +35,8 @@ const editarObraFormSchema = z.object({
     .number({ error: "Informe o prazo contratual" })
     .int("Deve ser um número inteiro")
     .positive("O prazo contratual deve ser de ao menos 1 dia"),
+  dataInicioEstimada: z.string().optional(),
+  dataFimEstimada: z.string().optional(),
   descricao: z.string().optional(),
 });
 
@@ -63,6 +65,8 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
       quantidadePaineis: obra.quantidadePaineis ?? 1,
       quantidadeInversores: obra.quantidadeInversores ?? 1,
       prazoContratualDias: obra.pagamento?.prazoContratualDias ?? 30,
+      dataInicioEstimada: obra.dataInicioEstimada ? obra.dataInicioEstimada.split("T")[0] : "",
+      dataFimEstimada: obra.dataFimEstimada ? obra.dataFimEstimada.split("T")[0] : "",
       descricao: obra.descricao || "",
     },
   });
@@ -77,6 +81,8 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
         quantidadePaineis: obra.quantidadePaineis ?? 1,
         quantidadeInversores: obra.quantidadeInversores ?? 1,
         prazoContratualDias: obra.pagamento?.prazoContratualDias ?? 30,
+        dataInicioEstimada: obra.dataInicioEstimada ? obra.dataInicioEstimada.split("T")[0] : "",
+        dataFimEstimada: obra.dataFimEstimada ? obra.dataFimEstimada.split("T")[0] : "",
         descricao: obra.descricao || "",
       });
     }
@@ -89,6 +95,8 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
       categoria: data.categoria,
       quantidadePaineis: data.quantidadePaineis,
       quantidadeInversores: data.quantidadeInversores,
+      dataInicioEstimada: data.dataInicioEstimada || undefined,
+      dataFimEstimada: data.dataFimEstimada || undefined,
       descricao: data.descricao || undefined,
       pagamento: {
         prazoContratualDias: data.prazoContratualDias,
@@ -107,6 +115,7 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      fecharBloqueado={isSubmitting}
       titulo="Editar Dados da Obra"
       subtitulo={`Obra #${obra.id} • ${obra.cliente?.nome || "Cliente"}`}
       icone={
@@ -206,7 +215,7 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
           />
 
           <Input
-            label="Prazo Contratual"
+            label="Prazo Contratual (dias)"
             type="number"
             min={1}
             required
@@ -217,7 +226,23 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
           />
         </div>
 
-        {/* Linha 4: Descrição e Observações */}
+        {/* Linha 4: Datas Estimadas da Obra (Rota #15) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Início Estimado"
+            type="date"
+            error={errors.dataInicioEstimada?.message}
+            {...register("dataInicioEstimada")}
+          />
+          <Input
+            label="Conclusão Estimada"
+            type="date"
+            error={errors.dataFimEstimada?.message}
+            {...register("dataFimEstimada")}
+          />
+        </div>
+
+        {/* Linha 5: Descrição e Observações */}
         <div className="space-y-1.5 w-full">
           <label
             htmlFor="editar-descricao"

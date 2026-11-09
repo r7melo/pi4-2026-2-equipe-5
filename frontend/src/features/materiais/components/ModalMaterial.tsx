@@ -34,7 +34,7 @@ function FormularioMaterial({
     materialParaEditar?.custoUnitario != null ? String(materialParaEditar.custoUnitario) : ""
   );
   const [statusLogistico, setStatusLogistico] = useState<StatusLogistico>(
-    materialParaEditar?.statusLogistico || "Comprado"
+    materialParaEditar?.statusLogistico || "EmSolicitacao"
   );
   const [erro, setErro] = useState<string | null>(null);
 
@@ -57,8 +57,8 @@ function FormularioMaterial({
     }
 
     const qtdNum = Number(quantidade);
-    if (!Number.isInteger(qtdNum) || qtdNum <= 0) {
-      setErro("A quantidade deve ser um número inteiro positivo maior que zero.");
+    if (isNaN(qtdNum) || qtdNum <= 0) {
+      setErro("A quantidade deve ser um número positivo maior que zero.");
       return;
     }
 
@@ -122,30 +122,49 @@ function FormularioMaterial({
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
+        <label htmlFor="material-tipo" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
           Descrição / Tipo do Material <span className="text-destructive">*</span>
         </label>
-        <input
-          type="text"
-          required
-          disabled={isPending}
-          value={tipo}
-          onChange={(e) => setTipo(e.target.value)}
-          placeholder="Ex: Módulo Solar 550W Monocristalino"
-          className="w-full h-9 border border-border-subtle bg-surface-subtle rounded-lg px-3 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors disabled:opacity-60"
-        />
+        <div className="space-y-1.5">
+          <input
+            id="material-tipo"
+            type="text"
+            required
+            list="catalogo-produtos-sugeridos"
+            disabled={isPending}
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+            placeholder="Selecione ou digite o insumo (Ex: Módulo Solar 550W)"
+            className="w-full h-9 border border-border-subtle bg-surface-subtle rounded-lg px-3 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors disabled:opacity-60"
+          />
+          <datalist id="catalogo-produtos-sugeridos">
+            <option value="Módulo Solar 550W Monocristalino" />
+            <option value="Módulo Solar 600W Bifacial" />
+            <option value="Inversor Solar String 5kW" />
+            <option value="Inversor Solar String 10kW" />
+            <option value="Microinversor 2000W" />
+            <option value="Cabo Solar 6mm² Vermelho" />
+            <option value="Cabo Solar 6mm² Preto" />
+            <option value="Conector MC4 Par (Macho/Fêmea)" />
+            <option value="Kit Estrutura Fixação Telhado Cerâmico" />
+            <option value="Kit Estrutura Fixação Telhado Metálico" />
+            <option value="Disjuntor DC 1000V" />
+            <option value="String Box Solar 2 Entradas / 2 Saídas" />
+          </datalist>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
+          <label htmlFor="material-quantidade" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
             Quantidade <span className="text-destructive">*</span>
           </label>
           <input
+            id="material-quantidade"
             type="number"
             required
-            min="1"
-            step="1"
+            min="0.01"
+            step="0.01"
             disabled={isPending}
             value={quantidade}
             onChange={(e) => setQuantidade(e.target.value)}
@@ -155,16 +174,18 @@ function FormularioMaterial({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
+          <label htmlFor="material-status" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
             Status Logístico
           </label>
           <div className="relative">
             <select
-              disabled={isPending}
+              id="material-status"
+              disabled={isPending || !isEditing}
               value={statusLogistico}
               onChange={(e) => setStatusLogistico(e.target.value as StatusLogistico)}
               className="w-full h-9 appearance-none border border-border-subtle bg-surface-subtle rounded-lg pl-3 pr-8 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors cursor-pointer disabled:opacity-60"
             >
+              <option value="EmSolicitacao" className="bg-surface text-foreground">Em Solicitação</option>
               <option value="Comprado" className="bg-surface text-foreground">Comprado</option>
               <option value="EmTransito" className="bg-surface text-foreground">Em Trânsito</option>
               <option value="Disponivel" className="bg-surface text-foreground">Disponível</option>
@@ -177,10 +198,11 @@ function FormularioMaterial({
 
       {podeVerCustos && (
         <div>
-          <label className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
+          <label htmlFor="material-custo" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
             Custo Unitário Estimado (R$)
           </label>
           <input
+            id="material-custo"
             type="number"
             min="0"
             step="0.01"

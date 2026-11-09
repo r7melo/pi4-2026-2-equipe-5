@@ -50,27 +50,20 @@ export default function InstaladorMobile() {
     setChegadaMarcada(false);
   };
 
-  const isLoading = loadingLista || (Boolean(selectedObraId) && loadingDetalhes);
-  const isError = erroLista || erroDetalhes;
-
   return (
     <div className="min-h-screen bg-background-app flex justify-center p-0 sm:p-4">
       {/* Container Restrito (Simula tela de Celular em Monitores Maiores) */}
       <div className="w-full max-w-md bg-surface min-h-screen sm:min-h-0 sm:rounded-2xl border border-border-subtle flex flex-col relative overflow-hidden">
-        
-        {isLoading ? (
+        {loadingLista ? (
           <div className="flex-1 flex items-center justify-center">
-            <FeedbackLoading mensagem="Carregando dados da instalação..." />
+            <FeedbackLoading mensagem="Carregando lista de instalações..." />
           </div>
-        ) : isError ? (
+        ) : erroLista ? (
           <div className="flex-1 flex items-center justify-center p-4">
             <FeedbackErro
-              titulo="Falha ao carregar instalação"
+              titulo="Falha ao carregar instalações"
               mensagem="Não foi possível obter as informações de instalação da equipe."
-              onTentarNovamente={() => {
-                void refetchLista();
-                void refetchDetalhes();
-              }}
+              onTentarNovamente={() => void refetchLista()}
             />
           </div>
         ) : !instalacoes || instalacoes.length === 0 ? (
@@ -81,17 +74,9 @@ export default function InstaladorMobile() {
               descricao="Não há instalações agendadas para sua equipe no momento."
             />
           </div>
-        ) : !detalhes ? (
-          <div className="flex-1 flex items-center justify-center p-4">
-            <EmptyState
-              icone={Package}
-              titulo="Instalação não localizada"
-              descricao="Os dados da instalação selecionada não foram encontrados."
-            />
-          </div>
         ) : (
           <>
-            {/* Header Curto Canônico */}
+            {/* Header Curto Canônico — Fixo e Estável */}
             <div className="bg-surface-subtle border-b border-border-subtle pt-6 pb-5 px-5 relative space-y-3">
               {instalacoes.length > 1 && (
                 <div className="space-y-1">
@@ -113,110 +98,138 @@ export default function InstaladorMobile() {
                 </div>
               )}
 
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide bg-warning-light text-warning border border-warning-border">
-                    {detalhes.dataInicio ? `${detalhes.dataInicio} • ` : ""}
-                    {detalhes.equipeNome || "Equipe de Campo"}
-                  </span>
-                  <h1 className="text-xl font-bold mt-2 text-foreground leading-tight">
-                    Instalação<br />{detalhes.clienteNome}
-                  </h1>
-                </div>
-              </div>
+              {detalhes && (
+                <>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide bg-warning-light text-warning border border-warning-border">
+                        {detalhes.dataInicio ? `${detalhes.dataInicio} • ` : ""}
+                        {detalhes.equipeNome || "Equipe de Campo"}
+                      </span>
+                      <h1 className="text-xl font-bold mt-2 text-foreground leading-tight">
+                        Instalação<br />{detalhes.clienteNome}
+                      </h1>
+                    </div>
+                  </div>
 
-              <p className="text-muted-foreground text-xs flex items-start gap-1.5">
-                <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground" />
-                <span className="leading-snug">{detalhes.endereco}</span>
-              </p>
+                  <p className="text-muted-foreground text-xs flex items-start gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-muted-foreground" />
+                    <span className="leading-snug">{detalhes.endereco}</span>
+                  </p>
+                </>
+              )}
             </div>
 
-            <main className="flex-1 px-5 pt-5 pb-24 overflow-y-auto space-y-4">
-              {/* Card Contato (Quiet Panel) */}
-              <div className="bg-surface p-4 rounded-xl border border-border-subtle flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Cliente</p>
-                  <h3 className="font-semibold text-sm text-foreground">{detalhes.clienteNome}</h3>
-                </div>
-                {detalhes.clienteTelefone ? (
-                  <a
-                    href={`tel:${detalhes.clienteTelefone.replace(/\s+/g, "")}`}
-                    className="w-9 h-9 rounded-lg bg-surface-subtle hover:bg-surface border border-border-subtle text-foreground-secondary flex items-center justify-center transition-colors cursor-pointer"
-                    title={`Ligar para ${detalhes.clienteNome}`}
-                    aria-label={`Ligar para ${detalhes.clienteNome}`}
-                  >
-                    <Phone className="w-4 h-4 text-foreground-muted" />
-                  </a>
-                ) : null}
+            {loadingDetalhes ? (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <FeedbackLoading mensagem="Carregando detalhes da obra selecionada..." />
               </div>
+            ) : erroDetalhes ? (
+              <div className="flex-1 flex items-center justify-center p-4">
+                <FeedbackErro
+                  titulo="Detalhes indisponíveis"
+                  mensagem="Não foi possível carregar os detalhes desta instalação."
+                  onTentarNovamente={() => void refetchDetalhes()}
+                />
+              </div>
+            ) : !detalhes ? (
+              <div className="flex-1 flex items-center justify-center p-4">
+                <EmptyState
+                  icone={Package}
+                  titulo="Instalação não localizada"
+                  descricao="Os dados da instalação selecionada não foram encontrados."
+                />
+              </div>
+            ) : (
+              <>
+                <main className="flex-1 px-5 pt-5 pb-24 overflow-y-auto space-y-4">
+                  {/* Card Contato (Quiet Panel) */}
+                  <div className="bg-surface p-4 rounded-xl border border-border-subtle flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium">Cliente</p>
+                      <h3 className="font-semibold text-sm text-foreground">{detalhes.clienteNome}</h3>
+                    </div>
+                    {detalhes.clienteTelefone ? (
+                      <a
+                        href={`tel:${detalhes.clienteTelefone.replace(/[^\d+]/g, "")}`}
+                        className="w-9 h-9 rounded-lg bg-surface-subtle hover:bg-surface border border-border-subtle text-foreground-secondary flex items-center justify-center transition-colors cursor-pointer"
+                        title={`Ligar para ${detalhes.clienteNome}`}
+                        aria-label={`Ligar para ${detalhes.clienteNome}`}
+                      >
+                        <Phone className="w-4 h-4 text-foreground-muted" />
+                      </a>
+                    ) : null}
+                  </div>
 
-              {/* Checklist do Kit (Quiet Panel) */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1.5">
-                  <Package className="w-4 h-4 text-muted-foreground" /> Resumo do Kit
-                </h3>
-                <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
-                  {detalhes.kit && detalhes.kit.length > 0 ? (
-                    <ul className="divide-y divide-border-subtle">
-                      {detalhes.kit.map((item) => (
-                        <li key={item.tipo} className="py-2.5 px-4 flex items-center justify-between">
-                          <span className="text-xs font-medium text-foreground">{item.tipo}</span>
-                          <span className="text-xs font-bold font-mono text-foreground">{item.quantidade} unid.</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="p-4 text-xs text-muted-foreground text-center">
-                      Nenhum item de kit registrado para esta instalação.
+                  {/* Checklist do Kit (Quiet Panel) */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-muted-foreground" /> Resumo do Kit
+                    </h3>
+                    <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
+                      {detalhes.kit && detalhes.kit.length > 0 ? (
+                        <ul className="divide-y divide-border-subtle">
+                          {detalhes.kit.map((item) => (
+                            <li key={item.tipo} className="py-2.5 px-4 flex items-center justify-between">
+                              <span className="text-xs font-medium text-foreground">{item.tipo}</span>
+                              <span className="text-xs font-bold font-mono text-foreground">{item.quantidade} unid.</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="p-4 text-xs text-muted-foreground text-center">
+                          Nenhum item de kit registrado para esta instalação.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Instruções de Campo (se existirem) */}
+                  {detalhes.instrucoes && (
+                    <div className="space-y-1.5">
+                      <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-muted-foreground" /> Instruções de Campo
+                      </h3>
+                      <div className="p-3.5 rounded-xl border border-border-subtle bg-surface-subtle text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {detalhes.instrucoes}
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
 
-              {/* Instruções de Campo (se existirem) */}
-              {detalhes.instrucoes && (
-                <div className="space-y-1.5">
-                  <h3 className="text-xs font-semibold text-foreground-muted uppercase tracking-wider flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-muted-foreground" /> Instruções de Campo
-                  </h3>
-                  <div className="p-3.5 rounded-xl border border-border-subtle bg-surface-subtle text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
-                    {detalhes.instrucoes}
-                  </div>
-                </div>
-              )}
+                  {/* Feedback de Chegada Confirmada */}
+                  {chegadaMarcada && (
+                    <div className="p-3 rounded-lg bg-success-light border border-success-border text-success text-xs font-medium flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>Chegada registrada no local da instalação.</span>
+                    </div>
+                  )}
+                </main>
 
-              {/* Feedback de Chegada Confirmada */}
-              {chegadaMarcada && (
-                <div className="p-3 rounded-lg bg-success-light border border-success-border text-success text-xs font-medium flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Chegada registrada no local da instalação.</span>
+                {/* Floating Action Button Bar */}
+                <div className="absolute bottom-0 left-0 w-full bg-surface border-t border-border-subtle p-3.5 flex gap-2.5">
+                  <Button
+                    onClick={handleOpenMaps}
+                    className="flex-1 h-11 text-xs font-semibold flex justify-center items-center gap-2 cursor-pointer"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Iniciar Rota
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setChegadaMarcada((prev) => !prev)}
+                    className={`w-11 h-11 p-0 rounded-lg flex justify-center items-center cursor-pointer transition-colors ${
+                      chegadaMarcada
+                        ? "bg-success text-white border-success"
+                        : "text-success border-success-border hover:bg-success-light"
+                    }`}
+                    title={chegadaMarcada ? "Chegada confirmada" : "Marcar Chegada"}
+                    aria-label={chegadaMarcada ? "Chegada confirmada" : "Marcar Chegada"}
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                  </Button>
                 </div>
-              )}
-            </main>
-
-            {/* Floating Action Button Bar */}
-            <div className="absolute bottom-0 left-0 w-full bg-surface border-t border-border-subtle p-3.5 flex gap-2.5">
-              <Button
-                onClick={handleOpenMaps}
-                className="flex-1 h-11 text-xs font-semibold flex justify-center items-center gap-2 cursor-pointer"
-              >
-                <Navigation className="w-4 h-4" />
-                Iniciar Rota
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setChegadaMarcada((prev) => !prev)}
-                className={`w-11 h-11 p-0 rounded-lg flex justify-center items-center cursor-pointer transition-colors ${
-                  chegadaMarcada
-                    ? "bg-success text-white border-success"
-                    : "text-success border-success-border hover:bg-success-light"
-                }`}
-                title={chegadaMarcada ? "Chegada confirmada" : "Marcar Chegada"}
-                aria-label={chegadaMarcada ? "Chegada confirmada" : "Marcar Chegada"}
-              >
-                <CheckCircle2 className="w-5 h-5" />
-              </Button>
-            </div>
+              </>
+            )}
           </>
         )}
       </div>

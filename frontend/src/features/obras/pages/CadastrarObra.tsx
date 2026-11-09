@@ -314,9 +314,10 @@ export default function CadastrarObra() {
                       value={clienteIdSelecionado || ""}
                       onChange={(e) => {
                         const id = Number(e.target.value);
-                        setClienteIdSelecionado(id || undefined);
-                        setValue("clienteId", id || undefined, { shouldValidate: true });
-                        const c = listaClientes.find((item) => item.id === id);
+                        const idValido = Number.isFinite(id) && id > 0 ? id : undefined;
+                        setClienteIdSelecionado(idValido);
+                        setValue("clienteId", idValido, { shouldValidate: true });
+                        const c = listaClientes.find((item) => item.id === idValido);
                         if (c) {
                           setValue("clienteNome", c.nome, { shouldValidate: true });
                           setValue("cidade", c.cidade, { shouldValidate: true });
@@ -545,7 +546,7 @@ export default function CadastrarObra() {
                 type="button"
                 variant="ghost"
                 onClick={() => void navigate("/kanban")}
-                disabled={isSubmitting || (tipoCliente === "existente" && (catalogo.isLoading || catalogo.isError))}
+                disabled={isSubmitting}
               >
                 Cancelar
               </Button>
