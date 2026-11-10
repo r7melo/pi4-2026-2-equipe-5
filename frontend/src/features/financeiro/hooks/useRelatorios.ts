@@ -1,12 +1,13 @@
 import { useMutacaoSessao } from '@/shared/hooks/useMutacaoSessao';
 import { assinarSessaoOperacional, capturarSessaoOperacional, exigirSessaoOperacional } from '@/shared/lib/sessaoOperacao';
 import { useSyncExternalStore } from 'react';
+import type { FiltrosRelatorioDemonstracao } from '@/shared/types/demonstracao';
 import type { PedidoExportacaoRelatorio, AtualizarCustosPayload, ListaObras } from '@/types';
 import { exportarRelatorio } from '../services/relatorios';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/shared/api/api";
 import {
-  gerarLinkCompartilhadoRelatorio,
+  gerarLinkRelatorioDemonstracao,
   buscarRelatorioCusto,
   buscarDreObra,
   buscarCustosObra,
@@ -73,7 +74,7 @@ export function useObrasSelect() {
 
 export function useLinkRelatorioDemonstracao() {
   return useMutation({
-    mutationFn: (periodo: { dataInicio: string; dataFim: string }) => gerarLinkCompartilhadoRelatorio(periodo),
+    mutationFn: (filtros: FiltrosRelatorioDemonstracao) => gerarLinkRelatorioDemonstracao(filtros),
     retry: false,
   });
 }

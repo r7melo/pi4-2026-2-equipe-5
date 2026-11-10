@@ -34,8 +34,10 @@ export default function RelatorioPublico() {
     );
   }
 
+  const respostaInvalida = !data || Array.isArray(data) || !Array.isArray(data.obras);
+
   // Estado 2: Erro (Token inválido ou falha de rede)
-  if (isError || !data) {
+  if (isError || respostaInvalida) {
     return (
       <div className="min-h-screen bg-background-app flex flex-col items-center justify-center p-4">
         <div className="bg-surface border border-border-subtle rounded-xl p-6 sm:p-8 max-w-md w-full text-center flex flex-col items-center">
@@ -58,13 +60,13 @@ export default function RelatorioPublico() {
   }
 
   const {
-    periodoInicio,
-    periodoFim,
-    clienteFiltro,
-    obras,
-    totalObras,
-    obrasConcluidas,
-    totalPaineis,
+    periodoInicio = "",
+    periodoFim = "",
+    clienteFiltro = "todos",
+    obras = [],
+    totalObras = 0,
+    obrasConcluidas = 0,
+    totalPaineis = 0,
   } = data;
 
   const handleImprimir = () => {

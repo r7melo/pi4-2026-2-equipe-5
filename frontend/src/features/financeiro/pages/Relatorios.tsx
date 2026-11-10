@@ -30,6 +30,7 @@ export default function Relatorios() {
   const { data: listaObras, isLoading: loadingObras } = useObrasSelect();
   const exportacao = useExportarRelatorio();
   const exportando = exportacao.isPending;
+  const [formatoEmExportacao, setFormatoEmExportacao] = useState<"pdf" | "excel" | null>(null);
   const [gerandoLink, setGerandoLink] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<string>("todos");
   const [periodoInicio, setPeriodoInicio] = useState(() => {
@@ -48,6 +49,7 @@ export default function Relatorios() {
     const origem = contextoDemonstracao();
     const sessao = capturarSessaoOperacional();
     const vigente = () => contextoDemonstracaoVigente(origem) && sessaoOperacionalVigente(sessao);
+    setFormatoEmExportacao(formato);
     try {
       const blob = await exportacao.mutateAsync({ formato, filtros: MOCK_ATIVO ? { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado } : undefined }, undefined, sessao);
       if (!vigente()) return;
@@ -61,6 +63,8 @@ export default function Relatorios() {
     } catch (erro) {
       if (!vigente()) return;
       toast.error(MOCK_ATIVO && erro instanceof ApiErro ? erro.message : "Erro ao exportar relatório");
+    } finally {
+      setFormatoEmExportacao(null);
     }
   };
 
@@ -68,10 +72,11 @@ export default function Relatorios() {
     const origem = contextoDemonstracao();
     setGerandoLink(true);
     try {
-      // Rota #42 (RF-16): Link compartilhável público para cronograma/relatório
+      // Link compartilhável público para relatório executivo
       const token = await gerarLinkMock.mutateAsync({
-        dataInicio: periodoInicio,
-        dataFim: periodoFim,
+        periodoInicio,
+        periodoFim,
+        clienteFiltro: clienteSelecionado,
       });
       if (!contextoDemonstracaoVigente(origem)) return;
       const link = `${window.location.origin}/relatorio-publico/${token}`;
@@ -94,6 +99,10 @@ export default function Relatorios() {
   const obrasConcluidasCount = obrasDoPeriodo.filter((o) => o.status === "Concluido").length;
   const totalPaineis = obrasDoPeriodo.reduce((acc, o) => acc + (o.quantidadePaineis ?? 0), 0);
 
+  const formatoAtivo = formatoEmExportacao ?? (exportando ? exportacao.variables?.formato : null);
+  const exportandoExcel = exportando && formatoAtivo === "excel";
+  const exportandoPdf = exportando && formatoAtivo === "pdf";
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <PageHeader title="Relatórios e Exportação">
@@ -102,7 +111,7 @@ export default function Relatorios() {
           disabled={exportando}
           className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
-          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-success" />}
+          {exportandoExcel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-success" />}
           Exportar Excel
         </button>
         <button
@@ -110,7 +119,7 @@ export default function Relatorios() {
           disabled={exportando}
           className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
-          {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-destructive" />}
+          {exportandoPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-destructive" />}
           Exportar PDF
         </button>
         <button

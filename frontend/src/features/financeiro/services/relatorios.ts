@@ -49,17 +49,36 @@ export async function exportarRelatorio(formato: "pdf" | "excel", filtros?: Filt
   }
 }
 
-/** POST /api/cronograma/compartilhado — Rota #42 (RF-16) */
-export async function gerarLinkCompartilhadoRelatorio(
-  periodo: { dataInicio: string; dataFim: string },
+/** Gera token de compartilhamento para visualização pública do relatório de obras */
+export async function gerarLinkRelatorioDemonstracao(
+  filtros: FiltrosRelatorioDemonstracao,
   sessao?: number
 ): Promise<string> {
-  const { data } = await api.post<{ token: string }>("/cronograma/compartilhado", periodo, {
+  if (MOCK_ATIVO) {
+    const { data } = await api.post<{ token: string }>("/mock/relatorios/compartilhado", filtros, {
+      ...(sessao ? { sessao403: sessao } : {}),
+    });
+    return data.token;
+  }
+  const { data } = await api.post<{ token: string }>("/cronograma/compartilhado", {
+    dataInicio: filtros.periodoInicio,
+    dataFim: filtros.periodoFim,
+  }, {
     ...(sessao ? { sessao403: sessao } : {}),
   });
   return data.token;
 }
 
-// Retrocompatibilidade
-export const gerarLinkRelatorioDemonstracao = (filtros: FiltrosRelatorioDemonstracao) =>
-  gerarLinkCompartilhadoRelatorio({ dataInicio: filtros.periodoInicio, dataFim: filtros.periodoFim });
+// Retrocompatibilidade e alias canônico
+export const gerarLinkCompartilhadoRelatorio = (
+  periodo: { dataInicio: string; dataFim: string; clienteFiltro?: string },
+  sessao?: number
+) =>
+  gerarLinkRelatorioDemonstracao(
+    {
+      periodoInicio: periodo.dataInicio,
+      periodoFim: periodo.dataFim,
+      clienteFiltro: periodo.clienteFiltro ?? "todos",
+    },
+    sessao
+  );
