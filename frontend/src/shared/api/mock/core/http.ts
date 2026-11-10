@@ -24,7 +24,9 @@ function extrairQueryParams(config: { url?: string; params?: Record<string, unkn
 
   if (config.params) {
     for (const [k, v] of Object.entries(config.params)) {
-      if (v !== undefined && v !== null) params[k] = String(v);
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+        params[k] = String(v);
+      }
     }
   }
 

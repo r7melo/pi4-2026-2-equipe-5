@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 import oxlint from 'eslint-plugin-oxlint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'dev-dist', 'src/services/mock/**/*'] },
+  { ignores: ['dist', 'dev-dist', 'src/services/mock/**/*', '**/*.test.ts', '**/*.spec.ts'] },
   {
     extends: [
       js.configs.recommended,

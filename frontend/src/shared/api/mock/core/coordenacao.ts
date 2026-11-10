@@ -16,7 +16,7 @@ export function coordenarTransporteMock(): void {
       }
     }
     const path = new URL(config.url ?? "", config.baseURL + "/").pathname.replace(/^\/api(?=\/)/, "");
-    if (!/^\/(auth|clientes|usuarios|equipes|instaladores|obras|programacoes|materiais)(?:\/|$)/.test(path) &&
+    if (!/^\/(auth|clientes|usuarios|equipes|instaladores?|obras|programacoes|materiais)(?:\/|$)/.test(path) &&
         !/^\/(cronograma\/compartilhado|mock\/relatorios\/compartilhado|relatorios\/export)(?:\/|$)/.test(path)) return executar(config);
     try {
       const origem = config.geracaoDemonstracao ?? geracaoCenario();

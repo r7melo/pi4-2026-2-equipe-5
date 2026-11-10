@@ -4,7 +4,6 @@ import {
   Settings, 
   LayoutDashboard, 
   Users, 
-  FileCheck, 
   DollarSign, 
   BarChart2,
   Moon,
@@ -67,12 +66,6 @@ export default function Sidebar() {
       roles: ["Administrador", "Engenharia", "Financeiro"],
     },
     {
-      label: "Homologação",
-      path: "/acompanharhomologacao",
-      icon: FileCheck,
-      roles: ["Administrador", "Engenharia"],
-    },
-    {
       label: "Financeiro",
       path: "/financeiro",
       icon: DollarSign,
@@ -101,7 +94,6 @@ export default function Sidebar() {
     return (
       location.pathname === path ||
       (path === "/kanban" && (location.pathname === "/kanban" || location.pathname === "/cadastrarobra")) ||
-      (path === "/acompanharhomologacao" && location.pathname.startsWith("/acompanharhomologacao")) ||
       (path === "/usuarios" && location.pathname.startsWith("/usuarios"))
     );
   };
