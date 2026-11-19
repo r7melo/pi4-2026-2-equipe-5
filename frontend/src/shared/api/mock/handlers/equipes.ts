@@ -3,7 +3,7 @@ import { obterEquipesArmazenadas, adicionarEquipeArmazenada, InstaladorVinculado
 import { instaladoresEfetivos } from "../dados/operacoesGestao";
 import { erroUsuarioMock } from "../core/auth";
 import { extrairDados } from "../core/http";
-import type { CriarEquipePayload } from "@/types";
+import type { CriarEquipePayload } from "@/shared/types/equipes";
 
 export function registrarEquipes(mock: MockAdapter): void {
   // GET /api/instaladores — Instaladores para montagem de equipes

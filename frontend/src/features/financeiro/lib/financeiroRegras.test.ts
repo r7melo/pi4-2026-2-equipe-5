@@ -1,55 +1,49 @@
-import { describe, it, expect } from "vitest";
-import type { NomePerfil } from "@/types";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import axios from "axios";
+import MockAdapter from "axios-mock-adapter";
+import { registrarFinanceiro } from "@/shared/api/mock/handlers/financeiro";
+import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
 
-describe("Regras Financeiras, Acesso e Relatórios (Frente Financeiro - 02 Railton)", () => {
-  describe("Permissões de Gestão Financeira (RF-14, RF-20, RF-26, RN-07)", () => {
-    function podeAcessarFinanceiro(perfil?: NomePerfil): boolean {
-      return perfil === "Administrador" || perfil === "Financeiro";
-    }
+const dados = vi.hoisted(() => ({
+  atualizar: vi.fn(() => ({ valorObra: 100 })),
+  apurar: vi.fn(() => ({ status: 200, corpo: { receita: 100 } })),
+  custos: vi.fn(() => ({ obraId: 1, valorObra: 100, custoMaoObra: 20, custoInsumos: 30 })),
+  obras: vi.fn(() => []),
+  cenario: vi.fn(() => ({})),
+  pdf: vi.fn(async () => new Blob(["%PDF"], { type: "application/pdf" })),
+}));
+vi.mock("@/shared/api/mock/core/auth", () => ({
+  resolverUsuarioAutenticadoMock: (perfil: unknown) => perfil ? { perfil: { nomePerfil: perfil } } : undefined,
+}));
+vi.mock("@/shared/api/mock/dados/relatorios", () => ({
+  obterRelatorioArmazenado: vi.fn(), buscarCustosArmazenados: dados.custos,
+  atualizarCustosArmazenados: dados.atualizar, apurarDreArmazenado: dados.apurar,
+}));
+vi.mock("@/shared/api/mock/dados/obras", () => ({ obterObrasArmazenadas: dados.obras }));
+vi.mock("@/shared/api/mock/core/estadoCenario", () => ({ lerDadosCenario: dados.cenario }));
+vi.mock("@/shared/api/mock/pdfGenerator", () => ({ gerarExcelRelatorio: vi.fn(), gerarPdfRelatorio: dados.pdf }));
 
-    function podeLancarCustos(perfil?: NomePerfil): boolean {
-      return perfil === "Administrador" || perfil === "Financeiro";
-    }
-
-    it("Administrador e Financeiro possuem acesso aos relatórios e DRE", () => {
-      expect(podeAcessarFinanceiro("Administrador")).toBe(true);
-      expect(podeAcessarFinanceiro("Financeiro")).toBe(true);
-      expect(podeLancarCustos("Administrador")).toBe(true);
-      expect(podeLancarCustos("Financeiro")).toBe(true);
-    });
-
-    it("Engenharia e Instalador não têm acesso a dados financeiros confidenciais (RN-07)", () => {
-      expect(podeAcessarFinanceiro("Engenharia")).toBe(false);
-      expect(podeAcessarFinanceiro("InstaladorCampo")).toBe(false);
-      expect(podeLancarCustos("Engenharia")).toBe(false);
-      expect(podeLancarCustos("InstaladorCampo")).toBe(false);
-    });
-  });
-
-  describe("Filtros e Agrupamento de Relatórios", () => {
-    interface ItemRelatorio {
-      obraId: number;
-      cliente: string;
-      status: string;
-      valor: number;
-    }
-
-    const relatorioMock: ItemRelatorio[] = [
-      { obraId: 1, cliente: "Mercado Central", status: "Concluido", valor: 45000 },
-      { obraId: 2, cliente: "Residencial Jardins", status: "EmAndamento", valor: 28000 },
-      { obraId: 3, cliente: "Hospital São Lucas", status: "Concluido", valor: 95000 },
-    ];
-
-    it("deve somar o total faturado das obras com precisão", () => {
-      const faturamentoTotal = relatorioMock.reduce((acc, item) => acc + item.valor, 0);
-      expect(faturamentoTotal).toBe(168000);
-    });
-
-    it("deve filtrar obras concluídas para apuração final", () => {
-      const concluidas = relatorioMock.filter((o) => o.status === "Concluido");
-      expect(concluidas).toHaveLength(2);
-      expect(concluidas.map((o) => o.obraId)).toEqual([1, 3]);
-    });
+describe("Regras reais do cliente financeiro e do handler mock", () => {
+  beforeEach(() => vi.clearAllMocks());
+  it.each([
+    ["Administrador", 200, 403], ["Financeiro", 200, 200],
+    ["Engenharia", 403, 403], ["InstaladorCampo", 403, 403],
+  ] as const)("%s: consulta DRE/custos/exportação e registro de custos têm permissões distintas", async (perfil, consulta, registro) => {
+    const cliente = axios.create({ validateStatus: () => true });
+    const mock = new MockAdapter(cliente);
+    registrarFinanceiro(mock);
+    try {
+      const config = { headers: { Authorization: perfil } };
+      expect((await cliente.get("/obras/1/dre", config)).status).toBe(consulta);
+      expect(dados.apurar).toHaveBeenCalledTimes(consulta === 200 ? 1 : 0);
+      expect((await cliente.get("/obras/1/custos", config)).status).toBe(consulta);
+      expect(dados.custos).toHaveBeenCalledTimes(consulta === 200 ? 1 : 0);
+      expect((await cliente.get("/relatorios/export?formato=pdf&tipo=financeiro", config)).status).toBe(consulta);
+      expect(dados.pdf).toHaveBeenCalledTimes(consulta === 200 ? 1 : 0);
+      expect((await cliente.post("/obras/1/custos", { valorObra: 100 }, config)).status).toBe(registro);
+      expect(dados.atualizar).toHaveBeenCalledTimes(registro === 200 ? 1 : 0);
+      const destino = obterELimparRotaRetorno(perfil, "/financeiro");
+      expect(destino === "/financeiro").toBe(consulta === 200);
+    } finally { mock.restore(); }
   });
 });
-

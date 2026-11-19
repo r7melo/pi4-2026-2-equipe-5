@@ -10,7 +10,7 @@ import {
   listarComentarios,
   adicionarComentario,
 } from "@/features/obras/services/obras";
-import type { EditarObraPayload } from "@/types";
+import type { EditarObraPayload } from "../types/obras";
 import { toast } from "sonner";
 
 export function useObraDetalhe(id: number) {

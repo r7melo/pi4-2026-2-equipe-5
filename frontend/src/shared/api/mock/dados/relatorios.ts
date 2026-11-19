@@ -1,4 +1,5 @@
-import type { RelatorioCusto, CustosObra, DREObra, AtualizarCustosPayload } from "@/types";
+import type { RelatorioCusto, CustosObra, AtualizarCustosPayload } from "@/shared/types/relatorios";
+import type { DREObra } from "@/shared/types/dre";
 import { obterObrasArmazenadas } from "./obras";
 import { obterMateriaisArmazenados } from "./materiais";
 import { lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";

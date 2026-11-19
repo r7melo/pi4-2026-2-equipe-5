@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const PERFIS = ["Administrador", "Engenharia", "Financeiro", "InstaladorCampo"] as const;
+import { NOMES_PERFIS } from "@/shared/constants/perfis";
 import { EMAIL_USUARIO } from "@/shared/constants/emailUsuario";
 
 export const cadastroUsuarioSchema = z.object({
@@ -11,7 +11,7 @@ export const cadastroUsuarioSchema = z.object({
     const bytes = new TextEncoder().encode(senha).byteLength;
     return bytes >= 6 && bytes <= 72;
   }, "A senha deve ter entre 6 e 72 bytes."),
-  perfil: z.string().pipe(z.enum(PERFIS, { error: "Selecione um perfil de acesso." })),
+  perfil: z.string().pipe(z.enum(NOMES_PERFIS, { error: "Selecione um perfil de acesso." })),
   equipeId: z.string(),
 }).superRefine((dados, ctx) => {
   if (dados.perfil === "InstaladorCampo" && dados.equipeId !== "" &&

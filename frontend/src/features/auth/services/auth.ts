@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig } from "axios";
 import { api, ApiErro } from "@/shared/api/api";
-import type { LoginResposta, Usuario, NomePerfil } from "@/types";
+import type { NomePerfil, Usuario } from "@/shared/types/autorizacao";
+import type { LoginResposta } from "../types/auth";
 
 const PERFIS_PADRAO: Record<NomePerfil, { id: number; permissoes: string[] }> = {
   Administrador: { id: 1, permissoes: ["*"] },

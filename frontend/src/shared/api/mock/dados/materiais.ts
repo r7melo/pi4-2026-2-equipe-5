@@ -1,7 +1,7 @@
 import { obterObrasArmazenadas } from "./obras";
 import { armazenamentoCenario } from "../core/estadoCenario";
 import { lerDadosCenario } from "../core/estadoCenario";
-import type { Material } from "@/types";
+import type { Material } from "@/shared/types/materiais";
 
 // ─── MATERIAIS (RF-06) ───
 const STORAGE_KEY_MAT = "mock_materiais";

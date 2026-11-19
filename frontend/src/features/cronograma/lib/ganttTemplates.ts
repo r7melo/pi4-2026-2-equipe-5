@@ -4,6 +4,7 @@ import {
   dataGanttParaCivil,
   fimGanttParaCivilInclusivo,
 } from "@/features/cronograma/lib/datasGantt";
+import { escaparHtml } from "@/features/cronograma/lib/ganttConfiguracao";
 import { diasUteisCivis } from "@/shared/lib/datasCivis";
 import {
   formatarDiasUteis,
@@ -58,16 +59,16 @@ export function configurarTemplatesGantt(ganttInstance: typeof ganttPadrao = gan
     gantt.templates.task_text = (_start: Date, _end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
       if (task.type === "project") {
-        return `<strong>${task.text || ""}</strong>`;
+        return `<strong>${escaparHtml(task.text || "")}</strong>`;
       }
       const matBadge = task.materialPronto
-        ? `<span class="gantt-bar-badge" title="Materiais prontos p/ obra">📦</span>`
+        ? `<span class="gantt-bar-badge" role="img" aria-label="Materiais prontos para obra" title="Materiais prontos p/ obra">📦</span>`
         : "";
       const homBadge = task.homologacaoOk
-        ? `<span class="gantt-bar-badge" title="Homologação concluída na concessionária">⚡</span>`
+        ? `<span class="gantt-bar-badge" role="img" aria-label="Homologação concluída na concessionária" title="Homologação concluída na concessionária">⚡</span>`
         : "";
       const rotuloBarra = task.nomeCliente || task.text || "";
-      return `<span>${rotuloBarra}</span> ${matBadge} ${homBadge}`;
+      return `<span>${escaparHtml(rotuloBarra)}</span> ${matBadge} ${homBadge}`;
     };
 
     // Tooltip dinâmico com guard para nó de projeto
@@ -80,7 +81,7 @@ export function configurarTemplatesGantt(ganttInstance: typeof ganttPadrao = gan
       const dataFim = formatarDataBR(dataFimCivil);
 
       if (task.type === "project") {
-        return `<div class="tooltip-title">${task.text}</div><div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`;
+        return `<div class="tooltip-title">${escaparHtml(task.text || "")}</div><div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${escaparHtml(dataIni)} — ${escaparHtml(dataFim)}</span></div>`;
       }
 
       const matRotulo =
@@ -91,13 +92,13 @@ export function configurarTemplatesGantt(ganttInstance: typeof ganttPadrao = gan
           : "Em trânsito / depósito";
 
       const linhas = [
-        `<div class="tooltip-title">${task.text || ""}</div>`,
-        `<div class="tooltip-row"><span class="tooltip-label">Equipe:</span> <span class="tooltip-value">${task.nomeEquipe || "—"}</span></div>`,
-        `<div class="tooltip-row"><span class="tooltip-label">Cliente:</span> <span class="tooltip-value">${task.nomeCliente || "—"}</span></div>`,
+        `<div class="tooltip-title">${escaparHtml(task.text || "")}</div>`,
+        `<div class="tooltip-row"><span class="tooltip-label">Equipe:</span> <span class="tooltip-value">${escaparHtml(task.nomeEquipe || "—")}</span></div>`,
+        `<div class="tooltip-row"><span class="tooltip-label">Cliente:</span> <span class="tooltip-value">${escaparHtml(task.nomeCliente || "—")}</span></div>`,
       ];
 
       if (task.paineis !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Painéis:</span> <span class="tooltip-value">${task.paineis} un.</span></div>`);
+        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Painéis:</span> <span class="tooltip-value">${escaparHtml(task.paineis)} un.</span></div>`);
       }
 
       linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`);

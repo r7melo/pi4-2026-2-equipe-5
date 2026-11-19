@@ -13,7 +13,9 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { toast } from "sonner";
-import type { ObraCard } from "@/types";
+import type { Material } from "@/shared/types/materiais";
+import type { ObraKanbanCard } from "../types/kanban";
+import type { DrawerKanbanSlotProps } from "../types/gavetaKanban";
 import {
   COLUNAS_KANBAN,
   TRANSICOES_VALIDAS,
@@ -21,43 +23,35 @@ import {
 } from "@/shared/constants/kanbanStatus";
 import KanbanColumn from "./KanbanColumn";
 import KanbanCardOverlay from "./KanbanCardOverlay";
-import KanbanTaskDrawer from "./KanbanTaskDrawer";
 import ModalConfirmarConclusao from "./ModalConfirmarConclusao";
 import { useMoverCard } from "@/features/kanban/hooks/useMoverCard";
-import { useMateriaisKanbanObras } from "../hooks/useMateriaisKanbanObras";
-import { isObraConcluidaArquivada, calcularStatusGargalo } from "./kanbanUtils";
+import {
+  agruparObrasPorStatus,
+  filtrarOrdenarObrasKanban,
+  isObraConcluidaArquivada,
+  selecionarVisaoIntegral,
+} from "./kanbanUtils";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { cn } from "@/shared/lib/utils";
 
 interface KanbanBoardProps {
-  obras: ObraCard[];
+  obras: ObraKanbanCard[];
   busca: string;
   categoriaFiltro: string;
   materialFiltro: string;
   somenteLeitura?: boolean;
+  alocacoesAtivasSet?: Set<number>;
+  onExcluirObra?: (obraId: number) => Promise<void>;
+  renderDrawer?: (props: DrawerKanbanSlotProps) => ReactNode;
   renderizarAcoesObra?: (obraId: number) => ReactNode;
+  mapaMateriais?: Map<number, Material[]>;
+  erroMateriais?: boolean;
+  onRecarregarMateriais?: () => void;
 }
+
+const MAPA_MATERIAIS_VAZIO = new Map<number, Material[]>();
 
 const STATUS_TODOS: StatusObra[] = [...COLUNAS_KANBAN.map((c) => c.id)];
-
-function agruparPorStatus(obras: ObraCard[]): Record<StatusObra, ObraCard[]> {
-  const mapa: Record<StatusObra, ObraCard[]> = {
-    MaterialComprado: [], NoDeposito: [], Separado: [],
-    EmAndamento: [], Concluido: [], Assistencia: [],
-  };
-  for (const obra of obras) mapa[obra.status]?.push(obra);
-  return mapa;
-}
-
-function selecionarVisaoIntegral(obras: ObraCard[]): ObraCard[] {
-  return obras.filter((obra) => obra.status !== "Concluido" ||
-    !isObraConcluidaArquivada(obra.dataFimReal || obra.dataFimEstimada))
-    .sort((a, b) => {
-      const timeA = a.dataFimEstimada ? new Date(a.dataFimEstimada).getTime() : Infinity;
-      const timeB = b.dataFimEstimada ? new Date(b.dataFimEstimada).getTime() : Infinity;
-      return timeA - timeB;
-    });
-}
 
 export default function KanbanBoard({
   obras,
@@ -65,24 +59,31 @@ export default function KanbanBoard({
   categoriaFiltro,
   materialFiltro,
   somenteLeitura = false,
+  alocacoesAtivasSet,
+  onExcluirObra,
+  renderDrawer,
   renderizarAcoesObra,
+  mapaMateriais = MAPA_MATERIAIS_VAZIO,
+  erroMateriais = false,
+  onRecarregarMateriais,
 }: KanbanBoardProps) {
-  const [activeCard, setActiveCard] = useState<ObraCard | null>(null);
+  const [activeCard, setActiveCard] = useState<ObraKanbanCard | null>(null);
   const [initialContainer, setInitialContainer] = useState<StatusObra | null>(null);
-  const [drawerCard, setDrawerCard] = useState<ObraCard | null>(null);
-  const [obraParaConcluir, setObraParaConcluir] = useState<ObraCard | null>(null);
+  const [drawerCard, setDrawerCard] = useState<ObraKanbanCard | null>(null);
+  const [obraParaConcluir, setObraParaConcluir] = useState<ObraKanbanCard | null>(null);
   const [colunaMobileAtiva, setColunaMobileAtiva] = useState<StatusObra>("MaterialComprado");
   const [exibirArquivadas, setExibirArquivadas] = useState(false);
 
   const { lerEpoch, podeInteragir } = useModoDisplay();
   const epochRender = lerEpoch();
   const montadoRef = useRef(true);
+  const quadroRef = useRef<HTMLDivElement>(null);
   const dragEpochRef = useRef<number | null>(null);
   useLayoutEffect(() => {
     montadoRef.current = true;
     return () => { montadoRef.current = false; dragEpochRef.current = null; };
   }, []);
-  const handleSelectCard = useCallback((card: ObraCard) => {
+  const handleSelectCard = useCallback((card: ObraKanbanCard) => {
     if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
     setDrawerCard(card);
   }, [somenteLeitura, podeInteragir, epochRender]);
@@ -98,16 +99,12 @@ export default function KanbanBoard({
     })
   );
 
-  const obraIds = useMemo(() => obras.map((o) => Number(o.id)), [obras]);
-  const { mapaMateriais, isError: erroMateriais, refetchErros } = useMateriaisKanbanObras(obraIds);
-
   // Destinos válidos calculados dinamicamente durante o arraste (UX-07)
   const destinosValidos = useMemo(() => {
     if (!activeCard) return [];
     return TRANSICOES_VALIDAS[activeCard.status] || [];
   }, [activeCard]);
 
-  // Total de obras arquivadas na coluna Concluído (> 30 dias da data de término)
   const totalArquivadasConcluidas = useMemo(() => {
     return obras.filter((o) => {
       if (o.status !== "Concluido") return false;
@@ -115,73 +112,22 @@ export default function KanbanBoard({
     }).length;
   }, [obras]);
 
-  // Filtragem composta em tempo real com auto-ordenação
-  const obrasFiltradas = useMemo(() => {
-    if (somenteLeitura) return selecionarVisaoIntegral(obras);
-    const list = obras.filter((obra) => {
-      // 1. Busca textual global
-      if (busca.trim()) {
-        const termo = busca.toLowerCase();
-        const matchCliente = obra.clienteNome.toLowerCase().includes(termo);
-        const matchId = String(obra.id).includes(termo);
-        if (!matchCliente && !matchId) return false;
-      }
+  const obrasFiltradas = useMemo(
+    () =>
+      filtrarOrdenarObrasKanban(obras, {
+        busca,
+        categoriaFiltro,
+        materialFiltro,
+        mapaMateriais,
+        exibirArquivadas,
+        somenteLeitura,
+      }),
+    [obras, busca, categoriaFiltro, materialFiltro, mapaMateriais, exibirArquivadas, somenteLeitura]
+  );
 
-      // 2. Filtro de Categoria
-      if (categoriaFiltro && obra.categoria !== categoriaFiltro) {
-        return false;
-      }
-
-      // 3. Filtro Logístico de Materiais (RF-06)
-      if (materialFiltro && materialFiltro !== "Todos") {
-        const mats = mapaMateriais.get(Number(obra.id));
-        if (!mats) return false;
-        const statusGargalo = calcularStatusGargalo(mats, obra.status);
-        if (materialFiltro === "Comprado") {
-          if (statusGargalo !== "Comprado") return false;
-        } else if (materialFiltro === "Em Trânsito") {
-          if (statusGargalo !== "EmTransito") return false;
-        } else if (materialFiltro === "Disponível" || materialFiltro === "No Depósito") {
-          if (statusGargalo !== "Disponivel") return false;
-        } else if (materialFiltro === "Utilizado" || materialFiltro === "Separado") {
-          if (statusGargalo !== "Utilizado") return false;
-        }
-      }
-
-      // 4. Arquivamento Temporal de Obras Concluídas (> 30 dias)
-      if (obra.status === "Concluido" && !busca.trim() && !exibirArquivadas) {
-        if (isObraConcluidaArquivada(obra.dataFimReal || obra.dataFimEstimada)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    return list.sort((a, b) => {
-      const timeA = a.dataFimEstimada ? new Date(a.dataFimEstimada).getTime() : Infinity;
-      const timeB = b.dataFimEstimada ? new Date(b.dataFimEstimada).getTime() : Infinity;
-      return timeA - timeB;
-    });
-  }, [obras, busca, categoriaFiltro, materialFiltro, mapaMateriais, exibirArquivadas, somenteLeitura]);
-
-  // Estado local reativo de itens por coluna
-  const [itensColunas, setItensColunas] = useState<Record<StatusObra, ObraCard[]>>(() => {
-    const mapa: Record<StatusObra, ObraCard[]> = {
-      MaterialComprado: [],
-      NoDeposito: [],
-      Separado: [],
-      EmAndamento: [],
-      Concluido: [],
-      Assistencia: [],
-    };
-    for (const item of obrasFiltradas) {
-      if (mapa[item.status]) {
-        mapa[item.status].push(item);
-      }
-    }
-    return mapa;
-  });
+  const [itensColunas, setItensColunas] = useState<Record<StatusObra, ObraKanbanCard[]>>(() =>
+    agruparObrasPorStatus(obrasFiltradas)
+  );
 
   const obrasAtuaisRef = useRef(obras);
   const selecaoAtualRef = useRef(obrasFiltradas);
@@ -196,7 +142,7 @@ export default function KanbanBoard({
     const selecao = podeInteragir()
       ? selecaoAtualRef.current
       : selecionarVisaoIntegral(obrasAtuaisRef.current);
-    setItensColunas(agruparPorStatus(selecao));
+    setItensColunas(agruparObrasPorStatus(selecao));
   }, [podeInteragir]);
 
   // Flag anti-flicker: impede que activeCard === null reverta itensColunas antes do cache otimista resolver
@@ -209,7 +155,7 @@ export default function KanbanBoard({
     setInitialContainer(null);
     setDrawerCard(null);
     setObraParaConcluir(null);
-    setItensColunas(agruparPorStatus(obrasFiltradas));
+    setItensColunas(agruparObrasPorStatus(obrasFiltradas));
   }
   useLayoutEffect(() => {
     if (ultimoEpochRef.current === epochRender) return;
@@ -218,7 +164,6 @@ export default function KanbanBoard({
     isDroppingRef.current = false;
   }, [epochRender]);
 
-  // Sincroniza estado com obras filtradas quando não houver arraste em andamento
   useEffect(() => {
     if (activeCard || isDroppingRef.current) return;
 
@@ -245,24 +190,10 @@ export default function KanbanBoard({
 
       if (!mudou) return prev;
 
-      const mapa: Record<StatusObra, ObraCard[]> = {
-        MaterialComprado: [],
-        NoDeposito: [],
-        Separado: [],
-        EmAndamento: [],
-        Concluido: [],
-        Assistencia: [],
-      };
-      for (const item of obrasFiltradas) {
-        if (mapa[item.status]) {
-          mapa[item.status].push(item);
-        }
-      }
-      return mapa;
+      return agruparObrasPorStatus(obrasFiltradas);
     });
   }, [obrasFiltradas, activeCard]);
 
-  // Localizador de container por id de coluna ou id de card
   const findContainer = useCallback(
     (id: string | number): StatusObra | null => {
       const strId = String(id);
@@ -301,7 +232,7 @@ export default function KanbanBoard({
 
   // Execução da movimentação de status na API e no estado otimista
   const executarMudancaStatus = useCallback(
-    (card: ObraCard, novoStatus: StatusObra) => {
+    (card: ObraKanbanCard, novoStatus: StatusObra) => {
       if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
       setItensColunas((prev) => {
         const next = { ...prev };
@@ -334,12 +265,14 @@ export default function KanbanBoard({
 
   // Mover card acionado via menu acessível "Mover para..." (UX-09)
   const handleMoverCard = useCallback(
-    (card: ObraCard, novoStatus: StatusObra) => {
+    (card: ObraKanbanCard, novoStatus: StatusObra) => {
       if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
       if (novoStatus === "Concluido") {
         setObraParaConcluir(card);
         return;
       }
+      // O cartao muda de coluna e seu acionador e desmontado; o quadro permanece estavel.
+      quadroRef.current?.focus({ preventScroll: true });
       executarMudancaStatus(card, novoStatus);
     },
     [executarMudancaStatus, somenteLeitura, podeInteragir, epochRender]
@@ -358,6 +291,10 @@ export default function KanbanBoard({
     setObraParaConcluir(null);
     restaurarEstadoOficial();
   }, [restaurarEstadoOficial, podeInteragir, epochRender]);
+
+  const handleFecharDrawer = useCallback(() => {
+    if (podeInteragir(epochRender)) setDrawerCard(null);
+  }, [podeInteragir, epochRender]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const epochArraste = dragEpochRef.current;
@@ -418,7 +355,7 @@ export default function KanbanBoard({
       onDragCancel={handleDragCancel}
     >
       <div className="w-full space-y-4">
-        {erroMateriais && <FeedbackErro mensagem="Não foi possível carregar os materiais de algumas obras." onTentarNovamente={() => void refetchErros()} />}
+        {erroMateriais && <FeedbackErro mensagem="Não foi possível carregar os materiais de algumas obras." onTentarNovamente={() => onRecarregarMateriais?.()} />}
         {/* Seletor de Colunas para Telas Mobile (RNF-01 / UX-09) */}
         <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-2 mb-2 custom-scrollbar">
           {COLUNAS_KANBAN.map((col) => (
@@ -439,7 +376,7 @@ export default function KanbanBoard({
         </div>
 
         {/* As 6 Colunas Operacionais Verticais com Grid Responsivo */}
-        <div className="overflow-x-auto pb-4 custom-scrollbar">
+        <div ref={quadroRef} data-kanban-board role="region" aria-label="Quadro de obras" tabIndex={-1} className="overflow-x-auto pb-4 custom-scrollbar outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 min-w-0 md:min-w-[1536px] items-start">
             {COLUNAS_KANBAN.map((col) => {
               const cardsDaColuna = itensColunas[col.id] || [];
@@ -461,6 +398,8 @@ export default function KanbanBoard({
                   isDestinoValido={isDestinoValido}
                   isDestinoInvalido={isDestinoInvalido}
                   mapaMateriais={mapaMateriais}
+                  alocacoesAtivasSet={alocacoesAtivasSet}
+                  onExcluirCard={onExcluirObra}
                   isVisivelMobile={colunaMobileAtiva === col.id}
                   headerAction={
                     !somenteLeitura && col.id === "Concluido" && totalArquivadasConcluidas > 0 && !busca.trim() ? (
@@ -489,11 +428,14 @@ export default function KanbanBoard({
 
       {!somenteLeitura && (
         <>
-          <KanbanTaskDrawer card={drawerCard} isOpen={Boolean(drawerCard)}
-            onClose={() => {
-              if (montadoRef.current && podeInteragir(epochRender)) setDrawerCard(null);
-            }}
-            renderizarAcoesObra={renderizarAcoesObra} />
+          {renderDrawer && drawerCard ? (
+            renderDrawer({
+              card: drawerCard,
+              isOpen: Boolean(drawerCard),
+              onClose: handleFecharDrawer,
+              renderizarAcoesObra,
+            })
+          ) : null}
           <ModalConfirmarConclusao obra={obraParaConcluir} isOpen={Boolean(obraParaConcluir)}
             onClose={handleCancelarConclusao} onConfirmar={handleConfirmarConclusao}
             isLoading={moverCardMutation.isPending} />

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   Calendar,
   Columns,
@@ -6,7 +7,7 @@ import {
   X,
   Filter,
 } from "lucide-react";
-import type { NivelZoom } from "@/types";
+import type { NivelZoom } from "../types/gantt";
 
 interface GanttToolbarProps {
   nivelAtual: NivelZoom;
@@ -49,13 +50,14 @@ export function GanttToolbar({
   totalFiltrosAtivos = 0,
   modoAtivo = false,
 }: GanttToolbarProps) {
+  const dataInicialRef = useRef<HTMLInputElement>(null);
   const temFiltroData = Boolean(dataFiltroInicio || dataFiltroFim);
 
   return (
-    <div className="gantt-toolbar flex items-center gap-1 sm:gap-2 min-w-0 max-w-full overflow-x-auto scrollbar-none py-1">
+    <div className="gantt-toolbar flex items-center gap-1 sm:gap-2 min-w-0 max-w-full overflow-x-auto py-1">
       <button
         onClick={onHoje}
-        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-foreground-muted text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
+        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-foreground-muted text-xs font-medium transition-all motion-safe:active:scale-[0.97] cursor-pointer shrink-0"
         title="Focar na data de hoje"
       >
         <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
@@ -121,6 +123,7 @@ export function GanttToolbar({
           <input
             type="date"
             aria-label="Data inicial do filtro"
+              ref={dataInicialRef}
             value={dataFiltroInicio}
             onChange={(e) => onDataInicioChange(e.target.value)}
             className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
@@ -135,7 +138,8 @@ export function GanttToolbar({
           />
           {temFiltroData && onLimparDatas && (
             <button
-              onClick={onLimparDatas}
+              type="button"
+              onClick={() => { dataInicialRef.current?.focus(); onLimparDatas?.(); }}
               className="text-subtle-foreground hover:text-destructive p-0.5 transition-colors cursor-pointer"
               title="Limpar filtro de período"
             >
@@ -151,7 +155,7 @@ export function GanttToolbar({
       {!modoAtivo && onImprimir && (
         <button
           onClick={onImprimir}
-          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-foreground-muted text-xs font-medium transition-all active:scale-[0.97] cursor-pointer shrink-0"
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-foreground-muted text-xs font-medium transition-all motion-safe:active:scale-[0.97] cursor-pointer shrink-0"
           title="Imprimir ou Salvar em PDF (@media print)"
         >
           <Printer className="w-3.5 h-3.5 text-muted-foreground" />
@@ -162,7 +166,7 @@ export function GanttToolbar({
       {!modoAtivo && onAbrirCompartilhar && (
         <button
           onClick={onAbrirCompartilhar}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-info hover:bg-info-hover text-primary-foreground text-xs font-semibold shadow-xs transition-all active:scale-[0.97] cursor-pointer shrink-0"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-info hover:bg-info-hover text-primary-foreground text-xs font-semibold shadow-xs transition-all motion-safe:active:scale-[0.97] cursor-pointer shrink-0"
           title="Compartilhar cronograma público"
           aria-label="Compartilhar"
         >

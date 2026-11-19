@@ -1,4 +1,5 @@
-import type { NomePerfil } from "@/types";
+import { NOMES_PERFIS } from "@/shared/constants/perfis";
+import type { NomePerfil } from "@/shared/types/autorizacao";
 
 export const CHAVE_ROTA_RETORNO = "auth_return_url";
 export const TOAST_ID_SESSAO_EXPIRADA = "sessao-expirada";
@@ -134,12 +135,12 @@ function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePerfil): 
   }
 
   if (perfilNome === "Financeiro") {
-    // Financeiro acessa: /kanban, /equipes, /obras/:id, /relatorios, /financeiro
+    // Financeiro acessa também materiais da obra para alterar status (RN-08).
     if (pathname === "/kanban" || pathname === "/equipes" || pathname === "/relatorios" || pathname === "/financeiro") {
       return true;
     }
-    // Permite /obras/:id mas bloqueia sub-rotas como /obras/:id/materiais
-    return /^\/obras\/\d+$/.test(pathname);
+    // Detalhe da obra e sua rota de materiais; outras sub-rotas continuam bloqueadas.
+    return REGEX_OBRAS_DINAMICAS.test(pathname);
   }
 
   if (perfilNome === "Engenharia") {
@@ -207,7 +208,7 @@ export function obterELimparRotaRetorno(perfilNome?: NomePerfil, rotaOrigem?: st
 
 
 export function perfilCanonico(perfil: unknown): perfil is NomePerfil {
-  return perfil === "Administrador" || perfil === "Engenharia" || perfil === "Financeiro" || perfil === "InstaladorCampo";
+  return NOMES_PERFIS.some(nome => perfil === nome);
 }
 
 export function perfilEscritorio(perfil: unknown): boolean {

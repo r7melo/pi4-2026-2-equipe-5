@@ -1,5 +1,5 @@
 import { lerGestao, gravarGestao, equipeGestaoSchema } from "./estadoGestao";
-import type { Equipe, CriarEquipePayload } from "@/types";
+import type { Equipe, CriarEquipePayload } from "@/shared/types/equipes";
 
 export interface MockInstalador {
   id: number;

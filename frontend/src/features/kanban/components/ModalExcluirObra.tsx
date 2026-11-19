@@ -1,11 +1,10 @@
 import { AlertTriangle, ShieldAlert } from "lucide-react";
-import type { ObraCard } from "@/types";
+import type { ObraKanbanCard } from "../types/kanban";
 import { Button } from "@/shared/components/ui/Button";
 import { Modal } from "@/shared/components/ui/Modal";
 
 interface ModalExcluirObraProps {
-  obra?: ObraCard;
-  card?: ObraCard;
+  obra: ObraKanbanCard;
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -15,25 +14,21 @@ interface ModalExcluirObraProps {
 
 export default function ModalExcluirObra({
   obra,
-  card,
   isOpen,
   onClose,
   onConfirm,
   isLoading,
   temAlocacaoAtiva = false,
 }: ModalExcluirObraProps) {
-  const targetObra = obra || card;
+  if (!isOpen) return null;
 
-  if (!isOpen || !targetObra) return null;
-
-  const bloqueadoPorStatus = targetObra.status === "EmAndamento";
+  const bloqueadoPorStatus = obra.status === "EmAndamento";
   const bloqueado = bloqueadoPorStatus || temAlocacaoAtiva;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      zIndex="z-[70]"
       fecharBloqueado={isLoading}
       className="max-w-md"
       icone={
@@ -53,21 +48,21 @@ export default function ModalExcluirObra({
       <div className="px-5 py-4 space-y-3">
         {bloqueadoPorStatus ? (
           <p className="text-sm text-muted-foreground">
-            A obra <strong className="text-foreground-secondary font-semibold">{targetObra.clienteNome}</strong> está em andamento e não pode ser excluída. É necessário concluir ou suspender a execução antes.
+            A obra <strong className="text-foreground-secondary font-semibold">{obra.clienteNome}</strong> está em andamento e não pode ser excluída. É necessário concluir ou suspender a execução antes.
           </p>
         ) : temAlocacaoAtiva ? (
           <p className="text-sm text-muted-foreground">
-            A obra <strong className="text-foreground-secondary font-semibold">{targetObra.clienteNome}</strong> possui equipe alocada no cronograma. Remova a alocação no Gantt antes de prosseguir com a exclusão.
+            A obra <strong className="text-foreground-secondary font-semibold">{obra.clienteNome}</strong> possui equipe alocada no cronograma. Remova a alocação no Gantt antes de prosseguir com a exclusão.
           </p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              Tem certeza que deseja remover a obra de <strong className="text-foreground-secondary font-semibold">{targetObra.clienteNome}</strong> do funil operacional?
+              Tem certeza que deseja remover a obra de <strong className="text-foreground-secondary font-semibold">{obra.clienteNome}</strong> do funil operacional?
             </p>
             <div className="p-3 bg-surface-subtle rounded-lg border border-border-subtle text-xs text-muted-foreground space-y-1">
-              <p><span className="font-medium text-foreground-muted">Categoria:</span> {targetObra.categoria}</p>
-              <p><span className="font-medium text-foreground-muted">Painéis:</span> {targetObra.quantidadePaineis} módulos</p>
-              <p><span className="font-medium text-foreground-muted">Status:</span> {targetObra.status}</p>
+              <p><span className="font-medium text-foreground-muted">Categoria:</span> {obra.categoria}</p>
+              <p><span className="font-medium text-foreground-muted">Painéis:</span> {obra.quantidadePaineis} módulos</p>
+              <p><span className="font-medium text-foreground-muted">Status:</span> {obra.status}</p>
             </div>
             <p className="text-xs text-warning font-medium">
               Esta ação removerá a obra do funil operacional.

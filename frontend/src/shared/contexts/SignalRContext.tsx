@@ -3,7 +3,6 @@ import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 /* oxlint-disable react/set-state-in-effect */
 import {
   createContext,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -13,32 +12,19 @@ import {
 } from "react";
 import * as signalR from "@microsoft/signalr";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { BACKEND_ROOT_URL } from "@/shared/api/api";
+import { agendarInvalidacaoProgramacoes, limparTemporizador } from "./signalrInvalidacao";
 
-export type SignalRStatus = "connected" | "connecting" | "reconnecting" | "disconnected";
+type SignalRStatus = "connected" | "connecting" | "reconnecting" | "disconnected";
 
-export interface SignalRContextValue {
+interface SignalRContextValue {
   status: SignalRStatus;
   connection: signalR.HubConnection | null;
 }
 
 export const SignalRContext = createContext<SignalRContextValue | null>(null);
 
-/**
- * Hook canônico para consumo do estado e conexão do SignalR.
- * Deve ser utilizado obrigatoriamente dentro de uma árvore envelopada por SignalRProvider.
- */
-export function useSignalR(): SignalRContextValue {
-  const context = useContext(SignalRContext);
-  if (!context) {
-    throw new Error("useSignalR deve ser utilizado dentro de um SignalRProvider");
-  }
-  return context;
-}
-
-/** Alias retrocompatível */
-export const useSignalRContext = useSignalR;
 
 interface SignalRProviderProps {
   children: ReactNode;
@@ -61,8 +47,9 @@ export function SignalRProvider({ children }: SignalRProviderProps) {
   const materiaisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const invalidarObrasDebounced = useCallback(() => {
-    if (obrasTimerRef.current) clearTimeout(obrasTimerRef.current);
+    limparTemporizador(obrasTimerRef);
     obrasTimerRef.current = setTimeout(() => {
+      obrasTimerRef.current = null;
       // RN-05: Proteção Anti-Flicker no Kanban (verifica mutação otimista em trânsito)
       const mutacoesAtivas = queryClient.isMutating({ mutationKey: ["obras"] });
       if (mutacoesAtivas === 0) {
@@ -73,24 +60,21 @@ export function SignalRProvider({ children }: SignalRProviderProps) {
   }, [queryClient]);
 
   const invalidarProgramacoesDebounced = useCallback(() => {
-    if (programacoesTimerRef.current) clearTimeout(programacoesTimerRef.current);
-    programacoesTimerRef.current = setTimeout(() => {
-      void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
-      void queryClient.invalidateQueries({ queryKey: ["equipes"] });
-      void queryClient.invalidateQueries({ queryKey: ["obras"] });
-    }, 100);
+    agendarInvalidacaoProgramacoes(queryClient, programacoesTimerRef);
   }, [queryClient]);
 
   const invalidarComentariosDebounced = useCallback(() => {
-    if (comentariosTimerRef.current) clearTimeout(comentariosTimerRef.current);
+    limparTemporizador(comentariosTimerRef);
     comentariosTimerRef.current = setTimeout(() => {
+      comentariosTimerRef.current = null;
       void queryClient.invalidateQueries({ queryKey: ["comentarios"] });
     }, 100);
   }, [queryClient]);
 
   const invalidarMateriaisDebounced = useCallback(() => {
-    if (materiaisTimerRef.current) clearTimeout(materiaisTimerRef.current);
+    limparTemporizador(materiaisTimerRef);
     materiaisTimerRef.current = setTimeout(() => {
+      materiaisTimerRef.current = null;
       void queryClient.invalidateQueries({ queryKey: ["materiais"] });
     }, 100);
   }, [queryClient]);
@@ -139,6 +123,9 @@ export function SignalRProvider({ children }: SignalRProviderProps) {
         // Reinicia a repescagem caso as tentativas nativas de reconexão tenham se esgotado
         if (!retryTimerRef.current) {
           retryTimerRef.current = setInterval(() => {
+            if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+              return;
+            }
             if (connectionRef.current?.state === signalR.HubConnectionState.Disconnected) {
               void tentarConectar();
             }
@@ -208,17 +195,27 @@ export function SignalRProvider({ children }: SignalRProviderProps) {
 
     // RN-03: Rotina de repescagem de handshake inicial (30s)
     retryTimerRef.current = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       if (connectionRef.current?.state === signalR.HubConnectionState.Disconnected) {
         void tentarConectar();
       }
     }, 30000);
 
-    const handleWindowFocus = () => {
+    const listenersController = new AbortController();
+    const reconectarSeDesconectado = () => {
       if (connectionRef.current?.state === signalR.HubConnectionState.Disconnected) {
         void tentarConectar();
       }
     };
-    window.addEventListener("focus", handleWindowFocus);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        reconectarSeDesconectado();
+      }
+    };
+    window.addEventListener("focus", reconectarSeDesconectado, { signal: listenersController.signal });
+    document.addEventListener("visibilitychange", handleVisibilityChange, { signal: listenersController.signal });
 
     // RN-04: Limpeza segura compatível com React 19 StrictMode
     return () => {
@@ -227,12 +224,12 @@ export function SignalRProvider({ children }: SignalRProviderProps) {
         clearInterval(retryTimerRef.current);
         retryTimerRef.current = null;
       }
-      window.removeEventListener("focus", handleWindowFocus);
+      listenersController.abort();
 
-      if (obrasTimerRef.current) clearTimeout(obrasTimerRef.current);
-      if (programacoesTimerRef.current) clearTimeout(programacoesTimerRef.current);
-      if (comentariosTimerRef.current) clearTimeout(comentariosTimerRef.current);
-      if (materiaisTimerRef.current) clearTimeout(materiaisTimerRef.current);
+      limparTemporizador(obrasTimerRef);
+      limparTemporizador(programacoesTimerRef);
+      limparTemporizador(comentariosTimerRef);
+      limparTemporizador(materiaisTimerRef);
 
       if (
         conn.state === signalR.HubConnectionState.Connected ||
@@ -261,4 +258,3 @@ export function SignalRProvider({ children }: SignalRProviderProps) {
 
   return <SignalRContext.Provider value={value}>{children}</SignalRContext.Provider>;
 }
-

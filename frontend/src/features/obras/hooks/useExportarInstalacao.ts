@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useSyncExternalStore } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import type { FormatoExportacaoInstalacao } from "@/types";
+import type { FormatoExportacaoInstalacao } from "@/shared/types/exportacaoInstalacao";
 import type { EstadoExportacao } from "../types/exportacaoInstalacao";
 import { consultarDadosInstalacao, solicitarArquivoInstalacao } from "../services/exportacaoInstalacao";
 import { avaliarCompletudeInstalacao } from "@/shared/lib/instalacao";

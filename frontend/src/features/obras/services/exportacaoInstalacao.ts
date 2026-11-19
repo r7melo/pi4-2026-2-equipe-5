@@ -1,5 +1,5 @@
 import { api } from "@/shared/api/api";
-import type { DadosInstalacao, FormatoExportacaoInstalacao } from "@/types";
+import type { DadosInstalacao, FormatoExportacaoInstalacao } from "@/shared/types/exportacaoInstalacao";
 import { obraInstalacaoSchema, materiaisInstalacaoSchema, programacoesInstalacaoSchema, equipesInstalacaoSchema } from "../types/exportacaoInstalacao";
 import { normalizarTextoInstalacao } from "@/shared/lib/instalacao";
 

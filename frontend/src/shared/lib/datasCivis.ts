@@ -76,6 +76,19 @@ export function proximoDiaUtilCivil(valor: string): string {
 }
 
 /**
+ * Normaliza uma data civil ISO para o próprio dia útil ou, caso coincida com sábado ou domingo,
+ * recua para a sexta-feira útil imediatamente anterior.
+ */
+export function anteriorDiaUtilCivil(valor: string): string {
+  validarDataCivilOuErro(valor, "Data");
+  const data = new Date(valor + "T12:00:00Z");
+  const diaSemana = data.getUTCDay();
+  const recuo = diaSemana === 6 ? -1 : diaSemana === 0 ? -2 : 0;
+  if (recuo === 0) return valor;
+  return somarDiasCivisSeguroUTC(valor, recuo);
+}
+
+/**
  * Calcula o deslocamento assinado em dias úteis entre duas datas civis.
  * A data de origem ('de') é normalizada para o próximo dia útil.
  * A data de destino ('ate') deve ser um dia útil civil válido, lançando RangeError caso contrário.

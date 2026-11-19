@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
-import type { NomePerfil } from "@/types";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
+import type { NomePerfil } from "@/shared/types/autorizacao";
 
 interface RoleGateProps {
   allowedRoles: NomePerfil[];

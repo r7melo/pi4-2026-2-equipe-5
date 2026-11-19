@@ -1,4 +1,5 @@
-import type { LinkCronogramaValidado, PeriodoCompartilhado, ProgramacaoCompartilhada } from "@/types";
+import type { PeriodoCompartilhado, ProgramacaoCompartilhada } from "@/shared/types/compartilhamentoCronograma";
+import type { LinkCronogramaValidado } from "../types/compartilhamento";
 import { instanteISOValido, periodoCivilValido } from "@/shared/lib/datasCivis";
 import { formatarDataISO } from "@/shared/lib/formatters";
 import { statusHttp } from "@/shared/lib/sessaoOperacao";

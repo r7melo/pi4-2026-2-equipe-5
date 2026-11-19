@@ -2,7 +2,8 @@ import { contextoDemonstracao, executarEfeitoDemonstracao } from "@/shared/lib/c
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Copy, Check, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import type { GanttCompartilharModalProps, PeriodoCompartilhado } from "@/types";
+import type { PeriodoCompartilhado } from "@/shared/types/compartilhamentoCronograma";
+import type { GanttCompartilharModalProps } from "../types/compartilhamento";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
@@ -102,7 +103,7 @@ function FormularioCompartilhamento({ onClose, podeInteragir = interacaoBloquead
   return (
     <Modal isOpen onClose={fechar} titulo="Compartilhar cronograma"
       subtitulo="Consulta pública por período" ariaLabelledBy={id + "-titulo"}
-      fecharBloqueado={pendente} gerenciarFoco
+      fecharBloqueado={pendente}
       className="flex max-h-[calc(100dvh-2rem)] max-w-lg flex-col [&>div:first-child]:shrink-0">
       <form noValidate onSubmit={evento => { evento.preventDefault(); gerar(); }}
         className="flex min-h-0 flex-col gap-4 overflow-y-auto p-4 sm:p-6">

@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { PeriodoCompartilhado, VariaveisGeracaoLink } from "@/types";
+import type { PeriodoCompartilhado } from "@/shared/types/compartilhamentoCronograma";
+import type { VariaveisGeracaoLink } from "../types/compartilhamento";
 import { capturarSessaoOperacional, sessaoOperacionalVigente, deveExibirErroLocal, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { gerarLinkCompartilhado } from "@/features/cronograma/services/cronogramaPublico";
 import { validarLinkRecebido, mensagemFalhaGeracao } from "@/features/cronograma/lib/compartilhamento";

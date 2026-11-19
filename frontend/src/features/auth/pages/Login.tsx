@@ -1,9 +1,9 @@
 import { contextoDemonstracao, contextoDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { fazerLogin, mapearRespostaParaUsuario } from "@/features/auth/services/auth";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
 
 export default function Login() {
@@ -95,7 +95,7 @@ export default function Login() {
             </label>
             <input
               id="email"
-              type="email"
+              type="email" name="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -114,7 +114,7 @@ export default function Login() {
             <div className="relative flex items-center">
               <input
                 id="senha"
-                type={mostrarSenha ? "text" : "password"}
+                type={mostrarSenha ? "text" : "password"} name="password"
                 required
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
@@ -123,7 +123,6 @@ export default function Login() {
               />
               <button
                 type="button"
-                tabIndex={-1}
                 onClick={() => setMostrarSenha((prev) => !prev)}
                 className="absolute right-3 text-subtle-foreground hover:text-foreground-muted p-1 focus:outline-none cursor-pointer"
                 aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
@@ -136,11 +135,11 @@ export default function Login() {
           <button
             type="submit"
             disabled={carregando}
-            className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md mt-6 cursor-pointer"
+            className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all motion-safe:active:scale-[0.98] shadow-md mt-6 cursor-pointer"
           >
             {carregando ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 motion-safe:animate-spin" />
                 <span>Entrando...</span>
               </>
             ) : (
@@ -151,10 +150,10 @@ export default function Login() {
             )}
           </button>
 
-          <button type="button" onClick={() => void navigate("/esqueci-senha")}
-            className="w-full rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm text-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <Link to="/esqueci-senha"
+            className="block text-center w-full rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm text-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
             Esqueci minha senha
-          </button>
+          </Link>
 
           {/* 
             Preservação de ações secundárias (UX-03) para resguardo de evolução futura:
@@ -164,20 +163,20 @@ export default function Login() {
           {/*
           <button
             type="button"
-            className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98] mt-3"
+            className="w-full bg-surface hover:bg-surface-subtle text-foreground-muted border border-border-strong font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98] mt-3"
           >
             Esqueci minha senha
           </button>
 
           <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-400 text-xs uppercase font-medium">ou</span>
-            <div className="flex-grow border-t border-slate-200"></div>
+            <div className="flex-grow border-t border-border-subtle"></div>
+            <span className="flex-shrink-0 mx-4 text-subtle-foreground text-xs uppercase font-medium">ou</span>
+            <div className="flex-grow border-t border-border-subtle"></div>
           </div>
 
           <button
             type="button"
-            className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98]"
+            className="w-full bg-surface hover:bg-surface-subtle text-foreground-muted border border-border-strong font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98]"
           >
             Criar nova conta
           </button>

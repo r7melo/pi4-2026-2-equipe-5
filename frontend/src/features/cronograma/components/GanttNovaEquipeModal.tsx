@@ -171,7 +171,7 @@ export function GanttNovaEquipeModal({ isOpen, onClose, onEquipeCriada, podeInte
             >
               {salvando ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />
                   <span>Salvando...</span>
                 </>
               ) : (

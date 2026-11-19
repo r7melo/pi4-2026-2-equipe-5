@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { Filter, Check } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { STATUS_LOGISTICO_OPERACIONAIS } from "@/shared/constants/statusLogistico";
 
 interface KanbanQuickFiltersProps {
   categoriaFiltro: string;
@@ -18,13 +19,10 @@ const CATEGORIAS = [
   "Comercial",
 ];
 
-// RF-06: Filtro alinhado às etapas logísticas canônicas de materiais (RF-06)
+// RF-06: Filtro alinhado às 4 etapas de gargalo logístico de materiais.
 const ETAPAS_MATERIAIS = [
   "Todos",
-  "Comprado",
-  "Em Trânsito",
-  "Disponível",
-  "Utilizado",
+  ...STATUS_LOGISTICO_OPERACIONAIS.map((opcao) => opcao.rotuloTitulo),
 ];
 
 export default function KanbanQuickFilters({
@@ -37,6 +35,8 @@ export default function KanbanQuickFilters({
 }: KanbanQuickFiltersProps) {
   const [aberto, setAberto] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const botaoFiltrosRef = useRef<HTMLButtonElement>(null);
+  const painelId = useId();
 
   const totalAtivos = (categoriaFiltro ? 1 : 0) + (materialFiltro ? 1 : 0);
 
@@ -53,9 +53,14 @@ export default function KanbanQuickFilters({
   }, [aberto]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} onKeyDown={e => {
+      if (aberto && e.key === "Escape" && !e.nativeEvent.isComposing) {
+        e.preventDefault(); e.stopPropagation(); setAberto(false); botaoFiltrosRef.current?.focus();
+      }
+    }}>
       <button
         type="button"
+        ref={botaoFiltrosRef} aria-expanded={aberto} aria-controls={painelId}
         onClick={() => setAberto((prev) => !prev)}
         className={cn(
           "inline-flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium rounded-lg border transition-all cursor-pointer shadow-2xs h-[38px]",
@@ -74,13 +79,14 @@ export default function KanbanQuickFilters({
       </button>
 
       {aberto && (
-        <div className="absolute right-0 mt-2 w-64 bg-surface rounded-xl shadow-xl border border-border-subtle p-3 z-40 animate-in fade-in zoom-in-95 duration-150">
+        <div id={painelId} role="group" aria-label="Filtros rápidos" className="absolute right-0 mt-2 w-64 bg-surface rounded-xl shadow-xl border border-border-subtle p-3 z-40">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-border-subtle">
             <span className="text-xs font-bold text-foreground-secondary">Filtros Rápidos</span>
             {temFiltroAtivo && (
               <button
                 type="button"
                 onClick={() => {
+                  botaoFiltrosRef.current?.focus();
                   onLimparFiltros();
                   setAberto(false);
                 }}
@@ -103,6 +109,7 @@ export default function KanbanQuickFilters({
                   <button
                     key={cat}
                     type="button"
+                    aria-pressed={ativo}
                     onClick={() => setCategoriaFiltro(cat === "Todas" ? "" : cat)}
                     className={cn(
                       "flex items-center justify-between px-2 py-1 text-xs rounded-md transition-colors text-left cursor-pointer",
@@ -112,7 +119,7 @@ export default function KanbanQuickFilters({
                     )}
                   >
                     <span className="truncate">{cat}</span>
-                    {ativo && <Check className="w-3 h-3 shrink-0" />}
+                    {ativo && <Check aria-hidden="true" className="w-3 h-3 shrink-0" />}
                   </button>
                 );
               })}
@@ -131,6 +138,7 @@ export default function KanbanQuickFilters({
                   <button
                     key={mat}
                     type="button"
+                    aria-pressed={ativo}
                     onClick={() => setMaterialFiltro(mat === "Todos" ? "" : mat)}
                     className={cn(
                       "flex items-center justify-between px-2 py-1 text-xs rounded-md transition-colors text-left cursor-pointer",
@@ -140,7 +148,7 @@ export default function KanbanQuickFilters({
                     )}
                   >
                     <span className="truncate">{mat}</span>
-                    {ativo && <Check className="w-3 h-3 shrink-0" />}
+                    {ativo && <Check aria-hidden="true" className="w-3 h-3 shrink-0" />}
                   </button>
                 );
               })}

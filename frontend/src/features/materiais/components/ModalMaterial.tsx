@@ -1,107 +1,100 @@
-import { useState } from "react";
+import { useState, useRef, useId, useLayoutEffect, type FormEvent } from "react";
+import { toast } from "sonner";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Button } from "@/shared/components/ui/Button";
 import { Package, Loader2, ChevronDown } from "lucide-react";
-import type { Material, StatusLogistico } from "@/types";
-import { useAdicionarMaterial, useAtualizarDadosMaterial } from "@/features/materiais/hooks/useMateriais";
+import type { Material, StatusLogistico } from "@/shared/types/materiais";
+import {
+  STATUS_LOGISTICO_OPCOES,
+  obterMetaStatusLogistico,
+  podeAlterarStatusEmEdicaoCadastral,
+} from "@/shared/constants/statusLogistico";
+import { useAdicionarMaterial, useAtualizarDadosMaterial } from "../hooks/useMateriais";
+import { useSessaoMontadaMaterial } from "../hooks/useSessaoMontadaMaterial";
+import { validarFormularioMaterial, type FalhaValidacaoMaterial } from "../lib/validacaoMaterial";
 
 interface ModalMaterialProps {
   isOpen: boolean;
   onClose: () => void;
   obraId: number;
   materialParaEditar?: Material | null;
-  podeVerCustos?: boolean;
+}
+
+interface DadosSubmitModalMaterial {
+  tipo: string;
+  quantidade: number;
+  statusLogistico: StatusLogistico;
 }
 
 interface FormularioMaterialProps {
-  obraId: number;
   materialParaEditar?: Material | null;
-  podeVerCustos: boolean;
-  onClose: () => void;
+  podeAlterarStatus: boolean;
+  isPending: boolean;
+  onSalvar: (dados: DadosSubmitModalMaterial) => Promise<void>;
+  onCancelar: () => void;
 }
 
 function FormularioMaterial({
-  obraId,
   materialParaEditar,
-  podeVerCustos,
-  onClose,
+  podeAlterarStatus,
+  isPending,
+  onSalvar,
+  onCancelar,
 }: FormularioMaterialProps) {
   const isEditing = Boolean(materialParaEditar);
 
   const [tipo, setTipo] = useState(materialParaEditar?.tipo || materialParaEditar?.descricao || "");
   const [quantidade, setQuantidade] = useState(String(materialParaEditar?.quantidade ?? 1));
-  const [custoUnitario, setCustoUnitario] = useState(
-    materialParaEditar?.custoUnitario != null ? String(materialParaEditar.custoUnitario) : ""
-  );
   const [statusLogistico, setStatusLogistico] = useState<StatusLogistico>(
     materialParaEditar?.statusLogistico || "EmSolicitacao"
   );
-  const [erro, setErro] = useState<string | null>(null);
+  const [falha, setFalha] = useState<FalhaValidacaoMaterial | null>(null);
+  const tipoRef = useRef<HTMLInputElement>(null);
+  const quantidadeRef = useRef<HTMLInputElement>(null);
+  const erroId = useId();
+  useLayoutEffect(() => {
+    if (falha) (falha.campo === "tipo" ? tipoRef : quantidadeRef).current?.focus();
+  }, [falha]);
 
-  const adicionarMutation = useAdicionarMaterial();
-  const atualizarMutation = useAtualizarDadosMaterial();
-  const isPending = adicionarMutation.isPending || atualizarMutation.isPending;
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setErro(null);
+    setFalha(null);
 
-    const tipoTrim = tipo.trim();
-    if (!tipoTrim) {
-      setErro("Informe o nome ou especificação do insumo.");
-      return;
-    }
-    if (tipoTrim.length > 200) {
-      setErro("O nome do insumo não pode exceder 200 caracteres.");
-      return;
-    }
+    const inputQtd = quantidadeRef.current;
+    const validacao = validarFormularioMaterial({
+      tipo,
+      quantidade,
+      validadeQuantidade: inputQtd
+        ? {
+            valid: inputQtd.validity.valid,
+            badInput: inputQtd.validity.badInput,
+            validationMessage: inputQtd.validationMessage,
+          }
+        : undefined,
+    });
 
-    const qtdNum = Number(quantidade);
-    if (isNaN(qtdNum) || qtdNum <= 0) {
-      setErro("A quantidade deve ser um número positivo maior que zero.");
-      return;
-    }
-
-    const custoNum = custoUnitario ? Number(custoUnitario) : undefined;
-    if (custoNum !== undefined && (isNaN(custoNum) || custoNum < 0)) {
-      setErro("O custo unitário deve ser um valor numérico não-negativo.");
+    if (!validacao.ok) {
+      setFalha({ ...validacao.falha });
       return;
     }
 
-    try {
-      if (isEditing && materialParaEditar) {
-        await atualizarMutation.mutateAsync({
-          id: materialParaEditar.id,
-          obraId,
-          payload: {
-            tipo: tipoTrim,
-            quantidade: qtdNum,
-            custoUnitario: podeVerCustos ? custoNum : undefined,
-            statusLogistico,
-          },
-        });
-      } else {
-        await adicionarMutation.mutateAsync({
-          obraId,
-          payload: {
-            tipo: tipoTrim,
-            quantidade: qtdNum,
-            custoUnitario: podeVerCustos ? custoNum : undefined,
-            statusLogistico,
-          },
-        });
-      }
-      onClose();
-    } catch {
-      // O hook já emite o toast de erro correspondente
-    }
+    await onSalvar({
+      tipo: validacao.tipo,
+      quantidade: validacao.quantidade,
+      statusLogistico,
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-4">
-      {erro && (
-        <div className="bg-destructive-light text-destructive border border-destructive-border px-3.5 py-2.5 rounded-lg text-xs font-medium">
-          {erro}
+    <form noValidate onSubmit={(e) => void handleSubmit(e)} className="p-6 space-y-4">
+      {falha && (
+        <div
+          id={erroId}
+          role="alert"
+          className="bg-destructive-light text-destructive border border-destructive-border px-3.5 py-2.5 rounded-lg text-xs font-medium"
+        >
+          {falha.mensagem}
         </div>
       )}
 
@@ -122,18 +115,27 @@ function FormularioMaterial({
       )}
 
       <div>
-        <label htmlFor="material-tipo" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
+        <label
+          htmlFor="material-tipo"
+          className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide"
+        >
           Descrição / Tipo do Material <span className="text-destructive">*</span>
         </label>
         <div className="space-y-1.5">
           <input
             id="material-tipo"
+            ref={tipoRef}
+            aria-invalid={falha?.campo === "tipo" || undefined}
+            aria-describedby={falha?.campo === "tipo" ? erroId : undefined}
             type="text"
             required
             list="catalogo-produtos-sugeridos"
             disabled={isPending}
             value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
+            onChange={(e) => {
+              setTipo(e.target.value);
+              setFalha((atual) => (atual?.campo === "tipo" ? null : atual));
+            }}
             placeholder="Selecione ou digite o insumo (Ex: Módulo Solar 550W)"
             className="w-full h-9 border border-border-subtle bg-surface-subtle rounded-lg px-3 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors disabled:opacity-60"
           />
@@ -156,74 +158,77 @@ function FormularioMaterial({
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="material-quantidade" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
+          <label
+            htmlFor="material-quantidade"
+            className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide"
+          >
             Quantidade <span className="text-destructive">*</span>
           </label>
           <input
             id="material-quantidade"
+            ref={quantidadeRef}
+            aria-invalid={falha?.campo === "quantidade" || undefined}
+            aria-describedby={falha?.campo === "quantidade" ? erroId : undefined}
             type="number"
             required
-            min="0.01"
-            step="0.01"
+            min="1"
+            step="1"
             disabled={isPending}
             value={quantidade}
-            onChange={(e) => setQuantidade(e.target.value)}
+            onChange={(e) => {
+              setQuantidade(e.target.value);
+              setFalha((atual) => (atual?.campo === "quantidade" ? null : atual));
+            }}
             placeholder="Ex: 10"
             className="w-full h-9 border border-border-subtle bg-surface-subtle rounded-lg px-3 text-sm text-foreground font-mono focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors disabled:opacity-60"
           />
         </div>
 
-        <div>
-          <label htmlFor="material-status" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
-            Status Logístico
-          </label>
-          <div className="relative">
-            <select
-              id="material-status"
-              disabled={isPending || !isEditing}
-              value={statusLogistico}
-              onChange={(e) => setStatusLogistico(e.target.value as StatusLogistico)}
-              className="w-full h-9 appearance-none border border-border-subtle bg-surface-subtle rounded-lg pl-3 pr-8 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors cursor-pointer disabled:opacity-60"
+        {isEditing && podeAlterarStatus ? (
+          <div>
+            <label
+              htmlFor="material-status"
+              className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide"
             >
-              <option value="EmSolicitacao" className="bg-surface text-foreground">Em Solicitação</option>
-              <option value="Comprado" className="bg-surface text-foreground">Comprado</option>
-              <option value="EmTransito" className="bg-surface text-foreground">Em Trânsito</option>
-              <option value="Disponivel" className="bg-surface text-foreground">Disponível</option>
-              <option value="Utilizado" className="bg-surface text-foreground">Utilizado</option>
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              Status Logístico
+            </label>
+            <div className="relative">
+              <select
+                id="material-status"
+                disabled={isPending}
+                value={statusLogistico}
+                onChange={(e) => setStatusLogistico(e.target.value as StatusLogistico)}
+                className="w-full h-9 appearance-none border border-border-subtle bg-surface-subtle rounded-lg pl-3 pr-8 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors cursor-pointer disabled:opacity-60"
+              >
+                {STATUS_LOGISTICO_OPCOES.map((opcao) => (
+                  <option
+                    key={opcao.valor}
+                    value={opcao.valor}
+                    className="bg-surface text-foreground"
+                  >
+                    {opcao.rotuloTitulo}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                aria-hidden="true"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+              />
+            </div>
           </div>
-        </div>
-      </div>
-
-      {podeVerCustos && (
-        <div>
-          <label htmlFor="material-custo" className="block text-xs font-semibold text-foreground-muted mb-1.5 uppercase tracking-wide">
-            Custo Unitário Estimado (R$)
-          </label>
-          <input
-            id="material-custo"
-            type="number"
-            min="0"
-            step="0.01"
-            disabled={isPending}
-            value={custoUnitario}
-            onChange={(e) => setCustoUnitario(e.target.value)}
-            placeholder="0,00"
-            className="w-full h-9 border border-border-subtle bg-surface-subtle rounded-lg px-3 text-sm text-foreground font-mono focus:bg-surface focus:outline-none focus:ring-1 focus:ring-border-strong transition-colors disabled:opacity-60"
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Visível apenas para perfis autorizados da gestão financeira.
+        ) : (
+          <p className="text-xs text-muted-foreground self-center">
+            Status: {isEditing ? obterMetaStatusLogistico(statusLogistico).rotulo : "Em Solicitação"}
           </p>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border-subtle">
         <Button
           type="button"
           variant="outline"
           disabled={isPending}
-          onClick={onClose}
+          onClick={onCancelar}
           className="h-9 px-4 text-xs cursor-pointer"
         >
           Cancelar
@@ -235,7 +240,7 @@ function FormularioMaterial({
         >
           {isPending ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" aria-hidden="true" />
               Salvando...
             </>
           ) : isEditing ? (
@@ -254,14 +259,71 @@ export function ModalMaterial({
   onClose,
   obraId,
   materialParaEditar,
-  podeVerCustos = true,
 }: ModalMaterialProps) {
   const isEditing = Boolean(materialParaEditar);
+  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const podeAlterarStatus = podeAlterarStatusEmEdicaoCadastral(perfil);
+
+  const adicionarMutation = useAdicionarMaterial();
+  const atualizarMutation = useAtualizarDadosMaterial();
+  const isPending = adicionarMutation.isPending || atualizarMutation.isPending;
+  const { vigente, iniciarOperacao, liberarOperacao, informarErro } = useSessaoMontadaMaterial();
+
+  const fecharModal = () => {
+    if (!isPending) onClose();
+  };
+
+  const handleSalvar = async (dados: DadosSubmitModalMaterial) => {
+    const sessao = iniciarOperacao(true);
+    if (sessao === undefined) return;
+    try {
+      if (isEditing && materialParaEditar) {
+        await atualizarMutation.mutateAsync(
+          {
+            id: materialParaEditar.id,
+            obraId,
+            payload: {
+              tipo: dados.tipo,
+              quantidade: dados.quantidade,
+              ...(podeAlterarStatus ? { statusLogistico: dados.statusLogistico } : {}),
+            },
+          },
+          undefined,
+          sessao
+        );
+        if (vigente(sessao)) {
+          toast.success("Insumo atualizado com sucesso");
+          onClose();
+        }
+      } else {
+        await adicionarMutation.mutateAsync(
+          {
+            obraId,
+            payload: {
+              tipo: dados.tipo,
+              quantidade: dados.quantidade,
+            },
+          },
+          undefined,
+          sessao
+        );
+        if (vigente(sessao)) {
+          toast.success("Material registrado com sucesso");
+          onClose();
+        }
+      }
+    } catch (erro) {
+      informarErro(erro, sessao, isEditing ? "Erro ao atualizar insumo" : "Erro ao registrar material");
+    } finally {
+      liberarOperacao();
+    }
+  };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={fecharModal}
+      fecharBloqueado={isPending}
       titulo={isEditing ? "Editar Insumo da Obra" : "Adicionar Insumo à Obra"}
       subtitulo={
         isEditing
@@ -270,7 +332,7 @@ export function ModalMaterial({
       }
       icone={
         <div className="w-10 h-10 rounded-xl bg-surface border border-border-subtle text-foreground-muted flex items-center justify-center shrink-0">
-          <Package className="w-5 h-5" />
+          <Package className="w-5 h-5" aria-hidden="true" />
         </div>
       }
       className="max-w-md w-full"
@@ -278,10 +340,11 @@ export function ModalMaterial({
       {isOpen && (
         <FormularioMaterial
           key={materialParaEditar?.id ?? "novo"}
-          obraId={obraId}
           materialParaEditar={materialParaEditar}
-          podeVerCustos={podeVerCustos}
-          onClose={onClose}
+          podeAlterarStatus={podeAlterarStatus}
+          isPending={isPending}
+          onSalvar={handleSalvar}
+          onCancelar={fecharModal}
         />
       )}
     </Modal>

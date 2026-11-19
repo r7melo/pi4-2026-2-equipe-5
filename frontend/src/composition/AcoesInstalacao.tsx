@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { useLocation } from "react-router-dom";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { ExportarDetalhesInstalacao } from "@/features/obras/components/ExportarDetalhesInstalacao";
 import type { ExportarDetalhesInstalacaoProps } from "@/features/obras/types/exportacaoInstalacao";

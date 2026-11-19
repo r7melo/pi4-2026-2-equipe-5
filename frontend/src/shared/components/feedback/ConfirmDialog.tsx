@@ -1,4 +1,4 @@
-import { useRef, useEffect, useId, type ReactNode, type RefObject } from "react";
+import { useId, type ReactNode, type RefObject } from "react";
 import { AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import { Modal } from "@/shared/components/ui/Modal";
@@ -16,8 +16,6 @@ export interface ConfirmDialogProps {
   variant?: "danger" | "warning" | "info";
   isLoading?: boolean;
   confirmarBloqueado?: boolean;
-  rolagemInterna?: boolean;
-  gerenciarFoco?: boolean;
   origemFoco?: RefObject<HTMLElement | null>;
   podeRestaurarFoco?: () => boolean;
 }
@@ -34,37 +32,20 @@ export function ConfirmDialog({
   variant = "danger",
   isLoading = false,
   confirmarBloqueado = false,
-  rolagemInterna = false,
-  gerenciarFoco = false,
   origemFoco,
   podeRestaurarFoco,
 }: ConfirmDialogProps) {
   const tituloId = useId();
-  const cancelarBtnRef = useRef<HTMLButtonElement>(null);
-  const confirmarBtnRef = useRef<HTMLButtonElement>(null);
-  const origemFocoRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (isOpen && gerenciarFoco) {
-      origemFocoRef.current = origemFoco?.current || (document.activeElement as HTMLElement | null);
-      cancelarBtnRef.current?.focus();
-    }
-    return () => {
-      if (gerenciarFoco && origemFocoRef.current?.isConnected && podeRestaurarFoco?.() !== false) {
-        origemFocoRef.current.focus();
-      }
-    };
-  }, [isOpen, gerenciarFoco, podeRestaurarFoco, origemFoco]);
 
   return (
     <Modal
       isOpen={isOpen}
-      gerenciarFoco={gerenciarFoco}
+      focoRetorno={() => origemFoco?.current ?? null}
+      podeRestaurarFoco={podeRestaurarFoco}
       onClose={onClose}
-      zIndex="z-[70]"
       fecharBloqueado={isLoading}
       ariaLabelledBy={tituloId}
-      className={cn("max-w-md p-6", rolagemInterna && "max-h-[90dvh] overflow-y-auto")}
+      className="max-w-md p-6"
     >
       <div className="flex flex-col items-center text-center">
         {variant === "danger" && (
@@ -83,7 +64,7 @@ export function ConfirmDialog({
           </div>
         )}
 
-        <h3 id={tituloId} className="text-lg font-bold text-foreground-secondary mb-1">{titulo}</h3>
+        <h2 id={tituloId} className="text-lg font-bold text-foreground-secondary mb-1">{titulo}</h2>
         {descricao && (
           <p className="w-full min-w-0 text-sm text-muted-foreground mb-3 [overflow-wrap:anywhere]">{descricao}</p>
         )}
@@ -91,7 +72,7 @@ export function ConfirmDialog({
 
         <div className="flex gap-3 justify-end w-full mt-2">
           <Button
-            ref={cancelarBtnRef}
+            data-autofocus
             variant="outline"
             onClick={onClose}
             disabled={isLoading}
@@ -100,7 +81,6 @@ export function ConfirmDialog({
             {labelCancelar}
           </Button>
           <Button
-            ref={confirmarBtnRef}
             variant="primary"
             onClick={onConfirm}
             disabled={isLoading || confirmarBloqueado}

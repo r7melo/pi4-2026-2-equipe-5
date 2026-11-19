@@ -1,7 +1,8 @@
+import { ROTULOS_PERFIS } from "@/shared/constants/perfis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert } from "lucide-react";
-import { useAuthStore } from "../stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { destinoInicialSeguro, perfilCanonico, perfilEscritorio } from "@/shared/lib/rotasSessao";
 import Sidebar, { SidebarTrigger } from "@/shared/layouts/Sidebar";
 import { SidebarProvider } from "@/shared/contexts/SidebarProvider";
@@ -22,7 +23,7 @@ export default function SemPermissao() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const rotulo = !perfilCanonico(perfil) ? "Não identificado" : perfil === "InstaladorCampo" ? "Instalador de Campo" : perfil;
+  const rotulo = !perfilCanonico(perfil) ? "Não identificado" : ROTULOS_PERFIS[perfil];
   const caminho = caminhoTentado(location.state);
   const conteudo = (
     <main className="flex-1 min-w-0 overflow-y-auto flex items-center justify-center p-4 md:p-6 bg-background-app">

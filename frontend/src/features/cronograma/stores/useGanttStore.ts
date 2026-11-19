@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { GanttUIState } from "@/types";
+import type { GanttUIState } from "../types/gantt";
 
 function migrarZoomLegado(): void {
   if (typeof window === "undefined") return;

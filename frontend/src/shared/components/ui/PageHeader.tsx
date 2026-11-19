@@ -27,21 +27,21 @@ export function PageHeader({ title, subtitle, backTo, backState, onBack, childre
 
   const headerContent = (
     <>
-      <div className="flex items-center gap-2 md:gap-3 shrink-0 max-w-[55%] sm:max-w-none min-w-0">
+      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-[min(100%,12rem)]">
         {!ocultarMenuLateral && <SidebarTrigger className="md:hidden shrink-0" />}
         <div className="min-w-0">
-          <h1 className="text-base sm:text-lg font-bold text-foreground-secondary tracking-tight leading-tight truncate">
+          <h1 className="text-base sm:text-lg font-bold text-foreground-secondary tracking-tight leading-tight break-words">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[11px] text-muted-foreground font-medium truncate hidden md:block leading-none mt-0.5">
+            <p className="text-[11px] text-muted-foreground font-medium break-words hidden md:block leading-snug mt-0.5">
               {subtitle}
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 justify-end ml-auto">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0 max-w-full justify-end ml-auto">
         {children}
 
         {(backTo || onBack) && (
@@ -57,7 +57,7 @@ export function PageHeader({ title, subtitle, backTo, backState, onBack, childre
               }
             }}
             className="shrink-0 cursor-pointer px-3 md:px-4 gap-2 text-foreground-muted hover:text-foreground"
-            title="Voltar"
+            title="Voltar" aria-label="Voltar"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden md:inline">Voltar</span>

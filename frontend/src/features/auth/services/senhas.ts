@@ -1,7 +1,8 @@
 import axios, { type AxiosRequestConfig } from "axios";
 import { api, ApiErro } from "@/shared/api/api";
 import { herdarContexto403 } from "@/shared/lib/sessaoOperacao";
-import type { SolicitarSenhaEntrada, RedefinirSenhaEntrada, AlterarSenhaEntrada, ContextoPedidoSenha, MensagemSenha, Usuario } from "@/types";
+import type { Usuario } from "@/shared/types/autorizacao";
+import type { SolicitarSenhaEntrada, RedefinirSenhaEntrada, AlterarSenhaEntrada, ContextoPedidoSenha, MensagemSenha } from "../types/senha";
 import { MENSAGEM_RECUPERACAO, MENSAGEM_TROCA_INCERTA } from "../lib/politicaSenha";
 import { buscarUsuarioLogado } from "./auth";
 

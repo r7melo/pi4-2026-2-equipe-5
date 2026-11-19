@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { sessaoOperacionalVigente } from "@/shared/lib/sessaoOperacao";
 import { CHAVE_ROTA_RETORNO } from "@/shared/lib/rotasSessao";
-import { useAuthStore } from "../stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 
 export function encerrarSessaoSenha(client: QueryClient, geracao: number): boolean {
   if (!sessaoOperacionalVigente(geracao)) return false;

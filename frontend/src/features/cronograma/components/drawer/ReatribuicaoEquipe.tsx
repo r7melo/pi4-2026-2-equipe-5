@@ -12,8 +12,12 @@ export function ReatribuicaoEquipe({
   programacoes,
   onMudarEquipe,
   canEdit = true,
+  reatribuindoEquipe = false,
+  desabilitado = false,
 }: ReatribuicaoEquipeProps) {
   const [mudandoEquipe, setMudandoEquipe] = useState(false);
+  const reatribuindo = mudandoEquipe || reatribuindoEquipe;
+  const bloqueado = reatribuindo || desabilitado;
 
   if (!canEdit || !equipes || equipes.length === 0 || !onMudarEquipe) {
     return null;
@@ -26,10 +30,11 @@ export function ReatribuicaoEquipe({
         <span>Reatribuir Equipe</span>
       </h3>
       <div className="flex items-center gap-2">
-        <select
+        <select aria-label="Equipe para reatribuição" name="equipe"
           value={equipeId}
-          disabled={mudandoEquipe}
+          disabled={bloqueado}
           onChange={async (e) => {
+            if (bloqueado) return;
             const novaEquipeId = Number(e.target.value);
             if (novaEquipeId && novaEquipeId !== equipeId) {
               setMudandoEquipe(true);
@@ -54,7 +59,7 @@ export function ReatribuicaoEquipe({
             );
           })}
         </select>
-        {mudandoEquipe && <Loader2 className="w-4 h-4 animate-spin text-info" />}
+        {reatribuindo && <Loader2 className="w-4 h-4 motion-safe:animate-spin text-info" />}
       </div>
     </div>
   );

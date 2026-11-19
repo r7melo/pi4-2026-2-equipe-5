@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ApiErro } from '@/shared/api/api';
+import { LIMITE_JSON_BLOB_BYTES, lerJsonDeBlob } from '@/shared/lib/arquivoBlob';
 import { herdarContexto403 } from '@/shared/lib/sessaoOperacao';
 
 /** Erros blob/JSON são decodificados fora da tela; nunca viram arquivo. */
@@ -13,8 +14,7 @@ export async function normalizarErroExportacao(erro: unknown): Promise<Error> {
   }
   let corpo: unknown = erro.response?.data;
   if (corpo instanceof Blob) {
-    if (corpo.size > 65536) return erro;
-    try { corpo = JSON.parse(await corpo.text()) as unknown; } catch { return erro; }
+    corpo = await lerJsonDeBlob(corpo, LIMITE_JSON_BLOB_BYTES);
   }
   if (corpo && typeof corpo === 'object' && 'error' in corpo && corpo.error && typeof corpo.error === 'object') {
     const e = corpo.error;

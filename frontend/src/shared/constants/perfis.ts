@@ -1,12 +1,11 @@
-// Constantes de perfis RBAC (RF-02)
-import type { NomePerfil } from "@/types";
+// Perfis RBAC (RF-02).
+export const NOMES_PERFIS = [
+  "Administrador", "Engenharia", "Financeiro", "InstaladorCampo",
+] as const;
 
-export const PERFIS = {
-  ADMIN: "Administrador" as NomePerfil,
-  ENGENHARIA: "Engenharia" as NomePerfil,
-  FINANCEIRO: "Financeiro" as NomePerfil,
-  INSTALADOR: "InstaladorCampo" as NomePerfil,
-} as const;
-
-/** Lista de todos os perfis para iteração em UIs de administração */
-export const TODOS_PERFIS: NomePerfil[] = Object.values(PERFIS);
+export const ROTULOS_PERFIS: Record<(typeof NOMES_PERFIS)[number], string> = {
+  Administrador: "Administrador",
+  Engenharia: "Engenharia",
+  Financeiro: "Financeiro",
+  InstaladorCampo: "Instalador de Campo",
+};

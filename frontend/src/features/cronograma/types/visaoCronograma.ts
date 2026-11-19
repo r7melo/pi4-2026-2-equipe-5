@@ -1,7 +1,9 @@
 import type { SetStateAction } from "react";
-import type { GanttFiltrosAvancados } from "@/features/cronograma/types/gantt";
-import type { Programacao } from "@/features/cronograma/types/programacoes";
+import type { GanttFiltrosAvancados, CategoriaObraGantt } from "@/features/cronograma/types/gantt";
+import type { Programacao } from "@/shared/types/programacoes";
 import type { Equipe } from "@/features/cronograma/types/equipes";
+
+export type { CategoriaObraGantt };
 
 /**
  * Resumo estrutural mínimo de obra para o contexto do cronograma Gantt.
@@ -15,6 +17,7 @@ export interface ObraGanttResumo {
   status?: string;
   atualizadoPor?: string;
   quantidadePaineis?: number;
+  dataFimEstimada?: string;
 }
 
 /**
@@ -22,6 +25,8 @@ export interface ObraGanttResumo {
  */
 export interface HomologacaoGanttResumo {
   parecerAcesso?: string | null;
+  artTrt?: string;
+  prazoVistoria?: string;
 }
 
 /**
@@ -56,8 +61,6 @@ export interface UseGanttFiltrosRetorno {
   filtros: GanttFiltrosAvancados;
   setFiltros: (atualizacao: SetStateAction<GanttFiltrosAvancados>) => void;
   atualizarFiltros: (atualizacao: SetStateAction<GanttFiltrosAvancados>) => void;
-  limparFiltros: () => void;
-  salvarVisaoPadrao: (novosFiltros: GanttFiltrosAvancados) => void;
   totalFiltrosAtivos: number;
   programacoesFiltradas: Programacao[];
 }
@@ -76,5 +79,4 @@ export interface EquipesOverlaysRetorno {
   setModalCompartilharAberto: (aberto: boolean) => void;
   tarefaSelecionadaId: number | null;
   setTarefaSelecionadaId: (id: number | null) => void;
-  fecharTodosOverlays: () => void;
 }

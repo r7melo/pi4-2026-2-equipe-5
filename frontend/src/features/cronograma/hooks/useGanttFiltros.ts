@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, type SetStateAction } from "react";
+import { useState, useEffect, useMemo, useCallback, type SetStateAction } from "react";
 import { formatarDataISO } from "@/shared/lib/formatters";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
 import type { GanttFiltrosAvancados } from "@/features/cronograma/types/gantt";
@@ -7,8 +7,6 @@ import type {
   UseGanttFiltrosRetorno,
 } from "@/features/cronograma/types/visaoCronograma";
 import { materialEstaPronto } from "@/features/cronograma/lib/prontidaoObra";
-
-const HOJE_ISO = formatarDataISO(new Date());
 
 /**
  * Hook customizado para encapsular a gestão dos 10 filtros do Gantt,
@@ -20,8 +18,29 @@ export function useGanttFiltros({
   equipes,
   podeUsarInterface,
 }: UseGanttFiltrosParams = {}): UseGanttFiltrosRetorno {
+  const [hojeISO, setHojeISO] = useState(() => formatarDataISO(new Date()));
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const atualizar = () => {
+      clearTimeout(timer);
+      const agora = new Date();
+      setHojeISO(formatarDataISO(agora));
+      // Calendário local: o próximo dia pode ter 23 ou 25 horas.
+      const proximoDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 1);
+      timer = setTimeout(atualizar, Math.max(1, proximoDia.getTime() - agora.getTime()));
+    };
+    const retomar = () => { if (document.visibilityState === "visible") atualizar(); };
+    atualizar();
+    document.addEventListener("visibilitychange", retomar);
+    window.addEventListener("focus", atualizar);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", retomar);
+      window.removeEventListener("focus", atualizar);
+    };
+  }, []);
+
   const filtrosSalvos = useGanttStore((s) => s.filtrosSalvos);
-  const salvarFiltrosNaStore = useGanttStore((s) => s.salvarFiltros);
 
   const [prevFiltrosSalvos, setPrevFiltrosSalvos] = useState(filtrosSalvos);
   const [filtros, setFiltros] = useState<GanttFiltrosAvancados>(() => filtrosSalvos || {});
@@ -41,17 +60,6 @@ export function useGanttFiltros({
     [podeUsarInterface]
   );
 
-  const limparFiltros = useCallback(() => {
-    atualizarFiltros({});
-  }, [atualizarFiltros]);
-
-  const salvarVisaoPadrao = useCallback(
-    (novosFiltros: GanttFiltrosAvancados) => {
-      if (podeUsarInterface && !podeUsarInterface()) return;
-      salvarFiltrosNaStore(novosFiltros);
-    },
-    [podeUsarInterface, salvarFiltrosNaStore]
-  );
 
   const totalFiltrosAtivos = useMemo(() => {
     return [
@@ -154,12 +162,13 @@ export function useGanttFiltros({
     if (filtros.apenasAtrasadas) {
       lista = lista.filter((p) => {
         const obra = obras?.find((o) => Number(o.id) === Number(p.obraId));
-        return p.dataFim < HOJE_ISO && obra?.status !== "Concluido";
+        return p.dataFim < hojeISO && obra?.status !== "Concluido";
       });
     }
 
     return lista;
   }, [
+    hojeISO,
     programacoes,
     filtros,
     obras,
@@ -170,8 +179,6 @@ export function useGanttFiltros({
     filtros,
     setFiltros: atualizarFiltros,
     atualizarFiltros,
-    limparFiltros,
-    salvarVisaoPadrao,
     totalFiltrosAtivos,
     programacoesFiltradas,
   };

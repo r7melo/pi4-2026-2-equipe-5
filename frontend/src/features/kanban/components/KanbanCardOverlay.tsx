@@ -1,8 +1,8 @@
-import type { ObraCard } from "@/types";
+import type { ObraKanbanCard } from "../types/kanban";
 import { KanbanCardVisual } from "./KanbanCardVisual";
 
 interface KanbanCardOverlayProps {
-  card: ObraCard;
+  card: ObraKanbanCard;
 }
 
 export default function KanbanCardOverlay({ card }: KanbanCardOverlayProps) {

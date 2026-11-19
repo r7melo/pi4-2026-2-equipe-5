@@ -1,5 +1,6 @@
+import { useRef } from "react";
 import { Plus, Users, X } from "lucide-react";
-import type { Equipe } from "@/types";
+import type { Equipe } from "../types/equipes";
 import { SearchInput } from "@/shared/components/ui/SearchInput";
 
 interface GanttKpiBarProps {
@@ -33,6 +34,7 @@ export function GanttKpiBar({
   onDataFimChange,
   onLimparDatas,
 }: GanttKpiBarProps) {
+  const dataInicialRef = useRef<HTMLInputElement>(null);
   const temFiltroData = Boolean(dataFiltroInicio || dataFiltroFim);
 
   return (
@@ -43,6 +45,8 @@ export function GanttKpiBar({
             <span className="text-muted-foreground font-medium text-[11px]">De:</span>
             <input
               type="date"
+              aria-label="Data inicial do filtro"
+              ref={dataInicialRef}
               value={dataFiltroInicio}
               onChange={(e) => onDataInicioChange(e.target.value)}
               className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
@@ -50,13 +54,15 @@ export function GanttKpiBar({
             <span className="text-muted-foreground font-medium text-[11px] ml-1">Até:</span>
             <input
               type="date"
+              aria-label="Data final do filtro"
               value={dataFiltroFim}
               onChange={(e) => onDataFimChange(e.target.value)}
               className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
             />
             {temFiltroData && onLimparDatas && (
               <button
-                onClick={onLimparDatas}
+                type="button"
+              onClick={() => { dataInicialRef.current?.focus(); onLimparDatas?.(); }}
                 className="text-subtle-foreground hover:text-destructive p-0.5 transition-colors cursor-pointer"
                 title="Limpar filtro de período"
               >
@@ -75,6 +81,7 @@ export function GanttKpiBar({
         />
 
         <select
+          aria-label="Filtrar por equipe"
           value={equipeSelecionada ?? ""}
           onChange={(e) =>
             onEquipeChange(e.target.value ? Number(e.target.value) : null)
@@ -95,7 +102,7 @@ export function GanttKpiBar({
           <button
             onClick={onNovaEquipe}
             title="Cadastrar Nova Equipe"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-muted text-xs font-semibold shadow-xs transition-colors cursor-pointer active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-muted text-xs font-semibold shadow-xs transition-colors cursor-pointer motion-safe:active:scale-95"
           >
             <Users className="w-3.5 h-3.5 text-info" />
             <span className="hidden sm:inline">Nova Equipe</span>
@@ -106,7 +113,7 @@ export function GanttKpiBar({
           <button
             onClick={onNovaAlocacao}
             title="Nova Alocação"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-info hover:bg-info-hover text-primary-foreground text-xs font-semibold shadow-xs transition-colors cursor-pointer active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-info hover:bg-info-hover text-primary-foreground text-xs font-semibold shadow-xs transition-colors cursor-pointer motion-safe:active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Nova Alocação</span>

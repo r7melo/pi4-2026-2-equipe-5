@@ -2,7 +2,9 @@ import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 import { contextoDemonstracao, contextoDemonstracaoVigente, executarEfeitoDemonstracao } from "@/shared/lib/contextoDemonstracao";
 import { filtrarPeriodo } from "@/shared/lib/filtrarPeriodo";
 // RF-15/16: Relatórios e Exportação — Resumo por período com filtros de cliente e exportação
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { baixarArquivoBlob } from "@/shared/lib/arquivoBlob";
+import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { useObrasSelect, useLinkRelatorioDemonstracao, useExportarRelatorio } from "@/features/financeiro/hooks/useRelatorios";
 import { ApiErro } from '@/shared/api/api';
@@ -27,10 +29,13 @@ function formatarDataCurta(data: Date) {
 
 export default function Relatorios() {
   const gerarLinkMock = useLinkRelatorioDemonstracao();
-  const { data: listaObras, isLoading: loadingObras } = useObrasSelect();
+  const { data: listaObras, isLoading: loadingObras, isError: erroObras, refetch: refetchObras } = useObrasSelect();
   const exportacao = useExportarRelatorio();
   const exportando = exportacao.isPending;
   const [formatoEmExportacao, setFormatoEmExportacao] = useState<"pdf" | "excel" | null>(null);
+  const montadoRef = useRef(true);
+  const disparoRef = useRef(0);
+  const limparDownloadRef = useRef<(() => void) | null>(null);
   const [gerandoLink, setGerandoLink] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<string>("todos");
   const [periodoInicio, setPeriodoInicio] = useState(() => {
@@ -40,31 +45,55 @@ export default function Relatorios() {
   });
   const [periodoFim, setPeriodoFim] = useState(() => new Date().toISOString().split("T")[0]);
 
+  useEffect(() => {
+    montadoRef.current = true;
+    return () => {
+      montadoRef.current = false;
+      disparoRef.current += 1;
+      limparDownloadRef.current?.();
+      limparDownloadRef.current = null;
+    };
+  }, []);
+
   const clientes = [
     "todos",
     ...Array.from(new Set((listaObras?.itens || []).map((o) => o.clienteNome))),
   ];
 
   const handleExportar = async (formato: "pdf" | "excel") => {
+    const disparoId = ++disparoRef.current;
     const origem = contextoDemonstracao();
     const sessao = capturarSessaoOperacional();
-    const vigente = () => contextoDemonstracaoVigente(origem) && sessaoOperacionalVigente(sessao);
+    const vigente = () =>
+      montadoRef.current &&
+      disparoRef.current === disparoId &&
+      contextoDemonstracaoVigente(origem) &&
+      sessaoOperacionalVigente(sessao);
+    const limparPendente = () => {
+      limparDownloadRef.current?.();
+      limparDownloadRef.current = null;
+    };
+    limparPendente();
     setFormatoEmExportacao(formato);
     try {
       const blob = await exportacao.mutateAsync({ formato, filtros: MOCK_ATIVO ? { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado } : undefined }, undefined, sessao);
       if (!vigente()) return;
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `relatorio-zl-${new Date().toISOString().split("T")[0]}.${formato === "pdf" ? "pdf" : "xlsx"}`;
-      link.click();
-      window.URL.revokeObjectURL(url);
+      const limparDownload = baixarArquivoBlob(
+        blob,
+        `relatorio-zl-${new Date().toISOString().split("T")[0]}.${formato === "pdf" ? "pdf" : "xlsx"}`,
+      );
+      if (!vigente()) {
+        limparDownload();
+        return;
+      }
+      limparPendente();
+      limparDownloadRef.current = limparDownload;
       toast.success(`Relatório exportado em ${formato.toUpperCase()}`);
     } catch (erro) {
       if (!vigente()) return;
       toast.error(MOCK_ATIVO && erro instanceof ApiErro ? erro.message : "Erro ao exportar relatório");
     } finally {
-      setFormatoEmExportacao(null);
+      if (montadoRef.current && disparoRef.current === disparoId) setFormatoEmExportacao(null);
     }
   };
 
@@ -111,7 +140,7 @@ export default function Relatorios() {
           disabled={exportando}
           className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
-          {exportandoExcel ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-success" />}
+          {exportandoExcel ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Download className="w-4 h-4 text-success" />}
           Exportar Excel
         </button>
         <button
@@ -119,7 +148,7 @@ export default function Relatorios() {
           disabled={exportando}
           className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
-          {exportandoPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 text-destructive" />}
+          {exportandoPdf ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Download className="w-4 h-4 text-destructive" />}
           Exportar PDF
         </button>
         <button
@@ -127,12 +156,13 @@ export default function Relatorios() {
           disabled={gerandoLink}
           className="bg-primary hover:bg-primary-hover text-primary-foreground px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
         >
-          {gerandoLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+          {gerandoLink ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Link2 className="w-4 h-4" />}
           Gerar link compartilhável
         </button>
       </PageHeader>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-background-app">
+      {erroObras && <div className="flex-1 overflow-y-auto p-6"><FeedbackErro mensagem="Não foi possível carregar os dados do relatório." onTentarNovamente={() => { void refetchObras(); }} /></div>}
+      <div hidden={erroObras} className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-background-app">
         <div className="max-w-5xl mx-auto space-y-6">
 
           {/* Barra de filtros */}
@@ -143,7 +173,8 @@ export default function Relatorios() {
                 <Calendar className="w-4 h-4" />
                 <span>Período:</span>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <label htmlFor="relatorio-periodo-inicio" className="sr-only">Início do período</label>
                 <input
                   type="date"
                   id="relatorio-periodo-inicio"
@@ -152,6 +183,7 @@ export default function Relatorios() {
                   className="text-sm bg-surface border border-border-subtle text-foreground rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow"
                 />
                 <span className="text-muted-foreground text-sm">—</span>
+                <label htmlFor="relatorio-periodo-fim" className="sr-only">Fim do período</label>
                 <input
                   type="date"
                   id="relatorio-periodo-fim"
@@ -169,7 +201,7 @@ export default function Relatorios() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
                 <Users className="w-4 h-4" />
-                <span>Cliente:</span>
+                <label htmlFor="relatorio-cliente">Cliente:</label>
               </div>
               <div className="relative">
                 <select
@@ -199,8 +231,8 @@ export default function Relatorios() {
 
           {/* Cards de métricas do período (Anti-Slop com tipografia monoespaçada tabular e sem halos decorativos) */}
           {loadingObras ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <div role="progressbar" aria-label="Carregando dados do relatório" className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 motion-safe:animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -244,7 +276,7 @@ export default function Relatorios() {
 
             {loadingObras ? (
               <div className="flex justify-center py-16">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <Loader2 className="w-6 h-6 motion-safe:animate-spin text-muted-foreground" />
               </div>
             ) : obrasDoPeriodo.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
@@ -253,14 +285,14 @@ export default function Relatorios() {
                 <p className="text-sm mt-1 text-muted-foreground">Ajuste os filtros de período ou cliente</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabela com rolagem horizontal">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      <th className="py-3 px-6 text-left min-w-[240px]">Cliente / Obra</th>
-                      <th className="py-3 px-5 text-left w-36">Status</th>
-                      <th className="py-3 px-6 text-right w-36">Painéis</th>
-                      <th className="py-3 px-6 text-left min-w-[160px]">Cidade</th>
+                      <th scope="col" className="py-3 px-6 text-left min-w-[240px]">Cliente / Obra</th>
+                      <th scope="col" className="py-3 px-5 text-left w-36">Status</th>
+                      <th scope="col" className="py-3 px-6 text-right w-36">Painéis</th>
+                      <th scope="col" className="py-3 px-6 text-left min-w-[160px]">Cidade</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-subtle">

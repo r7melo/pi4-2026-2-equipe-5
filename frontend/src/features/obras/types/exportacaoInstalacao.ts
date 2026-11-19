@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { DadosInstalacao, FormatoExportacaoInstalacao, FaltanteInstalacao } from "@/types";
+import type { DadosInstalacao, FormatoExportacaoInstalacao, FaltanteInstalacao } from "@/shared/types/exportacaoInstalacao";
 
 const id = z.number().int().positive();
 const texto = z.string().nullish();

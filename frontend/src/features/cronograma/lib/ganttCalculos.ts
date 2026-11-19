@@ -1,6 +1,6 @@
 import { verificarSobreposicaoPeriodos } from "@/shared/lib/intervalosDiasUteis";
-export { normalizarIntervaloDiasUteis, verificarSobreposicaoPeriodos } from "@/shared/lib/intervalosDiasUteis";
-import type { Programacao, Equipe } from "@/types";
+import type { Programacao } from "@/shared/types/programacoes";
+import type { Equipe } from "../types/equipes";
 import {
   normalizarDataFimInclusiva,
   formatarDataBR,

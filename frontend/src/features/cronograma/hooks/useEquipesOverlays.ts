@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import type { EquipesOverlaysRetorno } from "@/features/cronograma/types/visaoCronograma";
 
 /**
@@ -35,13 +35,6 @@ export function useEquipesOverlays(
     setTarefaSelecionadaId(null);
   }
 
-  const fecharTodosOverlays = useCallback(() => {
-    setDrawerFiltrosAberto(false);
-    setModalNovaAlocacaoAberto(false);
-    setModalNovaEquipeAberto(false);
-    setModalCompartilharAberto(false);
-    setTarefaSelecionadaId(null);
-  }, []);
 
   return {
     drawerFiltrosAberto,
@@ -54,6 +47,5 @@ export function useEquipesOverlays(
     setModalCompartilharAberto,
     tarefaSelecionadaId,
     setTarefaSelecionadaId,
-    fecharTodosOverlays,
   };
 }

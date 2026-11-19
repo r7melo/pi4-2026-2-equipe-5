@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { 
   LogOut,
   Settings, 
@@ -11,12 +11,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
 } from "lucide-react";
+import { Drawer } from "@/shared/components/ui/Drawer";
 import { cn } from "@/shared/lib/utils";
 import { useSidebar } from "@/shared/contexts/SidebarContext";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
-import type { NomePerfil } from "@/types";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
+import type { NomePerfil } from "@/shared/types/autorizacao";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useThemeStore, resolverTemaEfetivo } from "@/shared/stores/useThemeStore";
@@ -40,10 +40,17 @@ export function SidebarTrigger({ className }: { className?: string }) {
 }
 
 export default function Sidebar() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const location = useLocation();
   const { isCollapsed, toggleCollapse, isMobileOpen, closeMobile } = useSidebar();
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const fecharNoDesktop = () => { if (desktop.matches && isMobileOpen) closeMobile(); };
+    fecharNoDesktop();
+    desktop.addEventListener("change", fecharNoDesktop);
+    return () => desktop.removeEventListener("change", fecharNoDesktop);
+  }, [isMobileOpen, closeMobile]);
 
   interface NavItem {
     label: string;
@@ -101,10 +108,8 @@ export default function Sidebar() {
   return (
     <>
       <aside
-        role="navigation"
-        aria-label="Menu principal de navegação"
         className={cn(
-          "hidden md:flex flex-col justify-between shrink-0 pt-8 pb-4 transition-all duration-300 relative border-r border-border-subtle bg-surface group",
+          "hidden md:flex flex-col justify-between shrink-0 pt-8 pb-4 transition-colors relative border-r border-border-subtle bg-surface group",
           isCollapsed ? "w-16" : "w-64"
         )}
       >
@@ -115,7 +120,7 @@ export default function Sidebar() {
           aria-expanded={!isCollapsed}
           aria-label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
           title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-          className="absolute -right-3 top-6 bg-surface border border-border-subtle rounded-full p-1 text-muted-foreground hover:text-foreground-muted shadow-sm z-10 transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+          className="absolute -right-3 top-6 bg-surface border border-border-subtle rounded-full p-1 text-muted-foreground hover:text-foreground-muted shadow-sm z-10 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -127,13 +132,14 @@ export default function Sidebar() {
             </div>
           </div>
 
-          <nav className="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
+          <nav aria-label="Menu principal de navegação" className="px-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
             {allowedItems.map((item) => {
               const isActive = checkIsActive(item.path);
               return (
-                <button
+                <Link
                   key={item.path}
-                  onClick={() => void navigate(item.path)}
+                  to={item.path}
+                  aria-current={isActive ? "page" : undefined}
                   title={isCollapsed ? item.label : ""}
                   aria-label={item.label}
                   className={cn(
@@ -149,19 +155,18 @@ export default function Sidebar() {
                   ) : (
                     <span className="truncate">{item.label}</span>
                   )}
-                </button>
+                </Link>
               );
             })}
           </nav>
         </div>
 
         <div className="px-3 shrink-0 pt-4 border-t border-border-subtle">
-          {mostrarConfiguracoes && <button type="button" aria-label="Configurações" title={isCollapsed ? "Configurações" : undefined}
+          {mostrarConfiguracoes && <Link to="/configuracoes" aria-label="Configurações" title={isCollapsed ? "Configurações" : undefined}
             aria-current={location.pathname === "/configuracoes" ? "page" : undefined}
-            onClick={() => void navigate("/configuracoes")}
             className={cn("w-full min-h-11 flex items-center gap-3 rounded-lg text-sm text-muted-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", isCollapsed ? "justify-center" : "px-4")}>
             <Settings className="size-5" aria-hidden="true" />{!isCollapsed && <span>Configurações</span>}
-          </button>}
+          </Link>}
           <BotaoTema recolhido={isCollapsed} />
           <button
             onClick={() => {
@@ -184,94 +189,21 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      <div
-        className={cn(
-          "md:hidden fixed inset-0 z-50 transition-visibility duration-300",
-          isMobileOpen ? "visible" : "invisible pointer-events-none"
-        )}
-        inert={!isMobileOpen ? true : undefined}
-      >
-        <div
-          onClick={() => {
-            closeMobile();
-          }}
-          className={cn(
-            "absolute inset-0 bg-surface-overlay backdrop-blur-xs transition-opacity duration-300",
-            isMobileOpen ? "opacity-100" : "opacity-0"
-          )}
-          aria-label="Fechar menu"
-        />
-
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu de Navegação Mobile"
-          className={cn(
-            "absolute inset-y-0 left-0 w-72 max-w-[80vw] bg-surface shadow-2xl flex flex-col justify-between pt-6 pb-4 transition-transform duration-300 ease-in-out",
-            isMobileOpen ? "translate-x-0" : "-translate-x-full"
-          )}
-        >
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <div className="px-6 mb-6 flex items-center justify-between shrink-0">
-              <div className="bg-muted rounded-full px-4 py-1.5 inline-flex justify-center items-center text-micro font-bold text-foreground-muted tracking-wider h-7">
-                ZL ENGENHARIA
-              </div>
-              <button
-                onClick={() => {
-                      closeMobile();
-                }}
-                aria-label="Fechar menu lateral"
-                className="p-1.5 text-muted-foreground hover:text-foreground-muted hover:bg-muted rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <nav className="px-4 space-y-1.5 flex-1 overflow-y-auto custom-scrollbar">
-              {allowedItems.map((item) => {
-                const isActive = checkIsActive(item.path);
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => {
-                              closeMobile();
-                      void navigate(item.path);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-colors text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                      isActive
-                        ? "bg-muted text-foreground font-bold"
-                        : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground"
-                    )}
-                  >
-                    <item.icon className="w-5 h-5 shrink-0 text-muted-foreground" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="px-4 shrink-0 pt-4 border-t border-border-subtle">
-          {mostrarConfiguracoes && <button type="button" aria-label="Configurações" onClick={() => { closeMobile(); void navigate("/configuracoes"); }}
-            className="w-full min-h-11 flex items-center gap-3 rounded-lg px-4 text-sm text-muted-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-            <Settings className="size-5" aria-hidden="true" /><span>Configurações</span>
-          </button>}
+      <Drawer isOpen={isMobileOpen} onClose={closeMobile} focoRetorno={() => document.querySelector<HTMLElement>('aside a[aria-current="page"]') ?? document.getElementById("conteudo-principal")} ariaLabel="Menu de Navegação Mobile"
+        titulo="Menu" className="left-0 right-auto ml-0 max-w-[80vw] md:hidden">
+        <nav aria-label="Navegação principal móvel" className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
+          {allowedItems.map(item => <Link key={item.path} to={item.path} onClick={closeMobile}
+            aria-current={checkIsActive(item.path) ? "page" : undefined}
+            className={cn("min-h-11 flex items-center gap-3 p-3 rounded-lg", checkIsActive(item.path) ? "bg-muted text-foreground font-bold" : "text-muted-foreground hover:bg-muted")}>
+            <item.icon aria-hidden="true" className="size-5" />{item.label}
+          </Link>)}
+        </nav>
+        <div className="p-4 border-t border-border-subtle">
+          {mostrarConfiguracoes && <Link to="/configuracoes" onClick={closeMobile} className="min-h-11 flex items-center px-4">Configurações</Link>}
           <BotaoTema recolhido={false} />
-            <button
-              onClick={() => {
-                  closeMobile();
-                queryClient.clear();
-              useAuthStore.getState().logout();
-              }}
-              className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-destructive-light hover:text-destructive rounded-xl font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <LogOut className="w-5 h-5 shrink-0" />
-              <span>Sair</span>
-            </button>
-          </div>
+          <button type="button" className="min-h-11 px-4 text-destructive" onClick={() => { closeMobile(); queryClient.clear(); useAuthStore.getState().logout(); }}>Sair</button>
         </div>
-      </div>
+      </Drawer>
     </>
   );
 }

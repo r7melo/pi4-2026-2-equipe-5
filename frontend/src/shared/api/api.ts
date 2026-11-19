@@ -3,7 +3,7 @@ import { contextoDemonstracao } from "@/shared/lib/contextoDemonstracao";
 import axios from "axios";
 import { toast } from "sonner";
 import { capturarSessaoOperacional, exigirSessaoOperacional, registrarErro403, sessaoOperacionalVigente } from "@/shared/lib/sessaoOperacao";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { salvarRotaRetorno, TOAST_ID_SESSAO_EXPIRADA } from "@/shared/lib/rotasSessao";
 
 // VITE_API_URL é a raiz do backend (sem /api), compartilhada com o hub do SignalR.
@@ -117,36 +117,3 @@ api.interceptors.response.use(
     return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
 );
-
-/**
- * @deprecated Utilize diretamente a instância Axios singleton `api` (`api.get`, `api.post`, etc.).
- * Mantido exclusivamente para resguardo de retrocompatibilidade de baixo nível.
- */
-export async function apiFetch<T>(
-  caminho: string,
-  opcoes?: RequestInit
-): Promise<T> {
-  try {
-    const metodo = (opcoes?.method || "GET").toLowerCase();
-    const corpo = opcoes?.body ? (JSON.parse(opcoes.body as string) as unknown) : undefined;
-    
-    const resposta = await api.request<T>({
-      url: caminho,
-      method: metodo,
-      data: corpo,
-      headers: opcoes?.headers as Record<string, string>,
-    });
-
-    return resposta.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      const corpo = error.response.data as { error?: { code?: string; message?: string } };
-      throw new ApiErro(
-        error.response.status,
-        corpo?.error?.code || "ERRO_DESCONHECIDO",
-        corpo?.error?.message || `Erro ${error.response.status}`
-      );
-    }
-    throw error;
-  }
-}

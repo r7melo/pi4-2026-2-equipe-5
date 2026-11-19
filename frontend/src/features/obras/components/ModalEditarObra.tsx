@@ -17,7 +17,7 @@ import {
   ChevronDown,
   FileText,
 } from "lucide-react";
-import type { ObraDetalhe, EditarObraPayload } from "@/types";
+import type { ObraDetalhe, EditarObraPayload } from "../types/obras";
 
 const editarObraFormSchema = z.object({
   cidade: z.string().trim().min(2, "Informe ao menos 2 caracteres para a cidade"),
@@ -197,7 +197,7 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
             type="number"
             min={1}
             required
-            icon={<Zap className="w-4 h-4 text-amber-500" />}
+            icon={<Zap className="w-4 h-4 text-warning" />}
             className="font-mono text-foreground"
             error={errors.quantidadePaineis?.message}
             {...register("quantidadePaineis", { valueAsNumber: true })}
@@ -282,7 +282,7 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                 <span>Salvando...</span>
               </>
             ) : (

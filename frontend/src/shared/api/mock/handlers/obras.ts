@@ -6,7 +6,7 @@ import { obterObrasArmazenadas, atualizarStatusObraArmazenada } from "../dados/o
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 import { TRANSICOES_VALIDAS, COLUNAS_KANBAN } from "@/shared/constants/kanbanStatus";
 import { adicionarHistoricoArmazenado } from "../dados/registros";
-import type { EditarObraPayload } from "@/types";
+import type { EditarObraPayload } from "@/shared/types/obras";
 import { obterProgramacoesArmazenadas } from "../dados/programacoes";
 import { excluirObraArmazenada } from "../dados/operacoesObras";
 

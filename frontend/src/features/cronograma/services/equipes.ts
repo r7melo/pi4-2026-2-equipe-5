@@ -1,5 +1,5 @@
 import { api } from "@/shared/api/api";
-import type { Equipe, MembroEquipe, CriarEquipePayload } from "@/types";
+import type { Equipe, MembroEquipe, CriarEquipePayload } from "../types/equipes";
 
 /** GET /api/equipes */
 export async function listarEquipes(): Promise<Equipe[]> {

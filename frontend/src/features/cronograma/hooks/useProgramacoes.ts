@@ -22,7 +22,7 @@ import type {
   Programacao,
   ReordenarProgramacaoResposta,
   CriarProgramacaoPayload,
-} from "@/types";
+} from "@/shared/types/programacoes";
 import { proximoDiaUtilCivil } from "@/shared/lib/datasCivis";
 import { projetarReordenacao } from "@/shared/lib/reordenarProgramacoes";
 import type { IdentidadeOperacao } from "@/features/cronograma/lib/coordenadorReagendamento";
@@ -36,7 +36,6 @@ import {
 export interface ReordenarVariaveis {
   id: number;
   novaDataInicio: string;
-  novaDataFim?: string;
 }
 
 interface SnapshotParticipante {
@@ -77,6 +76,7 @@ export function useReordenarProgramacao() {
     Error,
     { variaveis: ReordenarVariaveis; origem: IdentidadeOperacao }
   >({
+    mutationKey: ["programacoes"],
     mutationFn: async ({ variaveis, origem }) => {
       const chaveExata = ["programacoes", origem.sessao] as const;
 
@@ -340,7 +340,6 @@ export function useReordenarProgramacao() {
     mutate,
     mutateAsync,
     isPending: estadoHook.bloqueado,
-    estado: estadoHook.estado,
     fase: estadoHook.fase,
     aviso: estadoHook.aviso,
     bloqueado: estadoHook.bloqueado,
@@ -351,6 +350,7 @@ export function useReordenarProgramacao() {
 export function useCriarProgramacao() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ["programacoes"],
     mutationFn: (dados: CriarProgramacaoPayload, sessao) => criarProgramacao(dados, sessao),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
@@ -369,6 +369,7 @@ export function useCriarProgramacao() {
 export function useDeletarProgramacao() {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: ["programacoes"],
     mutationFn: (id: number, sessao) => deletarProgramacao(id, sessao),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
@@ -383,3 +384,4 @@ export function useDeletarProgramacao() {
     },
   });
 }
+

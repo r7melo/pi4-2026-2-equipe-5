@@ -3,8 +3,7 @@ import { tokenDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
 import { create } from "zustand";
 import { invalidarSessaoOperacional, sincronizarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { Usuario } from "@/types";
-import type { AuthState } from "../types/auth";
+import type { AuthState, Usuario } from "@/shared/types/autorizacao";
 
 function calcularFallback480Min(): string {
   return new Date(Date.now() + 480 * 60 * 1000).toISOString();

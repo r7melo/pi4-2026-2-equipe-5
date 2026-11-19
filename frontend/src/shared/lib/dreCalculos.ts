@@ -1,4 +1,4 @@
-import type { DREObra } from "@/types";
+import type { DREObra } from "@/shared/types/dre";
 
 export interface EntradaCalculoDRE {
   valorObra?: number | null;

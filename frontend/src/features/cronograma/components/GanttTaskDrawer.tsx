@@ -9,13 +9,13 @@ import {
   Tag,
   Sun,
 } from "lucide-react";
-import type { ObraCard, Programacao } from "@/types";
+import type { Programacao } from "@/shared/types/programacoes";
 import { COLUNAS_KANBAN } from "@/shared/constants/kanbanStatus";
 import {
   formatarDiasUteis,
   formatarDataBR,
 } from "@/shared/lib/formatters";
-import { useHomologacao } from "@/features/obras/hooks/useObras";
+import type { ObraGanttResumo, HomologacaoGanttResumo } from "@/features/cronograma/types/visaoCronograma";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
 import { Drawer } from "@/shared/components/ui/Drawer";
 import { diasUteisCivis } from "@/shared/lib/datasCivis";
@@ -25,7 +25,7 @@ import { ReatribuicaoEquipe } from "@/features/cronograma/components/drawer/Reat
 import { PainelProntidao } from "@/features/cronograma/components/drawer/PainelProntidao";
 
 export interface TarefaDetalhes extends TarefaAlocacaoBase {
-  obra?: ObraCard;
+  obra?: ObraGanttResumo;
 }
 
 interface GanttTaskDrawerProps {
@@ -42,6 +42,9 @@ interface GanttTaskDrawerProps {
   reagendamentoFase?: FaseReagendamento;
   avisoReagendamento?: string | null;
   focoRetorno?: () => HTMLElement | null;
+  homologacao?: HomologacaoGanttResumo;
+  reatribuindoEquipe?: boolean;
+  anuncioReatribuicao?: string;
 }
 
 const DEFAULT_PROGRAMACOES: Programacao[] = [];
@@ -60,17 +63,26 @@ export function GanttTaskDrawer({
   reagendamentoFase = "livre",
   avisoReagendamento = null,
   focoRetorno,
+  homologacao,
+  reatribuindoEquipe = false,
+  anuncioReatribuicao = "",
 }: GanttTaskDrawerProps) {
   const navigate = useNavigate();
+  const [prevTarefaId, setPrevTarefaId] = useState<number | undefined>(tarefa?.id);
   const [confirmarDesalocacao, setConfirmarDesalocacao] = useState(false);
+  const operacaoBloqueada = reatribuindoEquipe || reagendamentoBloqueado;
+
+  if (prevTarefaId !== tarefa?.id) {
+    setPrevTarefaId(tarefa?.id);
+    setConfirmarDesalocacao(false);
+  } else if (operacaoBloqueada && confirmarDesalocacao) {
+    setConfirmarDesalocacao(false);
+  }
 
   const botaoDesalocarRef = useRef<HTMLButtonElement>(null);
   const desalocandoRef = useRef(false);
   const podeRestaurarFocoDesalocacao = useCallback(() => !desalocandoRef.current, []);
 
-  const { data: homologacao, isLoading: carregandoHomologacao } = useHomologacao(
-    tarefa?.obraId
-  );
 
   useEffect(() => {
     if (tarefa) {
@@ -90,14 +102,13 @@ export function GanttTaskDrawer({
   return (
     <>
       <Drawer
-        isOpen={Boolean(tarefa)}
+        isOpen={true}
         onClose={onClose}
         tamanho="md"
-        gerenciarFoco={true}
         focoSuspenso={confirmarDesalocacao}
         focoRetorno={focoRetorno}
         ariaLabel={`Detalhes da alocação: ${tarefa.nomeCliente} — Equipe ${tarefa.nomeEquipe}`}
-        acoesHeader={renderizarAcoesObra && tarefa?.obraId ? renderizarAcoesObra(tarefa.obraId) : undefined}
+        acoesHeader={renderizarAcoesObra && tarefa.obraId ? renderizarAcoesObra(tarefa.obraId) : undefined}
         headerCustomizado={
           <div className="flex items-center justify-between flex-1 pr-2">
             <div>
@@ -111,7 +122,10 @@ export function GanttTaskDrawer({
           </div>
         }
       >
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+        <div role="status" aria-live="polite" className="sr-only">
+          {anuncioReatribuicao}
+        </div>
+        <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-6">
           <div className="bg-surface-subtle rounded-xl p-4 border border-border-subtle space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground font-medium">Status da Obra</span>
@@ -190,7 +204,7 @@ export function GanttTaskDrawer({
               canEdit={canEdit}
               onCancelar={onClose}
               onReagendar={onReagendar}
-              reagendamentoBloqueado={reagendamentoBloqueado}
+              reagendamentoBloqueado={operacaoBloqueada}
               reagendamentoFase={reagendamentoFase}
               avisoReagendamento={avisoReagendamento}
             />
@@ -206,12 +220,13 @@ export function GanttTaskDrawer({
             programacoes={programacoes}
             onMudarEquipe={onMudarEquipe}
             canEdit={canEdit}
+            reatribuindoEquipe={reatribuindoEquipe}
+            desabilitado={reagendamentoBloqueado}
           />
 
           {/* Prontidão para Execução */}
           <PainelProntidao
             materialStatus={obra?.status}
-            carregandoHomologacao={carregandoHomologacao}
             parecerHomologacao={homologacao?.parecerAcesso}
             registroTecnico={homologacao?.artTrt}
             prazoVistoria={homologacao?.prazoVistoria}
@@ -252,11 +267,13 @@ export function GanttTaskDrawer({
             <button
               ref={botaoDesalocarRef}
               type="button"
+              disabled={operacaoBloqueada}
               onClick={() => {
+                if (operacaoBloqueada) return;
                 desalocandoRef.current = false;
                 setConfirmarDesalocacao(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-destructive bg-destructive-light hover:bg-destructive-border/40 border border-destructive-border rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-destructive bg-destructive-light hover:bg-destructive-border/40 border border-destructive-border rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Desalocar</span>
@@ -267,11 +284,12 @@ export function GanttTaskDrawer({
 
       <ConfirmDialog
         isOpen={confirmarDesalocacao}
-        gerenciarFoco={true}
+        confirmarBloqueado={operacaoBloqueada}
         origemFoco={botaoDesalocarRef}
         podeRestaurarFoco={podeRestaurarFocoDesalocacao}
         onClose={() => setConfirmarDesalocacao(false)}
         onConfirm={() => {
+          if (operacaoBloqueada) return;
           desalocandoRef.current = true;
           onDesalocar(tarefa.id);
           setConfirmarDesalocacao(false);

@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import type { AplicacaoProps } from "@/shared/types/demonstracao";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Login from "@/features/auth/pages/Login";
 import EsqueciSenha from "@/features/auth/pages/EsqueciSenha";
 import RedefinirSenha from "@/features/auth/pages/RedefinirSenha";
@@ -21,6 +21,7 @@ import { Usuarios, CadastroUsuario } from "@/composition/RotasUsuarios";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
+import { PortalAvisos } from "@/shared/components/feedback/PortalAvisos";
 import { ReloadPrompt } from "@/shared/components/pwa/ReloadPrompt";
 import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
 import DashboardLayout from "@/shared/layouts/DashboardLayout";
@@ -55,11 +56,12 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-right" theme={tema} toastOptions={{ className: "avisos-acesso" }} />
+      <PortalAvisos><Toaster richColors position="top-right" theme={tema} toastOptions={{ className: "avisos-acesso" }} /></PortalAvisos>
       <ReloadPrompt />
       {/* Popup de seleção de API — visível somente em desenvolvimento */}
       <ApiModeSwitcher />
       <BrowserRouter>
+        <MetadadosRota />
         <Ambiente>
         <SessionLifecycleSentinel />
         <Routes>
@@ -105,8 +107,8 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
                 <Route path="/obras/:id" element={<DetalheObra />} />
               </Route>
 
-              {/* Materiais da Obra: Admin e Engenharia (RF-06) */}
-              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia"]} />}>
+              {/* Materiais da Obra: Admin, Engenharia e Financeiro (RF-06) */}
+              <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia", "Financeiro"]} />}>
                 <Route path="/obras/:id/materiais" element={<MateriaisObra />} />
               </Route>
 
@@ -128,6 +130,25 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
       </BrowserRouter>
     </QueryClientProvider>
   );
+}
+
+function MetadadosRota() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const titulos: Record<string, string> = {
+      "/": "Entrar", "/login": "Entrar", "/esqueci-senha": "Recuperar senha",
+      "/redefinir-senha": "Redefinir senha", "/kanban": "Obras", "/equipes": "Cronograma",
+      "/financeiro": "Financeiro", "/relatorios": "Relatórios", "/usuarios": "Usuários",
+      "/usuarios/novo": "Cadastrar usuário", "/configuracoes": "Configurações",
+      "/cadastrarobra": "Cadastrar obra", "/acompanharhomologacao": "Homologação",
+      "/linkparainstaladores": "Instalações", "/sem-permissao": "Acesso indisponível",
+    };
+    const titulo = titulos[pathname] ?? (pathname.startsWith("/obras/") ? pathname.endsWith("/materiais") ? "Materiais da obra" : "Detalhes da obra"
+      : pathname.startsWith("/cronograma/compartilhado/") ? "Cronograma compartilhado"
+      : pathname.startsWith("/relatorio-publico/") ? "Relatório compartilhado" : "Sistema");
+    document.title = titulo + " | ZL Gestão de Obras";
+  }, [pathname]);
+  return null;
 }
 
 export default App;

@@ -1,10 +1,10 @@
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Button } from "@/shared/components/ui/Button";
-import type { ObraCard } from "@/types";
+import type { ObraKanbanCard } from "../types/kanban";
 
 interface ModalConfirmarConclusaoProps {
-  obra: ObraCard | null;
+  obra: ObraKanbanCard | null;
   isOpen: boolean;
   onClose: () => void;
   onConfirmar: () => void;

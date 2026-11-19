@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
@@ -24,9 +25,11 @@ export function SearchInput({
   autoFocus = false,
   className,
 }: SearchInputProps) {
+  const campoRef = useRef<HTMLInputElement>(null);
   const isSm = tamanho === "sm";
 
   const handleLimpar = () => {
+    campoRef.current?.focus();
     if (onLimpar) {
       onLimpar();
     } else {
@@ -35,6 +38,7 @@ export function SearchInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Escape") {
       if (onEscape) {
         onEscape();
@@ -53,7 +57,10 @@ export function SearchInput({
         )}
       />
       <input
-        type="text"
+        ref={campoRef}
+        type="search"
+        aria-label={placeholder}
+        autoComplete="off" spellCheck={false}
         value={valor}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -70,7 +77,7 @@ export function SearchInput({
           onClick={handleLimpar}
           aria-label="Limpar busca"
           className={cn(
-            "absolute text-subtle-foreground hover:text-muted-foreground transition-colors cursor-pointer p-0.5 rounded",
+            "absolute text-subtle-foreground hover:text-muted-foreground transition-colors cursor-pointer min-w-6 min-h-6 p-0.5 rounded",
             isSm ? "right-2" : "right-2.5"
           )}
         >

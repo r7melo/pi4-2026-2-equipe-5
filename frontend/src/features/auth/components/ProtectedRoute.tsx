@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
-import type { NomePerfil } from "@/types";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
+import type { NomePerfil } from "@/shared/types/autorizacao";
 
 interface ProtectedRouteProps {
   allowedRoles?: NomePerfil[];

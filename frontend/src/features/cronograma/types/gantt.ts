@@ -1,12 +1,16 @@
 // Tipos de UI State e Filtros Avançados do Cronograma Gantt (RF-08, G-03)
-import type { CategoriaObra } from "@/features/obras/types/obras";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
+
+/**
+ * Categoria escalar de obra para isolamento de tipos no Cronograma Gantt.
+ */
+export type CategoriaObraGantt = "Residencial" | "Comercial" | "Industrial" | "Rural" | "Manutenção";
 
 export type NivelZoom = "day" | "week" | "month";
 
 export interface GanttFiltrosAvancados {
   termoBusca?: string;
-  categoria?: CategoriaObra;
+  categoria?: CategoriaObraGantt;
   equipeId?: number;
   statusObra?: StatusObra;
   prioridade?: number;
@@ -28,9 +32,16 @@ export interface GanttUIState {
 }
 
 export const CLASSE_BOTAO_ALOCACAO = "gantt-btn-alocacao";
-export const SELETOR_BOTAO_ALOCACAO = "button.gantt-btn-alocacao[data-task-id]";
+export const CLASSE_BOTAO_EQUIPE = "gantt-btn-equipe";
 
-export function ehLinhaProjeto(task: { type?: string; id?: string | number }): boolean {
+export const obterSeletorBotaoAlocacao = (taskId?: string | number) =>
+  taskId != null ? `button.${CLASSE_BOTAO_ALOCACAO}[data-task-id="${taskId}"]` : `button.${CLASSE_BOTAO_ALOCACAO}[data-task-id]`;
+
+export const obterSeletorBotaoEquipe = (taskId?: string | number) =>
+  taskId != null ? `button.${CLASSE_BOTAO_EQUIPE}[data-task-id="${taskId}"]` : `button.${CLASSE_BOTAO_EQUIPE}[data-task-id]`;
+
+export function ehLinhaProjeto(task?: { type?: string; id?: string | number } | null): boolean {
+  if (!task) return false;
   return task.type === "project" || (task.id != null && String(task.id).startsWith("equipe-"));
 }
 

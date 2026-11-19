@@ -1,39 +1,24 @@
 import { Sun, Calendar, User } from "lucide-react";
-import type { ObraCard } from "@/types";
+import type { StatusLogistico } from "@/shared/types/materiais";
+import { obterMetaStatusLogistico } from "@/shared/constants/statusLogistico";
+import type { ObraKanbanCard } from "../types/kanban";
 import { cn } from "@/shared/lib/utils";
 import {
   getCategoriaBadgeStyle,
   getIniciaisNome,
   calcularDiasRestantes,
-  obterValorObra,
 } from "./kanbanUtils";
-import { formatarMoeda } from "@/shared/lib/formatters";
 
 export interface KanbanCardVisualProps {
-  card: ObraCard;
-  statusMaterial?: string;
+  card: ObraKanbanCard;
+  statusMaterial?: StatusLogistico;
   acaoDireita?: React.ReactNode;
 }
 
 export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCardVisualProps) {
-  const valorFormatado = formatarMoeda(obterValorObra(card), { semCentavos: true });
   const prazoRestante = calcularDiasRestantes(card.dataFimEstimada, card.status);
   const iniciaisAutor = getIniciaisNome(card.atualizadoPor || "Carlos Administrador");
-
-  const getStatusMaterialBadgeStyle = (status?: string) => {
-    switch (status) {
-      case "Comprado":
-        return "bg-warning-light text-warning border-warning-border";
-      case "EmTransito":
-        return "bg-info-light text-info border-info-border";
-      case "Disponivel":
-        return "bg-success-light text-success border-success-border";
-      case "Utilizado":
-        return "bg-muted text-foreground-muted border-border-subtle";
-      default:
-        return "bg-surface-subtle text-muted-foreground border-border-subtle";
-    }
-  };
+  const metaStatusMaterial = statusMaterial ? obterMetaStatusLogistico(statusMaterial) : null;
 
   return (
     <>
@@ -47,14 +32,14 @@ export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCa
           >
             {card.categoria}
           </span>
-          {statusMaterial && (
+          {metaStatusMaterial && (
             <span
               className={cn(
                 "inline-block px-1.5 py-0.5 text-[9px] font-semibold rounded-md border",
-                getStatusMaterialBadgeStyle(statusMaterial)
+                metaStatusMaterial.badgeClasse
               )}
             >
-              {statusMaterial === "EmTransito" ? "Em trânsito" : statusMaterial === "Disponivel" ? "Disponível" : statusMaterial}
+              {metaStatusMaterial.rotulo}
             </span>
           )}
         </div>
@@ -69,9 +54,6 @@ export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCa
       </h4>
 
       <div className="flex items-center justify-between mb-1.5">
-        <span className="font-bold text-foreground-muted text-[11px]">
-          {valorFormatado}
-        </span>
         <span
           className="text-[10px] text-muted-foreground font-medium flex items-center gap-1"
           title={`${card.quantidadePaineis} painéis`}

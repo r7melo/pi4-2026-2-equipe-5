@@ -1,5 +1,5 @@
 import { armazenamentoCenario, lerDadosCenario } from "../core/estadoCenario";
-import type { ObraCard } from "@/types";
+import type { ObraCard } from "@/shared/types/obras";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 
 const STORAGE_KEY = "mock_obras_v3";

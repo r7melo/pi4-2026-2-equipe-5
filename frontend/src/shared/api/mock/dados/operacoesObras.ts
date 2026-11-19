@@ -1,4 +1,6 @@
-import type { ObraDetalhe, ObraCard, Material, DadosHomologacao, RelatorioCusto } from "@/types";
+import type { ObraDetalhe, ObraCard, DadosHomologacao } from "@/shared/types/obras";
+import type { Material } from "@/shared/types/materiais";
+import type { RelatorioCusto } from "@/shared/types/relatorios";
 import type { Programacao } from "@/shared/types/programacoes";
 import { lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";
 import { obterObrasArmazenadas, salvarObrasArmazenadas } from "./obras";

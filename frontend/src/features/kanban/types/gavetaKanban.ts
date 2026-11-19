@@ -1,0 +1,82 @@
+import type { ReactNode } from "react";
+import type { StatusObra } from "@/shared/constants/kanbanStatus";
+import type { ObraKanbanCard } from "./kanban";
+export type { ObraKanbanCard };
+
+export type AbaDrawerKanban = "dados" | "materiais" | "historico" | "comentarios";
+
+export interface ObraDetalheKanban {
+  id: number;
+  status: StatusObra;
+  clienteNome?: string;
+  dataInicioEstimada?: string;
+  dataFimEstimada: string;
+  dataInicioReal?: string | null;
+  dataFimReal?: string | null;
+  endereco?: string;
+  quantidadePaineis?: number;
+  valorTotal?: number;
+  categoria?: string;
+  observacoes?: string;
+  descricao?: string | null;
+}
+
+export interface HistoricoItemKanban {
+  id: number;
+  dataAlteracao: string;
+  usuarioNome: string;
+  statusAnterior: string;
+  statusNovo: string;
+  observacao?: string;
+}
+
+export interface ComentarioItemKanban {
+  id: number;
+  dataHora: string;
+  usuarioNome: string;
+  texto: string;
+}
+
+export interface EditarObraKanbanPayload {
+  endereco?: string;
+  quantidadePaineis?: number;
+  dataFimEstimada?: string;
+  descricao?: string;
+}
+
+export interface EquipeAlocadaResumo {
+  id: number;
+  nome: string;
+}
+
+export interface DrawerKanbanSlotProps {
+  card: ObraKanbanCard;
+  isOpen: boolean;
+  onClose: () => void;
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
+}
+
+export interface KanbanTaskDrawerProps {
+  card: ObraKanbanCard | null;
+  isOpen: boolean;
+  onClose: () => void;
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
+  detalheObra?: ObraDetalheKanban;
+  carregandoDetalhe?: boolean;
+  erroDetalhe?: boolean;
+  equipeAlocada?: EquipeAlocadaResumo | null;
+  temAlocacaoAtiva?: boolean;
+  historico?: HistoricoItemKanban[];
+  carregandoHistorico?: boolean;
+  comentarios?: ComentarioItemKanban[];
+  carregandoComentarios?: boolean;
+  onSalvarObra?: (id: number, payload: EditarObraKanbanPayload) => Promise<void>;
+  isSalvandoObra?: boolean;
+  onExcluirObra?: (id: number) => Promise<void>;
+  isExcluindoObra?: boolean;
+  onAdicionarComentario?: (id: number, texto: string) => Promise<void>;
+  isEnviandoComentario?: boolean;
+  focoRetorno?: () => HTMLElement | null;
+  totalMateriais?: number;
+  renderAbaMateriais?: (obraId: number) => ReactNode;
+}

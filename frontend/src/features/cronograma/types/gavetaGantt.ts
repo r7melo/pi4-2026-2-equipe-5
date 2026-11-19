@@ -49,7 +49,6 @@ export interface FormularioReagendamentoProps {
  */
 export interface PainelProntidaoProps {
   materialStatus?: string | null;
-  carregandoHomologacao?: boolean;
   parecerHomologacao?: string | null;
   registroTecnico?: string | null;
   prazoVistoria?: string | null;
@@ -67,4 +66,6 @@ export interface ReatribuicaoEquipeProps {
   programacoes?: Programacao[];
   onMudarEquipe?: (id: number, novaEquipeId: number) => Promise<void>;
   canEdit?: boolean;
+  reatribuindoEquipe?: boolean;
+  desabilitado?: boolean;
 }

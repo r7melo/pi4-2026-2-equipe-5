@@ -8,5 +8,3 @@ export function useClientes() {
   });
 }
 
-// Retrocompatibilidade
-export const useClientesDemonstracao = useClientes;

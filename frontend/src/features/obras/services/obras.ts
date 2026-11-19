@@ -1,16 +1,15 @@
 import { api } from "@/shared/api/api";
+import type { ObraCadastrada } from "../types/clientes";
 import type {
-  CriarObraPayload,
   ListaObras,
-  ObraCadastrada,
-  ObraCriadaResposta,
   DadosHomologacao,
   ObraDetalhe,
   EditarObraPayload,
   HistoricoObra,
   ComentarioObra,
   CategoriaObra,
-} from "@/types";
+} from "../types/obras";
+import type { CriarObraPayload, ObraCriadaResposta } from "../types/obrasCadastro";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 
 /** GET /api/obras — Rota #4 do Contrato Oficial */

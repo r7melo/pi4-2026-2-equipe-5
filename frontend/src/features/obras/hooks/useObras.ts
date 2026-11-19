@@ -3,7 +3,7 @@ import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao
 import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
 
 import { listarObras, obterHomologacaoObra, excluirObra } from "../services/obras";
-import type { ListaObras, DadosHomologacao } from "@/types";
+import type { ListaObras, DadosHomologacao } from "../types/obras";
 
 export function useObras(params?: {
   status?: string;
@@ -18,15 +18,6 @@ export function useObras(params?: {
   });
 }
 
-/** Hook individual para o Drawer lateral */
-export function useHomologacao(obraId?: number) {
-  return useQuery<DadosHomologacao>({
-    queryKey: ["homologacao", obraId],
-    queryFn: () => obterHomologacaoObra(obraId!),
-    enabled: typeof obraId === "number" && obraId > 0,
-    staleTime: 1000 * 60 * 5, // 5 min
-  });
-}
 
 /** 
  * Hook em lote para prover status de homologação aos micro-ícones do Gantt.

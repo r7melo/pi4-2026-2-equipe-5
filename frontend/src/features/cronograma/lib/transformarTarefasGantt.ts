@@ -1,5 +1,5 @@
 import type { GanttTask } from "@/features/cronograma/types/gantt";
-import type { Programacao } from "@/features/cronograma/types/programacoes";
+import type { Programacao } from "@/shared/types/programacoes";
 import type { TransformarTarefasGanttParams } from "@/features/cronograma/types/visaoCronograma";
 import {
   dataCivilParaGantt,

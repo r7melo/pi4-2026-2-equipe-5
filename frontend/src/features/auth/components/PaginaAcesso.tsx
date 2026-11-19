@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import type { PaginaAcessoProps } from "@/types";
+import type { PaginaAcessoProps } from "../types/senha";
 
 export function PaginaAcesso({ titulo, children }: PaginaAcessoProps) {
   const tituloRef = useRef<HTMLHeadingElement>(null);

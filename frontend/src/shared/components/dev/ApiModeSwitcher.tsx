@@ -1,4 +1,4 @@
-import { lerModoApi as getApiMode } from "@/shared/lib/modoApi";
+import { MOCK_ATIVO } from "@/shared/lib/modoApi";
 /**
  * ApiModeSwitcher — Popup de desenvolvimento (canto inferior direito)
  *
@@ -12,14 +12,12 @@ import { lerModoApi as getApiMode } from "@/shared/lib/modoApi";
  *     deste módulo do bundle final. Nenhum byte deste componente chega ao
  *     usuário em produção.
  */
-import { useState, useEffect } from "react";
+import { useState, useId, useRef } from "react";
 
 const STORAGE_KEY = "zl_api_mode";
 
 export type ApiMode = "real" | "mock";
 
-/** Lê o modo atual do localStorage (padrão: "mock" se VITE_USE_MOCK=true, senão "real") */
-export { lerModoApi as getApiMode } from "@/shared/lib/modoApi";
 
 export function ApiModeSwitcher() {
   // Só renderiza em dev
@@ -29,23 +27,17 @@ export function ApiModeSwitcher() {
 }
 
 function ApiModeSwitcherInner() {
-  const [mode, setMode] = useState<ApiMode>(getApiMode);
+  const painelId = useId();
+  const tituloId = useId();
+  const acionadorRef = useRef<HTMLButtonElement>(null);
+  // Mesma decisão de bootstrap que instala o transporte e seleciona a sessão.
+  const mode: ApiMode = MOCK_ATIVO ? "mock" : "real";
   const [open, setOpen] = useState(false);
   const [reloading, setReloading] = useState(false);
 
-  // Sincroniza se outra aba mudar
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && (e.newValue === "real" || e.newValue === "mock")) {
-        setMode(e.newValue);
-      }
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, []);
-
   function switchMode(next: ApiMode) {
     if (next === mode) {
+      acionadorRef.current?.focus();
       setOpen(false);
       return;
     }
@@ -55,8 +47,7 @@ function ApiModeSwitcherInner() {
     } catch {
       /* noop */
     }
-    // Pequeno delay visual antes de recarregar
-    setTimeout(() => window.location.reload(), 300);
+    window.location.reload();
   }
 
   const isMock = mode === "mock";
@@ -65,44 +56,59 @@ function ApiModeSwitcherInner() {
     <>
       {/* Botão flutuante */}
       <button
+        type="button"
+        ref={acionadorRef}
+        aria-expanded={open}
+        aria-controls={open ? painelId : undefined}
         onClick={() => setOpen((o) => !o)}
         title={`API: ${isMock ? "Mock" : "Real"} — clique para trocar`}
         className={[
           "fixed bottom-4 right-4 z-[9999]",
           "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
           "text-xs font-semibold shadow-lg border",
-          "transition-all duration-150 select-none",
+          "select-none",
           isMock
-            ? "bg-amber-400 border-amber-500 text-amber-900 hover:bg-amber-300"
-            : "bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-400",
+            ? "bg-warning-light border-warning text-warning hover:underline"
+            : "bg-success-light border-success text-success hover:underline",
           reloading ? "opacity-50 cursor-wait" : "cursor-pointer",
         ].join(" ")}
         disabled={reloading}
-        aria-label="Alternar modo de API"
+        aria-label={`Alternar modo de API: ${isMock ? "Mock" : "API Real"}`}
       >
         {/* Indicador colorido */}
         <span
+          aria-hidden="true"
           className={[
             "inline-block w-2 h-2 rounded-full",
-            isMock ? "bg-amber-700" : "bg-emerald-100",
+            isMock ? "bg-warning" : "bg-success",
           ].join(" ")}
         />
         {isMock ? "🚧 Mock" : "🌐 API Real"}
-        <span className="opacity-60">{open ? "▲" : "▼"}</span>
+        <span aria-hidden="true">{open ? "▲" : "▼"}</span>
       </button>
 
       {/* Popup */}
       {open && !reloading && (
         <div
+          id={painelId}
+          role="group"
+          aria-labelledby={tituloId}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              setOpen(false);
+              acionadorRef.current?.focus();
+            }
+          }}
           className={[
             "fixed bottom-14 right-4 z-[9999]",
             "w-56 rounded-xl shadow-2xl border",
-            "bg-white dark:bg-zinc-900",
-            "border-zinc-200 dark:border-zinc-700",
+            "bg-surface",
+            "border-border-strong",
             "p-3 flex flex-col gap-2",
           ].join(" ")}
         >
-          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1">
+          <p id={tituloId} className="text-[11px] font-bold uppercase tracking-wider text-foreground-secondary mb-1">
             Modo de API
           </p>
 
@@ -122,7 +128,7 @@ function ApiModeSwitcherInner() {
             description={`Conecta em ${import.meta.env.VITE_API_URL || "http://localhost:8000"}`}
           />
 
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-600 mt-1 leading-tight">
+          <p className="text-[10px] text-foreground-secondary mt-1 leading-tight">
             A página será recarregada ao trocar.
           </p>
         </div>
@@ -142,28 +148,30 @@ interface ModeOptionProps {
 function ModeOption({ active, onClick, color, label, description }: ModeOptionProps) {
   const ring =
     color === "amber"
-      ? "ring-amber-400 bg-amber-50 dark:bg-amber-950/40"
-      : "ring-emerald-500 bg-emerald-50 dark:bg-emerald-950/40";
-  const dot = color === "amber" ? "bg-amber-400" : "bg-emerald-500";
+      ? "border-warning bg-warning-light"
+      : "border-success bg-success-light";
+  const dot = color === "amber" ? "bg-warning" : "bg-success";
 
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={[
-        "w-full text-left px-3 py-2 rounded-lg border text-sm transition-all",
+        "w-full text-left px-3 py-2 rounded-lg border text-sm",
         active
-          ? `ring-2 ${ring} border-transparent font-semibold`
-          : "border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800",
+          ? `${ring} font-semibold`
+          : "border-border-strong hover:bg-surface-subtle",
       ].join(" ")}
     >
       <div className="flex items-center gap-2">
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
-        <span className="text-zinc-800 dark:text-zinc-100">{label}</span>
+        <span aria-hidden="true" className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
+        <span className="text-foreground">{label}</span>
         {active && (
-          <span className="ml-auto text-[10px] text-zinc-400 dark:text-zinc-500">ativo</span>
+          <span aria-hidden="true" className="ml-auto text-[10px] text-foreground-secondary">ativo</span>
         )}
       </div>
-      <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 pl-4 leading-tight">
+      <p className="text-[11px] text-foreground-secondary mt-0.5 pl-4 leading-tight">
         {description}
       </p>
     </button>

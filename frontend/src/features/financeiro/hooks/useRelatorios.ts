@@ -1,27 +1,19 @@
 import { useMutacaoSessao } from '@/shared/hooks/useMutacaoSessao';
-import { assinarSessaoOperacional, capturarSessaoOperacional, exigirSessaoOperacional } from '@/shared/lib/sessaoOperacao';
+import { assinarSessaoOperacional, capturarSessaoOperacional, exigirSessaoOperacional, sessaoOperacionalVigente } from '@/shared/lib/sessaoOperacao';
+import { contextoDemonstracao, contextoDemonstracaoVigente } from '@/shared/lib/contextoDemonstracao';
 import { useSyncExternalStore } from 'react';
 import type { FiltrosRelatorioDemonstracao } from '@/shared/types/demonstracao';
-import type { PedidoExportacaoRelatorio, AtualizarCustosPayload, ListaObras } from '@/types';
+import type { PedidoExportacaoRelatorio, AtualizarCustosPayload, ListaObrasFinanceiro, CustosObra } from "../types/relatorios";
 import { exportarRelatorio } from '../services/relatorios';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/shared/api/api";
 import {
   gerarLinkRelatorioDemonstracao,
-  buscarRelatorioCusto,
   buscarDreObra,
   buscarCustosObra,
   atualizarCustosObra,
 } from "@/features/financeiro/services/relatorios";
 
-export function useRelatorioCusto(obraId: number) {
-  return useQuery({
-    queryKey: ["relatorio-custo", obraId],
-    queryFn: () => buscarRelatorioCusto(obraId),
-    staleTime: 1000 * 60 * 5, // 5 minutos de cache (relatório pesado/demorado)
-    enabled: !!obraId,
-  });
-}
 
 /** Hook de consulta do DRE da Obra — Rota #34 */
 export function useDreObra(obraId: number | null, statusObra?: string) {
@@ -47,12 +39,36 @@ export function useCustosObra(obraId: number | null) {
 /** Hook de mutação para atualizar custos e valor da obra — Rota #32 */
 export function useAtualizarCustosObra(obraId: number) {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: AtualizarCustosPayload) => atualizarCustosObra(obraId, payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["custos", obraId] });
+  return useMutacaoSessao<CustosObra, AtualizarCustosPayload, { sessao: number; origem: string; obraId: number }>({
+    onMutate: (_dados, _contexto, sessao) => ({
+      sessao,
+      origem: contextoDemonstracao(),
+      obraId,
+    }),
+    mutationFn: async (payload, sessao) => {
+      exigirSessaoOperacional(sessao);
+      const origem = contextoDemonstracao();
+      try {
+        const resultado = await atualizarCustosObra(obraId, payload);
+        if (!contextoDemonstracaoVigente(origem)) exigirSessaoOperacional(-1);
+        exigirSessaoOperacional(sessao);
+        return resultado;
+      } catch (erro) {
+        if (!contextoDemonstracaoVigente(origem)) exigirSessaoOperacional(-1);
+        exigirSessaoOperacional(sessao);
+        throw erro;
+      }
+    },
+    onSuccess: (resultado, _payload, contexto) => {
+      if (!contexto || !sessaoOperacionalVigente(contexto.sessao) || !contextoDemonstracaoVigente(contexto.origem)) {
+        return;
+      }
+      const obraAlvo = resultado?.obraId ?? contexto.obraId;
+      if (resultado && typeof resultado === "object") {
+        queryClient.setQueryData(["custos", obraAlvo], resultado);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["custos", obraAlvo] });
       void queryClient.invalidateQueries({ queryKey: ["dre"] });
-      void queryClient.invalidateQueries({ queryKey: ["relatorio-custo", obraId] });
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
     },
   });
@@ -63,7 +79,7 @@ export function useObrasSelect() {
   return useQuery({
     queryKey: ["obras", "select"],
     queryFn: async () => {
-      const { data } = await api.get<ListaObras>("/obras", {
+      const { data } = await api.get<ListaObrasFinanceiro>("/obras", {
         params: { pageSize: 100 },
       });
       return data;

@@ -6,7 +6,7 @@ import { deveExibirErroLocal, exigirSessaoOperacional } from "@/shared/lib/sessa
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { toast } from "sonner";
 import { moverStatusObra } from "../services/kanban";
-import type { ListaObras } from "@/types";
+import type { ListaObrasKanban } from "../types/kanban";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 
 interface MoverCardVariables {
@@ -37,11 +37,11 @@ export function useMoverCard() {
       exigirSessaoOperacional(sessao);
 
       // Snapshot do estado anterior para permitir rollback perfeito
-      const previousObras = queryClient.getQueryData<ListaObras>(["obras"]);
+      const previousObras = queryClient.getQueryData<ListaObrasKanban>(["obras"]);
 
       // Atualiza o cache otimisticamente
       if (previousObras) {
-        queryClient.setQueryData<ListaObras>(["obras"], {
+        queryClient.setQueryData<ListaObrasKanban>(["obras"], {
           ...previousObras,
           itens: previousObras.itens.map((obra) =>
             String(obra.id) === String(cardId) ? { ...obra, status: novoStatus } : obra

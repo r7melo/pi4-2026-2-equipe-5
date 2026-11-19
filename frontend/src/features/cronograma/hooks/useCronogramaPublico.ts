@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { FiltrosCronogramaCompartilhado } from "@/types";
+import type { FiltrosCronogramaCompartilhado } from "@/shared/types/compartilhamentoCronograma";
 import { obterCronogramaCompartilhado } from "@/features/cronograma/services/cronogramaPublico";
 import { programacoesPublicasValidas } from "@/features/cronograma/lib/compartilhamento";
 import { statusHttp } from "@/shared/lib/sessaoOperacao";

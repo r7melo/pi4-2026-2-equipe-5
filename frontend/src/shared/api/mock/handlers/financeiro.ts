@@ -12,7 +12,7 @@ import { resolverUsuarioAutenticadoMock } from "../core/auth";
 import type { ApuracaoFinanceiraEntrada } from "../geradores/contratosFinanceiros";
 import { FalhaRelatorioFinanceiro } from "../geradores/prepararFinanceiro";
 import { gerarExcelRelatorio, gerarPdfRelatorio } from "../pdfGenerator";
-import type { AtualizarCustosPayload } from "@/types";
+import type { AtualizarCustosPayload } from "@/shared/types/relatorios";
 
 export function registrarFinanceiro(mock: MockAdapter): void {
   // GET /obras/:id/relatorio-custo — Rota #33

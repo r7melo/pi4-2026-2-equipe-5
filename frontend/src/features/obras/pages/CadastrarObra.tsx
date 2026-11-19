@@ -33,13 +33,13 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast as sonnerToast } from "sonner";
+import type { ListaObras } from "@/features/obras/types/obras";
 import {
   novaObraSchema,
   type NovaObraFormData,
   type NovaObraInput,
   type CriarObraPayload,
-  type ListaObras,
-} from "@/types";
+} from "@/features/obras/types/obrasCadastro";
 
 import { criarObra } from "@/features/obras/services/obras";
 import { formatarCpfCnpj, formatarTelefone } from "@/shared/lib/validacoesDocumento";
@@ -62,7 +62,7 @@ export default function CadastrarObra() {
   const catalogo = useClientes();
   const listaClientes = catalogo.data ?? [];
   const catalogoAplicado = useRef(false);
-  const [clienteIdSelecionadoState, setClienteIdSelecionado] = useState<number | undefined>(undefined);
+  const [clienteIdSelecionadoState, setClienteIdSelecionado] = useState<number | null | undefined>(undefined);
 
   const {
     register,
@@ -105,7 +105,7 @@ export default function CadastrarObra() {
     setValue("endereco", primeiro.endereco);
   }, [catalogo.data, tipoCliente, setValue]);
 
-  const clienteIdSelecionado = clienteIdSelecionadoState ?? catalogo.data?.[0]?.id;
+  const clienteIdSelecionado = clienteIdSelecionadoState === undefined ? catalogo.data?.[0]?.id : clienteIdSelecionadoState ?? undefined;
 
   const cpfCnpjValue = useWatch({ control, name: "cpfCnpj" });
   const telefoneValue = useWatch({ control, name: "telefone" });
@@ -242,7 +242,7 @@ export default function CadastrarObra() {
           <button
             type="button"
             onClick={() => setToast(null)}
-            className="p-1 hover:bg-black/5 rounded-md transition-colors cursor-pointer"
+            className="p-1 hover:bg-surface-overlay/5 rounded-md transition-colors cursor-pointer"
             aria-label="Fechar notificação"
           >
             <X className="w-4 h-4 text-muted-foreground" />
@@ -263,23 +263,23 @@ export default function CadastrarObra() {
         <EmptyState titulo="Nenhum cliente cadastrado" descricao="Cadastre um novo cliente junto com a obra." />
       )}
       {/* Área do Formulário */}
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
+      <section className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
         <div className="w-full max-w-3xl bg-surface rounded-2xl border border-border-subtle overflow-hidden h-fit my-auto">
           <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="p-6 md:p-8 space-y-8" noValidate>
 
             {/* Seção: Dados do Cliente com Alternador */}
             <div>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 mb-5">
                 <h3 className="text-base md:text-lg font-bold text-foreground flex items-center gap-2">
-                  <User className="w-5 h-5 text-amber-500" /> Identificação do Cliente
+                  <User className="w-5 h-5 text-warning" /> Identificação do Cliente
                 </h3>
 
                 {/* Alternador Visual (Tabs) */}
-                <div className="flex items-center p-1 bg-surface-subtle rounded-xl w-fit border border-border-subtle">
+                <div className="flex flex-wrap items-center p-1 bg-surface-subtle rounded-xl w-fit max-w-full border border-border-subtle">
                   <button
                     type="button"
                     onClick={() => handleMudarTipoCliente("existente")}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 max-w-full min-w-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       tipoCliente === "existente"
                         ? "bg-surface text-foreground border border-border-subtle"
                         : "text-muted-foreground hover:text-foreground"
@@ -291,7 +291,7 @@ export default function CadastrarObra() {
                   <button
                     type="button"
                     onClick={() => handleMudarTipoCliente("novo")}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 max-w-full min-w-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       tipoCliente === "novo"
                         ? "bg-surface text-foreground border border-border-subtle"
                         : "text-muted-foreground hover:text-foreground"
@@ -307,15 +307,16 @@ export default function CadastrarObra() {
               {tipoCliente === "existente" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-surface-subtle/80 rounded-2xl border border-border-subtle">
                   <div className="md:col-span-2 flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-foreground-secondary">
-                      Selecione o Cliente <span className="text-red-500">*</span>
+                    <label htmlFor="obra-cliente" className="text-sm font-semibold text-foreground-secondary">
+                      Selecione o Cliente <span className="text-destructive">*</span>
                     </label>
-                    <select
+                    <select id="obra-cliente" {...register("clienteId", { valueAsNumber: true })}
+                      aria-invalid={!!errors.clienteId} aria-describedby={errors.clienteId ? "obra-cliente-erro" : undefined}
                       value={clienteIdSelecionado || ""}
                       onChange={(e) => {
                         const id = Number(e.target.value);
                         const idValido = Number.isFinite(id) && id > 0 ? id : undefined;
-                        setClienteIdSelecionado(idValido);
+                        setClienteIdSelecionado(idValido ?? null);
                         setValue("clienteId", idValido, { shouldValidate: true });
                         const c = listaClientes.find((item) => item.id === idValido);
                         if (c) {
@@ -324,8 +325,9 @@ export default function CadastrarObra() {
                           setValue("endereco", c.endereco, { shouldValidate: true });
                         }
                       }}
-                      className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition-colors"
+                      className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-warning-border cursor-pointer transition-colors"
                     >
+                      <option value="">Selecione um cliente</option>
                       {listaClientes.map((c) => (
                         <option key={c.id} value={c.id} className="bg-surface text-foreground">
                           {c.nome} — {c.cidade}
@@ -334,7 +336,7 @@ export default function CadastrarObra() {
                     </select>
 
                     {errors.clienteId?.message && (
-                      <p className="text-xs text-red-600 font-medium mt-1">{errors.clienteId.message}</p>
+                      <p id="obra-cliente-erro" className="text-xs text-destructive font-medium mt-1">{errors.clienteId.message}</p>
                     )}
                   </div>
 
@@ -391,6 +393,7 @@ export default function CadastrarObra() {
                       placeholder="000.000.000-00 ou 00.000.000/0000-00"
                       required
                       icon={<CreditCard className="w-4 h-4" />}
+                      {...register("cpfCnpj")}
                       value={cpfCnpjValue || ""}
                       onChange={(e) => {
                         const formatado = formatarCpfCnpj(e.target.value);
@@ -424,6 +427,7 @@ export default function CadastrarObra() {
                       label="Telefone / WhatsApp"
                       placeholder="(99) 99999-9999"
                       icon={<Phone className="w-4 h-4" />}
+                      {...register("telefone")}
                       value={telefoneValue || ""}
                       onChange={(e) => {
                         const formatado = formatarTelefone(e.target.value);
@@ -452,16 +456,16 @@ export default function CadastrarObra() {
             {/* Seção: Dimensionamento e Categoria */}
             <div>
               <h3 className="text-base md:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-500" /> Dimensionamento e Categoria
+                <Zap className="w-5 h-5 text-warning" /> Dimensionamento e Categoria
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-foreground-secondary">
-                    Categoria da Obra <span className="text-red-500">*</span>
+                  <label htmlFor="obra-categoria" className="text-sm font-semibold text-foreground-secondary">
+                    Categoria da Obra <span className="text-destructive">*</span>
                   </label>
-                  <select
+                  <select id="obra-categoria" aria-invalid={!!errors.categoria} aria-describedby={errors.categoria ? "obra-categoria-erro" : undefined}
                     {...register("categoria")}
-                    className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 cursor-pointer transition-colors"
+                    className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-warning-border cursor-pointer transition-colors"
                   >
                     {CATEGORIAS_OBRA.map((cat) => (
                       <option key={cat} value={cat}>
@@ -469,6 +473,7 @@ export default function CadastrarObra() {
                       </option>
                     ))}
                   </select>
+                  {errors.categoria && <p id="obra-categoria-erro" className="text-xs text-destructive">{errors.categoria.message}</p>}
                 </div>
                 <div>
                   <Input
@@ -558,7 +563,7 @@ export default function CadastrarObra() {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                     <span>Cadastrando...</span>
                   </>
                 ) : (
@@ -571,7 +576,7 @@ export default function CadastrarObra() {
             </div>
           </form>
         </div>
-      </main>
+      </section>
     </div>
   );
 }

@@ -1,16 +1,12 @@
-import type { DadosInstalacao, FaltanteInstalacao, GrupoDadoAusente } from "@/types";
+import type { DadosInstalacao, FaltanteInstalacao, GrupoDadoAusente } from "@/shared/types/exportacaoInstalacao";
+import { dataCivilValida, periodoCivilValido } from "@/shared/lib/datasCivis";
 
 export function normalizarTextoInstalacao(valor?: string | null): string | null {
   return valor?.trim() || null;
 }
 
 export function dataInstalacaoValida(valor?: string | null): boolean {
-  if (!valor || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
-  const [ano, mes, dia] = valor.split("-").map(Number);
-  const data = new Date(0);
-  data.setUTCFullYear(ano, mes - 1, dia);
-  data.setUTCHours(0, 0, 0, 0);
-  return data.getUTCFullYear() === ano && data.getUTCMonth() === mes - 1 && data.getUTCDate() === dia;
+  return dataCivilValida(valor);
 }
 
 export function avaliarCompletudeInstalacao(dados: DadosInstalacao): FaltanteInstalacao[] {
@@ -21,7 +17,7 @@ export function avaliarCompletudeInstalacao(dados: DadosInstalacao): FaltanteIns
   if (dados.programacoes.length === 0) faltantes.push({ grupo: "equipes" }, { grupo: "periodos" });
   for (const p of dados.programacoes) {
     if (!normalizarTextoInstalacao(p.nomeEquipe)) faltantes.push({ grupo: "equipes", programacaoId: p.id });
-    if (!dataInstalacaoValida(p.dataInicio) || !dataInstalacaoValida(p.dataFim) || p.dataFim! < p.dataInicio!) {
+    if (!periodoCivilValido(p.dataInicio, p.dataFim)) {
       faltantes.push({ grupo: "periodos", programacaoId: p.id });
     }
   }

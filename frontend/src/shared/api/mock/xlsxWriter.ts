@@ -1,6 +1,6 @@
 import { CORES_EXPORTACAO, FONTES_EXPORTACAO } from '@/shared/lib/exportacao/identidade';
 import { corArgb, codificarTextoXlsx, empacotarXlsx } from '@/shared/lib/exportacao/xlsx';
-import type { DadosInstalacao } from "@/types";
+import type { DadosInstalacao } from "@/shared/types/exportacaoInstalacao";
 import { avaliarCompletudeInstalacao, descreverFaltanteInstalacao, normalizarTextoInstalacao } from "@/shared/lib/instalacao";
 
 // Catálogo de estilos OpenXML (SpreadsheetML) alinhado à paleta institucional da ZL Engenharia

@@ -97,7 +97,7 @@ export function ExportarDetalhesInstalacao({ obraId, contextoValido, sinalContex
         className="h-8 px-2.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
       >
         {estaOcupado ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />
         ) : (
           <Download className="w-3.5 h-3.5" />
         )}
@@ -172,7 +172,6 @@ export function ExportarDetalhesInstalacao({ obraId, contextoValido, sinalContex
           descricao="Algumas informações desta instalação ainda não foram cadastradas:"
           labelConfirmar="Exportar mesmo assim"
           labelCancelar="Cancelar"
-          gerenciarFoco={true}
           origemFoco={btnRef}
           podeRestaurarFoco={contextoValido}
           onClose={cancelar}

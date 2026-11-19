@@ -2,7 +2,9 @@ import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Clock, Sun, AlertTriangle, Package } from "lucide-react";
 import { Modal } from "@/shared/components/ui/Modal";
-import type { ObraCard, Equipe, Programacao } from "@/types";
+import type { Programacao } from "@/shared/types/programacoes";
+import type { Equipe } from "../types/equipes";
+import type { ObraGanttResumo } from "@/features/cronograma/types/visaoCronograma";
 import {
   mapearDisponibilidadeEquipes,
   type EquipeDisponibilidadeStatus,
@@ -22,7 +24,7 @@ import { toast } from "sonner";
 interface GanttNovaAlocacaoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  obrasElegiveis: ObraCard[];
+  obrasElegiveis: ObraGanttResumo[];
   equipes: Equipe[];
   programacoes?: Programacao[];
   onConfirmar: (dados: {
@@ -162,7 +164,7 @@ export function GanttNovaAlocacaoModal({
                 </button>
               </div>
             ) : (
-              <select
+              <select aria-label="Obra a ser executada" name="obra"
                 value={obraId}
                 onChange={(e) => {
                   setObraId(e.target.value ? Number(e.target.value) : "");
@@ -195,10 +197,10 @@ export function GanttNovaAlocacaoModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground-muted">
+            <label className="text-xs font-semibold text-foreground-muted" htmlFor="campo-ganttnovaalocacaomodal-1">
               Equipe Responsável *
             </label>
-            <select
+            <select id="campo-ganttnovaalocacaomodal-1"
               value={equipeId}
               onChange={(e) => setEquipeId(e.target.value ? Number(e.target.value) : "")}
               required
@@ -236,10 +238,10 @@ export function GanttNovaAlocacaoModal({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-foreground-muted">
+            <label className="text-xs font-semibold text-foreground-muted" htmlFor="campo-ganttnovaalocacaomodal-2">
               Data de Início Prevista *
             </label>
-            <input
+            <input id="campo-ganttnovaalocacaomodal-2"
               type="date"
               value={dataInicio}
               onChange={(e) => {
@@ -284,7 +286,7 @@ export function GanttNovaAlocacaoModal({
               )}
             </div>
             <input
-              type="date"
+              type="date" aria-label="Data de Término Prevista"
               required
               min={String(dataInicio).split(/[T ]/)[0]}
               value={dataFimEfetiva}
@@ -334,7 +336,7 @@ export function GanttNovaAlocacaoModal({
             </button>
             <button
               type="submit"
-              disabled={!obraId || !equipeId || !dataInicio || isLoading}
+              disabled={isLoading}
               className="px-4 py-2 bg-info hover:bg-info-hover disabled:opacity-50 text-primary-foreground text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               {isLoading ? "Alocando..." : "Confirmar Alocação"}

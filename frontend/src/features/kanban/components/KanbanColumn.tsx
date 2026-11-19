@@ -1,11 +1,10 @@
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { ObraCard, Material } from "@/types";
+import type { ObraKanbanCard } from "../types/kanban";
+import type { Material } from "@/shared/types/materiais";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 import KanbanCard from "./KanbanCard";
 import { cn } from "@/shared/lib/utils";
-import { formatarMoeda } from "@/shared/lib/formatters";
-import { obterValorObra } from "./kanbanUtils";
 
 interface KanbanColumnProps {
   id?: StatusObra;
@@ -13,14 +12,16 @@ interface KanbanColumnProps {
   columnId?: string;
   label?: string;
   badge?: string | null;
-  cards: ObraCard[];
-  onSelectCard?: (card: ObraCard) => void;
-  onMoverCard?: (card: ObraCard, novoStatus: StatusObra) => void;
+  cards: ObraKanbanCard[];
+  onSelectCard?: (card: ObraKanbanCard) => void;
+  onMoverCard?: (card: ObraKanbanCard, novoStatus: StatusObra) => void;
   horizontal?: boolean;
   headerAction?: React.ReactNode;
   isDestinoValido?: boolean;
   isDestinoInvalido?: boolean;
   mapaMateriais?: Map<number, Material[]>;
+  alocacoesAtivasSet?: Set<number>;
+  onExcluirCard?: (obraId: number) => Promise<void>;
   isVisivelMobile?: boolean;
   somenteLeitura?: boolean;
 }
@@ -38,17 +39,14 @@ export default memo(function KanbanColumn({
   isDestinoValido,
   isDestinoInvalido,
   mapaMateriais,
+  alocacoesAtivasSet,
+  onExcluirCard,
   isVisivelMobile = true,
   somenteLeitura = false,
 }: KanbanColumnProps) {
   const colId = (id || columnId || "") as StatusObra;
   const colTitle = title || label || "";
   const { setNodeRef, isOver } = useDroppable({ id: colId });
-
-  const valorTotalColuna = useMemo(() => {
-    const soma = cards.reduce((acc, curr) => acc + obterValorObra(curr), 0);
-    return formatarMoeda(soma, { semCentavos: true });
-  }, [cards]);
 
   return (
     <div
@@ -86,11 +84,6 @@ export default memo(function KanbanColumn({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2 px-0.5">
-        <span>Total da etapa:</span>
-        <span className="font-bold text-foreground-muted">{valorTotalColuna}</span>
-      </div>
-
       <div className="flex-1 space-y-2 min-h-[140px]">
         {cards.map((card) => (
           <KanbanCard
@@ -100,6 +93,8 @@ export default memo(function KanbanColumn({
             onSelect={onSelectCard}
             onMover={onMoverCard}
             materiaisObra={mapaMateriais?.get(Number(card.id))}
+            temAlocacaoAtiva={alocacoesAtivasSet?.has(card.id)}
+            onExcluir={onExcluirCard}
           />
         ))}
 

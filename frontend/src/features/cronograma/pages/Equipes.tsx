@@ -1,6 +1,5 @@
 import {
   capturarSessaoOperacional,
-  deveExibirErroLocal,
   assinarSessaoOperacional,
   sessaoOperacionalVigente,
 } from "@/shared/lib/sessaoOperacao";
@@ -14,9 +13,12 @@ import {
   type ReactNode,
 } from "react";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { GanttDhtmlxWrapper } from "@/features/cronograma/components/GanttDhtmlxWrapper";
-import type { GanttTask } from "@/features/cronograma/types/gantt";
+import {
+  obterSeletorBotaoAlocacao,
+  type GanttTask,
+} from "@/features/cronograma/types/gantt";
 import {
   criarArmazenamentoEstadoVisual,
 } from "@/features/cronograma/lib/estadoVisualGantt";
@@ -36,8 +38,8 @@ import {
   useCriarProgramacao,
   useDeletarProgramacao,
 } from "@/features/cronograma/hooks/useProgramacoes";
-import { useObras, useHomologacoesObras } from "@/features/obras/hooks/useObras";
-import { toast } from "sonner";
+import { useReatribuirEquipeGantt } from "@/features/cronograma/hooks/useReatribuirEquipeGantt";
+import type { ObraGanttResumo, MapaHomologacoesGantt } from "@/features/cronograma/types/visaoCronograma";
 import { useEquipes } from "@/features/cronograma/hooks/useEquipes";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
@@ -46,7 +48,6 @@ import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { CalendarX2, Search, AlertTriangle } from "lucide-react";
 import { calcularJanelaProgramacoes } from "@/features/cronograma/lib/janelaProgramacoes";
 import { diasUteisCivis } from "@/shared/lib/datasCivis";
-import { obterConflitosEquipe } from "@/features/cronograma/lib/ganttCalculos";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { podeVerModo } from "@/shared/lib/podeVerModo";
 import { BotaoModoDisplay } from "@/shared/components/display/BotaoModoDisplay";
@@ -55,11 +56,19 @@ import { useGanttFiltros } from "@/features/cronograma/hooks/useGanttFiltros";
 import { useEquipesOverlays } from "@/features/cronograma/hooks/useEquipesOverlays";
 import "@/features/cronograma/components/gantt.css";
 
+export interface EquipesProps {
+  renderizarAcoesObra?: (obraId: number) => ReactNode;
+  obras?: ObraGanttResumo[];
+  carregandoObras?: boolean;
+  mapaHomologacoes?: MapaHomologacoesGantt;
+}
+
 export default function Equipes({
   renderizarAcoesObra,
-}: {
-  renderizarAcoesObra?: (obraId: number) => ReactNode;
-} = {}) {
+  obras,
+  carregandoObras = false,
+  mapaHomologacoes,
+}: EquipesProps = {}) {
   const { ativo: modoAtivo, elegivelParaModo, alturaSelo, lerEpoch, podeInteragir } = useModoDisplay();
   const epochRender = lerEpoch();
   const sessaoRender = useSyncExternalStore(assinarSessaoOperacional, capturarSessaoOperacional, capturarSessaoOperacional);
@@ -104,7 +113,6 @@ export default function Equipes({
     aviso: avisoReagendamento,
     recuperar: recuperarReagendamento,
   } = useReordenarProgramacao();
-  const canDrag = canEdit && !modoAtivo && !reagendamentoBloqueado;
   const canEditRef = useRef(canEdit);
   const montadoRef = useRef(false);
   useLayoutEffect(() => { canEditRef.current = canEdit; }, [canEdit]);
@@ -129,15 +137,8 @@ export default function Equipes({
     error: errorProg,
     refetch: refetchProg,
   } = useProgramacoes();
-  const { data: obras, isLoading: loadingObras } = useObras({ pageSize: 1000 });
   const { data: equipes, isLoading: loadingEquipes } = useEquipes();
 
-  const obraIdsUnicos = useMemo(() => {
-    if (!programacoes) return [];
-    return Array.from(new Set(programacoes.map((p) => p.obraId)));
-  }, [programacoes]);
-
-  const { data: homologacoesMap } = useHomologacoesObras(obraIdsUnicos);
 
   const { janelaDatas, erroValidacaoJanela } = useMemo(() => {
     if (!programacoes || programacoes.length === 0) {
@@ -167,9 +168,26 @@ export default function Equipes({
   const { mutateAsync: criarAlocacao, isPending: criandoAlocacao } =
     useCriarProgramacao();
   const { mutateAsync: deletarAlocacao } = useDeletarProgramacao();
+  const {
+    reatribuindoAlocacao,
+    reatribuindoRef,
+    anuncioReatribuicao,
+    registrarSelecaoComAnuncio,
+    handleMudarEquipe,
+  } = useReatribuirEquipeGantt({
+    sessaoRender,
+    programacoes,
+    equipes,
+    tarefaSelecionadaId,
+    setTarefaSelecionadaId,
+    podeEditar,
+    reagendamentoBloqueado,
+  });
+  const canDrag = canEdit && !modoAtivo && !reagendamentoBloqueado && !reatribuindoAlocacao;
 
-  const isLoading = loadingProg || loadingObras || loadingEquipes;
-  const listaObras = obras?.itens;
+  const isLoading = loadingProg || Boolean(carregandoObras) || loadingEquipes;
+  const listaObras = obras;
+  const homologacoesMap = mapaHomologacoes;
 
   const obrasElegiveis = useMemo(() => {
     if (!listaObras) return [];
@@ -225,13 +243,13 @@ export default function Equipes({
   }, [tarefaSelecionadaId, programacoes, listaObras, equipes]);
 
   const handleReorder = (id: number, novaData: string) => {
-    if (!podeEditar() || reagendamentoBloqueado) return;
+    if (!podeEditar() || reagendamentoBloqueado || reatribuindoAlocacao || reatribuindoRef.current) return;
     reordenar({ id, novaDataInicio: novaData });
   };
 
   const handleReagendar = useCallback(
     async (id: number, novaDataInicio: string): Promise<boolean | null> => {
-      if (!podeEditar() || reagendamentoBloqueado) return null;
+      if (!podeEditar() || reagendamentoBloqueado || reatribuindoAlocacao || reatribuindoRef.current) return null;
       const sessaoAntes = capturarSessaoOperacional();
       try {
         const resposta = await reordenarAsync({ id, novaDataInicio });
@@ -242,13 +260,13 @@ export default function Equipes({
         return false;
       }
     },
-    [podeEditar, reagendamentoBloqueado, reordenarAsync]
+    [podeEditar, reagendamentoBloqueado, reatribuindoAlocacao, reordenarAsync, reatribuindoRef]
   );
 
   const obterFocoRetorno = useCallback((): HTMLElement | null => {
     if (tarefaSelecionadaId !== null) {
       const elementoTarefa = document.querySelector<HTMLElement>(
-        `button.gantt-btn-alocacao[data-task-id="${tarefaSelecionadaId}"]`
+        obterSeletorBotaoAlocacao(tarefaSelecionadaId)
       );
       if (elementoTarefa && elementoTarefa.isConnected) {
         return elementoTarefa;
@@ -267,8 +285,13 @@ export default function Equipes({
 
   const handleSelectTask = (taskId: number) => {
     if (!podeUsarInterface()) return;
-    setTarefaSelecionadaId(taskId);
+    registrarSelecaoComAnuncio(taskId);
   };
+
+  const fecharDrawerTarefa = useCallback(() => {
+    if (!podeUsarInterface()) return;
+    registrarSelecaoComAnuncio(null);
+  }, [podeUsarInterface, registrarSelecaoComAnuncio]);
 
   const handleConfirmarAlocacao = async (dados: {
     obraId: number;
@@ -281,50 +304,8 @@ export default function Equipes({
   };
 
   const handleDesalocar = (id: number) => {
-    if (!podeEditar()) return;
+    if (!podeEditar() || reagendamentoBloqueado || reatribuindoAlocacao || reatribuindoRef.current) return;
     void deletarAlocacao(id).catch(() => undefined);
-  };
-
-  const handleMudarEquipe = async (id: number, novaEquipeId: number) => {
-    if (!podeEditar()) return;
-    const progAtual = programacoes?.find((p) => p.id === id);
-    if (!progAtual) return;
-
-    const novaEquipe = equipes?.find((e) => e.id === novaEquipeId);
-    const nomeNovaEquipe = novaEquipe?.nome || `Equipe ${novaEquipeId}`;
-
-    // 1. Verificação prévia de conflito: impede perda da alocação existente caso haja sobreposição
-    const conflitos = obterConflitosEquipe(
-      novaEquipeId,
-      progAtual.dataInicio,
-      progAtual.dataFim,
-      programacoes || [],
-      id // ignora a própria tarefa
-    );
-
-    if (conflitos.length > 0) {
-      toast.error(
-        `A ${nomeNovaEquipe} já possui a Obra #${conflitos[0].programacao.obraId} agendada de ${conflitos[0].periodoFormatado}. Reatribuição cancelada.`
-      );
-      return;
-    }
-
-    try {
-      const sessao = capturarSessaoOperacional();
-      await deletarAlocacao(id, undefined, sessao);
-      const novaProg = await criarAlocacao({
-        obraId: progAtual.obraId,
-        equipeId: novaEquipeId,
-        dataInicio: progAtual.dataInicio,
-        dataFim: progAtual.dataFim,
-      }, undefined, sessao);
-
-      if (podeEditar()) setTarefaSelecionadaId(novaProg.id);
-      toast.success(`Obra reatribuída com sucesso para ${nomeNovaEquipe}!`);
-    } catch (erro) {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao reatribuir equipe para a obra.");
-    }
   };
 
   const handleImprimir = () => {
@@ -351,32 +332,32 @@ export default function Equipes({
       </PageHeader>
 
       {isLoading && !temBaseValida ? (
-        <div className="flex-1 flex items-center justify-center bg-background-app">
+        <section className="flex-1 flex items-center justify-center bg-background-app">
           <FeedbackLoading mensagem="Carregando cronograma..." />
-        </div>
+        </section>
       ) : exibirErroProg ? (
-        <div className="flex-1 flex items-center justify-center bg-background-app p-4">
+        <section className="flex-1 flex items-center justify-center bg-background-app p-4">
           <FeedbackErro mensagem={erroValidacaoJanela || errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
             onTentarNovamente={() => void refetchProg()} />
-        </div>
+        </section>
       ) : baseVazia ? (
-        <div className="flex-1 flex items-center justify-center bg-background-app p-4">
+        <section className="flex-1 flex items-center justify-center bg-background-app p-4">
           <EmptyState icone={CalendarX2} titulo="Nenhuma programação encontrada"
             descricao={modoAtivo ? undefined : "Aloque equipes a obras cadastradas para inicializar o cronograma."}
             acao={canEdit && !modoAtivo ? {
               label: "Nova Alocação",
               onClick: () => { if (podeEditar()) setModalNovaAlocacaoAberto(true); },
             } : undefined} />
-        </div>
+        </section>
       ) : (
-      <div className="flex-1 flex flex-col gap-2 w-full min-h-0 bg-background-app p-2 md:p-3 overflow-hidden">
+      <section className="flex-1 flex flex-col gap-2 w-full min-h-0 bg-background-app p-2 md:p-3 overflow-hidden">
         {avisoReagendamento && (
           <div
             role="alert"
             className="p-3 bg-warning-light border border-warning-border rounded-xl flex items-center justify-between gap-3 text-xs text-warning shrink-0"
           >
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-warning" />
+              <AlertTriangle className="w-4 h-4 shrink-0 text-warning" aria-hidden="true" />
               <span>{avisoReagendamento}</span>
             </div>
             <button
@@ -461,7 +442,7 @@ export default function Equipes({
             salvarEstadoVisual={salvarEstadoVisual}
           />
         </div>
-      </div>
+      </section>
       )}
 
       {!modoAtivo && (!isLoading || temBaseValida) && temBaseValida && !exibirErroProg && (
@@ -493,20 +474,23 @@ export default function Equipes({
       />}
 
       <GanttTaskDrawer
-        key={tarefaDrawer?.id ?? "fechado"}
+        key={tarefaDrawer ? "aberto" : "fechado"}
         tarefa={tarefaDrawer}
-        onClose={() => { if (podeUsarInterface()) setTarefaSelecionadaId(null); }}
+        onClose={fecharDrawerTarefa}
         canEdit={canEdit}
         onDesalocar={handleDesalocar}
         equipes={equipes || []}
         programacoes={programacoes || []}
         onMudarEquipe={handleMudarEquipe}
+        reatribuindoEquipe={reatribuindoAlocacao}
+        anuncioReatribuicao={anuncioReatribuicao}
         renderizarAcoesObra={renderizarAcoesObra}
         onReagendar={handleReagendar}
         reagendamentoBloqueado={reagendamentoBloqueado}
         reagendamentoFase={reagendamentoFase}
         avisoReagendamento={avisoReagendamento}
         focoRetorno={obterFocoRetorno}
+        homologacao={tarefaDrawer?.obraId ? homologacoesMap?.[tarefaDrawer.obraId] : undefined}
       />
 
       {/* Gaveta de Filtros Avançados: */}

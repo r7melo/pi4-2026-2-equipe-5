@@ -1,4 +1,16 @@
-import { proximoDiaUtil, normalizarDataMeioDiaUTC, formatarDataISO, normalizarDataFimInclusiva } from "@/shared/lib/formatters";
+import { anteriorDiaUtilCivil, dataCivilValida, proximoDiaUtilCivil } from "@/shared/lib/datasCivis";
+import { formatarDataISO } from "@/shared/lib/formatters";
+
+function extrairDataCivil(entrada: string | Date): string | null {
+  if (entrada instanceof Date) {
+    if (!Number.isFinite(entrada.getTime())) return null;
+    const iso = formatarDataISO(entrada);
+    return dataCivilValida(iso) ? iso : null;
+  }
+  if (typeof entrada !== "string") return null;
+  const limpa = entrada.trim().split(/[T ]/)[0];
+  return dataCivilValida(limpa) ? limpa : null;
+}
 
 /**
  * Converte data de início e data de término (sempre inclusivo — último dia útil trabalhado)
@@ -8,11 +20,12 @@ export function normalizarIntervaloDiasUteis(
   dataInicio: string | Date,
   dataFim: string | Date
 ): { inicio: string; fim: string } | null {
-  if (!dataInicio || !dataFim) return null;
+  const iniCivil = extrairDataCivil(dataInicio);
+  const fimCivil = extrairDataCivil(dataFim);
+  if (!iniCivil || !fimCivil) return null;
 
-  const iniSanitizado = proximoDiaUtil(normalizarDataMeioDiaUTC(dataInicio));
-  const iniISO = formatarDataISO(iniSanitizado);
-  const fimISO = normalizarDataFimInclusiva(dataFim);
+  const iniISO = proximoDiaUtilCivil(iniCivil);
+  const fimISO = anteriorDiaUtilCivil(fimCivil);
 
   if (fimISO < iniISO) {
     return { inicio: iniISO, fim: iniISO };

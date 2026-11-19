@@ -25,7 +25,7 @@ export default function RelatorioPublico() {
       <div className="min-h-screen bg-background-app flex flex-col items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="p-4 bg-surface rounded-xl border border-border-subtle">
-            <Sun className="w-8 h-8 text-foreground-muted animate-spin" />
+            <Sun className="w-8 h-8 text-foreground-muted motion-safe:animate-spin" />
           </div>
           <p className="text-sm font-semibold text-foreground">Carregando relatório compartilhado...</p>
           <p className="text-xs text-muted-foreground">Validando chave de acesso pública</p>
@@ -40,7 +40,7 @@ export default function RelatorioPublico() {
   if (isError || respostaInvalida) {
     return (
       <div className="min-h-screen bg-background-app flex flex-col items-center justify-center p-4">
-        <div className="bg-surface border border-border-subtle rounded-xl p-6 sm:p-8 max-w-md w-full text-center flex flex-col items-center">
+        <div role="alert" className="bg-surface border border-border-subtle rounded-xl p-6 sm:p-8 max-w-md w-full text-center flex flex-col items-center">
           <div className="w-12 h-12 bg-destructive-light border border-destructive-border rounded-xl flex items-center justify-center text-destructive mb-4">
             <AlertCircle className="w-6 h-6" />
           </div>
@@ -95,7 +95,7 @@ export default function RelatorioPublico() {
             <Button
               variant="outline"
               onClick={handleImprimir}
-              className="h-8 px-3 text-xs gap-1.5 cursor-pointer"
+              className="min-h-8 h-auto py-1 px-3 text-xs gap-1.5 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5 text-muted-foreground" />
               Imprimir / PDF

@@ -1,4 +1,4 @@
-import type { Usuario } from "@/types";
+import type { Usuario } from "@/shared/types/autorizacao";
 import { z } from "zod";
 import { lerGestao, gravarGestao, equipeGestaoSchema } from "./estadoGestao";
 import { obterEquipesArmazenadas } from "./equipes";

@@ -6,7 +6,7 @@ import type { AmbienteAplicacaoProps } from "@/shared/types/demonstracao";
 import { CHAVE_CENARIO, EVENTO_CENARIO, iniciarCenario, lerBaseCenario, lerCenario, restaurarCenario } from "@/shared/api/mock/core/estadoCenario";
 import { tokenDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
 import { invalidarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { useKanbanFilterStore } from "@/features/kanban/stores/useKanbanFilterStore";
 import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
@@ -102,7 +102,7 @@ export function AmbienteDemonstracao({ children }: AmbienteAplicacaoProps) {
     </div>
     <ConfirmDialog isOpen={confirmacao !== null} onClose={() => { if (!trava.current) setConfirmacao(null); }} onConfirm={() => { void restaurar(); }}
       titulo="Restaurar demonstração?" descricao="As alterações da demonstração neste navegador serão apagadas em todas as abas. Contas criadas, senhas alteradas e links serão removidos. Será necessário entrar novamente."
-      labelConfirmar="Restaurar demonstração" labelCancelar="Cancelar" isLoading={ocupado} gerenciarFoco rolagemInterna
+      labelConfirmar="Restaurar demonstração" labelCancelar="Cancelar" isLoading={ocupado}
       conteudo={erroRestauro ? <p role="alert" className="mb-3 text-sm text-danger">{erroRestauro}</p> : undefined} />
   </>;
 }

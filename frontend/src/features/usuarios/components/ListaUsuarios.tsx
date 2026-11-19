@@ -1,0 +1,15 @@
+import { Button } from "@/shared/components/ui/Button";
+import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
+import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
+import { EmptyState } from "@/shared/components/feedback/EmptyState";
+import { ROTULOS_PERFIS } from "@/shared/constants/perfis";
+import type { ListaUsuariosProps } from "../types/gestaoUsuariosUI";
+
+export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, aoPagina, aoEditar, aoStatus }: ListaUsuariosProps) {
+  return <>{lista.isPending ? <FeedbackLoading mensagem="Carregando usuários..." /> : lista.isError ? <FeedbackErro mensagem="Não foi possível atualizar a lista de usuários." onTentarNovamente={() => void lista.refetch()} /> : !lista.data.itens.length ? <EmptyState titulo={filtrado ? "Nenhum usuário encontrado para os filtros." : "Nenhum usuário ativo."} acao={filtrado ? { label: "Limpar filtros", onClick: aoLimpar } : undefined} /> : <>
+        <div className="overflow-x-auto rounded-lg border border-border-subtle bg-surface" tabIndex={0} role="region" aria-label="Tabela com rolagem horizontal"><table className="w-full min-w-[800px] table-fixed text-sm text-left"><caption className="sr-only">Usuários cadastrados</caption><thead><tr>{["Nome", "E-mail", "Perfil", "Equipe", "Status", "Ações"].map(t => <th scope="col" key={t} className={"p-3 font-medium text-muted-foreground" + (t === "Nome" ? " sticky left-0 bg-surface w-40" : t === "Ações" ? " w-48" : "")}>{t}</th>)}</tr></thead><tbody>{lista.data.itens.map(u => <tr key={u.id} className="border-t border-border-subtle">
+          <td className="sticky left-0 bg-surface p-3 break-all">{u.nome}</td><td className="p-3 break-all">{u.email}</td><td className="p-3">{ROTULOS_PERFIS[u.perfil]}</td><td className="p-3">{u.equipeNome ?? "-"}</td><td className="p-3"><span className={u.ativo ? "text-success" : "text-muted-foreground"}>{u.ativo ? "Ativo" : "Inativo"}</span></td><td className="p-3"><div className="flex gap-2"><Button size="sm" variant="outline" onClick={e => { aoEditar(u, e.currentTarget); }}>Editar</Button><Button size="sm" variant="outline" disabled={u.id === usuarioId} title={u.id === usuarioId ? "Você não pode inativar a própria conta" : undefined} onClick={e => { aoStatus(u, e.currentTarget); }}>{u.ativo ? "Inativar" : "Reativar"}</Button></div>{u.id === usuarioId && <p className="text-xs text-muted-foreground">Você não pode inativar a própria conta</p>}</td>
+        </tr>)}</tbody></table></div>
+        <nav aria-label="Paginação de usuários" className="flex flex-wrap gap-3 items-center text-sm"><span>{lista.data.total} usuários · Página {filtros.page}</span><Button variant="outline" disabled={filtros.page <= 1 || lista.isFetching} onClick={() => aoPagina(filtros.page-1)}>Anterior</Button><Button variant="outline" disabled={filtros.page * filtros.pageSize >= lista.data.total || lista.isFetching} onClick={() => aoPagina(filtros.page+1)}>Próxima</Button></nav>
+      </>}</>;
+}

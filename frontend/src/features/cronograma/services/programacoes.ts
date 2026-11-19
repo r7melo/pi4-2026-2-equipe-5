@@ -8,7 +8,7 @@ import type {
   ReordenarProgramacaoResposta,
   ReordenarProgramacaoPayload,
   CriarProgramacaoPayload,
-} from "@/types";
+} from "@/shared/types/programacoes";
 
 /** GET /api/programacoes — Rota #28 (canônica) */
 export async function listarProgramacoes(
@@ -27,7 +27,10 @@ export async function criarProgramacao(
   payload: CriarProgramacaoPayload,
   sessao403?: number
 ): Promise<Programacao> {
-  const { data } = await api.post<Programacao>("/programacoes", payload, { sessao403 });
+  const { data } = await api.post<Programacao>("/programacoes", payload, {
+    sessao403,
+    politica401: "sessao",
+  });
   return data;
 }
 
@@ -53,6 +56,9 @@ export async function reordenarProgramacao(
 
 /** Dívida técnica restrita ao mock: não existe rota DELETE /api/programacoes/{id} no contrato canônico */
 export async function deletarProgramacao(id: number, sessao403?: number): Promise<void> {
-  await api.delete(`/programacoes/${id}`, { sessao403 });
+  await api.delete(`/programacoes/${id}`, {
+    sessao403,
+    politica401: "sessao",
+  });
 }
 

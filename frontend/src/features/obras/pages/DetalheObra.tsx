@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useObraDetalhe, useHistoricoObra, useComentariosObra, useAdicionarComentario } from "@/features/obras/hooks/useObraDetalhe";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
@@ -310,6 +310,7 @@ export default function DetalheObra() {
                     type="text"
                     value={novoComentario}
                     onChange={(e) => setNovoComentario(e.target.value)}
+                    aria-label="Comentário sobre a obra"
                     placeholder="Adicionar um comentário ou observação na obra..."
                     className="flex-1 bg-surface border border-border-subtle rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border-strong focus:border-border-strong transition-colors"
                     disabled={addComentario.isPending}

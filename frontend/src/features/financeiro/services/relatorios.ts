@@ -1,14 +1,11 @@
 import { MOCK_ATIVO } from '@/shared/lib/modoApi';
+import { validarAssinaturaArquivo } from '@/shared/lib/arquivoBlob';
 import { normalizarErroExportacao } from '../lib/erroExportacao';
 import type { FiltrosRelatorioDemonstracao } from "@/shared/types/demonstracao";
 import { api } from "@/shared/api/api";
-import type { RelatorioCusto, DREObra, CustosObra, AtualizarCustosPayload } from "@/types";
+import type { DREObra } from "@/shared/types/dre";
+import type { CustosObra, AtualizarCustosPayload, RelatorioPublicoDados } from "../types/relatorios";
 
-/** GET /api/obras/{obraId}/relatorio-custo — Rota #33 */
-export async function buscarRelatorioCusto(obraId: number): Promise<RelatorioCusto> {
-  const { data } = await api.get<RelatorioCusto>(`/obras/${obraId}/relatorio-custo`);
-  return data;
-}
 
 /** GET /api/obras/{obraId}/dre — Rota #34 (RF-20) */
 export async function buscarDreObra(obraId: number): Promise<DREObra> {
@@ -36,17 +33,20 @@ export async function exportarRelatorio(formato: "pdf" | "excel", filtros?: Filt
       ...(MOCK_ATIVO ? { sessao403: sessao, politica401: 'sessao' as const } : {}),
     });
     if (MOCK_ATIVO) {
-      const tipo = formato === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      if (!(data instanceof Blob) || data.size === 0 || data.type !== tipo)
-        throw new Error('Resposta de exportação inválida. Tente novamente.');
-      const inicio = new Uint8Array(await data.slice(0, 5).arrayBuffer());
-      if (formato === 'pdf' ? String.fromCharCode(...inicio) !== '%PDF-' : inicio[0] !== 80 || inicio[1] !== 75 || inicio[2] !== 3 || inicio[3] !== 4)
+      const formatoEsperado = formato === 'pdf' ? 'pdf' : 'xlsx';
+      if (!(await validarAssinaturaArquivo(data, formatoEsperado)))
         throw new Error('Resposta de exportação inválida. Tente novamente.');
     }
     return data;
   } catch (erro) {
     throw MOCK_ATIVO ? await normalizarErroExportacao(erro) : erro;
   }
+}
+
+/** GET /api/cronograma/compartilhado/{token} — RF-16 */
+export async function buscarRelatorioPublico(token: string): Promise<RelatorioPublicoDados> {
+  const { data } = await api.get<RelatorioPublicoDados>(`/cronograma/compartilhado/${token}`);
+  return data;
 }
 
 /** Gera token de compartilhamento para visualização pública do relatório de obras */
@@ -68,17 +68,3 @@ export async function gerarLinkRelatorioDemonstracao(
   });
   return data.token;
 }
-
-// Retrocompatibilidade e alias canônico
-export const gerarLinkCompartilhadoRelatorio = (
-  periodo: { dataInicio: string; dataFim: string; clienteFiltro?: string },
-  sessao?: number
-) =>
-  gerarLinkRelatorioDemonstracao(
-    {
-      periodoInicio: periodo.dataInicio,
-      periodoFim: periodo.dataFim,
-      clienteFiltro: periodo.clienteFiltro ?? "todos",
-    },
-    sessao
-  );

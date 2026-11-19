@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { notifyManager, useQueryClient } from "@tanstack/react-query";
 import { capturarSessaoOperacional, invalidarSessaoOperacional, transicaoSessaoArmazenada } from "@/shared/lib/sessaoOperacao";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { useSessionExpiry } from "../hooks/useSessionExpiry";
 
 const consultaProtegida = (chave: readonly unknown[]) => !["relatorioPublico", "cronogramaPublico"].includes(String(chave[0]));

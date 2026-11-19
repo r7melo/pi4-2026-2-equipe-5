@@ -1,11 +1,10 @@
-import { Package, FileCheck, Loader2, AlertTriangle } from "lucide-react";
+import { Package, FileCheck, AlertTriangle } from "lucide-react";
 import { formatarDataBR } from "@/shared/lib/formatters";
 import { materialEstaPronto } from "@/features/cronograma/lib/prontidaoObra";
 import type { PainelProntidaoProps } from "@/features/cronograma/types/gavetaGantt";
 
 export function PainelProntidao({
   materialStatus,
-  carregandoHomologacao = false,
   parecerHomologacao,
   registroTecnico,
   prazoVistoria,
@@ -79,9 +78,7 @@ export function PainelProntidao({
             </span>
             <span
               className={`font-semibold px-2 py-0.5 rounded text-[11px] flex items-center gap-1 ${
-                carregandoHomologacao
-                  ? "bg-muted text-foreground-muted"
-                  : homologacaoAprovada
+                homologacaoAprovada
                   ? "bg-success-light text-success border border-success-border"
                   : homologacaoEmAnalise
                   ? "bg-info-light text-info border border-info-border"
@@ -90,11 +87,7 @@ export function PainelProntidao({
                   : "bg-warning-light text-warning border border-warning-border"
               }`}
             >
-              {carregandoHomologacao ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" /> Verificando...
-                </>
-              ) : homologacaoReprovada ? (
+              {homologacaoReprovada ? (
                 <>
                   <AlertTriangle className="w-3 h-3 text-destructive" /> Reprovado
                 </>
@@ -104,17 +97,16 @@ export function PainelProntidao({
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            {carregandoHomologacao && "Consultando concessionária de energia..."}
-            {!carregandoHomologacao && homologacaoAprovada && (
+            {homologacaoAprovada && (
               "Projeto aprovado na concessionária. Instalação liberada para ligação."
             )}
-            {!carregandoHomologacao && homologacaoEmAnalise && (
+            {homologacaoEmAnalise && (
               "Documentação em análise técnica junto à rede distribuidora."
             )}
-            {!carregandoHomologacao && homologacaoReprovada && (
+            {homologacaoReprovada && (
               "Pendências técnicas apontadas. Acesso reprovado provisoriamente."
             )}
-            {!carregandoHomologacao && parecerStatus === "Pendente" && (
+            {parecerStatus === "Pendente" && (
               "Aguardando submissão do projeto elétrico à concessionária."
             )}
           </p>

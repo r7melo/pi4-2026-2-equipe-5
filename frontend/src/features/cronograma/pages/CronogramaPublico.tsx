@@ -11,7 +11,7 @@ import {
   type GanttTask,
 } from "@/features/cronograma/components/GanttDhtmlxWrapper";
 import { GanttToolbar } from "@/features/cronograma/components/GanttToolbar";
-import type { NivelZoom } from "@/types";
+import type { NivelZoom } from "../types/gantt";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
@@ -84,12 +84,12 @@ export default function CronogramaPublico() {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-background-app">
       {/* Header Público Limpo */}
       <header className="bg-surface border-b border-border-subtle px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 no-print">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-info text-primary-foreground flex items-center justify-center shadow-xs">
+        <div className="flex items-center gap-3 min-w-0 max-w-full">
+          <div className="w-9 h-9 shrink-0 rounded-xl bg-info text-primary-foreground flex items-center justify-center shadow-xs">
             <Sun className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-sm font-bold text-foreground-secondary">ZL Engenharia Solar</h1>
               <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-success-light text-success border border-success-border">
                 <Shield className="w-2.5 h-2.5" />

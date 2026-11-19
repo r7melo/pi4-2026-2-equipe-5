@@ -1,21 +1,15 @@
 import { api } from "@/shared/api/api";
 import type {
-  RelatorioPublicoDados,
   FiltrosCronogramaCompartilhado,
   ProgramacaoCompartilhada,
   PeriodoCompartilhado,
   LinkCronogramaCompartilhado,
-} from "@/types";
+} from "@/shared/types/compartilhamentoCronograma";
 
 /**
  * GET /api/cronograma/compartilhado/{token}
- * RF-16: Busca dados do relatório/cronograma público sem exigência de login
+ * RF-16: Busca dados do cronograma público sem exigência de login
  */
-export async function buscarRelatorioPublico(token: string): Promise<RelatorioPublicoDados> {
-  const { data } = await api.get<RelatorioPublicoDados>(`/cronograma/compartilhado/${token}`);
-  return data;
-}
-
 export async function obterCronogramaCompartilhado(
   token: string,
   filtro?: FiltrosCronogramaCompartilhado

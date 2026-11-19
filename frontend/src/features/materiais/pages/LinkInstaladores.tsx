@@ -6,7 +6,7 @@ import { Button } from "@/shared/components/ui/Button";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import EmptyState from "@/shared/components/feedback/EmptyState";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { useInstalacoesInstalador, useDetalhesInstalacao } from "../hooks/useInstalador";
 
 export default function InstaladorMobile() {
@@ -288,7 +288,7 @@ export default function InstaladorMobile() {
                     onClick={() => setChegadaMarcada((prev) => !prev)}
                     className={`w-11 h-11 p-0 rounded-lg flex justify-center items-center cursor-pointer transition-colors ${
                       chegadaMarcada
-                        ? "bg-success text-white border-success"
+                        ? "bg-success text-primary-foreground border-success"
                         : "text-success border-success-border hover:bg-success-light"
                     }`}
                     title={chegadaMarcada ? "Chegada confirmada" : "Marcar Chegada"}

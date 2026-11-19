@@ -1,4 +1,30 @@
+import type { NOMES_PERFIS } from "@/shared/constants/perfis";
 import type { MutationFunctionContext, UseMutationOptions } from "@tanstack/react-query";
+
+// Tipos canônicos de Autenticação e Perfis (RF-01, RF-02)
+export type NomePerfil = (typeof NOMES_PERFIS)[number];
+
+export interface UsuarioPerfil {
+  id: number;
+  nomePerfil: NomePerfil;
+  permissoes: string[];
+}
+
+export interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  perfil: UsuarioPerfil;
+  equipeId: number | null;
+}
+
+export interface AuthState {
+  token: string | null;
+  usuario: Usuario | null;
+  expiresAt: string | null;
+  login: (token: string, usuario: Usuario, expiresAt?: string) => void;
+  logout: () => void;
+}
 
 export interface IdentidadeOperacional {
   token: string | null;

@@ -247,12 +247,12 @@ export function FormularioReagendamento({
             </>
           ) : reagendamentoFase === "sincronizando" ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin shrink-0" />
               <span>Sincronizando cronograma com o servidor...</span>
             </>
           ) : (
             <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin shrink-0" />
               <span>Salvando nova data da alocação...</span>
             </>
           )}
@@ -273,12 +273,12 @@ export function FormularioReagendamento({
           >
             {salvandoLocal || reagendamentoFase === "salvando" ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                 <span>Salvando...</span>
               </>
             ) : reagendamentoFase === "sincronizando" ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                 <span>Sincronizando...</span>
               </>
             ) : (

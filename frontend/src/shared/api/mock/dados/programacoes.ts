@@ -5,7 +5,7 @@ import { projetarReordenacao } from "@/shared/lib/reordenarProgramacoes";
 import { proximoDiaUtil, normalizarDataMeioDiaUTC, formatarDataISO, normalizarDataFimInclusiva, calcularDiasUteisInclusivos, calcularUltimoDiaUtil } from "@/shared/lib/formatters";
 import { obterObrasArmazenadas } from "./obras";
 
-export const STORAGE_KEY_PROG = "mock_programacoes_v4";
+const STORAGE_KEY_PROG = "mock_programacoes_v4";
 
 export function obterProgramacoesArmazenadas(): Programacao[] { return lerDadosCenario<Programacao[]>("mock_programacoes_v4"); }
 

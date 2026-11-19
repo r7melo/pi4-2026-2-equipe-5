@@ -29,9 +29,7 @@ export interface CoordenadorReagendamento {
   readonly liberar: (origem: IdentidadeOperacao, manterAviso: boolean) => boolean;
   readonly versaoConfirmada: (id: number) => number;
   readonly confirmar: (origem: IdentidadeOperacao, ids: readonly number[]) => boolean;
-  readonly chaveAtual: () => readonly ["programacoes", number];
   readonly sincronizarSessao: () => void;
-  readonly descartar: () => void;
 }
 
 function extrairIds(dados: unknown): number[] {
@@ -221,10 +219,6 @@ export function criarCoordenadorReagendamento(
     return true;
   }
 
-  function chaveAtual(): readonly ["programacoes", number] {
-    const sessao = obterSessaoSincronizada(false);
-    return ["programacoes", sessao] as const;
-  }
 
   function sincronizarSessao(): void {
     obterSessaoSincronizada(true);
@@ -253,7 +247,7 @@ export function criarCoordenadorReagendamento(
     idsConhecidos = novosIds;
   }
 
-  const desinscreverQueryCache = cliente.getQueryCache().subscribe((evento: QueryCacheNotifyEvent) => {
+  cliente.getQueryCache().subscribe((evento: QueryCacheNotifyEvent) => {
     if (evento.type !== "updated") {
       return;
     }
@@ -272,10 +266,6 @@ export function criarCoordenadorReagendamento(
     processarConfirmacaoQueryCache(dados);
   });
 
-  function descartar(): void {
-    desinscreverQueryCache();
-    assinantes.clear();
-  }
 
   return Object.freeze({
     lerEstado,
@@ -287,8 +277,6 @@ export function criarCoordenadorReagendamento(
     liberar,
     versaoConfirmada,
     confirmar,
-    chaveAtual,
     sincronizarSessao,
-    descartar,
   });
 }

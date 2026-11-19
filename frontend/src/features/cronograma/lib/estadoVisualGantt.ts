@@ -35,7 +35,6 @@ export interface ArmazenamentoEstadoVisualGantt {
   readonly sessao: number;
   obterEstadoVisual: () => EstadoVisualGantt;
   salvarEstadoVisual: (novoEstado: EstadoVisualGantt) => void;
-  obterSessao: () => number;
 }
 
 export class ArmazenadorEstadoVisualGantt implements ArmazenamentoEstadoVisualGantt {
@@ -48,16 +47,13 @@ export class ArmazenadorEstadoVisualGantt implements ArmazenamentoEstadoVisualGa
   }
 
   obterEstadoVisual = (): EstadoVisualGantt => {
-    return this.estado;
+    return clonarEstadoVisual(this.estado);
   };
 
   salvarEstadoVisual = (novoEstado: EstadoVisualGantt): void => {
-    this.estado = novoEstado;
+    this.estado = clonarEstadoVisual(novoEstado);
   };
 
-  obterSessao = (): number => {
-    return this.sessao;
-  };
 }
 
 export function criarArmazenamentoEstadoVisual(

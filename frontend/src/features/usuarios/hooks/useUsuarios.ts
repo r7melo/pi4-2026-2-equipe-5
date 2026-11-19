@@ -1,5 +1,5 @@
 import { capturarSessaoOperacional, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
-import { useSessaoUsuarios } from "./useGestaoUsuarios";
+import { useSessaoUsuarios } from "./useSessaoUsuarios";
 import { useQuery } from "@tanstack/react-query";
 import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
 

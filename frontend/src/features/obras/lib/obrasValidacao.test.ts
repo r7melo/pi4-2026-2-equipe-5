@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { formatarCpfCnpj, formatarTelefone } from "@/shared/lib/validacoesDocumento";
-import type { CriarObraPayload, NomePerfil } from "@/types";
+import type { NomePerfil } from "@/shared/types/autorizacao";
+import type { CriarObraPayload } from "@/features/obras/types/obrasCadastro";
 
 describe("Validação e Criação de Obras (Frente Obras - 02 Railton)", () => {
   it("deve formatar corretamente CPF (11 dígitos) e CNPJ (14 dígitos)", () => {

@@ -2,7 +2,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { QueryObserver, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { listarProgramacoes } from "@/features/cronograma/services/programacoes";
-import type { Programacao } from "@/types";
+import type { Programacao } from "@/shared/types/programacoes";
 import {
   assinarSessaoOperacional,
   capturarSessaoOperacional,
@@ -12,13 +12,11 @@ import {
 import {
   criarCoordenadorReagendamento,
   type CoordenadorReagendamento,
-  type EstadoCoordenador,
   type FaseReagendamento,
   type IdentidadeOperacao,
 } from "@/features/cronograma/lib/coordenadorReagendamento";
 
 export interface RetornoEstadoReagendamento {
-  readonly estado: EstadoCoordenador;
   readonly fase: FaseReagendamento;
   readonly aviso: string | null;
   readonly bloqueado: boolean;
@@ -237,7 +235,6 @@ export function useEstadoReagendamento(): RetornoEstadoReagendamento {
   }, [coordenador, queryClient]);
 
   return {
-    estado,
     fase: estado.fase,
     aviso: estado.aviso,
     bloqueado: estado.fase !== "livre",

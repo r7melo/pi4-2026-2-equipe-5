@@ -17,7 +17,7 @@ const campos = {
 };
 // Preservar POST legado de MateriaisObra e ignorar identidade enviada pelo cliente.
 const criar = z.object({ ...campos, tipo: campos.tipo.optional(), descricao: z.string().optional(), unidade: z.string().optional() }).refine(d => Boolean(d.tipo || d.descricao));
-const alterar = z.object(campos).partial().strict().refine(d => Object.keys(d).length > 0);
+const alterar = z.object({ ...campos, statusLogistico: campos.statusLogistico.unwrap().unwrap().optional() }).partial().strict().refine(d => Object.keys(d).length > 0);
 const erroValidacao: [number, unknown] = [400, { error: { code: "VALIDATION_ERROR", message: "Dados do material inválidos." } }];
 const erroPermissao: [number, unknown] = [403, { error: { code: "ACCESS_DENIED", message: "Operação não permitida para este perfil." } }];
 const erroNaoAutenticado: [number, unknown] = [401, { error: { code: "UNAUTHORIZED", message: "Sessão ausente ou expirada." } }];
@@ -77,6 +77,8 @@ export function registrarMateriais(mock: MockAdapter): void {
       const validacao = alterar.safeParse(extrairDados<unknown>(config.data));
       if (!validacao.success) return erroValidacao;
       const payload = validacao.data;
+      if (usuario.perfil.nomePerfil === "Financeiro" &&
+        Object.keys(payload).some(campo => campo !== "statusLogistico")) return erroPermissao;
 
       const atualizado = atualizarMaterialArmazenado(id, payload);
       if (!atualizado) {

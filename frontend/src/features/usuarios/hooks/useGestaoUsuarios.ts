@@ -1,12 +1,10 @@
-import { toast } from "sonner";
 import { ApiErro } from "@/shared/api/api";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useSyncExternalStore } from "react";
-import { assinarSessaoOperacional, capturarSessaoOperacional, exigirSessaoOperacional, erroDaSessaoAnterior, sessaoOperacionalVigente, statusHttp } from "@/shared/lib/sessaoOperacao";
+import { exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { useMutacaoSessao } from "@/shared/hooks/useMutacaoSessao";
 import { listarUsuarios, editarUsuario, atualizarStatus } from "../services/gestaoUsuarios";
 import type { EditarUsuario, StatusUsuario, FiltrosUsuarios } from "../types/gestaoUsuarios";
-export function useSessaoUsuarios() { return useSyncExternalStore(assinarSessaoOperacional, capturarSessaoOperacional); }
+import { useSessaoUsuarios } from "./useSessaoUsuarios";
 export function useListaUsuarios(filtros: FiltrosUsuarios) {
   const sessao = useSessaoUsuarios();
   return useQuery({ queryKey: ["usuarios", sessao, filtros], retry: false, networkMode: "always", gcTime: 0,
@@ -37,14 +35,4 @@ export function useConsultaUsuario(id: number, email: string) {
         if (!r.itens.length || page * 100 >= r.total) throw new ApiErro(404, "USUARIO_NOT_FOUND", "Usuário não encontrado. Atualize a lista.");
       }
     } });
-}
-
-/** Descarta a interface da operação somente para uma negativa da sessão atual. */
-export function usePerdaPermissao(erro: unknown, aoNegado: () => void) {
-  const sessao = useSessaoUsuarios();
-  useEffect(() => {
-    if (statusHttp(erro) !== 403 || erroDaSessaoAnterior(erro)) return;
-    const frame = requestAnimationFrame(() => { if (sessaoOperacionalVigente(sessao) && !erroDaSessaoAnterior(erro)) { toast.error("Você não possui permissão para visualizar este recurso.", { id: "acesso-proibido-403" }); aoNegado(); } });
-    return () => cancelAnimationFrame(frame);
-  }, [erro, sessao, aoNegado]);
 }

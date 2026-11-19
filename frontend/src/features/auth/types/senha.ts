@@ -7,10 +7,11 @@ export interface MensagemSenha { mensagem: string; sucesso?: boolean }
 export interface ContextoPedidoSenha { signal: AbortSignal; sessao?: number }
 export interface CampoSenhaProps {
   id: string; label: string; value: string; onChange: (valor: string) => void;
+  descricaoId?: string; erro?: boolean; onBlur?: () => void;
   disabled?: boolean; autoComplete?: "current-password" | "new-password";
 }
 export interface CamposNovaSenhaProps {
   nova: string; confirmar: string; onNova: (valor: string) => void;
-  onConfirmar: (valor: string) => void; disabled?: boolean;
+  onConfirmar: (valor: string) => void; disabled?: boolean; validar?: boolean; erroNova?: string;
 }
 export interface PaginaAcessoProps { titulo: string; children: ReactNode }

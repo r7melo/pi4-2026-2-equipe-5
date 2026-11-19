@@ -1,6 +1,10 @@
 import { gantt } from "dhtmlx-gantt";
 import type { NivelZoom, GanttTask } from "@/features/cronograma/types/gantt";
-import { ehLinhaProjeto } from "@/features/cronograma/types/gantt";
+import {
+  ehLinhaProjeto,
+  CLASSE_BOTAO_ALOCACAO,
+  CLASSE_BOTAO_EQUIPE,
+} from "@/features/cronograma/types/gantt";
 import {
   dataGanttParaCivil,
   dataCivilParaGantt,
@@ -60,7 +64,7 @@ export function obterColunasGantt(temOnSelectTask?: VerificadorOnSelectTask) {
             (task as unknown as { $open?: boolean }).$open ?? task.open
           );
           const rotuloEquipe = texto || task.nomeEquipe || `Equipe ${task.id}`;
-          return `<button type="button" class="gantt-btn-equipe" data-task-id="${escaparHtml(task.id)}" aria-expanded="${estaAberto ? "true" : "false"}" aria-label="${escaparHtml(rotuloEquipe)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloEquipe)}</span></button>`;
+          return `<button type="button" class="${CLASSE_BOTAO_EQUIPE}" data-task-id="${escaparHtml(task.id)}" aria-expanded="${estaAberto ? "true" : "false"}" aria-label="${escaparHtml(rotuloEquipe)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloEquipe)}</span></button>`;
         }
 
         const rotuloVisivel =
@@ -75,7 +79,7 @@ export function obterColunasGantt(temOnSelectTask?: VerificadorOnSelectTask) {
         }
         const rotuloAcessivel = partesAcessiveis.join(" — ");
 
-        return `<button type="button" class="gantt-btn-alocacao" data-task-id="${escaparHtml(task.id)}" aria-label="${escaparHtml(rotuloAcessivel)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloVisivel)}</span></button>`;
+        return `<button type="button" class="${CLASSE_BOTAO_ALOCACAO}" data-task-id="${escaparHtml(task.id)}" aria-label="${escaparHtml(rotuloAcessivel)}"><span class="gantt-btn-rotulo">${escaparHtml(rotuloVisivel)}</span></button>`;
       },
     },
       {

@@ -17,8 +17,8 @@ export default function FeedbackErro({
       <div className="w-12 h-12 rounded-full bg-destructive-light text-destructive flex items-center justify-center mb-4">
         <AlertCircle className="w-6 h-6" />
       </div>
-      <h3 className="text-base font-bold text-foreground-secondary mb-1">{titulo}</h3>
-      <p className="text-sm text-muted-foreground max-w-md mb-6">{mensagem}</p>
+      <h2 className="text-base font-bold text-foreground-secondary mb-1">{titulo}</h2>
+      <p role="alert" className="text-sm text-muted-foreground max-w-md mb-6">{mensagem}</p>
       {onTentarNovamente && (
         <Button variant="outline" size="sm" onClick={onTentarNovamente}>
           <RefreshCw className="w-4 h-4 mr-2" />

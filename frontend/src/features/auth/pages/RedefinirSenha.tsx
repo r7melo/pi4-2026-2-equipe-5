@@ -11,8 +11,8 @@ import { useOperacaoSenha, useGeracaoSenha } from "../hooks/useOperacaoSenha";
 import { senhaValida } from "../lib/politicaSenha";
 import { encerrarSessaoSenha } from "../lib/encerrarSessaoSenha";
 import { redefinirSenha, revalidarSessaoSenha } from "../services/senhas";
-import { useAuthStore } from "../stores/useAuthStore";
-import type { Usuario } from "@/types";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
+import type { Usuario } from "@/shared/types/autorizacao";
 
 export default function RedefinirSenha() {
   const geracao = useGeracaoSenha();
@@ -24,6 +24,7 @@ function Redefinicao({ token, geracao }: { token: string; geracao: number }) {
   const [nova, setNova] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [erro, setErro] = useState("");
+  const [tentouEnviar, setTentouEnviar] = useState(false);
   const [invalido, setInvalido] = useState(!token.trim());
   const [concluida, setConcluida] = useState(false);
   const [verificada, setVerificada] = useState(false);
@@ -56,8 +57,10 @@ function Redefinicao({ token, geracao }: { token: string; geracao: number }) {
           <Button disabled={consulta.pendente} onClick={revalidar}>{consulta.pendente ? "Verificando..." : "Revalidar sessão"}</Button>}
         <Button variant="outline" onClick={() => { if (encerrarSessaoSenha(client, geracao)) void navigate("/login", { replace: true }); }}>Sair e ir para o login</Button>
       </div>
-    </div> : <form className="space-y-4" onSubmit={e => {
-      e.preventDefault(); if (operacao.pendente || !senhaValida(nova) || nova !== confirmar) return;
+    </div> : <form noValidate className="space-y-4" onSubmit={e => {
+      e.preventDefault(); if (operacao.pendente) return;
+      setTentouEnviar(true);
+      if (!senhaValida(nova) || nova !== confirmar) { setErro("Revise os requisitos da nova senha e sua confirmação."); document.getElementById(!senhaValida(nova) ? "nova-senha" : "confirmar-senha")?.focus(); return; }
       setErro("");
       void operacao.executar(signal => redefinirSenha({ token, novaSenha: nova }, { signal })).then(resposta => {
         if (!resposta) return;
@@ -72,9 +75,9 @@ function Redefinicao({ token, geracao }: { token: string; geracao: number }) {
         else setErro(error instanceof Error ? error.message : "Não foi possível confirmar a troca.");
       });
     }}>
-      <CamposNovaSenha nova={nova} confirmar={confirmar} onNova={setNova} onConfirmar={setConfirmar} disabled={operacao.pendente} />
+      <CamposNovaSenha validar={tentouEnviar} nova={nova} confirmar={confirmar} onNova={setNova} onConfirmar={setConfirmar} disabled={operacao.pendente} />
       {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
-      <Button className="min-h-11 w-full" type="submit" disabled={operacao.pendente || !senhaValida(nova) || nova !== confirmar}>{operacao.pendente ? "Redefinindo..." : "Redefinir senha"}</Button>
+      <Button className="min-h-11 w-full" type="submit" disabled={operacao.pendente}>{operacao.pendente ? "Redefinindo..." : "Redefinir senha"}</Button>
     </form>}
   </PaginaAcesso>;
 }

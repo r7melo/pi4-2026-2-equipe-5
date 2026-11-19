@@ -3,7 +3,9 @@ import { RotateCcw, BookmarkCheck, Filter, Calendar, AlertCircle } from "lucide-
 import { toast } from "sonner";
 import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { Drawer } from "@/shared/components/ui/Drawer";
-import type { GanttFiltrosAvancados, Equipe, CategoriaObra } from "@/types";
+import type { Equipe } from "../types/equipes";
+import type { GanttFiltrosAvancados } from "../types/gantt";
+import type { CategoriaObraGantt } from "@/features/cronograma/types/visaoCronograma";
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
 
 interface GanttFilterDrawerProps {
@@ -25,11 +27,13 @@ export function GanttFilterDrawer({
 }: GanttFilterDrawerProps) {
   const [prevAberto, setPrevAberto] = useState(aberto);
   const [form, setForm] = useState<GanttFiltrosAvancados>(filtrosAtuais);
+  const [limpezas, setLimpezas] = useState(0);
 
   if (prevAberto !== aberto) {
     setPrevAberto(aberto);
     if (aberto) {
       setForm(filtrosAtuais);
+      setLimpezas(0);
     }
   }
 
@@ -37,6 +41,7 @@ export function GanttFilterDrawer({
     const limpo: GanttFiltrosAvancados = {};
     setForm(limpo);
     onAplicarFiltros(limpo);
+    setLimpezas((n) => n + 1);
     toast.info("Filtros do cronograma redefinidos");
   };
 
@@ -61,8 +66,11 @@ export function GanttFilterDrawer({
       titulo="Filtros Avançados"
       icone={<Filter className="w-5 h-5 text-info" />}
     >
+      <div role="status" aria-live="polite" className="sr-only">
+        {limpezas > 0 ? (limpezas % 2 === 1 ? "Filtros do cronograma redefinidos" : "Filtros do cronograma redefinidos.") : ""}
+      </div>
       {/* Corpo do formulário com rolagem suave */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+      <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-4 text-xs">
         {/* 1. Termo de Busca */}
         <div>
           <label className="block font-semibold text-foreground-muted mb-1">
@@ -86,7 +94,7 @@ export function GanttFilterDrawer({
             onChange={(e) =>
               setForm({
                 ...form,
-                categoria: (e.target.value as CategoriaObra) || undefined,
+                categoria: (e.target.value as CategoriaObraGantt) || undefined,
               })
             }
             className="w-full px-3 py-2 bg-surface-subtle border border-border-subtle rounded-md focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info text-foreground-secondary cursor-pointer"
@@ -102,10 +110,10 @@ export function GanttFilterDrawer({
 
         {/* 3. Equipe Responsável */}
         <div>
-          <label className="block font-semibold text-foreground-muted mb-1">
+          <label className="block font-semibold text-foreground-muted mb-1" htmlFor="campo-ganttfilterdrawer-1">
             Equipe Alocada
           </label>
-          <select
+          <select id="campo-ganttfilterdrawer-1"
             value={form.equipeId || ""}
             onChange={(e) =>
               setForm({
@@ -126,10 +134,10 @@ export function GanttFilterDrawer({
 
         {/* 4. Status da Obra no Funil */}
         <div>
-          <label className="block font-semibold text-foreground-muted mb-1">
+          <label className="block font-semibold text-foreground-muted mb-1" htmlFor="campo-ganttfilterdrawer-2">
             Status da Obra
           </label>
-          <select
+          <select id="campo-ganttfilterdrawer-2"
             value={form.statusObra || ""}
             onChange={(e) =>
               setForm({
@@ -151,10 +159,10 @@ export function GanttFilterDrawer({
 
         {/* 5. Prioridade */}
         <div>
-          <label className="block font-semibold text-foreground-muted mb-1">
+          <label className="block font-semibold text-foreground-muted mb-1" htmlFor="campo-ganttfilterdrawer-3">
             Prioridade
           </label>
-          <select
+          <select id="campo-ganttfilterdrawer-3"
             value={form.prioridade !== undefined ? form.prioridade : ""}
             onChange={(e) =>
               setForm({
@@ -173,10 +181,10 @@ export function GanttFilterDrawer({
 
         {/* 6. Responsável pela Atualização */}
         <div>
-          <label className="block font-semibold text-foreground-muted mb-1">
+          <label className="block font-semibold text-foreground-muted mb-1" htmlFor="campo-ganttfilterdrawer-4">
             Atualizado Por (Responsável)
           </label>
-          <input
+          <input id="campo-ganttfilterdrawer-4"
             type="text"
             value={form.responsavel || ""}
             onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
@@ -195,7 +203,7 @@ export function GanttFilterDrawer({
             <div>
               <span className="text-[10px] text-muted-foreground block mb-0.5">A partir de:</span>
               <input
-                type="date"
+                type="date" aria-label="Início da obra a partir de"
                 value={form.dataInicioDe || ""}
                 onChange={(e) => setForm({ ...form, dataInicioDe: e.target.value })}
                 className="w-full px-2 py-1.5 bg-surface-subtle border border-border-subtle rounded-md text-foreground-secondary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info"
@@ -204,7 +212,7 @@ export function GanttFilterDrawer({
             <div>
               <span className="text-[10px] text-muted-foreground block mb-0.5">Até:</span>
               <input
-                type="date"
+                type="date" aria-label="Início da obra até"
                 value={form.dataInicioAte || ""}
                 onChange={(e) => setForm({ ...form, dataInicioAte: e.target.value })}
                 className="w-full px-2 py-1.5 bg-surface-subtle border border-border-subtle rounded-md text-foreground-secondary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info"
@@ -223,7 +231,7 @@ export function GanttFilterDrawer({
             <div>
               <span className="text-[10px] text-muted-foreground block mb-0.5">A partir de:</span>
               <input
-                type="date"
+                type="date" aria-label="Término da obra a partir de"
                 value={form.dataFimDe || ""}
                 onChange={(e) => setForm({ ...form, dataFimDe: e.target.value })}
                 className="w-full px-2 py-1.5 bg-surface-subtle border border-border-subtle rounded-md text-foreground-secondary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info"
@@ -232,7 +240,7 @@ export function GanttFilterDrawer({
             <div>
               <span className="text-[10px] text-muted-foreground block mb-0.5">Até:</span>
               <input
-                type="date"
+                type="date" aria-label="Término da obra até"
                 value={form.dataFimAte || ""}
                 onChange={(e) => setForm({ ...form, dataFimAte: e.target.value })}
                 className="w-full px-2 py-1.5 bg-surface-subtle border border-border-subtle rounded-md text-foreground-secondary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info"
@@ -254,6 +262,7 @@ export function GanttFilterDrawer({
             ].map((opt) => (
               <button
                 key={opt.id}
+                aria-pressed={(form.statusMaterial || "todos") === opt.id}
                 type="button"
                 onClick={() =>
                   setForm({

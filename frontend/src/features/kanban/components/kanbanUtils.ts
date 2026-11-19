@@ -1,5 +1,105 @@
 import type { StatusObra } from "@/shared/constants/kanbanStatus";
-import type { Material, StatusLogistico } from "@/types";
+import type { Material, StatusLogistico } from "@/shared/types/materiais";
+import type { ObraKanbanCard } from "../types/kanban";
+
+export function agruparObrasPorStatus(
+  obras: ObraKanbanCard[]
+): Record<StatusObra, ObraKanbanCard[]> {
+  const mapa: Record<StatusObra, ObraKanbanCard[]> = {
+    MaterialComprado: [],
+    NoDeposito: [],
+    Separado: [],
+    EmAndamento: [],
+    Concluido: [],
+    Assistencia: [],
+  };
+  for (const obra of obras) {
+    if (mapa[obra.status]) {
+      mapa[obra.status].push(obra);
+    }
+  }
+  return mapa;
+}
+
+export function ordenarObrasPorPrazo(obras: ObraKanbanCard[]): ObraKanbanCard[] {
+  return [...obras].sort((a, b) => {
+    const timeA = a.dataFimEstimada ? new Date(a.dataFimEstimada).getTime() : Infinity;
+    const timeB = b.dataFimEstimada ? new Date(b.dataFimEstimada).getTime() : Infinity;
+    return timeA - timeB;
+  });
+}
+
+export function selecionarVisaoIntegral(obras: ObraKanbanCard[]): ObraKanbanCard[] {
+  return ordenarObrasPorPrazo(
+    obras.filter(
+      (obra) =>
+        obra.status !== "Concluido" ||
+        !isObraConcluidaArquivada(obra.dataFimReal || obra.dataFimEstimada)
+    )
+  );
+}
+
+export interface FiltrosKanbanBoard {
+  busca: string;
+  categoriaFiltro: string;
+  materialFiltro: string;
+  mapaMateriais: Map<number, Material[]>;
+  exibirArquivadas: boolean;
+  somenteLeitura: boolean;
+}
+
+function correspondeFiltroMaterial(
+  materialFiltro: string,
+  statusGargalo?: StatusLogistico
+): boolean {
+  if (materialFiltro === "Em Solicitação") return statusGargalo === "EmSolicitacao";
+  if (materialFiltro === "Comprado") return statusGargalo === "Comprado";
+  if (materialFiltro === "Em Trânsito") return statusGargalo === "EmTransito";
+  if (materialFiltro === "Disponível" || materialFiltro === "No Depósito") {
+    return statusGargalo === "Disponivel";
+  }
+  if (materialFiltro === "Utilizado" || materialFiltro === "Separado") {
+    return statusGargalo === "Utilizado";
+  }
+  return true;
+}
+
+export function filtrarOrdenarObrasKanban(
+  obras: ObraKanbanCard[],
+  filtros: FiltrosKanbanBoard
+): ObraKanbanCard[] {
+  if (filtros.somenteLeitura) return selecionarVisaoIntegral(obras);
+
+  const termo = filtros.busca.trim().toLowerCase();
+  const list = obras.filter((obra) => {
+    if (termo) {
+      const matchCliente = obra.clienteNome.toLowerCase().includes(termo);
+      const matchId = String(obra.id).includes(termo);
+      if (!matchCliente && !matchId) return false;
+    }
+
+    if (filtros.categoriaFiltro && obra.categoria !== filtros.categoriaFiltro) {
+      return false;
+    }
+
+    if (filtros.materialFiltro && filtros.materialFiltro !== "Todos") {
+      const mats = filtros.mapaMateriais.get(Number(obra.id));
+      if (!mats) return false;
+      const statusGargalo = calcularStatusGargalo(mats, obra.status);
+      if (!correspondeFiltroMaterial(filtros.materialFiltro, statusGargalo)) return false;
+    }
+
+    if (obra.status === "Concluido" && !termo && !filtros.exibirArquivadas) {
+      if (isObraConcluidaArquivada(obra.dataFimReal || obra.dataFimEstimada)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  return ordenarObrasPorPrazo(list);
+}
 
 export function getCategoriaBadgeStyle(categoria: string) {
   switch (categoria.toLowerCase()) {
@@ -81,27 +181,16 @@ export function calcularStatusGargalo(
     return undefined;
   }
 
-  // Precedência de gargalo estrito (RF-06):
-  // 1. Qualquer insumo não definido ou "Comprado" indica compra pendente (gargalo crítico)
-  if (materiaisObra.some((m) => !m.statusLogistico || m.statusLogistico === "Comprado")) return "Comprado";
-  // 2. Qualquer insumo em transporte indica deslocamento logístico
+  // Precedência de gargalo estrito:
+  // 1. Qualquer insumo "EmSolicitacao" indica solicitação pendente de compra
+  if (materiaisObra.some((m) => m.statusLogistico === "EmSolicitacao")) return "EmSolicitacao";
+  // 2. Qualquer insumo não definido ou "Comprado" indica compra pendente
+  if (materiaisObra.some((m) => !m.statusLogistico || m.statusLogistico === "Comprado"))
+    return "Comprado";
+  // 3. Qualquer insumo em transporte indica deslocamento logístico
   if (materiaisObra.some((m) => m.statusLogistico === "EmTransito")) return "EmTransito";
-  // 3. Se todos os insumos forem consumidos na obra
+  // 4. Se todos os insumos forem consumidos na obra
   if (materiaisObra.every((m) => m.statusLogistico === "Utilizado")) return "Utilizado";
-  // 4. Se todos os materiais estão no depósito (ou mesclados com utilizados)
+  // 5. Se todos os materiais estão no depósito (ou mesclados com utilizados)
   return "Disponivel";
-}
-
-/**
- * Retorna o valor financeiro da obra. Caso valorTotal não esteja definido ou seja <= 0,
- * calcula a estimativa padrão de R$ 1.300 por painel solar fotovoltaico.
- */
-export function obterValorObra(card: {
-  valorTotal?: number | null;
-  quantidadePaineis: number;
-}): number {
-  if (card.valorTotal && card.valorTotal > 0) {
-    return card.valorTotal;
-  }
-  return (card.quantidadePaineis || 0) * 1300;
 }

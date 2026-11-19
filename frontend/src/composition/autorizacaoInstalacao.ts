@@ -1,4 +1,4 @@
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 
 // Mesma duração do singleton de autenticação. Registrar antes de consumidores React:
 // transições intermediárias também invalidam o sinal, mesmo quando agrupadas no render.

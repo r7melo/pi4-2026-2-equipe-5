@@ -3,7 +3,7 @@ import { dataCivilValida } from "@/shared/lib/datasCivis";
 import type { JanelaDatasGantt } from "./janelaProgramacoes";
 
 /**
- * Interface observacional restrita da costura de QA do Gantt (Demanda #90).
+ * Interface observacional restrita da costura de QA do Gantt.
  * Qualquer método invocado sobre uma referência inativa, substituída ou após
  * o desmonte do componente lança Error por invalidação de capacidade.
  */

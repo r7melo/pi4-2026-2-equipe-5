@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
 
 import { listarEquipes, criarEquipe, listarInstaladores } from "@/features/cronograma/services/equipes";
-import type { CriarEquipePayload } from "@/types";
+import type { CriarEquipePayload } from "../types/equipes";
 
 export function useEquipes() {
   return useQuery({

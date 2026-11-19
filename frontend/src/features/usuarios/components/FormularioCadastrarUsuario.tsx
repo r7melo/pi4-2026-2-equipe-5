@@ -1,5 +1,7 @@
-import { usePerdaPermissao } from "../hooks/useGestaoUsuarios";
-import { capturarSessaoOperacional, sessaoOperacionalVigente, erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
+import { NOMES_PERFIS, ROTULOS_PERFIS } from "@/shared/constants/perfis";
+import { useContextoUsuario } from "../hooks/useContextoUsuario";
+import { usePerdaPermissao } from "../hooks/usePerdaPermissao";
+import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +27,7 @@ const CLASSE_SELECT = "w-full min-w-0 rounded-lg border border-border-subtle bg-
 const CLASSE_LABEL = "block text-sm font-semibold text-foreground-muted";
 
 export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onSemPermissao }: FormularioCadastroProps) {
+  const capturarContexto = useContextoUsuario();
   const navigate = useNavigate();
   const [semPermissao, setSemPermissao] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -81,18 +84,18 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
         { shouldFocus: true });
       return;
     }
-    const sessao = capturarSessaoOperacional();
+    const vigente = capturarContexto();
     let erroObsoleto = false;
     try {
       await cadastro.mutateAsync(dados);
-      if (!sessaoOperacionalVigente(sessao)) { erroObsoleto = true; return; }
+      if (!vigente()) { erroObsoleto = true; return; }
       toast.success("Usuário cadastrado com sucesso.");
       if (onConcluido) { onConcluido(); return; }
       reset(VALORES_INICIAIS);
       setMostrarSenha(false);
       setFocoPendente(true);
     } catch (erro) {
-      if (!sessaoOperacionalVigente(sessao) || erroDaSessaoAnterior(erro)) { erroObsoleto = true; return; }
+      if (!vigente() || erroDaSessaoAnterior(erro)) { erroObsoleto = true; return; }
       if (erro instanceof ApiErro) {
         if (erro.status === 401) return;
         if (erro.status === 409 && erro.codigo === "EMAIL_ALREADY_EXISTS") {
@@ -125,7 +128,7 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
       }
       toast.error("Não foi possível confirmar o cadastro. Tente novamente.");
     } finally {
-      if (!erroObsoleto) cadastro.reset();
+      if (!erroObsoleto && vigente()) cadastro.reset();
     }
   }
 
@@ -134,9 +137,11 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
     if (travaEnvio.current) return;
     travaEnvio.current = true;
     setFocoPendente(false);
+    const vigente = capturarContexto();
     try {
       await handleSubmit(enviar)(evento);
     } catch {
+      if (!vigente()) return;
       toast.error("Não foi possível confirmar o cadastro. Tente novamente.");
     } finally {
       travaEnvio.current = false;
@@ -159,10 +164,7 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
                 {...register("perfil")} aria-invalid={!!errors.perfil}
                 aria-describedby={errors.perfil ? "usuario-perfil-erro" : undefined}>
                 <option value="">Selecionar perfil</option>
-                <option value="Administrador">Administrador</option>
-                <option value="Engenharia">Engenharia</option>
-                <option value="Financeiro">Financeiro</option>
-                <option value="InstaladorCampo">Instalador de Campo</option>
+                {NOMES_PERFIS.map(nomePerfil => <option key={nomePerfil} value={nomePerfil}>{ROTULOS_PERFIS[nomePerfil]}</option>)}
               </select>
               {errors.perfil && (
                 <p id="usuario-perfil-erro" className="text-xs text-destructive">
@@ -218,7 +220,7 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
             </div>
             <Button type="submit" disabled={ocupado}
               className="w-full sm:w-auto" aria-busy={ocupado}>
-              {ocupado && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+              {ocupado && <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />}
               {ocupado ? "Cadastrando usuário..." : "Cadastrar usuário"}
             </Button>
           </fieldset>

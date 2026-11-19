@@ -55,6 +55,8 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5000000, // 5MB para evitar falhas silenciosas de cache
+        navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/hubs(?:\/|$)/],
+        cleanupOutdatedCaches: true,
         navigateFallback: "/index.html", // Previne erro 404 offline no React Router
         globIgnores: ["**/node_modules/**/*", "sw.js", "workbox-*.js"],
       },

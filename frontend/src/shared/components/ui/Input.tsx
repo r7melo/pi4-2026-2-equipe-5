@@ -13,9 +13,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, errorId, helperText, icon, id, type = "text",
     "aria-describedby": descricaoExterna, ...props }, ref) => {
     const generatedId = React.useId();
-    const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : generatedId);
+    const inputId = id || generatedId;
     const resolvedErrorId = errorId || (inputId + "-erro");
-    const describedBy = [descricaoExterna, error ? resolvedErrorId : undefined]
+    const helperId = inputId + "-ajuda";
+    const describedBy = [descricaoExterna, error ? resolvedErrorId : helperText ? helperId : undefined]
       .filter(Boolean).join(" ") || undefined;
 
     return (
@@ -26,7 +27,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className="block text-sm font-semibold text-foreground-muted"
           >
             {label}
-            {props.required && <span className="text-destructive ml-1">*</span>}
+            {props.required && <span aria-hidden="true" className="text-destructive ml-1">*</span>}
           </label>
         )}
 
@@ -56,7 +57,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {error ? (
           <p id={resolvedErrorId} className="text-xs text-destructive font-medium mt-1 animate-fadeIn">{error}</p>
         ) : helperText ? (
-          <p className="text-xs text-muted-foreground mt-1">{helperText}</p>
+          <p id={helperId} className="text-xs text-muted-foreground mt-1">{helperText}</p>
         ) : null}
       </div>
     );

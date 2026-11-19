@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
-import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
+import { exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import {
   listarMateriais,
   buscarContextoObra,
@@ -8,16 +8,26 @@ import {
   atualizarStatusMaterial,
   atualizarDadosMaterial,
   excluirMaterial,
-} from "@/features/materiais/services/materiais";
-import type { Material, CriarMaterialPayload, StatusLogistico, AtualizarMaterialPayload } from "@/types";
-import { toast } from "sonner";
+} from "../services/materiais";
+import type { CriarMaterialPayload } from "@/shared/types/materiais";
+import type {
+  AlterarMaterial,
+  AlterarStatusMaterial,
+  LoteMateriais,
+} from "../types/gestaoMateriais";
+
+function useInvalidarMateriais() {
+  const queryClient = useQueryClient();
+  // O prefixo ["materiais"] sincroniza quadro Kanban, painel lateral e /obras/:id/materiais.
+  return () => queryClient.invalidateQueries({ queryKey: ["materiais"] });
+}
 
 export function useMateriais(obraId: number) {
   return useQuery({
     queryKey: ["materiais", obraId],
-    queryFn: () => listarMateriais(obraId),
+    queryFn: ({ signal }) => listarMateriais(obraId, undefined, signal),
     staleTime: 1000 * 30,
-    enabled: !!obraId,
+    enabled: obraId > 0,
   });
 }
 
@@ -25,84 +35,86 @@ export function useMateriais(obraId: number) {
 export function useObraContextoMateriais(obraId: number) {
   return useQuery({
     queryKey: ["obra-contexto-materiais", obraId],
-    queryFn: () => buscarContextoObra(obraId),
+    queryFn: ({ signal }) => buscarContextoObra(obraId, undefined, signal),
     staleTime: 1000 * 60 * 5,
-    enabled: !!obraId,
+    enabled: obraId > 0,
   });
 }
 
 export function useAdicionarMaterial() {
-  const queryClient = useQueryClient();
+  const invalidar = useInvalidarMateriais();
 
   return useMutation({
-    mutationFn: (
-      { obraId, payload }: { obraId: number; payload: CriarMaterialPayload | Omit<Material, "id" | "obraId"> },
+    mutationKey: ["materiais"],
+    mutationFn: async (
+      { obraId, payload }: { obraId: number; payload: CriarMaterialPayload },
       sessao
-    ) => registrarMaterial(obraId, payload, sessao),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
-      toast.success("Material registrado com sucesso");
+    ) => {
+      const data = await registrarMaterial(obraId, payload, sessao);
+      exigirSessaoOperacional(sessao);
+      return data;
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao registrar material");
-    },
+    onSuccess: invalidar,
   });
 }
 
 export function useAtualizarStatusMaterial() {
-  const queryClient = useQueryClient();
+  const invalidar = useInvalidarMateriais();
 
   return useMutation({
-    mutationFn: (
-      { id, statusLogistico }: { id: number; statusLogistico: StatusLogistico; obraId: number },
-      sessao
-    ) => atualizarStatusMaterial(id, statusLogistico, sessao),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
-      toast.success("Status logístico atualizado com sucesso");
+    mutationKey: ["materiais"],
+    mutationFn: async ({ id, statusLogistico }: AlterarStatusMaterial, sessao) => {
+      const data = await atualizarStatusMaterial(id, statusLogistico, sessao);
+      exigirSessaoOperacional(sessao);
+      return data;
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao atualizar status logístico");
-    },
+    onSuccess: invalidar,
   });
 }
 
 export function useAtualizarDadosMaterial() {
-  const queryClient = useQueryClient();
+  const invalidar = useInvalidarMateriais();
 
   return useMutation({
-    mutationFn: (
-      { id, payload }: { id: number; payload: AtualizarMaterialPayload; obraId: number },
-      sessao
-    ) => atualizarDadosMaterial(id, payload, sessao),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
-      toast.success("Insumo atualizado com sucesso");
+    mutationKey: ["materiais"],
+    mutationFn: async ({ id, payload }: AlterarMaterial, sessao) => {
+      const data = await atualizarDadosMaterial(id, payload, sessao);
+      exigirSessaoOperacional(sessao);
+      return data;
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao atualizar insumo");
-    },
+    onSuccess: invalidar,
   });
 }
 
 export function useExcluirMaterial() {
-  const queryClient = useQueryClient();
+  const invalidar = useInvalidarMateriais();
 
   return useMutation({
-    mutationFn: (
-      { id }: { id: number; obraId: number },
-      sessao
-    ) => excluirMaterial(id, sessao),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["materiais", variables.obraId] });
-      toast.success("Material removido com sucesso");
+    mutationKey: ["materiais"],
+    mutationFn: async ({ id }: { id: number; obraId: number }, sessao) => {
+      await excluirMaterial(id, sessao);
+      exigirSessaoOperacional(sessao);
     },
-    onError: (erro) => {
-      if (!deveExibirErroLocal(erro)) return;
-      toast.error("Erro ao remover material");
+    onSuccess: invalidar,
+  });
+}
+
+export function useLoteMateriais() {
+  const invalidar = useInvalidarMateriais();
+
+  return useMutation({
+    mutationKey: ["materiais"],
+    mutationFn: async (lote: LoteMateriais, sessao) => {
+      const resultados = await Promise.allSettled(
+        lote.ids.map((id) =>
+          lote.acao === "excluir"
+            ? excluirMaterial(id, sessao)
+            : atualizarStatusMaterial(id, lote.statusLogistico, sessao)
+        )
+      );
+      exigirSessaoOperacional(sessao);
+      return resultados;
     },
+    onSuccess: invalidar,
   });
 }

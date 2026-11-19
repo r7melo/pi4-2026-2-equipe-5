@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { TemaSistema, ThemeUIState } from "@/types";
+import type { TemaSistema, ThemeUIState } from "@/shared/types/theme";
 
 export function resolverTemaEfetivo(tema: TemaSistema): "light" | "dark" {
   if (tema === "system" && typeof window !== "undefined") {
@@ -15,6 +15,7 @@ export function aplicarTemaNoDOM(tema: TemaSistema): void {
   const isDark = efetivo === "dark";
 
   document.documentElement.classList.toggle("dark", isDark);
+  document.documentElement.style.colorScheme = efetivo;
 
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) {

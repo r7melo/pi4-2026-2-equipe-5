@@ -10,7 +10,7 @@ import { credencialSenhaMock, revisaoSenhaMock } from "../dados/segurancaSenha";
 
 // --- ROTAS DE AUTENTICAÇÃO ---
 
-// Contador volátil em memória de falhas de login por e-mail (RN-02 / UC-01 FA3)
+// Contador de falhas por e-mail persistido em mock_tentativas_v1 no cenário (RN-06 / UC-01 FA3)
 
 
 export function registrarAuth(mock: MockAdapter): void {
@@ -28,7 +28,7 @@ export function registrarAuth(mock: MockAdapter): void {
       const revisao = revisaoSenhaMock(email);
       const acesso = revisaoAcesso(email);
   
-      // 1. Verificação de bloqueio por força bruta (RN-02: 5 falhas consecutivas)
+      // 1. Verificação de bloqueio por força bruta (RN-06: 5 falhas consecutivas)
       if (tentativasFalhas[email] && tentativasFalhas[email] >= 5) {
         return [
           423,

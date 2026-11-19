@@ -1,26 +1,28 @@
+import { PopoverAcoes } from "@/shared/components/ui/PopoverAcoes";
 import { deveExibirErroLocal } from "@/shared/lib/sessaoOperacao";
-import { useState, useMemo, useLayoutEffect, useRef, memo } from "react";
+import { useId, useCallback, useState, useMemo, useLayoutEffect, useRef, memo } from "react";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { useDraggable } from "@dnd-kit/core";
 import { Trash2, MoreVertical, ArrowRight, Lock } from "lucide-react";
 import axios from "axios";
-import type { ObraCard, Material } from "@/types";
+import type { ObraKanbanCard } from "../types/kanban";
+import type { Material } from "@/shared/types/materiais";
 import { TRANSICOES_VALIDAS, COLUNAS_KANBAN, type StatusObra } from "@/shared/constants/kanbanStatus";
-import { useAuthStore } from "@/features/auth/stores/useAuthStore";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { cn } from "@/shared/lib/utils";
 import ModalExcluirObra from "./ModalExcluirObra";
-import { useExcluirObra } from "@/features/obras/hooks/useObras";
-import { useProgramacoes } from "@/features/cronograma/hooks/useProgramacoes";
 import { toast } from "sonner";
-import { obterHojeLocalISO, calcularStatusGargalo } from "./kanbanUtils";
+import { calcularStatusGargalo } from "./kanbanUtils";
 import { KanbanCardVisual } from "./KanbanCardVisual";
 
 interface KanbanCardProps {
-  card: ObraCard;
-  onSelect?: (card: ObraCard) => void;
-  onMover?: (card: ObraCard, novoStatus: StatusObra) => void;
+  card: ObraKanbanCard;
+  onSelect?: (card: ObraKanbanCard) => void;
+  onMover?: (card: ObraKanbanCard, novoStatus: StatusObra) => void;
   materiaisObra?: Material[];
   somenteLeitura?: boolean;
+  temAlocacaoAtiva?: boolean;
+  onExcluir?: (obraId: number) => Promise<void>;
 }
 
 export default memo(function KanbanCard({
@@ -29,7 +31,12 @@ export default memo(function KanbanCard({
   onMover,
   materiaisObra,
   somenteLeitura = false,
+  temAlocacaoAtiva = false,
+  onExcluir,
 }: KanbanCardProps) {
+  const menuId = useId();
+  const ancoraMenu = "--mover-" + menuId.replace(/[^a-zA-Z0-9_-]/g, "");
+  const fecharMenu = useCallback(() => setMenuMoverAberto(false), []);
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
   const [menuMoverAberto, setMenuMoverAberto] = useState(false);
 
@@ -49,26 +56,13 @@ export default memo(function KanbanCard({
     montadoRef.current = true;
     return () => { montadoRef.current = false; };
   }, []);
-  const podeAbrirAgora = () => montadoRef.current && (!somenteLeitura || isFinanceiro) && podeInteragir(epochRender);
+  const podeAbrirAgora = () => montadoRef.current && !somenteLeitura && podeInteragir(epochRender);
   const podeEditarAgora = () => podeAbrirAgora() &&
     (perfilRef.current === "Administrador" || perfilRef.current === "Engenharia");
   const isFinanceiro = perfil === "Financeiro";
   const canDrag = !somenteLeitura && !isFinanceiro && (perfil === "Administrador" || perfil === "Engenharia");
-  const canDelete = !isFinanceiro && canDrag;
-
-  const { data: programacoes } = useProgramacoes();
-
-  const temAlocacaoAtiva = useMemo(() => {
-    if (!programacoes) return false;
-    const hojeStr = obterHojeLocalISO();
-    return programacoes.some((p) => {
-      if (Number(p.obraId) !== Number(card.id)) return false;
-      const fimStr = p.dataFim ? String(p.dataFim).split("T")[0] : "";
-      return fimStr >= hojeStr;
-    });
-  }, [programacoes, card.id]);
-
-  const { mutateAsync: excluir, isPending: excluindo } = useExcluirObra();
+  const canDelete = !isFinanceiro && canDrag && Boolean(onExcluir);
+  const [excluindo, setExcluindo] = useState(false);
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: String(card.id),
@@ -91,9 +85,10 @@ export default memo(function KanbanCard({
   };
 
   const handleConfirmarExclusao = async () => {
-    if (!podeEditarAgora()) return;
+    if (!podeEditarAgora() || !onExcluir) return;
     try {
-      await excluir(card.id);
+      setExcluindo(true);
+      await onExcluir(card.id);
       toast.success("Obra excluída com sucesso.");
       if (montadoRef.current && podeInteragir(epochRender)) setModalExcluirAberto(false);
     } catch (err: unknown) {
@@ -105,6 +100,8 @@ export default memo(function KanbanCard({
         msg = err.message;
       }
       toast.error(msg);
+    } finally {
+      if (montadoRef.current) setExcluindo(false);
     }
   };
 
@@ -116,29 +113,44 @@ export default memo(function KanbanCard({
     return TRANSICOES_VALIDAS[card.status] || [];
   }, [card.status]);
 
+  const cardAtivavel = !somenteLeitura && podeInteragir(epochRender);
+
   return (
     <>
       <div
         ref={setNodeRef}
         style={style}
+        onKeyDownCapture={e => { if (e.key === "Escape" && menuMoverAberto) { e.preventDefault(); e.stopPropagation(); setMenuMoverAberto(false); e.currentTarget.querySelector<HTMLButtonElement>('[aria-expanded]')?.focus(); } }}
         data-status={card.status}
         data-card-id={card.id}
         {...(canDrag ? attributes : {})}
         {...(canDrag ? listeners : {})}
+        tabIndex={cardAtivavel ? -1 : undefined}
+        role={cardAtivavel ? "group" : undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            if (e.target !== e.currentTarget) return;
+            e.preventDefault();
+            if (podeAbrirAgora()) onSelect?.(card);
+          }
+        }}
         onClick={handleCardClick}
         className={cn(
           "bg-surface border border-border-subtle/90 rounded-lg p-2.5 shadow-xs transition-all select-none group relative",
           canDrag
-            ? "cursor-pointer hover:shadow-md hover:border-border-strong active:cursor-grabbing hover:-translate-y-0.5"
+            ? "cursor-pointer hover:shadow-md hover:border-border-strong active:cursor-grabbing motion-safe:hover:-translate-y-0.5"
             : "cursor-default",
           !somenteLeitura && isDragging && "shadow-xl border-info ring-2 ring-info/20"
         )}
       >
+        {cardAtivavel && <button type="button" aria-label={`Obra ${card.id}: ${card.clienteNome} - Etapa ${card.status}`}
+          onClick={handleCardClick} className="absolute inset-0 z-0 rounded-lg cursor-pointer" />}
+        <div className="relative pointer-events-none">
         <KanbanCardVisual
           card={card}
           statusMaterial={statusMaterial}
           acaoDireita={
-            <div className="flex items-center gap-0.5">
+            <div className="relative z-10 pointer-events-auto flex items-center gap-0.5">
               {isFinanceiro && (
                 <span
                   title="Somente leitura para o seu perfil"
@@ -158,18 +170,14 @@ export default memo(function KanbanCard({
                       if (!podeEditarAgora()) return;
                       setMenuMoverAberto((prev) => !prev);
                     }}
-                    title="Mover para..."
+                    title="Mover para..." aria-label="Mover para..." aria-expanded={menuMoverAberto} aria-controls={menuId} style={{ anchorName: ancoraMenu }}
                     className="p-1 text-subtle-foreground hover:text-info hover:bg-info-light rounded transition-colors cursor-pointer"
                   >
                     <MoreVertical className="w-3.5 h-3.5" />
                   </button>
 
                   {menuMoverAberto && (
-                    <div
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 top-6 z-30 w-44 bg-surface border border-border-subtle rounded-lg shadow-lg py-1 text-xs"
-                    >
+                    <PopoverAcoes id={menuId} ancora={ancoraMenu} onFechar={fecharMenu}>
                       <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b border-border-subtle">
                         Mover para
                       </div>
@@ -191,7 +199,7 @@ export default memo(function KanbanCard({
                           </button>
                         );
                       })}
-                    </div>
+                    </PopoverAcoes>
                   )}
                 </div>
               )}
@@ -205,8 +213,8 @@ export default memo(function KanbanCard({
                     if (!podeEditarAgora()) return;
                     setModalExcluirAberto(true);
                   }}
-                  title="Excluir obra"
-                  className="opacity-0 group-hover:opacity-100 p-1 text-subtle-foreground hover:text-destructive hover:bg-destructive-light rounded transition-colors cursor-pointer"
+                  title="Excluir obra" aria-label="Excluir obra"
+                  className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 p-1 text-subtle-foreground hover:text-destructive hover:bg-destructive-light rounded transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -214,6 +222,7 @@ export default memo(function KanbanCard({
             </div>
           }
         />
+        </div>
       </div>
 
       {!somenteLeitura && (
