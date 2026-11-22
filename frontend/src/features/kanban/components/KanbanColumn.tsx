@@ -7,15 +7,12 @@ import KanbanCard from "./KanbanCard";
 import { cn } from "@/shared/lib/utils";
 
 interface KanbanColumnProps {
-  id?: StatusObra;
-  title?: string;
-  columnId?: string;
-  label?: string;
+  id: StatusObra;
+  title: string;
   badge?: string | null;
   cards: ObraKanbanCard[];
   onSelectCard?: (card: ObraKanbanCard) => void;
   onMoverCard?: (card: ObraKanbanCard, novoStatus: StatusObra) => void;
-  horizontal?: boolean;
   headerAction?: React.ReactNode;
   isDestinoValido?: boolean;
   isDestinoInvalido?: boolean;
@@ -29,8 +26,6 @@ interface KanbanColumnProps {
 export default memo(function KanbanColumn({
   id,
   title,
-  columnId,
-  label,
   badge,
   cards,
   onSelectCard,
@@ -44,14 +39,12 @@ export default memo(function KanbanColumn({
   isVisivelMobile = true,
   somenteLeitura = false,
 }: KanbanColumnProps) {
-  const colId = (id || columnId || "") as StatusObra;
-  const colTitle = title || label || "";
-  const { setNodeRef, isOver } = useDroppable({ id: colId });
+  const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
     <div
       ref={setNodeRef}
-      data-column-id={colId}
+      data-column-id={id}
       className={cn(
         "flex flex-col bg-muted/90 rounded-xl p-2.5 transition-all border border-border-subtle/80 w-full min-w-[240px]",
         !isVisivelMobile && "hidden md:flex",
@@ -65,10 +58,10 @@ export default memo(function KanbanColumn({
         <div className="flex items-center gap-1.5 min-w-0">
           <span className={cn(
             "w-2 h-2 rounded-full shrink-0",
-            colId === "Assistencia" ? "bg-warning" : "bg-info"
+            id === "Assistencia" ? "bg-warning" : "bg-info"
           )} />
-          <h3 className="font-semibold text-foreground-secondary text-xs tracking-tight truncate" title={colTitle}>
-            {colTitle}
+          <h3 className="font-semibold text-foreground-secondary text-xs tracking-tight truncate" title={title}>
+            {title}
           </h3>
           {badge && (
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-warning-light text-warning border border-warning-border shrink-0">

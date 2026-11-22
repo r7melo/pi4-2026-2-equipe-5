@@ -57,6 +57,7 @@ export default function Kanban({
   const setCategoriaFiltro = useKanbanFilterStore((s) => s.setCategoriaFiltro);
   const materialFiltro = useKanbanFilterStore((s) => s.materialFiltro);
   const setMaterialFiltro = useKanbanFilterStore((s) => s.setMaterialFiltro);
+  const exibirArquivadas = useKanbanFilterStore((s) => s.exibirArquivadas);
   const limparFiltrosStore = useKanbanFilterStore((s) => s.limparFiltros);
 
   // Inicializa aberto se já houver termo de busca salvo na sessão
@@ -77,6 +78,7 @@ export default function Kanban({
 
   const obras = obrasExternas || [];
   const temFiltroAtivo = Boolean(categoriaFiltro || materialFiltro);
+  const temLimpezaDisponivel = temFiltroAtivo || Boolean(busca.trim()) || exibirArquivadas;
 
   const limparFiltros = () => {
     limparFiltrosStore();
@@ -112,7 +114,7 @@ export default function Kanban({
             acao={
               canCriarObra && !modoAtivo
                 ? {
-                    label: "Nova Obra",
+                    label: "Cadastrar primeira obra",
                     onClick: () => { void navigate("/cadastrarobra"); },
                   }
                 : undefined
@@ -126,9 +128,6 @@ export default function Kanban({
       <KanbanBoard
         obras={obras}
         somenteLeitura={modoAtivo}
-        busca={busca}
-        categoriaFiltro={categoriaFiltro}
-        materialFiltro={materialFiltro}
         mapaMateriais={mapaMateriais}
         erroMateriais={erroMateriais}
         onRecarregarMateriais={onRecarregarMateriais}
@@ -185,6 +184,7 @@ export default function Kanban({
             setMaterialFiltro={setMaterialFiltro}
             onLimparFiltros={limparFiltros}
             temFiltroAtivo={temFiltroAtivo}
+            temLimpezaDisponivel={temLimpezaDisponivel}
           />
 
           {/* Botão Nova Obra com RoleGate */}

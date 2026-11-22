@@ -7,10 +7,11 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   errorId?: string;
   helperText?: string;
   icon?: React.ReactNode;
+  acaoDireita?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, errorId, helperText, icon, id, type = "text",
+  ({ className, label, error, errorId, helperText, icon, acaoDireita, id, type = "text",
     "aria-describedby": descricaoExterna, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id || generatedId;
@@ -52,6 +53,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
             {...props}
           />
+
+          {acaoDireita}
         </div>
 
         {error ? (

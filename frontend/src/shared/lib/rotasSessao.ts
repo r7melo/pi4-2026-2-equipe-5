@@ -1,6 +1,10 @@
 import { NOMES_PERFIS } from "@/shared/constants/perfis";
 import type { NomePerfil } from "@/shared/types/autorizacao";
 
+function normalizarPathname(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") || "/" : pathname;
+}
+
 export const CHAVE_ROTA_RETORNO = "auth_return_url";
 export const TOAST_ID_SESSAO_EXPIRADA = "sessao-expirada";
 export const TOAST_ID_SESSAO_AVISO = "sessao-expirando-aviso";
@@ -62,10 +66,7 @@ export function sanitizarRota(rotaBruta: string | null | undefined): string | nu
     const parsed = new URL(semHash, "http://localhost");
     
     // Normaliza trailing slash (ex: /kanban/ -> /kanban, preservando raiz /)
-    const pathnameNormalizado =
-      parsed.pathname.length > 1 && parsed.pathname.endsWith("/")
-        ? parsed.pathname.slice(0, -1)
-        : parsed.pathname;
+    const pathnameNormalizado = normalizarPathname(parsed.pathname);
 
     // Desconsidera rotas públicas de login ou compartilhamento
     if (
@@ -121,7 +122,7 @@ export function salvarRotaRetorno(rota: string): void {
 /**
  * Valida se a rota sanitizada é compatível com o perfil RBAC autenticado (espelha App.tsx).
  */
-function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePerfil): boolean {
+export function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePerfil): boolean {
   if (!perfilNome) return false;
 
   // InstaladorCampo possui acesso exclusivo a /linkparainstaladores (Rotas #37-#39); perfis de escritório não acessam
@@ -191,10 +192,7 @@ export function obterELimparRotaRetorno(perfilNome?: NomePerfil, rotaOrigem?: st
 
   try {
     const parsed = new URL(rotaCandidata, "http://localhost");
-    const pathnameNormalizado =
-      parsed.pathname.length > 1 && parsed.pathname.endsWith("/")
-        ? parsed.pathname.slice(0, -1)
-        : parsed.pathname;
+    const pathnameNormalizado = normalizarPathname(parsed.pathname);
 
     if (isRotaAutorizadaParaPerfil(pathnameNormalizado, perfilNome)) {
       return rotaCandidata;
@@ -217,4 +215,36 @@ export function perfilEscritorio(perfil: unknown): boolean {
 
 export function destinoInicialSeguro(perfil: unknown): string {
   return perfilEscritorio(perfil) ? "/kanban" : perfil === "InstaladorCampo" ? "/linkparainstaladores" : "/sem-permissao";
+}
+
+const TITULOS_ROTAS_ESTATICAS: Readonly<Record<string, string>> = {
+  "/": "Entrar",
+  "/login": "Entrar",
+  "/esqueci-senha": "Recuperar senha",
+  "/redefinir-senha": "Redefinir senha",
+  "/kanban": "Obras",
+  "/equipes": "Cronograma",
+  "/financeiro": "Financeiro",
+  "/relatorios": "Relatórios",
+  "/usuarios": "Usuários",
+  "/usuarios/novo": "Cadastrar usuário",
+  "/configuracoes": "Configurações",
+  "/cadastrarobra": "Cadastrar obra",
+  "/acompanharhomologacao": "Homologação",
+  "/linkparainstaladores": "Instalações",
+  "/sem-permissao": "Acesso indisponível",
+};
+
+/**
+ * Resolve o título da aba do navegador com correspondência exata ao padrão da rota.
+ */
+export function resolverTituloRota(pathname: string): string {
+  const normalizado = normalizarPathname(pathname).toLowerCase();
+  const estatico = TITULOS_ROTAS_ESTATICAS[normalizado];
+  if (estatico) return estatico;
+  if (/^\/obras\/[^/]+\/materiais$/.test(normalizado)) return "Materiais da obra";
+  if (/^\/obras\/[^/]+$/.test(normalizado)) return "Detalhes da obra";
+  if (/^\/cronograma\/compartilhado\/[^/]+$/.test(normalizado)) return "Cronograma compartilhado";
+  if (/^\/relatorio-publico\/[^/]+$/.test(normalizado)) return "Relatório compartilhado";
+  return "Página não encontrada";
 }

@@ -186,13 +186,11 @@ export default function Equipes({
   const canDrag = canEdit && !modoAtivo && !reagendamentoBloqueado && !reatribuindoAlocacao;
 
   const isLoading = loadingProg || Boolean(carregandoObras) || loadingEquipes;
-  const listaObras = obras;
-  const homologacoesMap = mapaHomologacoes;
 
   const obrasElegiveis = useMemo(() => {
-    if (!listaObras) return [];
-    return listaObras.filter((o) => o.status !== "Concluido");
-  }, [listaObras]);
+    if (!obras) return [];
+    return obras.filter((o) => o.status !== "Concluido");
+  }, [obras]);
 
 
   const {
@@ -202,7 +200,7 @@ export default function Equipes({
     programacoesFiltradas,
   } = useGanttFiltros({
     programacoes,
-    obras: listaObras,
+    obras,
     equipes,
     podeUsarInterface,
   });
@@ -216,16 +214,16 @@ export default function Equipes({
     return transformarTarefasGantt({
       programacoesVisiveis,
       equipes,
-      obras: listaObras,
-      homologacoesMap,
+      obras,
+      homologacoesMap: mapaHomologacoes,
     });
-  }, [programacoesVisiveis, equipes, listaObras, homologacoesMap]);
+  }, [programacoesVisiveis, equipes, obras, mapaHomologacoes]);
   const tarefaDrawer = useMemo<TarefaDetalhes | null>(() => {
     if (!tarefaSelecionadaId) return null;
     const prog = programacoes?.find((p) => p.id === tarefaSelecionadaId);
     if (!prog) return null;
 
-    const obra = listaObras?.find((o) => Number(o.id) === Number(prog.obraId));
+    const obra = obras?.find((o) => Number(o.id) === Number(prog.obraId));
     const equipe = equipes?.find((e) => e.id === prog.equipeId);
 
     return {
@@ -240,7 +238,7 @@ export default function Equipes({
       paineis: obra?.quantidadePaineis,
       obra,
     };
-  }, [tarefaSelecionadaId, programacoes, listaObras, equipes]);
+  }, [tarefaSelecionadaId, programacoes, obras, equipes]);
 
   const handleReorder = (id: number, novaData: string) => {
     if (!podeEditar() || reagendamentoBloqueado || reatribuindoAlocacao || reatribuindoRef.current) return;
@@ -490,7 +488,7 @@ export default function Equipes({
         reagendamentoFase={reagendamentoFase}
         avisoReagendamento={avisoReagendamento}
         focoRetorno={obterFocoRetorno}
-        homologacao={tarefaDrawer?.obraId ? homologacoesMap?.[tarefaDrawer.obraId] : undefined}
+        homologacao={tarefaDrawer?.obraId ? mapaHomologacoes?.[tarefaDrawer.obraId] : undefined}
       />
 
       {/* Gaveta de Filtros Avançados: */}

@@ -1,5 +1,5 @@
-// frontend/src/pages/CronogramaPublico.tsx
-// RF-16 & Rota #37: Tela de Visualização Pública Somente-Leitura do Cronograma Gantt
+// frontend/src/features/cronograma/pages/CronogramaPublico.tsx
+// RF-16 & Rota #43 (GET /api/cronograma/compartilhado/{token}): Visualização Pública Somente-Leitura do Cronograma Gantt
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useCronogramaPublico } from "@/features/cronograma/hooks/useCronogramaPublico";
@@ -18,9 +18,8 @@ import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { CalendarX2, Shield, Sun } from "lucide-react";
 import "@/features/cronograma/components/gantt.css";
 
-const ANO_ATUAL = new Date().getFullYear();
-
 export default function CronogramaPublico() {
+  const [anoAtual] = useState(() => new Date().getFullYear());
   const { token = "" } = useParams<{ token: string }>();
   const [nivelZoom, setNivelZoom] = useState<NivelZoom>("day");
   const [dataFoco, setDataFoco] = useState<Date | null>(null);
@@ -156,7 +155,7 @@ export default function CronogramaPublico() {
 
       {/* Rodapé Informativo */}
       <footer className="bg-surface border-t border-border-subtle px-4 py-2 flex items-center justify-between text-[11px] text-muted-foreground shrink-0 no-print">
-        <span>© {ANO_ATUAL} ZL Engenharia Solar · Todos os direitos reservados</span>
+        <span>© {anoAtual} ZL Engenharia Solar · Todos os direitos reservados</span>
         <span>Acesso com permissões restritas (somente-leitura)</span>
       </footer>
     </div>

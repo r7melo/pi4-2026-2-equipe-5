@@ -3,8 +3,6 @@ import { useClientes } from "../hooks/useClientes";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
-import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
-// Cadastro de novas obras com suporte a cliente existente e novo cliente
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
@@ -31,9 +29,7 @@ import {
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast as sonnerToast } from "sonner";
-import type { ListaObras } from "@/features/obras/types/obras";
 import {
   novaObraSchema,
   type NovaObraFormData,
@@ -41,8 +37,13 @@ import {
   type CriarObraPayload,
 } from "@/features/obras/types/obrasCadastro";
 
-import { criarObra } from "@/features/obras/services/obras";
+import { useCriarObra } from "../hooks/useObras";
 import { formatarCpfCnpj, formatarTelefone } from "@/shared/lib/validacoesDocumento";
+import {
+  capturarSessaoOperacional,
+  erroDaSessaoAnterior,
+  sessaoOperacionalVigente,
+} from "@/shared/lib/sessaoOperacao";
 
 interface ToastState {
   tipo: "sucesso" | "erro";
@@ -56,13 +57,29 @@ const CATEGORIAS_OBRA = [
 
 export default function CadastrarObra() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const criarObraMutation = useCriarObra();
   const [toast, setToast] = useState<ToastState | null>(null);
   const [tipoCliente, setTipoCliente] = useState<"existente" | "novo">("existente");
+  const [redirecionando, setRedirecionando] = useState(false);
   const catalogo = useClientes();
   const listaClientes = catalogo.data ?? [];
   const catalogoAplicado = useRef(false);
+  const montadoRef = useRef(true);
+  const enviandoRef = useRef(false);
+  const timerNavegacaoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [clienteIdSelecionadoState, setClienteIdSelecionado] = useState<number | null | undefined>(undefined);
+
+  useEffect(() => {
+    montadoRef.current = true;
+    return () => {
+      montadoRef.current = false;
+      enviandoRef.current = false;
+      if (timerNavegacaoRef.current !== null) {
+        clearTimeout(timerNavegacaoRef.current);
+        timerNavegacaoRef.current = null;
+      }
+    };
+  }, []);
 
   const {
     register,
@@ -135,7 +152,10 @@ export default function CadastrarObra() {
   };
 
   const onSubmit = async (dados: NovaObraFormData) => {
+    if (enviandoRef.current || redirecionando) return;
+    enviandoRef.current = true;
     const origem = contextoDemonstracao();
+    const sessao = capturarSessaoOperacional();
     try {
       const dataConfirmacao = dados.dataInicioEstimada || new Date().toISOString().split("T")[0];
 
@@ -180,33 +200,52 @@ export default function CadastrarObra() {
         };
       }
 
-      const novaObra = await criarObra(payload);
-      if (!contextoDemonstracaoVigente(origem)) return;
+      await criarObraMutation.mutateAsync(payload, undefined, sessao);
+      if (
+        !montadoRef.current ||
+        !sessaoOperacionalVigente(sessao) ||
+        !contextoDemonstracaoVigente(origem)
+      ) {
+        enviandoRef.current = false;
+        return;
+      }
 
-      void queryClient.invalidateQueries({ queryKey: ["clientes"] });
-      // Atualiza o cache do React Query imediatamente e agenda revalidação
-      queryClient.setQueryData<ListaObras>(["obras"], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          total: old.total + 1,
-          itens: [novaObra, ...old.itens],
-        };
-      });
-      void queryClient.invalidateQueries({ queryKey: ["obras"] });
-
+      setRedirecionando(true);
       sonnerToast.success("Obra cadastrada com sucesso!");
       setToast({
         tipo: "sucesso",
         mensagem: "Obra cadastrada com sucesso! Redirecionando para o funil...",
       });
 
+      if (timerNavegacaoRef.current !== null) {
+        clearTimeout(timerNavegacaoRef.current);
+      }
       // Aguarda breve animação do toast e redireciona para o Kanban
-      setTimeout(() => {
-        if (contextoDemonstracaoVigente(origem)) void navigate("/kanban");
+      timerNavegacaoRef.current = setTimeout(() => {
+        timerNavegacaoRef.current = null;
+        if (
+          !montadoRef.current ||
+          !sessaoOperacionalVigente(sessao) ||
+          !contextoDemonstracaoVigente(origem)
+        ) {
+          if (montadoRef.current) {
+            enviandoRef.current = false;
+            setRedirecionando(false);
+          }
+          return;
+        }
+        void navigate("/kanban");
       }, 700);
     } catch (erro: unknown) {
-      if (!contextoDemonstracaoVigente(origem) || erroDaSessaoAnterior(erro)) return;
+      enviandoRef.current = false;
+      if (
+        !montadoRef.current ||
+        !contextoDemonstracaoVigente(origem) ||
+        !sessaoOperacionalVigente(sessao) ||
+        erroDaSessaoAnterior(erro)
+      ) {
+        return;
+      }
       console.error("Falha ao criar obra:", erro);
       const errObj = erro as { response?: { data?: { error?: { message?: string } } } };
       const mensagem =
@@ -441,6 +480,10 @@ export default function CadastrarObra() {
                     <Input
                       label="E-mail de Contato"
                       type="email"
+                      autoComplete="email"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       placeholder="contato@cliente.com.br"
                       icon={<Mail className="w-4 h-4" />}
                       error={errors.email?.message}
@@ -551,17 +594,17 @@ export default function CadastrarObra() {
                 type="button"
                 variant="ghost"
                 onClick={() => void navigate("/kanban")}
-                disabled={isSubmitting}
+                disabled={isSubmitting || redirecionando}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isSubmitting || (tipoCliente === "existente" && (catalogo.isLoading || catalogo.isError))}
+                disabled={isSubmitting || redirecionando || (tipoCliente === "existente" && (catalogo.isLoading || catalogo.isError))}
                 className="min-w-36"
               >
-                {isSubmitting ? (
+                {isSubmitting || redirecionando ? (
                   <>
                     <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                     <span>Cadastrando...</span>

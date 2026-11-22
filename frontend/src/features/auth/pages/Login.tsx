@@ -1,8 +1,9 @@
 import { contextoDemonstracao, contextoDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { LogIn, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { LogIn, Loader2, AlertCircle } from "lucide-react";
 import { fazerLogin, mapearRespostaParaUsuario } from "@/features/auth/services/auth";
+import { BotaoVisibilidadeSenha } from "@/shared/components/ui/BotaoVisibilidadeSenha";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
 
@@ -96,6 +97,8 @@ export default function Login() {
             <input
               id="email"
               type="email" name="email"
+              autoComplete="username"
+              spellCheck={false}
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -115,20 +118,18 @@ export default function Login() {
               <input
                 id="senha"
                 type={mostrarSenha ? "text" : "password"} name="password"
+                autoComplete="current-password"
                 required
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full px-4 py-3 pr-11 rounded-lg border bg-surface-subtle border-border-subtle text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+                className="w-full px-4 py-3 pr-14 rounded-lg border bg-surface-subtle border-border-subtle text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
                 placeholder="••••••••"
               />
-              <button
-                type="button"
-                onClick={() => setMostrarSenha((prev) => !prev)}
-                className="absolute right-3 text-subtle-foreground hover:text-foreground-muted p-1 focus:outline-none cursor-pointer"
-                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
-              >
-                {mostrarSenha ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+              <BotaoVisibilidadeSenha
+                visivel={mostrarSenha}
+                onAlternar={() => setMostrarSenha((prev) => !prev)}
+                disabled={carregando}
+              />
             </div>
           </div>
 
@@ -151,36 +152,9 @@ export default function Login() {
           </button>
 
           <Link to="/esqueci-senha"
-            className="block text-center w-full rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm text-foreground hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            className="block text-center w-full rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm text-foreground hover:bg-surface-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
             Esqueci minha senha
           </Link>
-
-          {/* 
-            Preservação de ações secundárias (UX-03) para resguardo de evolução futura:
-            - "Esqueci minha senha" aguarda especificação de rota de recuperação no backend.
-            - "Criar nova conta" foi desativado pois a criação de perfis é restrita ao Administrador via POST /api/usuarios.
-          */}
-          {/*
-          <button
-            type="button"
-            className="w-full bg-surface hover:bg-surface-subtle text-foreground-muted border border-border-strong font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98] mt-3"
-          >
-            Esqueci minha senha
-          </button>
-
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-border-subtle"></div>
-            <span className="flex-shrink-0 mx-4 text-subtle-foreground text-xs uppercase font-medium">ou</span>
-            <div className="flex-grow border-t border-border-subtle"></div>
-          </div>
-
-          <button
-            type="button"
-            className="w-full bg-surface hover:bg-surface-subtle text-foreground-muted border border-border-strong font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-all active:scale-[0.98]"
-          >
-            Criar nova conta
-          </button>
-          */}
         </form>
 
       </div>

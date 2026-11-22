@@ -7,10 +7,11 @@ import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ApiErro } from "@/shared/api/api";
 import type { FormularioCadastroProps } from "../types/gestaoUsuarios";
+import { BotaoVisibilidadeSenha } from "@/shared/components/ui/BotaoVisibilidadeSenha";
 import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
@@ -206,18 +207,16 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
                 )}
               </div>
             )}
-            <div className="relative">
-              <Input id="usuario-senha" type={mostrarSenha ? "text" : "password"}
-                label="Senha inicial" autoComplete="new-password" required
-                className="pr-12" {...register("senha")} error={errors.senha?.message} />
-              <button type="button" disabled={ocupado}
-                onClick={() => setMostrarSenha((visivel) => !visivel)}
-                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
-                className="absolute right-2 top-7 rounded p-2 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong">
-                {mostrarSenha ? <EyeOff className="h-4 w-4" aria-hidden="true" />
-                  : <Eye className="h-4 w-4" aria-hidden="true" />}
-              </button>
-            </div>
+            <Input id="usuario-senha" type={mostrarSenha ? "text" : "password"}
+              label="Senha inicial" autoComplete="new-password" required
+              className="py-3 pr-14" {...register("senha")} error={errors.senha?.message}
+              acaoDireita={
+                <BotaoVisibilidadeSenha
+                  visivel={mostrarSenha}
+                  onAlternar={() => setMostrarSenha((visivel) => !visivel)}
+                  disabled={ocupado}
+                />
+              } />
             <Button type="submit" disabled={ocupado}
               className="w-full sm:w-auto" aria-busy={ocupado}>
               {ocupado && <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />}

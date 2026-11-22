@@ -1,11 +1,15 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { useEditarObra } from "@/features/obras/hooks/useObraDetalhe";
+import {
+  editarObraFormSchema,
+  mapearValoresFormularioObra,
+  type EditarObraFormData,
+} from "../lib/editarObraFormulario";
 import {
   Edit3,
   Loader2,
@@ -18,29 +22,6 @@ import {
   FileText,
 } from "lucide-react";
 import type { ObraDetalhe, EditarObraPayload } from "../types/obras";
-
-const editarObraFormSchema = z.object({
-  cidade: z.string().trim().min(2, "Informe ao menos 2 caracteres para a cidade"),
-  endereco: z.string().trim().min(3, "Informe um endereço válido"),
-  categoria: z.enum(["Residencial", "Comercial"]),
-  quantidadePaineis: z
-    .number({ error: "Informe a quantidade de painéis" })
-    .int("Deve ser um número inteiro")
-    .positive("A quantidade deve ser maior que zero"),
-  quantidadeInversores: z
-    .number({ error: "Informe a quantidade de inversores" })
-    .int("Deve ser um número inteiro")
-    .min(0, "A quantidade não pode ser negativa"),
-  prazoContratualDias: z
-    .number({ error: "Informe o prazo contratual" })
-    .int("Deve ser um número inteiro")
-    .positive("O prazo contratual deve ser de ao menos 1 dia"),
-  dataInicioEstimada: z.string().optional(),
-  dataFimEstimada: z.string().optional(),
-  descricao: z.string().optional(),
-});
-
-type EditarObraFormData = z.infer<typeof editarObraFormSchema>;
 
 interface ModalEditarObraProps {
   isOpen: boolean;
@@ -58,33 +39,13 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
     formState: { errors, isSubmitting },
   } = useForm<EditarObraFormData>({
     resolver: zodResolver(editarObraFormSchema),
-    defaultValues: {
-      cidade: obra.cliente?.cidade || "",
-      endereco: obra.endereco || "",
-      categoria: (obra.categoria as "Residencial" | "Comercial") || "Residencial",
-      quantidadePaineis: obra.quantidadePaineis ?? 1,
-      quantidadeInversores: obra.quantidadeInversores ?? 1,
-      prazoContratualDias: obra.pagamento?.prazoContratualDias ?? 30,
-      dataInicioEstimada: obra.dataInicioEstimada ? obra.dataInicioEstimada.split("T")[0] : "",
-      dataFimEstimada: obra.dataFimEstimada ? obra.dataFimEstimada.split("T")[0] : "",
-      descricao: obra.descricao || "",
-    },
+    defaultValues: mapearValoresFormularioObra(obra),
   });
 
   // Atualiza valores do formulário quando a obra muda
   useEffect(() => {
     if (isOpen) {
-      reset({
-        cidade: obra.cliente?.cidade || "",
-        endereco: obra.endereco || "",
-        categoria: (obra.categoria as "Residencial" | "Comercial") || "Residencial",
-        quantidadePaineis: obra.quantidadePaineis ?? 1,
-        quantidadeInversores: obra.quantidadeInversores ?? 1,
-        prazoContratualDias: obra.pagamento?.prazoContratualDias ?? 30,
-        dataInicioEstimada: obra.dataInicioEstimada ? obra.dataInicioEstimada.split("T")[0] : "",
-        dataFimEstimada: obra.dataFimEstimada ? obra.dataFimEstimada.split("T")[0] : "",
-        descricao: obra.descricao || "",
-      });
+      reset(mapearValoresFormularioObra(obra));
     }
   }, [isOpen, obra, reset]);
 

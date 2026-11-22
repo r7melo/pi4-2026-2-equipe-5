@@ -33,12 +33,10 @@ import {
 } from "./kanbanUtils";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { cn } from "@/shared/lib/utils";
+import { useKanbanFilterStore } from "@/features/kanban/stores/useKanbanFilterStore";
 
 interface KanbanBoardProps {
   obras: ObraKanbanCard[];
-  busca: string;
-  categoriaFiltro: string;
-  materialFiltro: string;
   somenteLeitura?: boolean;
   alocacoesAtivasSet?: Set<number>;
   onExcluirObra?: (obraId: number) => Promise<void>;
@@ -55,9 +53,6 @@ const STATUS_TODOS: StatusObra[] = [...COLUNAS_KANBAN.map((c) => c.id)];
 
 export default function KanbanBoard({
   obras,
-  busca,
-  categoriaFiltro,
-  materialFiltro,
   somenteLeitura = false,
   alocacoesAtivasSet,
   onExcluirObra,
@@ -67,12 +62,17 @@ export default function KanbanBoard({
   erroMateriais = false,
   onRecarregarMateriais,
 }: KanbanBoardProps) {
+  const busca = useKanbanFilterStore((s) => s.busca);
+  const categoriaFiltro = useKanbanFilterStore((s) => s.categoriaFiltro);
+  const materialFiltro = useKanbanFilterStore((s) => s.materialFiltro);
+  const exibirArquivadas = useKanbanFilterStore((s) => s.exibirArquivadas);
+  const setExibirArquivadas = useKanbanFilterStore((s) => s.setExibirArquivadas);
+
   const [activeCard, setActiveCard] = useState<ObraKanbanCard | null>(null);
   const [initialContainer, setInitialContainer] = useState<StatusObra | null>(null);
   const [drawerCard, setDrawerCard] = useState<ObraKanbanCard | null>(null);
   const [obraParaConcluir, setObraParaConcluir] = useState<ObraKanbanCard | null>(null);
   const [colunaMobileAtiva, setColunaMobileAtiva] = useState<StatusObra>("MaterialComprado");
-  const [exibirArquivadas, setExibirArquivadas] = useState(false);
 
   const { lerEpoch, podeInteragir } = useModoDisplay();
   const epochRender = lerEpoch();
@@ -406,7 +406,7 @@ export default function KanbanBoard({
                       <button
                         type="button"
                         onClick={() => {
-                          if (montadoRef.current && podeInteragir(epochRender)) setExibirArquivadas((prev) => !prev);
+                          if (montadoRef.current && podeInteragir(epochRender)) setExibirArquivadas(!exibirArquivadas);
                         }}
                         className="text-[10px] font-semibold text-success bg-success-light hover:bg-success-border/40 px-1.5 py-0.5 rounded-full border border-success-border transition-colors cursor-pointer"
                         title="Alternar exibição de obras concluídas há mais de 30 dias"

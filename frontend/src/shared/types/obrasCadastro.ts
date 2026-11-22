@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EMAIL_USUARIO } from "@/shared/constants/emailUsuario";
 import { validarCpfCnpj, limparDocumento } from "@/shared/lib/validacoesDocumento";
 
 export const novaObraSchema = z
@@ -72,7 +73,7 @@ export const novaObraSchema = z
           path: ["endereco"],
         });
       }
-      if (data.email && data.email.trim().length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+      if (data.email && data.email.trim().length > 0 && !EMAIL_USUARIO.test(data.email.trim())) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "E-mail com formato inválido",

@@ -1,9 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
-import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
+import { contextoDemonstracao, contextoDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
+import { erroDaSessaoAnterior, sessaoOperacionalVigente } from "@/shared/lib/sessaoOperacao";
 
-import { listarObras, obterHomologacaoObra, excluirObra } from "../services/obras";
+import { listarObras, obterHomologacaoObra, excluirObra, criarObra } from "../services/obras";
+import type { ObraCadastrada } from "../types/clientes";
 import type { ListaObras, DadosHomologacao } from "../types/obras";
+import type { CriarObraPayload } from "../types/obrasCadastro";
 
 export function useObras(params?: {
   status?: string;
@@ -59,6 +62,42 @@ export function useExcluirObra() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+    },
+  });
+}
+
+interface ContextoCriacaoObra {
+  sessao: number;
+  origemDemonstracao: string;
+}
+
+export function useCriarObra() {
+  const queryClient = useQueryClient();
+  return useMutation<ObraCadastrada, CriarObraPayload, ContextoCriacaoObra>({
+    onMutate: (_payload, _contexto, sessao) => ({
+      sessao,
+      origemDemonstracao: contextoDemonstracao(),
+    }),
+    mutationFn: (payload, sessao) => criarObra(payload, sessao),
+    onSuccess: (novaObra, _payload, contexto) => {
+      if (
+        !contexto ||
+        !sessaoOperacionalVigente(contexto.sessao) ||
+        !contextoDemonstracaoVigente(contexto.origemDemonstracao)
+      ) {
+        return;
+      }
+      void queryClient.invalidateQueries({ queryKey: ["clientes"] });
+      queryClient.setQueryData<ListaObras>(["obras"], (old) => {
+        if (!old) return old;
+        if (old.itens.some((item) => item.id === novaObra.id)) return old;
+        return {
+          ...old,
+          total: old.total + 1,
+          itens: [novaObra, ...old.itens],
+        };
+      });
+      void queryClient.invalidateQueries({ queryKey: ["obras"] });
     },
   });
 }

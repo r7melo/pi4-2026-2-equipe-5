@@ -1,13 +1,12 @@
-import { useRef } from "react";
 import {
   Calendar,
   Columns,
   Printer,
   Share2,
-  X,
   Filter,
 } from "lucide-react";
 import type { NivelZoom } from "../types/gantt";
+import { GanttFiltroPeriodo } from "./GanttFiltroPeriodo";
 
 interface GanttToolbarProps {
   nivelAtual: NivelZoom;
@@ -50,9 +49,6 @@ export function GanttToolbar({
   totalFiltrosAtivos = 0,
   modoAtivo = false,
 }: GanttToolbarProps) {
-  const dataInicialRef = useRef<HTMLInputElement>(null);
-  const temFiltroData = Boolean(dataFiltroInicio || dataFiltroFim);
-
   return (
     <div className="gantt-toolbar flex items-center gap-1 sm:gap-2 min-w-0 max-w-full overflow-x-auto py-1">
       <button
@@ -118,35 +114,14 @@ export function GanttToolbar({
       )}
 
       {!modoAtivo && onDataInicioChange && onDataFimChange && (
-        <div className="flex items-center gap-1 bg-surface border border-border-subtle rounded-md px-2 py-1 text-xs shrink-0">
-          <span className="text-muted-foreground font-medium text-[11px]">De:</span>
-          <input
-            type="date"
-            aria-label="Data inicial do filtro"
-              ref={dataInicialRef}
-            value={dataFiltroInicio}
-            onChange={(e) => onDataInicioChange(e.target.value)}
-            className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
-          />
-          <span className="text-muted-foreground font-medium text-[11px] ml-1">Até:</span>
-          <input
-            type="date"
-            aria-label="Data final do filtro"
-            value={dataFiltroFim}
-            onChange={(e) => onDataFimChange(e.target.value)}
-            className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
-          />
-          {temFiltroData && onLimparDatas && (
-            <button
-              type="button"
-              onClick={() => { dataInicialRef.current?.focus(); onLimparDatas?.(); }}
-              className="text-subtle-foreground hover:text-destructive p-0.5 transition-colors cursor-pointer"
-              title="Limpar filtro de período"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        <GanttFiltroPeriodo
+          variante="toolbar"
+          dataInicial={dataFiltroInicio}
+          onDataInicialChange={onDataInicioChange}
+          dataFinal={dataFiltroFim}
+          onDataFinalChange={onDataFimChange}
+          onLimpar={onLimparDatas}
+        />
       )}
 
       {!modoAtivo && (onImprimir || onAbrirCompartilhar) &&

@@ -1,7 +1,7 @@
-import { useRef } from "react";
-import { Plus, Users, X } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import type { Equipe } from "../types/equipes";
 import { SearchInput } from "@/shared/components/ui/SearchInput";
+import { GanttFiltroPeriodo } from "./GanttFiltroPeriodo";
 
 interface GanttKpiBarProps {
   termoBusca: string;
@@ -34,42 +34,18 @@ export function GanttKpiBar({
   onDataFimChange,
   onLimparDatas,
 }: GanttKpiBarProps) {
-  const dataInicialRef = useRef<HTMLInputElement>(null);
-  const temFiltroData = Boolean(dataFiltroInicio || dataFiltroFim);
-
   return (
     <div className="kpi-bar flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 bg-surface rounded-lg border border-border-subtle shadow-xs shrink-0">
       <div className="flex flex-wrap items-center gap-2">
         {onDataInicioChange && onDataFimChange && (
-          <div className="flex items-center gap-1 bg-surface-subtle border border-border-subtle rounded-md px-2 py-1 text-xs">
-            <span className="text-muted-foreground font-medium text-[11px]">De:</span>
-            <input
-              type="date"
-              aria-label="Data inicial do filtro"
-              ref={dataInicialRef}
-              value={dataFiltroInicio}
-              onChange={(e) => onDataInicioChange(e.target.value)}
-              className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
-            />
-            <span className="text-muted-foreground font-medium text-[11px] ml-1">Até:</span>
-            <input
-              type="date"
-              aria-label="Data final do filtro"
-              value={dataFiltroFim}
-              onChange={(e) => onDataFimChange(e.target.value)}
-              className="border-none bg-transparent p-0 text-xs text-foreground-muted focus:outline-none cursor-pointer w-24 sm:w-28"
-            />
-            {temFiltroData && onLimparDatas && (
-              <button
-                type="button"
-              onClick={() => { dataInicialRef.current?.focus(); onLimparDatas?.(); }}
-                className="text-subtle-foreground hover:text-destructive p-0.5 transition-colors cursor-pointer"
-                title="Limpar filtro de período"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
+          <GanttFiltroPeriodo
+            variante="kpi"
+            dataInicial={dataFiltroInicio}
+            onDataInicialChange={onDataInicioChange}
+            dataFinal={dataFiltroFim}
+            onDataFinalChange={onDataFimChange}
+            onLimpar={onLimparDatas}
+          />
         )}
 
         <SearchInput

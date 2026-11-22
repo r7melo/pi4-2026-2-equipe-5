@@ -29,7 +29,7 @@ export async function excluirObra(id: number, sessao403?: number): Promise<void>
 }
 
 /** POST /api/obras — Rota #7 do Contrato (RF-03) */
-export async function criarObra(payload: CriarObraPayload): Promise<ObraCadastrada> {
+export async function criarObra(payload: CriarObraPayload, sessao403?: number): Promise<ObraCadastrada> {
   const pagamento = {
     prazoContratualDias: payload.pagamento.prazoContratualDias,
     dataConfirmacao:
@@ -72,7 +72,7 @@ export async function criarObra(payload: CriarObraPayload): Promise<ObraCadastra
         pagamento,
       };
 
-  const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", corpo, { suprimirToast403: true });
+  const { data: resposta } = await api.post<ObraCriadaResposta>("/obras", corpo, { suprimirToast403: true, sessao403 });
   return {
     id: resposta.id,
     clienteId: resposta.clienteId,

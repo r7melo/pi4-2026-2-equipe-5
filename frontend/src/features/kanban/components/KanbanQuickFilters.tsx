@@ -10,6 +10,7 @@ interface KanbanQuickFiltersProps {
   setMaterialFiltro: (mat: string) => void;
   onLimparFiltros: () => void;
   temFiltroAtivo: boolean;
+  temLimpezaDisponivel: boolean;
 }
 
 // RF-03 / Contrato 07-api: Categorias canônicas de obra
@@ -32,6 +33,7 @@ export default function KanbanQuickFilters({
   setMaterialFiltro,
   onLimparFiltros,
   temFiltroAtivo,
+  temLimpezaDisponivel,
 }: KanbanQuickFiltersProps) {
   const [aberto, setAberto] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export default function KanbanQuickFilters({
             : "bg-surface text-foreground-muted border-border-strong hover:bg-surface-subtle"
         )}
       >
-        <Filter className="w-4 h-4 text-muted-foreground" />
+        <Filter className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
         <span>Filtros</span>
         {temFiltroAtivo && (
           <span className="w-4 h-4 rounded-full bg-info text-primary-foreground text-[9px] font-bold flex items-center justify-center shrink-0">
@@ -82,7 +84,7 @@ export default function KanbanQuickFilters({
         <div id={painelId} role="group" aria-label="Filtros rápidos" className="absolute right-0 mt-2 w-64 bg-surface rounded-xl shadow-xl border border-border-subtle p-3 z-40">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-border-subtle">
             <span className="text-xs font-bold text-foreground-secondary">Filtros Rápidos</span>
-            {temFiltroAtivo && (
+            {temLimpezaDisponivel && (
               <button
                 type="button"
                 onClick={() => {

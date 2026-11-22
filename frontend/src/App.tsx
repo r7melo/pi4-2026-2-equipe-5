@@ -6,6 +6,8 @@ import EsqueciSenha from "@/features/auth/pages/EsqueciSenha";
 import RedefinirSenha from "@/features/auth/pages/RedefinirSenha";
 import Configuracoes from "@/features/auth/pages/Configuracoes";
 import SemPermissao from "@/features/auth/pages/SemPermissao";
+import PaginaNaoEncontrada from "@/features/auth/pages/PaginaNaoEncontrada";
+import { resolverTituloRota } from "@/shared/lib/rotasSessao";
 import { statusHttp } from "@/shared/lib/sessaoOperacao";
 import { Kanban, Equipes } from "@/composition/RotasOperacionais";
 import CadastrarObra from "@/features/obras/pages/CadastrarObra";
@@ -58,8 +60,6 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
     <QueryClientProvider client={queryClient}>
       <PortalAvisos><Toaster richColors position="top-right" theme={tema} toastOptions={{ className: "avisos-acesso" }} /></PortalAvisos>
       <ReloadPrompt />
-      {/* Popup de seleção de API — visível somente em desenvolvimento */}
-      <ApiModeSwitcher />
       <BrowserRouter>
         <MetadadosRota />
         <Ambiente>
@@ -124,10 +124,13 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
                 <Route path="/financeiro" element={<Financeiro />} />
               </Route>
             </Route>
+            <Route path="*" element={<PaginaNaoEncontrada />} />
           </Route>
         </Routes>
       </Ambiente>
       </BrowserRouter>
+      {/* Popup de seleção de API após BrowserRouter para preservar skip-link como 1º foco em dev */}
+      <ApiModeSwitcher />
     </QueryClientProvider>
   );
 }
@@ -135,18 +138,7 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
 function MetadadosRota() {
   const { pathname } = useLocation();
   useEffect(() => {
-    const titulos: Record<string, string> = {
-      "/": "Entrar", "/login": "Entrar", "/esqueci-senha": "Recuperar senha",
-      "/redefinir-senha": "Redefinir senha", "/kanban": "Obras", "/equipes": "Cronograma",
-      "/financeiro": "Financeiro", "/relatorios": "Relatórios", "/usuarios": "Usuários",
-      "/usuarios/novo": "Cadastrar usuário", "/configuracoes": "Configurações",
-      "/cadastrarobra": "Cadastrar obra", "/acompanharhomologacao": "Homologação",
-      "/linkparainstaladores": "Instalações", "/sem-permissao": "Acesso indisponível",
-    };
-    const titulo = titulos[pathname] ?? (pathname.startsWith("/obras/") ? pathname.endsWith("/materiais") ? "Materiais da obra" : "Detalhes da obra"
-      : pathname.startsWith("/cronograma/compartilhado/") ? "Cronograma compartilhado"
-      : pathname.startsWith("/relatorio-publico/") ? "Relatório compartilhado" : "Sistema");
-    document.title = titulo + " | ZL Gestão de Obras";
+    document.title = resolverTituloRota(pathname) + " | ZL Gestão de Obras";
   }, [pathname]);
   return null;
 }
