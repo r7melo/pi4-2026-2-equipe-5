@@ -45,7 +45,6 @@ public class AuthController(BancoDados banco, Autenticacao autenticacao) : Contr
             {
                 usuario.Id, usuario.Nome, usuario.Email,
                 perfil = usuario.NomePerfil,
-                equipeId = usuario.EquipeId,
             },
         });
     }
@@ -68,7 +67,6 @@ public class AuthController(BancoDados banco, Autenticacao autenticacao) : Contr
                 nomePerfil = usuario.NomePerfil,
                 permissoes = usuario.Permissoes.Split(',', StringSplitOptions.RemoveEmptyEntries),
             },
-            equipeId = usuario.EquipeId,
         });
     }
 

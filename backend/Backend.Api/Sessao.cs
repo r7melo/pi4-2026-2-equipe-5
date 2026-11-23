@@ -17,11 +17,10 @@ public static class Sessao
         return Erro.Criar(403, "ACCESS_DENIED", mensagem);
     }
 
-    // RN-04: o instalador só vê obras programadas para a própria equipe.
+    // RN-04 / RF-19: o instalador só vê obras cujas equipes integra ou integrou (vínculo pelo id do token).
     public static bool PodeVerObra(this ControllerBase controller, BancoDados banco, int obraId) =>
-        !controller.User.Instalador()
-        || controller.User.EquipeId() is int equipe && banco.ObraProgramadaParaEquipe(obraId, equipe);
+        !controller.User.Instalador() || banco.InstaladorNaObra(obraId, controller.UsuarioAtualId());
 
     public static ObjectResult ObraDeOutraEquipe(this ControllerBase controller, int obraId) =>
-        controller.AcessoNegado($"A obra {obraId} não está programada para a sua equipe.", "ObraDeOutraEquipe");
+        controller.AcessoNegado($"Você não integra nenhuma equipe da obra {obraId}.", "ObraDeOutraEquipe");
 }

@@ -11,7 +11,6 @@ public sealed class Autenticacao
 {
     public const string ClaimId = "sub";
     public const string ClaimPerfil = "perfil";
-    public const string ClaimEquipe = "equipeId";
     const string ChaveDesenvolvimento = "chave-de-desenvolvimento-pi4-nao-usar-em-producao-2026";
 
     public SymmetricSecurityKey Chave { get; }
@@ -39,7 +38,6 @@ public sealed class Autenticacao
             [ClaimId] = usuario.Id.ToString(),
             [ClaimPerfil] = usuario.NomePerfil == "EngenhariaObras" ? Perfis.Engenharia : usuario.NomePerfil,
         };
-        if (usuario.EquipeId is int equipe) claims[ClaimEquipe] = equipe.ToString();
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
         {
             Claims = claims,
@@ -118,9 +116,6 @@ public static class UsuarioLogado
         int.TryParse(usuario.FindFirstValue(Autenticacao.ClaimId), out var id) ? id : null;
 
     public static string? Perfil(this ClaimsPrincipal usuario) => usuario.FindFirstValue(Autenticacao.ClaimPerfil);
-
-    public static int? EquipeId(this ClaimsPrincipal usuario) =>
-        int.TryParse(usuario.FindFirstValue(Autenticacao.ClaimEquipe), out var id) ? id : null;
 
     public static bool Instalador(this ClaimsPrincipal usuario) => usuario.Perfil() == Perfis.Instalador;
 

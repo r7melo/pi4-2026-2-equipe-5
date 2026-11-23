@@ -3,7 +3,7 @@ using Npgsql;
 namespace Backend.Api;
 
 public sealed record InstalacaoListaBanco(int ObraId, string ClienteNome, string Endereco, string Status,
-    DateOnly DataInicio, DateOnly DataFim);
+    DateOnly DataInicio, DateOnly DataFim, DateOnly DataEntrada, DateOnly DataSaida);
 public sealed record KitInstalacaoBanco(string Tipo, int Quantidade);
 public sealed record ProjetoInstalacaoBanco(string? Arquivo);
 public sealed record InstalacaoDetalheBanco(int ObraId, string ClienteNome, string Endereco,
@@ -11,24 +11,26 @@ public sealed record InstalacaoDetalheBanco(int ObraId, string ClienteNome, stri
 
 public sealed partial class BancoDados
 {
-    // A equipe deve vir do usuario autenticado, nunca de um parametro HTTP livre.
-    public List<InstalacaoListaBanco> ListarInstalacoesEquipe(int equipeId)
+    // O instalador vem do usuario autenticado, nunca de um parametro HTTP livre (RF-19).
+    public List<InstalacaoListaBanco> ListarInstalacoes(int usuarioId)
     {
         using var conexao = Abrir();
         using var comando = Comando(conexao, """
-            SELECT o.id, c.nome, o.endereco, o.status::text, p.data_inicio, p.data_fim
-            FROM programacao_obra p JOIN obra o ON o.id = p.id_obra JOIN cliente c ON c.id = o.id_cliente
-            WHERE p.id_equipe = @equipe AND o.excluida_em IS NULL
-            ORDER BY p.data_inicio, p.id
-            """, ("equipe", equipeId));
+            SELECT o.id, c.nome, o.endereco, o.status::text, p.data_inicio, p.data_fim, i.data_entrada, i.data_saida
+            FROM equipe_integrante i JOIN programacao_obra p ON p.id = i.id_programacao
+            JOIN obra o ON o.id = p.id_obra JOIN cliente c ON c.id = o.id_cliente
+            WHERE i.id_usuario = @usuario AND o.excluida_em IS NULL
+            ORDER BY i.data_entrada, p.id
+            """, ("usuario", usuarioId));
         using var leitor = comando.ExecuteReader();
         var itens = new List<InstalacaoListaBanco>();
         while (leitor.Read()) itens.Add(new(leitor.GetInt32(0), leitor.GetString(1), leitor.GetString(2),
-            leitor.GetString(3), leitor.GetFieldValue<DateOnly>(4), leitor.GetFieldValue<DateOnly>(5)));
+            leitor.GetString(3), leitor.GetFieldValue<DateOnly>(4), leitor.GetFieldValue<DateOnly>(5),
+            leitor.GetFieldValue<DateOnly>(6), leitor.GetFieldValue<DateOnly>(7)));
         return itens;
     }
 
-    public InstalacaoDetalheBanco? BuscarInstalacaoEquipe(int obraId, int equipeId)
+    public InstalacaoDetalheBanco? BuscarInstalacao(int obraId, int usuarioId)
     {
         using var conexao = Abrir();
         string nome, endereco;
@@ -37,8 +39,9 @@ public sealed partial class BancoDados
             SELECT o.id, c.nome, o.endereco, o.projeto_arquivo, o.instrucoes
             FROM obra o JOIN cliente c ON c.id = o.id_cliente
             WHERE o.id = @obra AND o.excluida_em IS NULL AND EXISTS
-                (SELECT 1 FROM programacao_obra p WHERE p.id_obra = o.id AND p.id_equipe = @equipe)
-            """, ("obra", obraId), ("equipe", equipeId)))
+                (SELECT 1 FROM equipe_integrante i JOIN programacao_obra p ON p.id = i.id_programacao
+                 WHERE p.id_obra = o.id AND i.id_usuario = @usuario)
+            """, ("obra", obraId), ("usuario", usuarioId)))
         using (var leitor = comando.ExecuteReader())
         {
             if (!leitor.Read()) return null;

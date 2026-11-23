@@ -16,12 +16,14 @@ public sealed partial class BancoDados
         comando.ExecuteNonQuery();
     }
 
-    public bool ObraProgramadaParaEquipe(int obraId, int equipeId)
+    // Vínculo atual ou encerrado: a matriz de acesso fala em equipes que o instalador "integra ou integrou".
+    public bool InstaladorNaObra(int obraId, int usuarioId)
     {
         using var conexao = Abrir();
-        using var comando = Comando(conexao,
-            "SELECT EXISTS (SELECT 1 FROM programacao_obra WHERE id_obra = @obra AND id_equipe = @equipe)",
-            ("obra", obraId), ("equipe", equipeId));
+        using var comando = Comando(conexao, """
+            SELECT EXISTS (SELECT 1 FROM equipe_integrante i JOIN programacao_obra p ON p.id = i.id_programacao
+                           WHERE p.id_obra = @obra AND i.id_usuario = @usuario)
+            """, ("obra", obraId), ("usuario", usuarioId));
         return (bool)comando.ExecuteScalar()!;
     }
 }

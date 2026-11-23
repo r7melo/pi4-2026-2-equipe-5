@@ -4,18 +4,17 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Api.Controllers;
 
-// Módulo do instalador de campo (RF-19, RN-04): só a própria equipe, sem valores financeiros.
-// A equipe vem sempre do token, nunca de parâmetro da requisição.
+// Módulo do instalador de campo (RF-19, RN-04): só obras cujas equipes ele integra ou integrou, sem valores.
+// O usuário vem sempre do token, nunca de parâmetro da requisição.
 [ApiController]
 [Route("api/instalador")]
 [Authorize(Roles = Perfis.Instalador)]
 public class InstaladorController(BancoDados banco) : ControllerBase
 {
-    /// <summary>Lista as instalações programadas para a equipe do usuário logado (rota 37, RF-19).</summary>
+    /// <summary>Instalações das equipes do usuário logado, com o período em que ele está escalado (rota 37, RF-19).</summary>
     [HttpGet("instalacoes")]
     [ProducesResponseType(typeof(List<InstalacaoListaBanco>), StatusCodes.Status200OK)]
-    public IActionResult ListarInstalacoes() =>
-        Ok(User.EquipeId() is int equipe ? banco.ListarInstalacoesEquipe(equipe) : []);
+    public IActionResult ListarInstalacoes() => Ok(banco.ListarInstalacoes(this.UsuarioAtualId()));
 
     /// <summary>Detalhe da instalação: kit sem preços, endereço, projeto, instruções e link de navegação (rota 38, RF-19).</summary>
     /// <remarks>Obra inexistente responde 404; obra de outra equipe responde 403 e grava o audit_log (matriz de rotas, 04-regras-negocio.md).</remarks>
@@ -24,7 +23,7 @@ public class InstaladorController(BancoDados banco) : ControllerBase
     [ProducesResponseType(typeof(ErroSaida), StatusCodes.Status404NotFound)]
     public IActionResult DetalharInstalacao(int obraId)
     {
-        var detalhe = User.EquipeId() is int equipe ? banco.BuscarInstalacaoEquipe(obraId, equipe) : null;
+        var detalhe = banco.BuscarInstalacao(obraId, this.UsuarioAtualId());
         if (detalhe is null)
             return banco.BuscarObra(obraId) is null
                 ? Erro.Criar(404, "OBRA_NOT_FOUND", $"Obra {obraId} não encontrada.")
@@ -34,6 +33,7 @@ public class InstaladorController(BancoDados banco) : ControllerBase
     }
 
     /// <summary>Lista as manutenções da equipe do usuário logado (rota 39, RF-05 e RF-19).</summary>
+    /// <remarks>Manutenção ainda usa a equipe fixa (manutencao.id_equipe), buscada no banco pelo usuário do token.</remarks>
     /// <param name="status">Opcional: <c>Pendente</c> ou <c>Concluida</c>.</param>
     [HttpGet("manutencoes")]
     [ProducesResponseType(typeof(List<ManutencaoBanco>), StatusCodes.Status200OK)]
@@ -43,7 +43,8 @@ public class InstaladorController(BancoDados banco) : ControllerBase
         try
         {
             // Sem equipe não há manutenção, mas o filtro inválido continua sendo recusado.
-            return Ok(banco.ListarManutencoesEquipe(User.EquipeId() ?? 0, status));
+            var equipe = banco.BuscarUsuarioPorId(this.UsuarioAtualId())?.EquipeId ?? 0;
+            return Ok(banco.ListarManutencoesEquipe(equipe, status));
         }
         catch (RegraVioladaException ex)
         {
