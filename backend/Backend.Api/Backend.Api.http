@@ -138,29 +138,58 @@ Content-Type: application/json
 DELETE {{api}}/comentarios/711
 Authorization: Bearer {{token}}
 
-### 20. Equipes com ocupação no período
-GET {{api}}/equipes?dataInicio=2026-10-02&dataFim=2026-10-02
+### 26. Instaladores livres e ocupados no período
+GET {{api}}/instaladores/disponibilidade?dataInicio=2026-10-13&dataFim=2026-10-14
 Authorization: Bearer {{token}}
 
-### 22. Cronograma da Equipe 01
-GET {{api}}/programacoes?equipeId=1
+### 28. Cronograma com a equipe de cada programação (instaladorId opcional)
+GET {{api}}/programacoes?instaladorId=8
 Authorization: Bearer {{token}}
 
-### 23. Alocar equipe (304 está Separado: 80 painéis = 9 dias úteis; obra vai para EmAndamento)
+### 28a. Ocupação dos instaladores por dia útil e por instalador
+GET {{api}}/gantt/ocupacao?dataInicio=2026-10-12&dataFim=2026-10-16
+Authorization: Bearer {{token}}
+
+### 29. Programar obra (304 está Separado: 80 painéis = 9 dias úteis; obra vai para EmAndamento)
 POST {{api}}/programacoes
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "obraId": 304, "equipeId": 5, "dataInicio": "2026-10-19" }
+{ "obraId": 304, "dataInicio": "2026-10-19", "prioridade": 1, "pessoasPrevistas": 3, "integrantesIds": [12, 13] }
 
-### 23. Equipe ocupada -> 409 SCHEDULE_CONFLICT
+### 29. Integrante ocupado no período -> 409 SCHEDULE_CONFLICT (instalador 8 está na obra 302)
 POST {{api}}/programacoes
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "obraId": 305, "equipeId": 1, "dataInicio": "2026-10-02" }
+{ "obraId": 305, "dataInicio": "2026-10-06", "pessoasPrevistas": 2, "integrantesIds": [8] }
 
-### 24. Reordenar 601 e propagar para 602 e 607
+### 27. Incluir integrante (sem datas, cobre o período inteiro)
+POST {{api}}/programacoes/601/integrantes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "usuarioId": 15 }
+
+### 27a. Alterar datas do integrante
+PATCH {{api}}/programacoes/601/integrantes/15
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "dataEntrada": "2026-10-02", "dataSaida": "2026-10-02" }
+
+### 27b. Remover integrante (depois da entrada, informe dataSaida)
+DELETE {{api}}/programacoes/601/integrantes/15?dataSaida=2026-10-02
+Authorization: Bearer {{token}}
+
+### 27c. Alterar pessoas previstas
+PATCH {{api}}/programacoes/601/equipe
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "pessoasPrevistas": 2 }
+
+### 30. Reordenar 601 e propagar para as programações com integrantes em comum (602 e 607)
 PUT {{api}}/programacoes/601/reordenar
 Authorization: Bearer {{token}}
 Content-Type: application/json
