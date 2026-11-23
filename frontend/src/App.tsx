@@ -17,6 +17,7 @@ import DetalheObra from "@/features/obras/pages/DetalheObra";
 import MateriaisObra from "@/features/materiais/pages/MateriaisObra";
 import Relatorios from "@/features/financeiro/pages/Relatorios";
 import Financeiro from "@/features/financeiro/pages/Financeiro";
+import Produtos from "@/features/produtos/pages/Produtos";
 import RelatorioPublico from "@/features/financeiro/pages/RelatorioPublico";
 import CronogramaPublico from "@/features/cronograma/pages/CronogramaPublico";
 import { Usuarios, CadastroUsuario } from "@/composition/RotasUsuarios";
@@ -118,10 +119,11 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
                 <Route path="/usuarios/novo" element={<CadastroUsuario />} />
               </Route>
 
-              {/* Relatórios e Financeiro: Admin e Financeiro (RF-14/15) */}
+              {/* Relatórios, Financeiro e Catálogo de Produtos: Admin e Financeiro (RF-14/15/25) */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "Financeiro"]} />}>
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/financeiro" element={<Financeiro />} />
+                <Route path="/produtos" element={<Produtos />} />
               </Route>
             </Route>
             <Route path="*" element={<PaginaNaoEncontrada />} />

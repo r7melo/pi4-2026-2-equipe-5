@@ -20,6 +20,7 @@ const ROTAS_ESTATICAS_PERMITIDAS = new Set([
   "/acompanharhomologacao",
   "/relatorios",
   "/financeiro",
+  "/produtos",
   "/linkparainstaladores",
 ]);
 
@@ -136,8 +137,14 @@ export function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePe
   }
 
   if (perfilNome === "Financeiro") {
-    // Financeiro acessa também materiais da obra para alterar status (RN-08).
-    if (pathname === "/kanban" || pathname === "/equipes" || pathname === "/relatorios" || pathname === "/financeiro") {
+    // Financeiro acessa também materiais da obra para alterar status (RN-08) e catálogo de produtos (RF-25).
+    if (
+      pathname === "/kanban" ||
+      pathname === "/equipes" ||
+      pathname === "/relatorios" ||
+      pathname === "/financeiro" ||
+      pathname === "/produtos"
+    ) {
       return true;
     }
     // Detalhe da obra e sua rota de materiais; outras sub-rotas continuam bloqueadas.
@@ -225,6 +232,7 @@ const TITULOS_ROTAS_ESTATICAS: Readonly<Record<string, string>> = {
   "/kanban": "Obras",
   "/equipes": "Cronograma",
   "/financeiro": "Financeiro",
+  "/produtos": "Catálogo de Produtos",
   "/relatorios": "Relatórios",
   "/usuarios": "Usuários",
   "/usuarios/novo": "Cadastrar usuário",

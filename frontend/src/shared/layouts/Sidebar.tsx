@@ -6,6 +6,7 @@ import {
   Users, 
   DollarSign, 
   BarChart2,
+  Package,
   Moon,
   Sun,
   ChevronLeft,
@@ -76,6 +77,12 @@ export default function Sidebar() {
       label: "Financeiro",
       path: "/financeiro",
       icon: DollarSign,
+      roles: ["Administrador", "Financeiro"],
+    },
+    {
+      label: "Produtos",
+      path: "/produtos",
+      icon: Package,
       roles: ["Administrador", "Financeiro"],
     },
     {

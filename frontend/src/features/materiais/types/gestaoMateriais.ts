@@ -8,7 +8,7 @@ declare module "react" {
 }
 
 export type AtualizarMaterialPayload = Partial<
-  Pick<Material, "tipo" | "quantidade" | "statusLogistico">
+  Pick<Material, "tipo" | "quantidade" | "quantidadeUtilizada" | "statusLogistico">
 >;
 
 export type AlterarMaterial = {
@@ -20,6 +20,7 @@ export type AlterarMaterial = {
 export type AlterarStatusMaterial = {
   id: number;
   statusLogistico: StatusLogistico;
+  quantidadeUtilizada?: number | null;
   obraId: number;
 };
 

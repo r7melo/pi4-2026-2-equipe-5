@@ -1,6 +1,7 @@
 import { api } from "@/shared/api/api";
 import { capturarSessaoOperacional, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import type { Material, CriarMaterialPayload, StatusLogistico } from "@/shared/types/materiais";
+import type { Produto } from "@/shared/types/produtos";
 import type { AtualizarMaterialPayload } from "../types/gestaoMateriais";
 
 async function executarNaSessao<T>(
@@ -84,13 +85,34 @@ export function atualizarMaterial(
   });
 }
 
-/** PATCH /api/materiais/{id} — Rota #20 do Contrato (atualização de status logístico) */
+/** GET /api/produtos — Seleção de itens ativos do catálogo sem acoplamento entre fatias */
+export function listarProdutosCatalogoAtivos(
+  sessao?: number,
+  signal?: AbortSignal
+): Promise<Produto[]> {
+  return executarNaSessao(sessao, async (origem) => {
+    const { data } = await api.get<Produto[]>("/produtos", {
+      sessao403: origem,
+      politica401: "sessao",
+      suprimirToast403: true,
+      signal,
+    });
+    return data;
+  });
+}
+
+/** PATCH /api/materiais/{id} — Rota #20 do Contrato (atualização de status logístico e quantidade utilizada) */
 export function atualizarStatusMaterial(
   id: number,
   statusLogistico: StatusLogistico,
-  sessao?: number
+  sessao?: number,
+  quantidadeUtilizada?: number | null
 ): Promise<Material> {
-  return atualizarMaterial(id, { statusLogistico }, sessao);
+  const payload: AtualizarMaterialPayload = {
+    statusLogistico,
+    ...(quantidadeUtilizada !== undefined ? { quantidadeUtilizada } : {}),
+  };
+  return atualizarMaterial(id, payload, sessao);
 }
 
 /** PATCH /api/materiais/{id} — Atualização de dados cadastrais preservada para compatibilidade do modal */
