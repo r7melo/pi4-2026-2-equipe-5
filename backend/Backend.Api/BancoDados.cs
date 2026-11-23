@@ -19,8 +19,6 @@ public sealed record ObraCriadaBanco(int Id, string Status, int ClienteId, strin
     DateOnly? DataFimReal, DateTime CriadoEm);
 public sealed record MovimentoBanco(int Id, string StatusAnterior, string StatusNovo,
     DateTime DataAlteracao, bool EmailNotificacaoEnviado, bool Alterado, string[] Permitidos);
-public sealed record MaterialBanco(int Id, string Tipo, int Quantidade, int? QuantidadeUtilizada,
-    decimal? CustoUnitario, string? StatusLogistico, int ObraId);
 public sealed record AutorBanco(int Id, string Nome);
 public sealed record HistoricoBanco(long Id, int ObraId, string TipoAcao, string? StatusAnterior, string? StatusNovo,
     DateTime DataAlteracao, string? Observacao, AutorBanco Usuario);
@@ -282,35 +280,6 @@ public sealed partial class BancoDados(string connectionString)
             new { statusAnterior = anterior, statusNovo = novo });
         transacao.Commit();
         return new MovimentoBanco(id, anterior, novo, dataAlteracao, false, true, permitidos);
-    }
-
-    public List<MaterialBanco> ListarMateriais(int obraId)
-    {
-        using var conexao = Abrir();
-        using var comando = Comando(conexao, """
-            SELECT id, tipo, quantidade, quantidade_utilizada, custo_unitario, status_logistico::text, id_obra
-            FROM material WHERE id_obra = @obra ORDER BY id
-            """, ("obra", obraId));
-        using var leitor = comando.ExecuteReader();
-        var itens = new List<MaterialBanco>();
-        while (leitor.Read())
-            itens.Add(new MaterialBanco(leitor.GetInt32(0), leitor.GetString(1), leitor.GetInt32(2),
-                leitor.IsDBNull(3) ? null : leitor.GetInt32(3), leitor.IsDBNull(4) ? null : leitor.GetDecimal(4),
-                leitor.IsDBNull(5) ? null : leitor.GetString(5), leitor.GetInt32(6)));
-        return itens;
-    }
-
-    public MaterialBanco CriarMaterial(int obraId, string tipo, int quantidade, decimal? custoUnitario, string? status)
-    {
-        using var conexao = Abrir();
-        using var comando = Comando(conexao, """
-            INSERT INTO material (tipo, quantidade, custo_unitario, status_logistico, id_obra)
-            VALUES (@tipo, @quantidade, @custo, CAST(@status AS status_logistico_enum), @obra)
-            RETURNING id
-            """, ("tipo", tipo), ("quantidade", quantidade), ("custo", custoUnitario), ("status", status),
-            ("obra", obraId));
-        var id = (int)comando.ExecuteScalar()!;
-        return new MaterialBanco(id, tipo, quantidade, null, custoUnitario, status, obraId);
     }
 
     public List<HistoricoBanco> ListarHistorico(int obraId)

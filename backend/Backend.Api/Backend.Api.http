@@ -76,16 +76,41 @@ Content-Type: application/json
 
 { "statusNovo": "EmAndamento" }
 
-### 8. Materiais da obra
+### 18. Materiais da obra (custoUnitario só para Administrador e Financeiro)
 GET {{api}}/obras/301/materiais
 Authorization: Bearer {{token}}
 
-### 9. Registrar material / statusLogistico inválido -> 400 INVALID_STATUS_LOGISTICO
+### 19. Incluir material pelo produto (nasce EmSolicitacao; produto desativado -> 400 PRODUTO_INATIVO)
 POST {{api}}/obras/309/materiais
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "tipo": "Cabo Solar 6mm", "quantidade": 200, "statusLogistico": "Comprado" }
+{ "produtoId": 7, "quantidade": 200 }
+
+### 20. Avançar status logístico (só o próximo da ordem; pular -> 400 INVALID_STATUS_LOGISTICO)
+PATCH {{api}}/materiais/501
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "statusLogistico": "EmTransito" }
+
+### 20a. Catálogo de produtos (incluirInativos só para Administrador e Financeiro)
+GET {{api}}/produtos?tipo=Painel
+Authorization: Bearer {{token}}
+
+### 20b. Cadastrar produto
+POST {{api}}/produtos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nome": "Painel Solar 600W", "tipo": "Painel", "unidade": "un", "precoUnitario": 900.00 }
+
+### 20c. Alterar preço ou desativar (materiais já incluídos mantêm o preço antigo)
+PUT {{api}}/produtos/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "precoUnitario": 380.00 }
 
 ### 10. Histórico (mais recente primeiro)
 GET {{api}}/obras/305/historico

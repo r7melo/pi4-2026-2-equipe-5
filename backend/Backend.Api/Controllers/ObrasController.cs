@@ -21,7 +21,7 @@ public class ObrasController(BancoDados banco, ObrasNotificador notificador) : C
         int? QuantidadeInversores, string? Endereco, string? Descricao, DateOnly? DataInicioEstimada,
         DateOnly? DataFimEstimada, PagamentoEntrada? Pagamento);
     public record MoverStatusEntrada(string? StatusNovo, string? Observacao);
-    public record MaterialEntrada(string? Tipo, int? Quantidade, decimal? CustoUnitario, string? StatusLogistico);
+    public record MaterialEntrada(int? ProdutoId, int? Quantidade);
 
     // Rota 7 — UC-01, RF-03
     [Authorize(Roles = Perfis.Gestao)]
@@ -157,31 +157,34 @@ public class ObrasController(BancoDados banco, ObrasNotificador notificador) : C
     {
         if (banco.BuscarObra(id) is null) return ObraNaoEncontrada(id);
         if (!this.PodeVerObra(banco, id)) return this.ObraDeOutraEquipe(id);
-        return Ok(banco.ListarMateriais(id).Select(m => new
-        {
-            m.Id, m.Tipo, m.Quantidade, m.QuantidadeUtilizada, m.CustoUnitario, m.StatusLogistico,
-        }));
+        var veValores = User.VeValores();
+        return Ok(banco.ListarMateriais(id).Select(m => m.Saida(veValores)));
     }
 
-    // Rota 13 — RF-06
+    /// <summary>Inclui material na obra a partir de um produto ativo do catálogo (rota 19, RF-06 e RF-25).</summary>
+    /// <remarks>O material nasce em EmSolicitacao e guarda o preço do produto no momento da inclusão (Q13).</remarks>
     [Authorize(Roles = Perfis.Gestao)]
     [HttpPost("{id:int}/materiais")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErroSaida), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErroSaida), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RegistrarMaterial(int id, MaterialEntrada e)
     {
-        if (string.IsNullOrWhiteSpace(e.Tipo) || e.Tipo.Trim().Length > 200)
-            return Validacao("tipo é obrigatório e deve ter no máximo 200 caracteres.");
-        if (e.Quantidade is null or < 0)
-            return Validacao("quantidade é obrigatória e não pode ser negativa.");
-        if (e.CustoUnitario < 0)
-            return Validacao("custoUnitario não pode ser negativo.");
-        if (e.StatusLogistico is not null && !RegrasBase.StatusLogistico.Contains(e.StatusLogistico))
-            return Erro.Criar(400, "INVALID_STATUS_LOGISTICO",
-                $"statusLogistico '{e.StatusLogistico}' inválido. Valores aceitos: {string.Join(", ", RegrasBase.StatusLogistico)}.");
+        if (e.ProdutoId is null)
+            return Validacao("produtoId é obrigatório.");
+        if (e.Quantidade is null or <= 0)
+            return Validacao("quantidade é obrigatória e deve ser maior que zero.");
         if (banco.BuscarObra(id) is null) return ObraNaoEncontrada(id);
-
-        var material = banco.CriarMaterial(id, e.Tipo.Trim(), e.Quantidade.Value, e.CustoUnitario, e.StatusLogistico);
-        await notificador.MaterialAtualizadoAsync();
-        return Created($"/api/obras/{id}/materiais", material);
+        try
+        {
+            var material = banco.CriarMaterial(id, e.ProdutoId.Value, e.Quantidade.Value);
+            await notificador.MaterialAtualizadoAsync();
+            return Created($"/api/obras/{id}/materiais", material.Saida(User.VeValores()));
+        }
+        catch (RegraVioladaException ex)
+        {
+            return Erro.Criar(ex.Status, ex.Code, ex.Message);
+        }
     }
 
     // Rota 15 — RF-11
