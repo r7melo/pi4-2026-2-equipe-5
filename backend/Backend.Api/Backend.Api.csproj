@@ -19,6 +19,12 @@
   <ItemGroup>
     <EmbeddedResource Include="../../database/migrations/20261018_expansao_modelo.sql" LogicalName="Backend.Api.Migrations.20261018_expansao_modelo.sql" />
     <EmbeddedResource Include="../../database/migrations/20261031_padroniza_perfil_engenharia.sql" LogicalName="Backend.Api.Migrations.20261031_padroniza_perfil_engenharia.sql" />
+    <EmbeddedResource Include="../../database/migrations/20261122_01_status_em_solicitacao.sql" LogicalName="Backend.Api.Migrations.20261122_01_status_em_solicitacao.sql" />
+    <EmbeddedResource Include="../../database/migrations/20261122_02_catalogo_produtos.sql" LogicalName="Backend.Api.Migrations.20261122_02_catalogo_produtos.sql" />
+    <EmbeddedResource Include="../../database/migrations/20261122_03_materiais_corte.sql" LogicalName="Backend.Api.Migrations.20261122_03_materiais_corte.sql" />
+    <EmbeddedResource Include="../../database/migrations/20261122_04_equipes_temporais.sql" LogicalName="Backend.Api.Migrations.20261122_04_equipes_temporais.sql" />
+    <EmbeddedResource Include="../../database/migrations/20261122_05_redefinicao_senha.sql" LogicalName="Backend.Api.Migrations.20261122_05_redefinicao_senha.sql" />
+    <EmbeddedResource Include="../../database/04_catalogo_demonstracao.sql" LogicalName="Backend.Api.Migrations.04_catalogo_demonstracao.sql" />
   </ItemGroup>
 
 </Project>
