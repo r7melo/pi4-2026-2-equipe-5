@@ -38,6 +38,7 @@ export function configurarTemplatesGantt(ganttInstance: typeof ganttPadrao = gan
       if (task.type === "project") {
         return "gantt-project-team";
       }
+      if ((task.pessoasFaltantes ?? 0) > 0) return "gantt-equipe-incompleta";
       if (task.statusObra === "Assistencia") {
         return "gantt-material-assistencia";
       }
@@ -68,7 +69,7 @@ export function configurarTemplatesGantt(ganttInstance: typeof ganttPadrao = gan
         ? `<span class="gantt-bar-badge" role="img" aria-label="Homologação concluída na concessionária" title="Homologação concluída na concessionária">⚡</span>`
         : "";
       const rotuloBarra = task.nomeCliente || task.text || "";
-      return `<span>${escaparHtml(rotuloBarra)}</span> ${matBadge} ${homBadge}`;
+      return `<span>${escaparHtml(rotuloBarra)}</span> ${matBadge} ${homBadge} ${task.equipeRotulo ? `<strong>${escaparHtml(task.equipeRotulo)}</strong>` : ""} ${(task.pessoasFaltantes ?? 0) > 0 ? `<span>Faltam ${escaparHtml(task.pessoasFaltantes ?? 0)}</span>` : ""}`;
     };
 
     // Tooltip dinâmico com guard para nó de projeto

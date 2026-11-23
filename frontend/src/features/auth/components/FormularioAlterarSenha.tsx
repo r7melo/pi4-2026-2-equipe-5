@@ -27,7 +27,7 @@ export function FormularioAlterarSenha({ geracao }: { geracao: number }) {
     setTentouEnviar(true);
     if (!valida) { setErro("Revise a senha atual, os requisitos da nova senha e sua confirmação."); document.getElementById(!atual ? "senha-atual" : !senhaValida(nova) || nova === atual ? "nova-senha" : "confirmar-senha")?.focus(); return; }
     setErro("");
-    void operacao.executar(signal => alterarSenha({ senhaAtual: atual, novaSenha: nova }, { signal, sessao: geracao })).then(resposta => {
+    void operacao.executar(signal => alterarSenha({ senhaAtual: atual, novaSenha: nova, confirmacaoSenha: confirmar }, { signal, sessao: geracao })).then(resposta => {
       if (!resposta || !encerrarSessaoSenha(client, geracao)) return;
       limpar();
       toast.success("Senha alterada com sucesso. Acesse novamente com sua nova senha.");

@@ -62,7 +62,7 @@ function Redefinicao({ token, geracao }: { token: string; geracao: number }) {
       setTentouEnviar(true);
       if (!senhaValida(nova) || nova !== confirmar) { setErro("Revise os requisitos da nova senha e sua confirmação."); document.getElementById(!senhaValida(nova) ? "nova-senha" : "confirmar-senha")?.focus(); return; }
       setErro("");
-      void operacao.executar(signal => redefinirSenha({ token, novaSenha: nova }, { signal })).then(resposta => {
+      void operacao.executar(signal => redefinirSenha({ token, novaSenha: nova, confirmacaoSenha: confirmar }, { signal })).then(resposta => {
         if (!resposta) return;
         setNova(""); setConfirmar(""); setConcluida(true);
         if (!useAuthStore.getState().token) {

@@ -65,6 +65,7 @@ function criarProgramacaoFixture(id: number, equipeId: number, prioridade = 2): 
     id,
     obraId: 302,
     equipeId,
+    equipe: { pessoasPrevistas: 1, pessoasAlocadas: 0, pessoasFaltantes: 1, pessoaDia: 0, integrantes: [] },
     dataInicio: "2026-10-06",
     dataFim: "2026-10-09",
     prioridade,
@@ -382,10 +383,12 @@ describe("Gantt — Null-safety, imutabilidade, transação e SignalR", () => {
     expect(queryClient.isMutating({ mutationKey: ["programacoes"] })).toBe(0);
 
     vi.advanceTimersByTime(100);
-    expect(invalSpy).toHaveBeenCalledTimes(3);
+    expect(invalSpy).toHaveBeenCalledTimes(5);
     expect(invalSpy).toHaveBeenNthCalledWith(1, { queryKey: ["programacoes"] });
     expect(invalSpy).toHaveBeenNthCalledWith(2, { queryKey: ["equipes"] });
-    expect(invalSpy).toHaveBeenNthCalledWith(3, { queryKey: ["obras"] });
+    expect(invalSpy).toHaveBeenCalledWith({ queryKey: ["ocupacao"] });
+    expect(invalSpy).toHaveBeenCalledWith({ queryKey: ["disponibilidade"] });
+    expect(invalSpy).toHaveBeenCalledWith({ queryKey: ["obras"] });
     expect(timerRef.current).toBeNull();
   });
 });

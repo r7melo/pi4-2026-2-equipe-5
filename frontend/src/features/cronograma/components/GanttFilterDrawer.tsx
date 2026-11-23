@@ -111,22 +111,22 @@ export function GanttFilterDrawer({
         {/* 3. Equipe Responsável */}
         <div>
           <label className="block font-semibold text-foreground-muted mb-1" htmlFor="campo-ganttfilterdrawer-1">
-            Equipe Alocada
+            Instalador
           </label>
           <select id="campo-ganttfilterdrawer-1"
-            value={form.equipeId || ""}
+            value={form.instaladorId || ""}
             onChange={(e) =>
               setForm({
                 ...form,
-                equipeId: e.target.value ? Number(e.target.value) : undefined,
+                instaladorId: e.target.value ? Number(e.target.value) : undefined,
               })
             }
             className="w-full px-3 py-2 bg-surface-subtle border border-border-subtle rounded-md focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info text-foreground-secondary cursor-pointer"
           >
-            <option value="">Todas as equipes</option>
+            <option value="">Todos os instaladores</option>
             {equipesDisponiveis.map((eq) => (
               <option key={eq.id} value={eq.id}>
-                {eq.nome} ({eq.especialidade || "Instalação"})
+                {eq.nome}
               </option>
             ))}
           </select>

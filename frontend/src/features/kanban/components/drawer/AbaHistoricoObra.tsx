@@ -23,7 +23,7 @@ export function AbaHistoricoObra({
   if (historico.length === 0) {
     return (
       <div className="py-8 text-center text-xs text-muted-foreground border border-dashed border-border-subtle rounded-xl">
-        Nenhuma movimentação de status registrada no histórico.
+        Nenhuma alteração registrada no histórico.
       </div>
     );
   }
@@ -40,7 +40,9 @@ export function AbaHistoricoObra({
                 <span>{formatarDataBR(h.dataAlteracao)}</span>
               </div>
               <p className="text-xs text-foreground-secondary">
-                De <strong>{h.statusAnterior}</strong> para <strong>{h.statusNovo}</strong>
+                {h.tipoAcao === "Cadastro" ? <>Obra cadastrada{h.statusNovo && <> em <strong>{h.statusNovo}</strong></>}</> :
+                  h.statusAnterior && h.statusNovo ? <>De <strong>{h.statusAnterior}</strong> para <strong>{h.statusNovo}</strong></> :
+                  ({ Comentario: "Comentário registrado", ManutencaoConcluida: "Manutenção concluída", AlteracaoFinanceira: "Dados financeiros atualizados", MudancaStatus: "Status atualizado" }[h.tipoAcao ?? ""] ?? "Alteração registrada")}
               </p>
               {h.observacao && (
                 <p className="text-[11px] text-muted-foreground mt-1 italic">

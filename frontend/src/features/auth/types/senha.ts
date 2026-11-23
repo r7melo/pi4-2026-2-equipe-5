@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 export interface SolicitarSenhaEntrada { email: string }
-export interface RedefinirSenhaEntrada { token: string; novaSenha: string }
-export interface AlterarSenhaEntrada { senhaAtual: string; novaSenha: string }
+export interface RedefinirSenhaEntrada { token: string; novaSenha: string; confirmacaoSenha: string }
+export interface AlterarSenhaEntrada { senhaAtual: string; novaSenha: string; confirmacaoSenha: string }
 export interface MensagemSenha { mensagem: string; sucesso?: boolean }
 export interface ContextoPedidoSenha { signal: AbortSignal; sessao?: number }
 export interface CampoSenhaProps {

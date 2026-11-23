@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { equipeTemporalSchema } from "@/shared/lib/equipeTemporal";
 import type { DadosInstalacao, FormatoExportacaoInstalacao, FaltanteInstalacao } from "@/shared/types/exportacaoInstalacao";
 
 const id = z.number().int().positive();
@@ -11,7 +12,7 @@ export const materiaisInstalacaoSchema = z.array(z.object({
   quantidade: z.number().nullish(), unidade: texto,
 }));
 export const programacoesInstalacaoSchema = z.array(z.object({
-  id, obraId: id, equipeId: id.nullish(), dataInicio: texto, dataFim: texto,
+  id, obraId: id, equipeId: id.nullish(), equipe: equipeTemporalSchema.optional(), dataInicio: texto, dataFim: texto,
 }));
 export const equipesInstalacaoSchema = z.array(z.object({ id, nome: texto }));
 

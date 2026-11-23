@@ -27,11 +27,14 @@ export async function criarProgramacao(
   payload: CriarProgramacaoPayload,
   sessao403?: number
 ): Promise<Programacao> {
-  const { data } = await api.post<Programacao>("/programacoes", payload, {
+  const { data } = await api.post<Programacao>("/programacoes", {
+    obraId: payload.obraId, dataInicio: payload.dataInicio, prioridade: payload.prioridade,
+    pessoasPrevistas: payload.pessoasPrevistas, integrantesIds: payload.integrantesIds,
+  }, {
     sessao403,
     politica401: "sessao",
   });
-  return data;
+  return validarProgramacoes([data])[0];
 }
 
 /** PUT /api/programacoes/{id}/reordenar — Rota #30 (canônica) */

@@ -1,3 +1,4 @@
+import { registrarEquipesTemporais } from "./handlers/equipesTemporais";
 import { registrarClientes } from "./handlers/clientes";
 import { iniciarCenario } from "./core/estadoCenario";
 import { coordenarTransporteMock } from "./core/coordenacao";
@@ -29,6 +30,7 @@ registrarMateriais(mock);
 registrarRegistros(mock);
 registrarInstalacao(mock);
 registrarFinanceiro(mock);
+registrarEquipesTemporais(mock);
 registrarAlocacoes(mock);
 registrarHomologacao(mock);
 registrarCronogramaPublico(mock);

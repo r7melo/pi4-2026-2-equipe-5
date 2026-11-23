@@ -1,3 +1,4 @@
+import { equipeTemporalSchema } from "@/shared/lib/equipeTemporal";
 import { z } from "zod";
 const id = z.number().int().positive().refine(Number.isSafeInteger);
 const registro = z.object({ id }).passthrough();
@@ -6,10 +7,10 @@ const data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const autor = z.object({ id, nome: z.string().min(1) });
 const obra = registro.extend({ clienteNome: z.string().min(1), status, categoria: z.string(), quantidadePaineis: z.number().nonnegative(), dataFimEstimada: data });
 const detalhe = registro.extend({ status, cliente: registro.extend({ nome: z.string().min(1) }), pagamento: registro.extend({ prazoContratualDias: z.number().nonnegative() }), dataInicioEstimada: data, dataFimEstimada: data });
-const programa = registro.extend({ obraId: id, equipeId: id, dataInicio: data, dataFim: data, prioridade: z.number(), duracaoEstimadaDias: z.number().positive() });
+const programa = registro.extend({ obraId: id, equipeId: id.optional(), equipe: equipeTemporalSchema.optional(), dataInicio: data, dataFim: data, prioridade: z.number(), duracaoEstimadaDias: z.number().positive() });
 const material = registro.extend({ obraId: id, descricao: z.string().optional(), tipo: z.string().optional(), quantidade: z.number().nonnegative(), statusLogistico: z.enum(["EmSolicitacao", "Comprado", "EmTransito", "Disponivel", "Utilizado"]).nullish() });
-const historico = registro.extend({ obraId: id, statusAnterior: z.string(), statusNovo: z.string(), dataAlteracao: z.string(), usuario: autor });
-const comentario = registro.extend({ obraId: id, descricao: z.string(), dataRegistro: z.string(), usuario: autor });
+const historico = registro.extend({ obraId: id, tipoAcao: z.string().optional(), statusAnterior: z.string().nullable(), statusNovo: z.string().nullable(), dataAlteracao: z.string(), usuario: autor });
+const comentario = registro.extend({ obraId: id, tipo: z.enum(["Cartao", "Manutencao", "Timeline"]).optional(), descricao: z.string(), dataRegistro: z.string(), usuario: autor });
 const relatorio = z.object({ obraId: id, receita: z.number(), custoTotal: z.number(), lucro: z.number(), itens: z.array(z.object({ descricao: z.string(), valor: z.number() })) }).passthrough();
 const itemCusto = z.object({ custoMaoObra: z.number().nullable().optional(), custoInsumos: z.number().nullable().optional(), valorObra: z.number().nullable().optional() });
 const gestao = z.object({ versao: z.literal(1), novos: z.array(registro), contas: z.record(z.string(), registro), revisoes: z.record(z.string(), z.string()), acessos: z.record(z.string(), z.number()), equipes: z.array(registro), equipesRevisao: z.string() }).strict();

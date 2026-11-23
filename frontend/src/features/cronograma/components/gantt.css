@@ -314,3 +314,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* RF-07: cobertura mínima incompleta, acompanhada de texto na barra. */
+.gantt_task_line.gantt-equipe-incompleta { background: var(--warning-light); border: 2px solid var(--warning); color: var(--warning); }
+.gantt-equipe-incompleta .gantt_task_content { color: var(--warning); }

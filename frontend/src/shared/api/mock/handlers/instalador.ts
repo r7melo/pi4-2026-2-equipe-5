@@ -19,12 +19,8 @@ export function registrarInstalador(mock: MockAdapter): void {
     const equipes = obterEquipesArmazenadas();
     const equipe = equipes.find((e) => e.id === equipeId || e.membros?.some((m) => m.id === usuario.id));
 
-    if (!equipe) {
-      return [200, []];
-    }
-
     const programacoes = obterProgramacoesArmazenadas();
-    const progsFiltradas = programacoes.filter((p) => p.equipeId === equipe.id);
+    const progsFiltradas = programacoes.filter(p => p.equipe?.integrantes.some(i => i.usuarioId === usuario.id));
     const obras = obterObrasArmazenadas();
 
     const resultado = progsFiltradas.map((p) => {
@@ -37,7 +33,7 @@ export function registrarInstalador(mock: MockAdapter): void {
         status: obra?.status || "EmAndamento",
         dataInicio: p.dataInicio,
         dataFim: p.dataFim,
-        equipeNome: equipeProg?.nome || equipe?.nome || "Equipe Alfa",
+        equipeNome: p.equipe ? `${p.equipe.integrantes.length}/${p.equipe.pessoasPrevistas} pessoas vinculadas` : equipeProg?.nome || equipe?.nome || "Equipe",
       };
     });
 
@@ -71,12 +67,10 @@ export function registrarInstalador(mock: MockAdapter): void {
         ];
 
     const programacoes = obterProgramacoesArmazenadas();
-    const prog = programacoes.find((p) => p.obraId === obraId);
+    const prog = programacoes.find(p => p.obraId === obraId && p.equipe?.integrantes.some(i => i.usuarioId === usuario.id));
     const equipes = obterEquipesArmazenadas();
-    const equipeUsuario = equipes.find((e) => e.id === usuario.equipeId || e.membros?.some((m) => m.id === usuario.id));
-
-    // Regra Condicional E na Rota #38 (RN-06.12): instalador só acessa se fizer parte da equipe da obra
-    const temVinculo = prog && equipeUsuario && prog.equipeId === equipeUsuario.id;
+    // Participação atual ou histórica na equipe temporal da obra (RN-09).
+    const temVinculo = Boolean(prog);
     if (!temVinculo) {
       return [403, { error: { code: "ACCESS_DENIED", motivo: "ObraSemVinculoEquipe", message: "O instalador não possui vínculo com a equipe desta obra." } }];
     }

@@ -74,11 +74,11 @@ export function gerarDadosCenario(base: string): Record<string, string> {
       fimReal = util(dia(-finsConcluidos[id]), -1);
       inicioReal = deslocarUteis(fimReal, -(duracao - 1));
       const equipesUsadas = id === 307 ? [i % 6 + 1, 6] : [i % 6 + 1];
-      let conflito = programacoes.find(p => equipesUsadas.includes(p.equipeId) && p.dataInicio <= fimReal! && p.dataFim >= inicioReal!);
+      let conflito = programacoes.find(p => equipesUsadas.includes(p.equipeId ?? 0) && p.dataInicio <= fimReal! && p.dataFim >= inicioReal!);
       while (conflito) {
         fimReal = deslocarUteis(conflito.dataInicio, -2);
         inicioReal = deslocarUteis(fimReal, -(duracao - 1));
-        conflito = programacoes.find(p => equipesUsadas.includes(p.equipeId) && p.dataInicio <= fimReal! && p.dataFim >= inicioReal!);
+        conflito = programacoes.find(p => equipesUsadas.includes(p.equipeId ?? 0) && p.dataInicio <= fimReal! && p.dataFim >= inicioReal!);
       }
       primeira = alocar(id, i % 6 + 1, inicioReal, duracao);
       if (id === 307) alocar(id, 6, inicioReal, duracao);

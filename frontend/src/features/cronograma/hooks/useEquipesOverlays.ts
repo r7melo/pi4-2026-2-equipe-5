@@ -16,14 +16,18 @@ export function useEquipesOverlays(
   const [modalNovaAlocacaoAberto, setModalNovaAlocacaoAberto] = useState(false);
   const [modalNovaEquipeAberto, setModalNovaEquipeAberto] = useState(false);
   const [modalCompartilharAberto, setModalCompartilharAberto] = useState(false);
+  const [tarefaSelecionadaId, setTarefaSelecionadaId] = useState<number | null>(null);
   const [sessaoCompartilhamento, setSessaoCompartilhamento] = useState(sessaoRender);
 
   if (sessaoCompartilhamento !== sessaoRender) {
     setSessaoCompartilhamento(sessaoRender);
     setModalCompartilharAberto(false);
+    setDrawerFiltrosAberto(false);
+    setModalNovaAlocacaoAberto(false);
+    setModalNovaEquipeAberto(false);
+    setTarefaSelecionadaId(null);
   }
 
-  const [tarefaSelecionadaId, setTarefaSelecionadaId] = useState<number | null>(null);
   const [epochOverlays, setEpochOverlays] = useState(epochRender);
 
   if (epochOverlays !== epochRender) {

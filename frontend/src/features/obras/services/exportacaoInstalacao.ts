@@ -15,7 +15,7 @@ export async function consultarDadosInstalacao(obraId: number, signal?: AbortSig
   signal?.addEventListener("abort", abortar, { once: true });
   try {
     // Validar cada fonte ainda dentro da promessa: falha estrutural também cancela as irmãs.
-    const [obra, materiais, programacoes, equipes] = await Promise.all([
+    const [obra, materiais, programacoes] = await Promise.all([
       api.get<unknown>(`/obras/${obraId}`, { signal: ctrl.signal }).then((r) => {
         const dado = obraInstalacaoSchema.parse(r.data);
         if (dado.id !== obraId) throw new Error("Identidade da obra divergente");
@@ -27,8 +27,10 @@ export async function consultarDadosInstalacao(obraId: number, signal?: AbortSig
         return dados;
       }),
       api.get<unknown>("/programacoes", { signal: ctrl.signal }).then((r) => programacoesInstalacaoSchema.parse(r.data)),
-      api.get<unknown>("/equipes", { signal: ctrl.signal }).then((r) => equipesInstalacaoSchema.parse(r.data)),
     ]);
+    // Compatibilidade restrita a respostas antigas; equipes temporais dispensam cadastro fixo.
+    const equipes = programacoes.some(p => !p.equipe && p.equipeId)
+      ? equipesInstalacaoSchema.parse((await api.get<unknown>("/equipes", { signal: ctrl.signal })).data) : [];
     const nomes = new Map(equipes.map((e) => [e.id, normalizarTextoInstalacao(e.nome)]));
     return {
       obraId: obra.id, tituloObra: `Obra #${obra.id} - ${obra.cliente.nome}`, clienteNome: obra.cliente.nome,
@@ -38,7 +40,7 @@ export async function consultarDadosInstalacao(obraId: number, signal?: AbortSig
         quantidade: m.quantidade ?? null, unidade: normalizarTextoInstalacao(m.unidade),
       })),
       programacoes: programacoes.filter((p) => p.obraId === obraId).map((p) => ({
-        id: p.id, equipeId: p.equipeId ?? null, nomeEquipe: p.equipeId ? nomes.get(p.equipeId) ?? null : null,
+        id: p.id, equipeId: p.equipeId ?? null, nomeEquipe: p.equipe ? `${p.equipe.integrantes.length}/${p.equipe.pessoasPrevistas} pessoas vinculadas` : p.equipeId ? nomes.get(p.equipeId) ?? null : null,
         dataInicio: normalizarTextoInstalacao(p.dataInicio), dataFim: normalizarTextoInstalacao(p.dataFim),
       })),
     };

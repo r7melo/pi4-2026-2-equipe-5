@@ -34,6 +34,7 @@ export default function KanbanTaskDrawer({
   comentarios = COMENTARIOS_VAZIOS, carregandoComentarios = false,
   onSalvarObra, isSalvandoObra = false, onExcluirObra, isExcluindoObra = false,
   onAdicionarComentario, isEnviandoComentario = false, focoRetorno,
+  onEditarComentario, onExcluirComentario, erroComentarios, onRecarregarComentarios,
   totalMateriais = 0, renderAbaMateriais,
 }: KanbanTaskDrawerProps) {
   const navigate = useNavigate();
@@ -199,9 +200,11 @@ export default function KanbanTaskDrawer({
               {abaAtiva === "historico" && <AbaHistoricoObra historico={historico} carregandoHistorico={carregandoHistorico} />}
               {abaAtiva === "comentarios" && (
                 <AbaComentariosObra
-                  obraId={obraId} canEdit={canEdit} comentarios={comentarios}
+                  key={`${obraId}-${isOpen}`} obraId={obraId} comentarios={comentarios}
                   carregandoComentarios={carregandoComentarios}
                   onAdicionarComentario={onAdicionarComentario} isEnviandoComentario={isEnviandoComentario}
+                  onEditarComentario={onEditarComentario} onExcluirComentario={onExcluirComentario}
+                  erroComentarios={erroComentarios} onRecarregarComentarios={onRecarregarComentarios}
                 />
               )}
             </div>

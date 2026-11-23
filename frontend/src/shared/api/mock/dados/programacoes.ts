@@ -1,13 +1,26 @@
 import { obterEquipesArmazenadas } from "./equipes";
 import { armazenamentoCenario, lerDadosCenario, salvarDadosCenario } from "../core/estadoCenario";
 import type { Programacao, ProgramacaoAfetada, CriarProgramacaoPayload } from "@/shared/types/programacoes";
+import { diasUteisCivis } from "@/shared/lib/datasCivis";
 import { projetarReordenacao } from "@/shared/lib/reordenarProgramacoes";
 import { proximoDiaUtil, normalizarDataMeioDiaUTC, formatarDataISO, normalizarDataFimInclusiva, calcularDiasUteisInclusivos, calcularUltimoDiaUtil } from "@/shared/lib/formatters";
 import { obterObrasArmazenadas } from "./obras";
 
 const STORAGE_KEY_PROG = "mock_programacoes_v4";
 
-export function obterProgramacoesArmazenadas(): Programacao[] { return lerDadosCenario<Programacao[]>("mock_programacoes_v4"); }
+export function obterProgramacoesArmazenadas(): Programacao[] {
+  const equipes = obterEquipesArmazenadas();
+  return lerDadosCenario<Programacao[]>("mock_programacoes_v4").map(p => {
+    if (p.equipe) return p;
+    const membros = equipes.find(e => e.id === p.equipeId)?.membros ?? [];
+    return Object.assign({}, p, { equipe: {
+      pessoasPrevistas: Math.max(1, membros.length), pessoasAlocadas: membros.length,
+      pessoasFaltantes: membros.length ? 0 : 1,
+      pessoaDia: membros.length * diasUteisCivis(p.dataInicio, p.dataFim),
+      integrantes: membros.map(m => ({ usuarioId: m.id, nome: m.nome, dataEntrada: p.dataInicio, dataSaida: p.dataFim })),
+    } });
+  });
+}
 
 export class ConflitoReordenacaoMock extends Error {
   constructor(message = "Conflito de agenda da equipe no período solicitado.") {

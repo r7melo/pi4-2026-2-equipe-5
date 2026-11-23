@@ -155,7 +155,7 @@ export function FormularioReagendamento({
   };
 
   return (
-    <form onSubmit={handleSubmitReagendamento} className="p-3 bg-surface border border-border-subtle rounded-xl space-y-3">
+    <form onSubmit={handleSubmitReagendamento} className="cronograma-reagendamento p-3 bg-surface border border-border-subtle rounded-xl space-y-3">
       <div className="space-y-1.5">
         <label
           htmlFor="gantt-input-data-inicio"

@@ -74,7 +74,7 @@ export function consultarLinkCronograma(registro: PeriodoCompartilhado, filtros:
     while (!diaUtilCivil(dataInicio)) dataInicio = somarDiasCivisUTC(dataInicio, 1);
     while (!diaUtilCivil(dataFim)) dataFim = somarDiasCivisUTC(dataFim, -1);
     return [{
-      id: p.id, obraId: p.obraId, equipeId: p.equipeId,
+      id: p.id, obraId: p.obraId, equipeId: p.equipeId ?? p.id,
       dataInicio, dataFim, prioridade: p.prioridade, duracaoEstimadaDias,
     }];
   });

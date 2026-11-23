@@ -15,9 +15,11 @@ function falhaSegura(error: unknown): Error {
   const texto = envelope && typeof envelope === "object" && "message" in envelope && typeof envelope.message === "string" ? envelope.message : "";
   let mensagem = MENSAGEM_TROCA_INCERTA;
   if (status === 400 && codigo === "INVALID_BODY") mensagem = "Confira os dados informados.";
+  if (status === 400 && codigo === "SENHA_ATUAL_INCORRETA") mensagem = "Senha atual incorreta";
   if (status === 400 && codigo === "VALIDATION_ERROR") {
     mensagem = /link/i.test(texto) ? "Link inválido ou expirado" :
       /senha atual incorreta/i.test(texto) ? "Senha atual incorreta" :
+      /confirmação|confirmacao/i.test(texto) ? "A confirmação não é igual à nova senha" :
       /igual/i.test(texto) ? "A nova senha não pode ser igual à senha atual" : "A senha não atende aos requisitos mínimos de segurança";
   }
   if (status === 401) mensagem = codigo === "INVALID_CREDENTIALS" ? "Senha atual incorreta" : "Sua sessão expirou. Faça login novamente.";

@@ -26,6 +26,8 @@ export function agendarInvalidacaoProgramacoes(
       timerRef.current = null;
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
       void queryClient.invalidateQueries({ queryKey: ["equipes"] });
+      void queryClient.invalidateQueries({ queryKey: ["ocupacao"] });
+      void queryClient.invalidateQueries({ queryKey: ["disponibilidade"] });
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
     } else {
       agendarInvalidacaoProgramacoes(queryClient, timerRef, atrasoMs);

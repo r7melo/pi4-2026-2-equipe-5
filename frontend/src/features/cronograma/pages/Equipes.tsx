@@ -1,511 +1,125 @@
-import {
-  capturarSessaoOperacional,
-  assinarSessaoOperacional,
-  sessaoOperacionalVigente,
-} from "@/shared/lib/sessaoOperacao";
-import {
-  useState,
-  useMemo,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
-import { useGanttStore } from "@/features/cronograma/stores/useGanttStore";
-import { useAuthStore } from "@/shared/stores/useAuthStore";
-import { GanttDhtmlxWrapper } from "@/features/cronograma/components/GanttDhtmlxWrapper";
-import {
-  obterSeletorBotaoAlocacao,
-  type GanttTask,
-} from "@/features/cronograma/types/gantt";
-import {
-  criarArmazenamentoEstadoVisual,
-} from "@/features/cronograma/lib/estadoVisualGantt";
-import { GanttToolbar } from "@/features/cronograma/components/GanttToolbar";
-import { GanttKpiBar } from "@/features/cronograma/components/GanttKpiBar";
-import { GanttFilterDrawer } from "@/features/cronograma/components/GanttFilterDrawer";
-import { GanttNovaAlocacaoModal } from "@/features/cronograma/components/GanttNovaAlocacaoModal";
-import { GanttNovaEquipeModal } from "@/features/cronograma/components/GanttNovaEquipeModal";
-import { GanttCompartilharModal } from "@/features/cronograma/components/GanttCompartilharModal";
-import {
-  GanttTaskDrawer,
-  type TarefaDetalhes,
-} from "@/features/cronograma/components/GanttTaskDrawer";
-import {
-  useProgramacoes,
-  useReordenarProgramacao,
-  useCriarProgramacao,
-  useDeletarProgramacao,
-} from "@/features/cronograma/hooks/useProgramacoes";
-import { useReatribuirEquipeGantt } from "@/features/cronograma/hooks/useReatribuirEquipeGantt";
-import type { ObraGanttResumo, MapaHomologacoesGantt } from "@/features/cronograma/types/visaoCronograma";
-import { useEquipes } from "@/features/cronograma/hooks/useEquipes";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
-import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
-import { EmptyState } from "@/shared/components/feedback/EmptyState";
-import { CalendarX2, Search, AlertTriangle } from "lucide-react";
-import { calcularJanelaProgramacoes } from "@/features/cronograma/lib/janelaProgramacoes";
-import { diasUteisCivis } from "@/shared/lib/datasCivis";
-import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
-import { podeVerModo } from "@/shared/lib/podeVerModo";
-import { BotaoModoDisplay } from "@/shared/components/display/BotaoModoDisplay";
-import { transformarTarefasGantt } from "@/features/cronograma/lib/transformarTarefasGantt";
-import { useGanttFiltros } from "@/features/cronograma/hooks/useGanttFiltros";
-import { useEquipesOverlays } from "@/features/cronograma/hooks/useEquipesOverlays";
-import "@/features/cronograma/components/gantt.css";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useIsMutating, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@/shared/stores/useAuthStore';
+import { PageHeader } from '@/shared/components/ui/PageHeader';
+import FeedbackLoading from '@/shared/components/feedback/FeedbackLoading';
+import FeedbackErro from '@/shared/components/feedback/FeedbackErro';
+import { EmptyState } from '@/shared/components/feedback/EmptyState';
+import { SearchInput } from '@/shared/components/ui/SearchInput';
+import { useModoDisplay } from '@/shared/contexts/ModoDisplayContext';
+import { BotaoModoDisplay } from '@/shared/components/display/BotaoModoDisplay';
+import { podeVerModo } from '@/shared/lib/podeVerModo';
+import { capturarSessaoOperacional, sessaoOperacionalVigente } from '@/shared/lib/sessaoOperacao';
+import { temVinculosParciais } from '@/shared/lib/equipeTemporal';
+import { useSessaoCronograma, confirmarConsultaTemporal, mensagemEquipe } from '../hooks/useEquipeTemporal';
+import { useOperacoesTemporais } from '../stores/useOperacoesTemporais';
+import { useProgramacoes, useReordenarProgramacao } from '../hooks/useProgramacoes';
+import { useGanttStore } from '../stores/useGanttStore';
+import { useGanttFiltros } from '../hooks/useGanttFiltros';
+import { useEquipesOverlays } from '../hooks/useEquipesOverlays';
+import { transformarTarefasGantt } from '../lib/transformarTarefasGantt';
+import { calcularJanelaProgramacoes } from '../lib/janelaProgramacoes';
+import { criarArmazenamentoEstadoVisual } from '../lib/estadoVisualGantt';
+import { GanttDhtmlxWrapper } from '../components/GanttDhtmlxWrapper';
+import { GanttToolbar } from '../components/GanttToolbar';
+import { GanttFilterDrawer } from '../components/GanttFilterDrawer';
+import { GanttFiltroPeriodo } from '../components/GanttFiltroPeriodo';
+import { GanttCompartilharModal } from '../components/GanttCompartilharModal';
+import { ProgramarObraModal } from '../components/ProgramarObraModal';
+import { ProgramacaoDrawer } from '../components/ProgramacaoDrawer';
+import { OcupacaoInstaladores } from '../components/OcupacaoInstaladores';
+import type { ObraGanttResumo, MapaHomologacoesGantt } from '../types/visaoCronograma';
+import '../components/gantt.css';
+import '../components/cronograma-ui.css';
 
 export interface EquipesProps {
   renderizarAcoesObra?: (obraId: number) => ReactNode;
-  obras?: ObraGanttResumo[];
-  carregandoObras?: boolean;
-  mapaHomologacoes?: MapaHomologacoesGantt;
+  obras?: ObraGanttResumo[]; carregandoObras?: boolean; mapaHomologacoes?: MapaHomologacoesGantt;
 }
-
-export default function Equipes({
-  renderizarAcoesObra,
-  obras,
-  carregandoObras = false,
-  mapaHomologacoes,
-}: EquipesProps = {}) {
-  const { ativo: modoAtivo, elegivelParaModo, alturaSelo, lerEpoch, podeInteragir } = useModoDisplay();
-  const epochRender = lerEpoch();
-  const sessaoRender = useSyncExternalStore(assinarSessaoOperacional, capturarSessaoOperacional, capturarSessaoOperacional);
-  const { obterEstadoVisual, salvarEstadoVisual } = useMemo(
-    () => criarArmazenamentoEstadoVisual(sessaoRender),
-    [sessaoRender]
-  );
-
-  const nivelZoom = useGanttStore((s) => s.nivelZoom);
-  const setNivelZoom = useGanttStore((s) => s.setNivelZoom);
-  const salvarFiltrosNaStore = useGanttStore((s) => s.salvarFiltros);
-
+export default function Equipes({ obras, carregandoObras = false, mapaHomologacoes, renderizarAcoesObra }: EquipesProps = {}) {
+  const modo = useModoDisplay();
+  const epoch = modo.lerEpoch();
+  const sessao = useSessaoCronograma();
+  const cliente = useQueryClient();
+  const temporalBloqueado = useOperacoesTemporais(s => s.sessao === sessao && Object.values(s.fases).some(f => f !== 'livre'));
+  const temporalIncerta = useOperacoesTemporais(s => s.sessao === sessao && Object.values(s.fases).includes('incerta'));
+  const [erroRecuperacao, setErroRecuperacao] = useState('');
+  const perfil = useAuthStore(s => s.usuario?.perfil.nomePerfil);
+  const canEdit = perfil === 'Administrador' || perfil === 'Engenharia';
+  const montado = useRef(true);
+  useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
+  const podeInteragir = useCallback(() => montado.current && sessaoOperacionalVigente(sessao) && modo.podeInteragir(epoch), [modo, epoch, sessao]);
+  const consulta = useProgramacoes();
+  const reagendamento = useReordenarProgramacao();
+  const [visao, setVisao] = useState('gantt');
+  const [aviso, setAviso] = useState('');
   const [dataFoco, setDataFoco] = useState<Date | null>(null);
-
-  const [mostrarGrade, setMostrarGrade] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.innerWidth >= 768;
-    }
-    return true;
-  });
-
-  const {
-    drawerFiltrosAberto,
-    setDrawerFiltrosAberto,
-    modalNovaAlocacaoAberto,
-    setModalNovaAlocacaoAberto,
-    modalNovaEquipeAberto,
-    setModalNovaEquipeAberto,
-    modalCompartilharAberto,
-    setModalCompartilharAberto,
-    tarefaSelecionadaId,
-    setTarefaSelecionadaId,
-  } = useEquipesOverlays(epochRender, sessaoRender);
-  const nomePerfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
-  const canEdit =
-    nomePerfil === "Administrador" || nomePerfil === "Engenharia";
-  const {
-    mutate: reordenar,
-    mutateAsync: reordenarAsync,
-    bloqueado: reagendamentoBloqueado,
-    fase: reagendamentoFase,
-    aviso: avisoReagendamento,
-    recuperar: recuperarReagendamento,
-  } = useReordenarProgramacao();
-  const canEditRef = useRef(canEdit);
-  const montadoRef = useRef(false);
-  useLayoutEffect(() => { canEditRef.current = canEdit; }, [canEdit]);
-  useLayoutEffect(() => {
-    montadoRef.current = true;
-    return () => { montadoRef.current = false; };
-  }, []);
-  const podeUsarInterface = useCallback(
-    () => montadoRef.current && podeInteragir(epochRender),
-    [podeInteragir, epochRender]
-  );
-  const podeEditar = useCallback(
-    () => canEditRef.current && podeUsarInterface(),
-    [podeUsarInterface]
-  );
-
-
-  const {
-    data: programacoes,
-    isLoading: loadingProg,
-    isError: erroProg,
-    error: errorProg,
-    refetch: refetchProg,
-  } = useProgramacoes();
-  const { data: equipes, isLoading: loadingEquipes } = useEquipes();
-
-
-  const { janelaDatas, erroValidacaoJanela } = useMemo(() => {
-    if (!programacoes || programacoes.length === 0) {
-      return { janelaDatas: null, erroValidacaoJanela: null };
-    }
-    try {
-      const janela = calcularJanelaProgramacoes(programacoes);
-      return { janelaDatas: janela, erroValidacaoJanela: null };
-    } catch (err) {
-      return {
-        janelaDatas: null,
-        erroValidacaoJanela:
-          err instanceof Error ? err.message : "Dados de programação inválidos.",
-      };
-    }
-  }, [programacoes]);
-
-  const temBaseValida = Array.isArray(programacoes) && !erroValidacaoJanela;
-  const baseVazia = temBaseValida && programacoes.length === 0;
-  const reconciliacaoPendente = Boolean(
-    reagendamentoFase !== "livre"
-  );
-  const exibirErroProg = Boolean(
-    (erroProg && !(reconciliacaoPendente && temBaseValida)) || erroValidacaoJanela
-  );
-
-  const { mutateAsync: criarAlocacao, isPending: criandoAlocacao } =
-    useCriarProgramacao();
-  const { mutateAsync: deletarAlocacao } = useDeletarProgramacao();
-  const {
-    reatribuindoAlocacao,
-    reatribuindoRef,
-    anuncioReatribuicao,
-    registrarSelecaoComAnuncio,
-    handleMudarEquipe,
-  } = useReatribuirEquipeGantt({
-    sessaoRender,
-    programacoes,
-    equipes,
-    tarefaSelecionadaId,
-    setTarefaSelecionadaId,
-    podeEditar,
-    reagendamentoBloqueado,
-  });
-  const canDrag = canEdit && !modoAtivo && !reagendamentoBloqueado && !reatribuindoAlocacao;
-
-  const isLoading = loadingProg || Boolean(carregandoObras) || loadingEquipes;
-
-  const obrasElegiveis = useMemo(() => {
-    if (!obras) return [];
-    return obras.filter((o) => o.status !== "Concluido");
-  }, [obras]);
-
-
-  const {
-    filtros,
-    atualizarFiltros,
-    totalFiltrosAtivos,
-    programacoesFiltradas,
-  } = useGanttFiltros({
-    programacoes,
-    obras,
-    equipes,
-    podeUsarInterface,
-  });
-
-  const programacoesVisiveis = useMemo(
-    () => (modoAtivo ? programacoes ?? [] : programacoesFiltradas),
-    [modoAtivo, programacoes, programacoesFiltradas]
-  );
-
-  const dadosFormatados: GanttTask[] = useMemo(() => {
-    return transformarTarefasGantt({
-      programacoesVisiveis,
-      equipes,
-      obras,
-      homologacoesMap: mapaHomologacoes,
-    });
-  }, [programacoesVisiveis, equipes, obras, mapaHomologacoes]);
-  const tarefaDrawer = useMemo<TarefaDetalhes | null>(() => {
-    if (!tarefaSelecionadaId) return null;
-    const prog = programacoes?.find((p) => p.id === tarefaSelecionadaId);
-    if (!prog) return null;
-
-    const obra = obras?.find((o) => Number(o.id) === Number(prog.obraId));
-    const equipe = equipes?.find((e) => e.id === prog.equipeId);
-
-    return {
-      id: prog.id,
-      obraId: prog.obraId,
-      equipeId: prog.equipeId,
-      nomeEquipe: equipe?.nome || `Equipe ${prog.equipeId}`,
-      nomeCliente: obra?.clienteNome || `Obra ID: ${prog.obraId}`,
-      dataInicio: prog.dataInicio,
-      dataFim: prog.dataFim,
-      duracaoDias: diasUteisCivis(prog.dataInicio, prog.dataFim),
-      paineis: obra?.quantidadePaineis,
-      obra,
-    };
-  }, [tarefaSelecionadaId, programacoes, obras, equipes]);
-
-  const handleReorder = (id: number, novaData: string) => {
-    if (!podeEditar() || reagendamentoBloqueado || reatribuindoAlocacao || reatribuindoRef.current) return;
-    reordenar({ id, novaDataInicio: novaData });
+  const [mostrarGrade, setMostrarGrade] = useState(() => window.innerWidth >= 768);
+  const zoom = useGanttStore(s => s.nivelZoom);
+  const setZoom = useGanttStore(s => s.setNivelZoom);
+  const salvarFiltros = useGanttStore(s => s.salvarFiltros);
+  const overlays = useEquipesOverlays(epoch, sessao);
+  const filtros = useGanttFiltros({ programacoes: consulta.data, obras, podeUsarInterface: podeInteragir });
+  const armazenamento = useMemo(() => criarArmazenamentoEstadoVisual(sessao), [sessao]);
+  const mutacoesAtivas = useIsMutating({ mutationKey: ["programacoes"] });
+  const mutacaoEmVoo = reagendamento.bloqueado || mutacoesAtivas > 0 || temporalBloqueado;
+  const podeEditar = useCallback(() => canEdit && !reagendamento.bloqueado && podeInteragir(), [canEdit, reagendamento.bloqueado, podeInteragir]);
+  const janela = useMemo(() => consulta.data?.length ? calcularJanelaProgramacoes(consulta.data) : undefined, [consulta.data]);
+  const linhas = useMemo(() => transformarTarefasGantt({ programacoesVisiveis: modo.ativo ? consulta.data : filtros.programacoesFiltradas, obras, equipes: undefined, homologacoesMap: mapaHomologacoes }), [consulta.data, filtros.programacoesFiltradas, obras, mapaHomologacoes, modo.ativo]);
+  const instaladores = useMemo(() => [...new Map((consulta.data ?? []).flatMap(p => p.equipe?.integrantes ?? []).map(i => [i.usuarioId, { id: i.usuarioId, nome: i.nome }])).values()], [consulta.data]);
+  const selecionada = consulta.data?.find(p => p.id === overlays.tarefaSelecionadaId);
+  const aptas = (obras ?? []).filter(o => ['Separado', 'EmAndamento', 'Assistencia'].includes(o.status ?? '') && (o.quantidadePaineis ?? 0) > 0);
+  const parcial = (id: number) => temVinculosParciais(consulta.data ?? [], id);
+  const aoReordenar = (id: number, inicio: string) => {
+    if (!podeEditar() || mutacoesAtivas || temporalBloqueado) return;
+    if (parcial(id)) { setAviso('Há participações parciais nesta cadeia. Abra a programação para revisar as datas antes de reagendar.'); return; }
+    setAviso(''); reagendamento.mutate({ id, novaDataInicio: inicio });
   };
-
-  const handleReagendar = useCallback(
-    async (id: number, novaDataInicio: string): Promise<boolean | null> => {
-      if (!podeEditar() || reagendamentoBloqueado || reatribuindoAlocacao || reatribuindoRef.current) return null;
-      const sessaoAntes = capturarSessaoOperacional();
-      try {
-        const resposta = await reordenarAsync({ id, novaDataInicio });
-        if (!sessaoOperacionalVigente(sessaoAntes)) return null;
-        return resposta !== null ? true : null;
-      } catch {
-        if (!sessaoOperacionalVigente(sessaoAntes)) return null;
-        return false;
-      }
-    },
-    [podeEditar, reagendamentoBloqueado, reatribuindoAlocacao, reordenarAsync, reatribuindoRef]
-  );
-
-  const obterFocoRetorno = useCallback((): HTMLElement | null => {
-    if (tarefaSelecionadaId !== null) {
-      const elementoTarefa = document.querySelector<HTMLElement>(
-        obterSeletorBotaoAlocacao(tarefaSelecionadaId)
-      );
-      if (elementoTarefa && elementoTarefa.isConnected) {
-        return elementoTarefa;
-      }
-    }
-    const fallback = document.querySelector<HTMLElement>(".gantt-toolbar button");
-    if (fallback && fallback.isConnected) {
-      return fallback;
-    }
-    return null;
-  }, [tarefaSelecionadaId]);
-
-  const handleHoje = () => {
-    setDataFoco(new Date());
+  const aoReagendar = async (id: number, inicio: string) => {
+    if (!podeEditar() || mutacoesAtivas || temporalBloqueado) return null;
+    const origem = capturarSessaoOperacional();
+    try { const resposta = await reagendamento.mutateAsync({ id, novaDataInicio: inicio }); return sessaoOperacionalVigente(origem) && resposta ? true : null; }
+    catch { return sessaoOperacionalVigente(origem) ? false : null; }
   };
-
-  const handleSelectTask = (taskId: number) => {
-    if (!podeUsarInterface()) return;
-    registrarSelecaoComAnuncio(taskId);
-  };
-
-  const fecharDrawerTarefa = useCallback(() => {
-    if (!podeUsarInterface()) return;
-    registrarSelecaoComAnuncio(null);
-  }, [podeUsarInterface, registrarSelecaoComAnuncio]);
-
-  const handleConfirmarAlocacao = async (dados: {
-    obraId: number;
-    equipeId: number;
-    dataInicio: string;
-    dataFim?: string;
-  }) => {
-    if (!podeEditar()) return;
-    await criarAlocacao(dados);
-  };
-
-  const handleDesalocar = (id: number) => {
-    if (!podeEditar() || reagendamentoBloqueado || reatribuindoAlocacao || reatribuindoRef.current) return;
-    void deletarAlocacao(id).catch(() => undefined);
-  };
-
-  const handleImprimir = () => {
-    if (!podeUsarInterface()) return;
-    window.print();
-  };
-
-  return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden"
-      style={modoAtivo ? { paddingBottom: alturaSelo } : undefined}>
-      <PageHeader title="Cronograma de Equipes"
-        subtitle="Gestão de alocações e cronograma de obras (Gantt)"
-        ocultarMenuLateral={modoAtivo}>
-        {!isLoading && !exibirErroProg && temBaseValida && !baseVazia && (
-          <GanttToolbar nivelAtual={nivelZoom} onMudarNivel={setNivelZoom}
-            onHoje={handleHoje} mostrarGrade={mostrarGrade}
-            onToggleGrade={() => setMostrarGrade((prev) => !prev)}
-            onImprimir={handleImprimir}
-            onAbrirCompartilhar={canEdit ? () => { if (podeEditar()) setModalCompartilharAberto(true); } : undefined}
-            onAbrirFiltros={() => { if (podeUsarInterface()) setDrawerFiltrosAberto(true); }}
-            totalFiltrosAtivos={totalFiltrosAtivos} modoAtivo={modoAtivo} />
-        )}
-        {podeVerModo(nomePerfil) && elegivelParaModo && <BotaoModoDisplay className="size-7.5 [&_svg]:size-3.5" />}
-      </PageHeader>
-
-      {isLoading && !temBaseValida ? (
-        <section className="flex-1 flex items-center justify-center bg-background-app">
-          <FeedbackLoading mensagem="Carregando cronograma..." />
-        </section>
-      ) : exibirErroProg ? (
-        <section className="flex-1 flex items-center justify-center bg-background-app p-4">
-          <FeedbackErro mensagem={erroValidacaoJanela || errorProg?.message || "Ocorreu um erro ao carregar o cronograma."}
-            onTentarNovamente={() => void refetchProg()} />
-        </section>
-      ) : baseVazia ? (
-        <section className="flex-1 flex items-center justify-center bg-background-app p-4">
-          <EmptyState icone={CalendarX2} titulo="Nenhuma programação encontrada"
-            descricao={modoAtivo ? undefined : "Aloque equipes a obras cadastradas para inicializar o cronograma."}
-            acao={canEdit && !modoAtivo ? {
-              label: "Nova Alocação",
-              onClick: () => { if (podeEditar()) setModalNovaAlocacaoAberto(true); },
-            } : undefined} />
-        </section>
-      ) : (
-      <section className="flex-1 flex flex-col gap-2 w-full min-h-0 bg-background-app p-2 md:p-3 overflow-hidden">
-        {avisoReagendamento && (
-          <div
-            role="alert"
-            className="p-3 bg-warning-light border border-warning-border rounded-xl flex items-center justify-between gap-3 text-xs text-warning shrink-0"
-          >
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-warning" aria-hidden="true" />
-              <span>{avisoReagendamento}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (reagendamentoFase === "recuperacao") {
-                  void recuperarReagendamento();
-                } else {
-                  void refetchProg();
-                }
-              }}
-              className="px-3 py-1.5 font-semibold text-xs bg-surface border border-border-subtle rounded-lg hover:bg-surface-subtle text-foreground-secondary transition-colors cursor-pointer shrink-0"
-            >
-              Consultar novamente
-            </button>
-          </div>
-        )}
-
-        {/* Barra Rápida conectada 100% à Fonte Única de Verdade 'filtros': */}
-        {!modoAtivo && (
-        <GanttKpiBar
-          termoBusca={filtros.termoBusca || ""}
-          onBuscaChange={(termo) =>
-            atualizarFiltros((prev) => ({ ...prev, termoBusca: termo || undefined }))
-          }
-          equipeSelecionada={filtros.equipeId ?? null}
-          onEquipeChange={(equipeId) =>
-            atualizarFiltros((prev) => ({ ...prev, equipeId: equipeId ?? undefined }))
-          }
-          equipes={equipes || []}
-          canEdit={canEdit}
-          onNovaAlocacao={() => { if (podeEditar()) setModalNovaAlocacaoAberto(true); }}
-          onNovaEquipe={() => { if (podeEditar()) setModalNovaEquipeAberto(true); }}
-          dataFiltroInicio={filtros.dataInicioDe || ""}
-          onDataInicioChange={(val) =>
-            atualizarFiltros((prev) => ({ ...prev, dataInicioDe: val || undefined }))
-          }
-          dataFiltroFim={filtros.dataFimAte || ""}
-          onDataFimChange={(val) =>
-            atualizarFiltros((prev) => ({ ...prev, dataFimAte: val || undefined }))
-          }
-          onLimparDatas={() =>
-            atualizarFiltros((prev) => ({
-              ...prev,
-              dataInicioDe: undefined,
-              dataFimAte: undefined,
-              dataInicioAte: undefined,
-              dataFimDe: undefined,
-            }))
-          }
-        />
-        )}
-
-        {/* Container do Gantt com Empty State unificado: */}
-        <div className="relative flex-1 bg-surface rounded-xl shadow-xs border border-border-subtle overflow-hidden flex flex-col min-h-0">
-          {!modoAtivo && programacoesVisiveis.length === 0 && (
-            <EmptyState
-              className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
-              icone={Search}
-              titulo="Nenhuma alocação encontrada para os filtros aplicados"
-              descricao="Tente alterar os filtros na gaveta lateral ou na barra rápida."
-              acao={{
-                label: "Limpar Todos os Filtros",
-                onClick: () => atualizarFiltros({}),
-              }}
-            />
-          )}
-
-          <GanttDhtmlxWrapper
-            key={modoAtivo ? "display" : "operacao"}
-            tarefas={dadosFormatados}
-            canDrag={canDrag}
-            janelaDatas={modoAtivo ? undefined : (janelaDatas ?? undefined)}
-            epochInteracao={epochRender}
-            nivelZoom={nivelZoom}
-            focarData={dataFoco}
-            mostrarGrade={mostrarGrade}
-            onReorder={handleReorder}
-            onSelectTask={modoAtivo ? undefined : handleSelectTask}
-            modoAtivo={modoAtivo}
-            obterEstadoVisual={obterEstadoVisual}
-            salvarEstadoVisual={salvarEstadoVisual}
-          />
-        </div>
-      </section>
-      )}
-
-      {!modoAtivo && (!isLoading || temBaseValida) && temBaseValida && !exibirErroProg && (
-      <>
-      {canEdit && <GanttNovaAlocacaoModal
-        isOpen={modalNovaAlocacaoAberto}
-        onClose={() => { if (podeUsarInterface()) setModalNovaAlocacaoAberto(false); }}
-        obrasElegiveis={obrasElegiveis}
-        equipes={equipes || []}
-        programacoes={programacoes || []}
-        onConfirmar={handleConfirmarAlocacao}
-        isLoading={criandoAlocacao}
-      />}
-
-      {!baseVazia && (
-      <>
-      {canEdit && <GanttNovaEquipeModal isOpen={modalNovaEquipeAberto} podeInteragir={podeEditar}
-        onClose={() => { if (podeUsarInterface()) setModalNovaEquipeAberto(false); }}
-        onEquipeCriada={(novaEquipeId) => {
-          if (!podeEditar()) return;
-          atualizarFiltros((prev) => ({ ...prev, equipeId: novaEquipeId }));
-          setModalNovaAlocacaoAberto(true);
-        }} />}
-
-      {canEdit && <GanttCompartilharModal
-        isOpen={modalCompartilharAberto}
-        podeInteragir={podeEditar}
-        onClose={() => { if (podeUsarInterface()) setModalCompartilharAberto(false); }}
-      />}
-
-      <GanttTaskDrawer
-        key={tarefaDrawer ? "aberto" : "fechado"}
-        tarefa={tarefaDrawer}
-        onClose={fecharDrawerTarefa}
-        canEdit={canEdit}
-        onDesalocar={handleDesalocar}
-        equipes={equipes || []}
-        programacoes={programacoes || []}
-        onMudarEquipe={handleMudarEquipe}
-        reatribuindoEquipe={reatribuindoAlocacao}
-        anuncioReatribuicao={anuncioReatribuicao}
-        renderizarAcoesObra={renderizarAcoesObra}
-        onReagendar={handleReagendar}
-        reagendamentoBloqueado={reagendamentoBloqueado}
-        reagendamentoFase={reagendamentoFase}
-        avisoReagendamento={avisoReagendamento}
-        focoRetorno={obterFocoRetorno}
-        homologacao={tarefaDrawer?.obraId ? mapaHomologacoes?.[tarefaDrawer.obraId] : undefined}
-      />
-
-      {/* Gaveta de Filtros Avançados: */}
-      <GanttFilterDrawer
-        aberto={drawerFiltrosAberto}
-        onFechar={() => { if (podeUsarInterface()) setDrawerFiltrosAberto(false); }}
-        filtrosAtuais={filtros}
-        onAplicarFiltros={atualizarFiltros}
-        onSalvarVisaoFavorita={(novosFiltros) => {
-          if (podeUsarInterface()) salvarFiltrosNaStore(novosFiltros);
-        }}
-        equipesDisponiveis={equipes || []}
-      />
-      </>
-      )}
-      </>
-      )}
-    </div>
-  );
+  return <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden" style={modo.ativo ? { paddingBottom: modo.alturaSelo } : undefined}>
+    <PageHeader title="Cronograma de Equipes" subtitle="Programações, equipes temporais e ocupação" ocultarMenuLateral={modo.ativo}>
+      {consulta.data?.length ? <GanttToolbar nivelAtual={zoom} onMudarNivel={setZoom} onHoje={() => setDataFoco(new Date())} mostrarGrade={mostrarGrade} onToggleGrade={() => setMostrarGrade(v => !v)}
+        onImprimir={() => window.print()} onAbrirCompartilhar={canEdit ? () => overlays.setModalCompartilharAberto(true) : undefined}
+        onAbrirFiltros={() => overlays.setDrawerFiltrosAberto(true)} totalFiltrosAtivos={filtros.totalFiltrosAtivos} modoAtivo={modo.ativo} /> : null}
+      {podeVerModo(perfil) && modo.elegivelParaModo && <BotaoModoDisplay />}
+    </PageHeader>
+    {!modo.ativo && temporalIncerta && <div role="alert" className="px-3 py-2 bg-warning-light text-warning text-sm">
+      Uma alteração pode ter sido processada. Consulte o cronograma para liberar novas escritas.
+      <button type="button" className="min-h-12 px-3 underline" onClick={() => { const origem = sessao; void confirmarConsultaTemporal(cliente, origem).then(() => setErroRecuperacao('')).catch(f => { if (sessaoOperacionalVigente(origem)) setErroRecuperacao(mensagemEquipe(f)); }); }}>Consultar cronograma novamente</button>
+      {erroRecuperacao && <p>{erroRecuperacao}</p>}
+    </div>}
+    {!modo.ativo && <div className="cronograma-commandbar">
+      <div className="cronograma-visoes" role="group" aria-label="Visualização do cronograma">
+        <button type="button" aria-pressed={visao === 'gantt'} onClick={() => setVisao('gantt')}>Programações</button>
+        <button type="button" aria-pressed={visao === 'ocupacao'} onClick={() => setVisao('ocupacao')}>Ocupação dos instaladores</button>
+      </div>
+      {visao === 'gantt' && <>
+        <SearchInput tamanho="sm" className="cronograma-busca" valor={filtros.filtros.termoBusca ?? ''} onChange={termo => filtros.atualizarFiltros(f => ({ ...f, termoBusca: termo }))} placeholder="Buscar obra ou instalador..." />
+        <GanttFiltroPeriodo variante="kpi" dataInicial={filtros.filtros.dataInicioDe ?? ''} onDataInicialChange={v => filtros.atualizarFiltros(f => ({ ...f, dataInicioDe: v || undefined }))}
+          dataFinal={filtros.filtros.dataFimAte ?? ''} onDataFinalChange={v => filtros.atualizarFiltros(f => ({ ...f, dataFimAte: v || undefined }))} />
+      </>}
+      {canEdit && <button type="button" disabled={mutacaoEmVoo} className="cronograma-button cronograma-button-primary cronograma-nova" onClick={() => { if (podeEditar()) overlays.setModalNovaAlocacaoAberto(true); }}><span aria-hidden="true">＋</span> Programar obra</button>}
+    </div>}
+    {!modo.ativo && visao === 'ocupacao' ? <OcupacaoInstaladores key={sessao} /> : <>
+      {(aviso || reagendamento.aviso) && <div role="alert" className="px-3 py-2 text-warning bg-warning-light text-sm">{aviso || reagendamento.aviso}{reagendamento.aviso && <button type="button" className="min-h-12 px-3 underline" onClick={() => void reagendamento.recuperar()}>Consultar novamente</button>}</div>}
+      {consulta.isLoading || carregandoObras ? <FeedbackLoading mensagem="Carregando cronograma..." /> : consulta.isError ? <FeedbackErro mensagem={consulta.error.message} onTentarNovamente={() => void consulta.refetch()} /> : !consulta.data?.length ? <EmptyState titulo="Nenhuma programação encontrada" descricao="Programe uma obra apta para iniciar o cronograma." /> :
+        <div className="flex-1 min-h-0 p-2 relative">
+          {!linhas.length ? <EmptyState titulo="Nenhuma alocação encontrada para os filtros aplicados" acao={{ label: 'Limpar filtros', onClick: () => filtros.atualizarFiltros({}) }} /> :
+            <GanttDhtmlxWrapper key={modo.ativo ? 'display' : 'operacao'} tarefas={linhas} canDrag={canEdit && !modo.ativo && !mutacaoEmVoo} janelaDatas={modo.ativo ? undefined : (janela ?? undefined)} nivelZoom={zoom} focarData={dataFoco} mostrarGrade={mostrarGrade}
+              modoAtivo={modo.ativo} epochInteracao={epoch} onReorder={aoReordenar} onSelectTask={modo.ativo ? undefined : id => { if (podeInteragir()) { setAviso(''); overlays.setTarefaSelecionadaId(id); } }} obterEstadoVisual={armazenamento.obterEstadoVisual} salvarEstadoVisual={armazenamento.salvarEstadoVisual} />}
+        </div>}
+    </>}
+    {!modo.ativo && <>
+      {canEdit && overlays.modalNovaAlocacaoAberto && <ProgramarObraModal key={sessao} obras={aptas} podeEditar={podeEditar} onClose={() => overlays.setModalNovaAlocacaoAberto(false)} />}
+      {selecionada && <ProgramacaoDrawer key={`${sessao}-${selecionada.id}`} programacao={selecionada} programacoes={consulta.data ?? []} obra={obras?.find(o => Number(o.id) === selecionada.obraId)} homologacao={mapaHomologacoes?.[selecionada.obraId]}
+        canEdit={canEdit} podeEditar={podeEditar} onClose={() => overlays.setTarefaSelecionadaId(null)} onReagendar={aoReagendar} bloqueado={mutacaoEmVoo} fase={reagendamento.fase} aviso={reagendamento.aviso} renderizarAcoesObra={renderizarAcoesObra} />}
+      {canEdit && <GanttCompartilharModal isOpen={overlays.modalCompartilharAberto} podeInteragir={podeEditar} onClose={() => overlays.setModalCompartilharAberto(false)} />}
+      <GanttFilterDrawer aberto={overlays.drawerFiltrosAberto} onFechar={() => overlays.setDrawerFiltrosAberto(false)} filtrosAtuais={filtros.filtros} onAplicarFiltros={filtros.atualizarFiltros} equipesDisponiveis={instaladores} onSalvarVisaoFavorita={salvarFiltros} />
+    </>}
+  </div>;
 }

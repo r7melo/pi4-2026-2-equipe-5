@@ -39,6 +39,7 @@ export interface DadosHomologacao {
 
 /** Detalhamento completo da obra para tela de Detalhe e Drawer (Rota #8 do Contrato Oficial 07-api) */
 export interface ObraDetalhe {
+  valorObra?: number;
   id: number;
   status: StatusObra;
   dataInicioEstimada: string;
@@ -64,16 +65,18 @@ export interface ObraDetalhe {
 }
 
 export interface HistoricoObra {
+  tipoAcao?: string;
   id: number;
   obraId: number;
-  statusAnterior: string;
-  statusNovo: string;
+  statusAnterior: string | null;
+  statusNovo: string | null;
   dataAlteracao: string;
   observacao?: string;
   usuario: { id: number; nome: string };
 }
 
 export interface ComentarioObra {
+  tipo?: "Cartao" | "Manutencao" | "Timeline";
   id: number;
   obraId: number;
   descricao: string;

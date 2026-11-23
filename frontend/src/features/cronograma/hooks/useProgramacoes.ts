@@ -11,6 +11,7 @@ import {
   capturarSessaoOperacional,
   deveExibirErroLocal,
   statusHttp,
+  exigirSessaoOperacional,
 } from "@/shared/lib/sessaoOperacao";
 import { toast } from "sonner";
 import {
@@ -238,7 +239,11 @@ export function useReordenarProgramacao() {
             );
           }
 
-          coordenador.liberar(origem, true);
+          if (status === 409) {
+            await sincronizarReagendamento(queryClient, coordenador, origem);
+          } else {
+            coordenador.liberar(origem, true);
+          }
           throw erroPut;
         }
 
@@ -292,6 +297,8 @@ export function useReordenarProgramacao() {
         });
       });
 
+      void queryClient.invalidateQueries({ queryKey: ["ocupacao"] });
+      void queryClient.invalidateQueries({ queryKey: ["disponibilidade"] });
       const idsConfirmados = [
         resposta200.id,
         ...resposta200.programacoesAfetadas.map((a) => a.id),
@@ -351,9 +358,16 @@ export function useCriarProgramacao() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["programacoes"],
-    mutationFn: (dados: CriarProgramacaoPayload, sessao) => criarProgramacao(dados, sessao),
+    mutationFn: async (dados: CriarProgramacaoPayload, sessao) => {
+      const resultado = await criarProgramacao(dados, sessao);
+      exigirSessaoOperacional(sessao);
+      return resultado;
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["ocupacao"] });
+      void queryClient.invalidateQueries({ queryKey: ["disponibilidade"] });
+      void queryClient.invalidateQueries({ queryKey: ["obras"] });
       toast.success("Alocação criada com sucesso no cronograma!");
     },
     onError: (err: unknown) => {
@@ -373,6 +387,9 @@ export function useDeletarProgramacao() {
     mutationFn: (id: number, sessao) => deletarProgramacao(id, sessao),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["programacoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["ocupacao"] });
+      void queryClient.invalidateQueries({ queryKey: ["disponibilidade"] });
+      void queryClient.invalidateQueries({ queryKey: ["obras"] });
       toast.success("Alocação removida do cronograma.");
     },
     onError: (err: unknown) => {

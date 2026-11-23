@@ -3,17 +3,12 @@ import { obterEquipesArmazenadas } from "../dados/equipes";
 import {
   obterProgramacoesArmazenadas,
   atualizarProgramacaoDataArmazenada,
-  criarProgramacaoArmazenada,
   deletarProgramacaoArmazenada,
   ConflitoReordenacaoMock,
 } from "../dados/programacoes";
-import { extrairDados } from "../core/http";
+import { extrairQueryParams } from "../core/http";
 import { resolverUsuarioAutenticadoMock, erroUsuarioMock } from "../core/auth";
-import type { CriarProgramacaoPayload } from "@/shared/types/programacoes";
 import { dataCivilValida, diaUtilCivil } from "@/shared/lib/datasCivis";
-import { obterObrasArmazenadas } from "../dados/obras";
-import { proximoDiaUtil, normalizarDataMeioDiaUTC, calcularUltimoDiaUtil, formatarDataISO, formatarDataBR, normalizarDataFimInclusiva } from "@/shared/lib/formatters";
-import { verificarSobreposicaoPeriodos } from "@/shared/lib/intervalosDiasUteis";
 
 export function registrarConsultasCronograma(mock: MockAdapter): void {
   // --- ROTAS DO GANTT ---
@@ -22,7 +17,14 @@ export function registrarConsultasCronograma(mock: MockAdapter): void {
   mock.onGet(/\/equipes\/?(\?.*)?$/).reply(() => [200, obterEquipesArmazenadas()]);
 
   // GET /programacoes (Contrato Canônico Rota #28)
-  mock.onGet(/\/programacoes\/?(\?.*)?$/).reply(() => [200, obterProgramacoesArmazenadas()]);
+  mock.onGet(/\/programacoes\/?(\?.*)?$/).reply(config => {
+    const u = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!u) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
+    const q = extrairQueryParams(config);
+    const instaladorId = u.perfil.nomePerfil === "InstaladorCampo" ? u.id : q.instaladorId ? Number(q.instaladorId) : undefined;
+    return [200, obterProgramacoesArmazenadas().filter(p => (!q.dataInicio || p.dataFim >= q.dataInicio) && (!q.dataFim || p.dataInicio <= q.dataFim) && (!instaladorId || p.equipe?.integrantes.some(i => i.usuarioId === instaladorId)))
+      .map(({ equipeId: _legado, ...p }) => p)];
+  });
 
   // PUT /programacoes/:id/reordenar (Contrato Canônico Rota #30)
   mock.onPut(/\/programacoes\/(-?\d+)\/reordenar\/?(\?.*)?$/).reply((config) => {
@@ -118,68 +120,6 @@ export function registrarConsultasCronograma(mock: MockAdapter): void {
 }
 
 export function registrarAlocacoes(mock: MockAdapter): void {
-  // POST /programacoes (Rota #23 do Contrato Canônico)
-  mock.onPost(/\/programacoes\/?(\?.*)?$/).reply((config) => {
-    try {
-      const body = extrairDados<CriarProgramacaoPayload>(config.data);
-      if (!body.obraId || !body.equipeId || !body.dataInicio) {
-        return [400, { error: { code: "VALIDATION_ERROR", message: "Campos obrigatórios ausentes" } }];
-      }
-  
-      const progs = obterProgramacoesArmazenadas();
-      const equipes = obterEquipesArmazenadas();
-      const obra = obterObrasArmazenadas().find(o => o.id === Number(body.obraId));
-      if (!obra) return [404, { error: { code: "OBRA_NOT_FOUND", message: "Obra não encontrada." } }];
-      const equipe = equipes.find(e => e.id === Number(body.equipeId));
-      if (!equipe) return [404, { error: { code: "EQUIPE_NOT_FOUND", message: "Equipe não encontrada." } }];
-  
-      // 1. Identificar se há colisão temporal para a mesma equipe
-      const novaDataInicio = body.dataInicio;
-      let novaDataFim = body.dataFim;
-  
-      if (!novaDataFim && body.obraId) {
-        const paineis = obra.quantidadePaineis;
-        const duracaoDias = Math.max(1, Math.ceil(paineis / 9));
-        const iniSanitizado = proximoDiaUtil(normalizarDataMeioDiaUTC(novaDataInicio));
-        const fimCalculado = calcularUltimoDiaUtil(iniSanitizado, duracaoDias);
-        novaDataFim = formatarDataISO(fimCalculado);
-      }
-  
-      if (body.equipeId && novaDataInicio && novaDataFim) {
-        const colidente = progs.find((p) => {
-          if (Number(p.equipeId) !== Number(body.equipeId)) return false;
-          return verificarSobreposicaoPeriodos(
-            novaDataInicio,
-            novaDataFim,
-            p.dataInicio,
-            p.dataFim
-          );
-        });
-  
-        if (colidente) {
-          const nomeEquipe = equipe.nome;
-          const fimFormatado = formatarDataBR(normalizarDataFimInclusiva(colidente.dataFim));
-          const iniFormatado = formatarDataBR(colidente.dataInicio);
-  
-          return [
-            409,
-            {
-              error: {
-                code: "SCHEDULE_CONFLICT",
-                message: `A ${nomeEquipe} já possui a Obra #${colidente.obraId} agendada de ${iniFormatado} a ${fimFormatado} neste período.`,
-              },
-            },
-          ];
-        }
-      }
-  
-      const criada = criarProgramacaoArmazenada(body);
-      return [201, criada];
-    } catch {
-      return [400, { error: { code: "BAD_REQUEST", message: "Erro ao criar alocação mockada" } }];
-    }
-  });
-  
   // DELETE /programacoes/:id (dívida restrita ao mock (sem rota no contrato canônico))
   mock.onDelete(/\/programacoes\/\d+\/?(\?.*)?$/).reply((config) => {
     const match = config.url?.match(/\/programacoes\/(\d+)/);

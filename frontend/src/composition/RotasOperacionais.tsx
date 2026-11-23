@@ -1,3 +1,6 @@
+import { MOCK_ATIVO } from '@/shared/lib/modoApi';
+import { useComentariosKanban } from '@/features/kanban/hooks/useComentariosKanban';
+import type { TipoComentario } from '@/features/kanban/types/comentarios';
 import { useMemo, useCallback } from "react";
 import KanbanPage from "@/features/kanban/pages/Kanban";
 import EquipesPage from "@/features/cronograma/pages/Equipes";
@@ -5,13 +8,10 @@ import { AcoesInstalacao } from "./AcoesInstalacao";
 import type { RenderizarAcoesObra } from "@/shared/types/acoesObra";
 import { useObras, useHomologacoesObras, useExcluirObra } from "@/features/obras/hooks/useObras";
 import { useProgramacoes } from "@/features/cronograma/hooks/useProgramacoes";
-import { useEquipes } from "@/features/cronograma/hooks/useEquipes";
 import {
   useObraDetalhe,
   useHistoricoObra,
-  useComentariosObra,
   useEditarObra,
-  useAdicionarComentario,
 } from "@/features/obras/hooks/useObraDetalhe";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import {
@@ -56,9 +56,9 @@ function KanbanDrawerConcreto({
 
   const { data: detalhe, isLoading: loadingDetalhe, isError: erroDetalhe } = useObraDetalhe(idConsulta);
   const { data: historico, isLoading: loadingHistorico } = useHistoricoObra(idConsulta);
-  const { data: comentarios, isLoading: loadingComentarios } = useComentariosObra(idConsulta);
+  const { consulta: consultaComentarios, mutacao: alterarComentario } = useComentariosKanban(idConsulta);
+  const { data: comentarios, isLoading: loadingComentarios } = consultaComentarios;
   const { data: programacoes } = useProgramacoes();
-  const { data: equipes } = useEquipes();
 
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const podeGerenciarMateriais = podeGerenciarCadastroMaterial(perfil);
@@ -66,7 +66,6 @@ function KanbanDrawerConcreto({
   const { data: materiaisDrawer } = useMateriais(idConsulta);
 
   const editarObraMutacao = useEditarObra();
-  const adicionarComentarioMutacao = useAdicionarComentario();
   const excluirObraMutacao = useExcluirObra();
 
   const alocacao = useMemo(() => {
@@ -75,10 +74,9 @@ function KanbanDrawerConcreto({
   }, [obraId, programacoes]);
 
   const equipeAlocada: EquipeAlocadaResumo | null = useMemo(() => {
-    if (!alocacao || !equipes) return null;
-    const eq = equipes.find((e) => e.id === alocacao.equipeId);
-    return eq ? { id: eq.id, nome: eq.nome } : null;
-  }, [alocacao, equipes]);
+    if (!alocacao?.equipe) return null;
+    return { id: alocacao.id, nome: `${alocacao.equipe.integrantes.length}/${alocacao.equipe.pessoasPrevistas} pessoas vinculadas` };
+  }, [alocacao]);
 
   const temAlocacaoAtiva = useMemo(() => {
     if (!obraId || !programacoes) return false;
@@ -102,7 +100,7 @@ function KanbanDrawerConcreto({
       dataFimReal: detalhe.dataFimReal,
       endereco: detalhe.endereco ?? cardEfetivo?.endereco,
       quantidadePaineis: detalhe.quantidadePaineis ?? cardEfetivo?.quantidadePaineis,
-      valorTotal: detalhe.valorTotal ?? cardEfetivo?.valorTotal,
+      valorTotal: detalhe.valorObra,
       categoria: detalhe.categoria ?? cardEfetivo?.categoria,
       observacoes: detalhe.descricao ?? cardEfetivo?.observacoes ?? "",
       descricao: detalhe.descricao,
@@ -115,6 +113,7 @@ function KanbanDrawerConcreto({
       id: h.id,
       dataAlteracao: h.dataAlteracao,
       usuarioNome: h.usuario?.nome || "Sistema",
+      tipoAcao: h.tipoAcao,
       statusAnterior: h.statusAnterior,
       statusNovo: h.statusNovo,
       observacao: h.observacao,
@@ -128,6 +127,7 @@ function KanbanDrawerConcreto({
       dataHora: c.dataRegistro,
       usuarioNome: c.usuario?.nome || "Colaborador",
       texto: c.descricao,
+      tipo: c.tipo,
     }));
   }, [comentarios]);
 
@@ -147,10 +147,10 @@ function KanbanDrawerConcreto({
   );
 
   const handleAdicionarComentario = useCallback(
-    async (id: number, texto: string) => {
-      await adicionarComentarioMutacao.mutateAsync({ obraId: id, descricao: texto });
+    async (_id: number, texto: string, tipo: TipoComentario = "Cartao") => {
+      await alterarComentario.mutateAsync({ acao: "criar", descricao: texto, tipo });
     },
-    [adicionarComentarioMutacao]
+    [alterarComentario]
   );
 
   const handleExcluirObra = useCallback(
@@ -200,7 +200,11 @@ function KanbanDrawerConcreto({
       onExcluirObra={handleExcluirObra}
       isExcluindoObra={excluirObraMutacao.isPending}
       onAdicionarComentario={handleAdicionarComentario}
-      isEnviandoComentario={adicionarComentarioMutacao.isPending}
+      isEnviandoComentario={alterarComentario.isPending}
+      onEditarComentario={async (id, texto) => { await alterarComentario.mutateAsync({ acao: "editar", id, descricao: texto }); }}
+      onExcluirComentario={async id => { await alterarComentario.mutateAsync({ acao: "excluir", id }); }}
+      erroComentarios={consultaComentarios.error}
+      onRecarregarComentarios={() => { void consultaComentarios.refetch(); }}
       focoRetorno={focoRetorno}
       totalMateriais={materiaisDrawer?.length ?? 0}
       renderAbaMateriais={renderAbaMateriais}
@@ -293,7 +297,7 @@ export function Equipes() {
     return Array.from(new Set(programacoes.map((p) => p.obraId)));
   }, [programacoes]);
 
-  const { data: homologacoesMap } = useHomologacoesObras(obraIdsUnicos);
+  const { data: homologacoesMap } = useHomologacoesObras(MOCK_ATIVO ? obraIdsUnicos : []);
 
   const obras: ObraGanttResumo[] | undefined = useMemo(() => {
     if (!obrasData?.itens) return undefined;

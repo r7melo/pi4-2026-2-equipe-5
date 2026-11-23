@@ -15,7 +15,6 @@ import { materialEstaPronto } from "@/features/cronograma/lib/prontidaoObra";
 export function useGanttFiltros({
   programacoes,
   obras,
-  equipes,
   podeUsarInterface,
 }: UseGanttFiltrosParams = {}): UseGanttFiltrosRetorno {
   const [hojeISO, setHojeISO] = useState(() => formatarDataISO(new Date()));
@@ -65,7 +64,7 @@ export function useGanttFiltros({
     return [
       filtros.termoBusca,
       filtros.categoria,
-      filtros.equipeId,
+      filtros.instaladorId,
       filtros.statusObra,
       filtros.prioridade !== undefined,
       filtros.responsavel,
@@ -83,8 +82,8 @@ export function useGanttFiltros({
     let lista = programacoes;
 
     // 1. Equipe
-    if (filtros.equipeId) {
-      lista = lista.filter((p) => p.equipeId === filtros.equipeId);
+    if (filtros.instaladorId) {
+      lista = lista.filter((p) => p.equipe?.integrantes.some(i => i.usuarioId === filtros.instaladorId));
     }
 
     // 2. Período de Início
@@ -113,13 +112,13 @@ export function useGanttFiltros({
       const termo = filtros.termoBusca.toLowerCase().trim();
       lista = lista.filter((p) => {
         const obra = obras?.find((o) => Number(o.id) === Number(p.obraId));
-        const equipe = equipes?.find((e) => e.id === p.equipeId);
+
         return (
           Boolean(obra?.clienteNome?.toLowerCase().includes(termo)) ||
           String(p.obraId).includes(termo) ||
           String(p.id).includes(termo) ||
           Boolean(obra?.categoria?.toLowerCase().includes(termo)) ||
-          Boolean(equipe?.nome?.toLowerCase().includes(termo))
+          Boolean(p.equipe?.integrantes.some(i => i.nome.toLowerCase().includes(termo)))
         );
       });
     }
@@ -172,8 +171,7 @@ export function useGanttFiltros({
     programacoes,
     filtros,
     obras,
-    equipes,
-  ]);
+    ]);
 
   return {
     filtros,

@@ -1,3 +1,4 @@
+import { equipeTemporalSchema } from "./equipeTemporal";
 import { periodoCivilValido, diasUteisCivis } from "./datasCivis";
 import type {
   Programacao,
@@ -12,11 +13,13 @@ function isObjeto(valor: unknown): valor is Record<string, unknown> {
 function isProgramacao(item: unknown): item is Programacao {
   if (!isObjeto(item)) return false;
 
-  const { id, obraId, equipeId, dataInicio, dataFim, prioridade, duracaoEstimadaDias } = item;
+  const { id, obraId, equipe, dataInicio, dataFim, prioridade, duracaoEstimadaDias } = item;
 
   if (typeof id !== "number" || !Number.isInteger(id) || id <= 0) return false;
   if (typeof obraId !== "number" || !Number.isInteger(obraId) || obraId <= 0) return false;
-  if (typeof equipeId !== "number" || !Number.isInteger(equipeId) || equipeId <= 0) return false;
+  const equipeValida = equipeTemporalSchema.safeParse(equipe);
+  if (!equipeValida.success) return false;
+  if (equipeValida.data.integrantes.some(i => i.dataEntrada < String(dataInicio) || i.dataSaida > String(dataFim))) return false;
 
   if (typeof dataInicio !== "string" || typeof dataFim !== "string") return false;
   if (!periodoCivilValido(dataInicio, dataFim) || diasUteisCivis(dataInicio, dataFim) < 1) {

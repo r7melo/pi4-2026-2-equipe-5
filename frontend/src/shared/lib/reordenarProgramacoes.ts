@@ -1,3 +1,4 @@
+import { cadeiaTemporal } from "./equipeTemporal";
 import type { Programacao, ProgramacaoAfetada } from "@/shared/types/programacoes";
 import {
   dataCivilValida,
@@ -52,7 +53,7 @@ export function projetarReordenacao(
   }
 
   for (const p of programacoes) {
-    if (p.equipeId === alvo.equipeId) {
+    if (alvo.equipe || p.equipeId === alvo.equipeId) {
       if (!periodoCivilValido(p.dataInicio, p.dataFim) || diasUteisCivis(p.dataInicio, p.dataFim) < 1) {
         throw new RangeError(
           `Programação ${p.id} possui período inválido ou sem dias úteis: ${p.dataInicio} a ${p.dataFim}`,
@@ -88,10 +89,11 @@ export function projetarReordenacao(
     ...alvo,
     dataInicio: novaDataInicio,
     dataFim: novoFimAlvo,
+    ...(alvo.equipe ? { equipe: deslocarEquipe(alvo, novaDataInicio, novoFimAlvo, delta) } : {}),
   };
 
-  const seguintes = programacoes
-    .filter((p) => p.equipeId === alvo.equipeId && p.id !== alvo.id && p.dataInicio >= alvo.dataInicio)
+  const seguintes = (alvo.equipe ? cadeiaTemporal(programacoes, alvo.id).slice(1) : programacoes
+    .filter((p) => p.equipeId === alvo.equipeId && p.id !== alvo.id && p.dataInicio >= alvo.dataInicio))
     .slice()
     .sort(
       (a, b) =>
@@ -107,6 +109,7 @@ export function projetarReordenacao(
     return Object.assign({}, p, {
       dataInicio: novoInicio,
       dataFim: novoFim,
+      ...(p.equipe ? { equipe: deslocarEquipe(p, novoInicio, novoFim, delta) } : {}),
     });
   });
 
@@ -120,13 +123,18 @@ export function projetarReordenacao(
 
   const idsMovidas = new Set<number>(alteradas.map((p) => p.id));
   const fixasMesmaEquipe = programacoes.filter(
-    (p) => p.equipeId === alvo.equipeId && !idsMovidas.has(p.id),
+    (p) => !idsMovidas.has(p.id) && (alvo.equipe || p.equipeId === alvo.equipeId),
   );
 
   let conflito = false;
   for (const movida of alteradas) {
-    for (const fixa of fixasMesmaEquipe) {
-      if (movida.dataInicio <= fixa.dataFim && movida.dataFim >= fixa.dataInicio) {
+    // Normalizar parciais em fins de semana pode aproximar duas movidas entre si.
+    for (const fixa of [...fixasMesmaEquipe, ...alteradas]) {
+      if (movida.id === fixa.id) continue;
+      const sobrepoe = movida.equipe && fixa.equipe
+        ? movida.equipe.integrantes.some(a => fixa.equipe!.integrantes.some(b => a.usuarioId === b.usuarioId && a.dataEntrada <= b.dataSaida && a.dataSaida >= b.dataEntrada))
+        : movida.dataInicio <= fixa.dataFim && movida.dataFim >= fixa.dataInicio;
+      if (sobrepoe) {
         conflito = true;
         break;
       }
@@ -142,4 +150,18 @@ export function projetarReordenacao(
     afetadas,
     conflito,
   };
+}
+
+function deslocarEquipe(p: Programacao, inicio: string, fim: string, delta: number) {
+  const limitar = (data: string) => data < inicio ? inicio : data > fim ? fim : data;
+  const equipe = {
+    ...p.equipe!, integrantes: p.equipe!.integrantes.map(i => {
+      const integral = i.dataEntrada === p.dataInicio && i.dataSaida === p.dataFim;
+      const dataEntrada = integral ? inicio : limitar(deslocarDiasUteisCivil(i.dataEntrada, delta));
+      const dataSaida = integral ? fim : limitar(deslocarDiasUteisCivil(i.dataSaida, delta));
+      return Object.assign({}, i, { dataEntrada, dataSaida: dataSaida < dataEntrada ? dataEntrada : dataSaida });
+    }),
+  };
+  equipe.pessoaDia = equipe.integrantes.reduce((soma, integrante) => soma + diasUteisCivis(integrante.dataEntrada, integrante.dataSaida), 0);
+  return equipe;
 }

@@ -10,6 +10,7 @@ export type NivelZoom = "day" | "week" | "month";
 
 export interface GanttFiltrosAvancados {
   termoBusca?: string;
+  instaladorId?: number;
   categoria?: CategoriaObraGantt;
   equipeId?: number;
   statusObra?: StatusObra;
@@ -46,6 +47,8 @@ export function ehLinhaProjeto(task?: { type?: string; id?: string | number } | 
 }
 
 export interface GanttTask {
+  equipeRotulo?: string;
+  pessoasFaltantes?: number;
   id: string | number;
   parent?: string | number;
   type?: "project" | "task";

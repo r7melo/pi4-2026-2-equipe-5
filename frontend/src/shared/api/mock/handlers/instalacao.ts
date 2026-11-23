@@ -48,8 +48,8 @@ export function registrarInstalacao(mock: MockAdapter): void {
       })),
       programacoes: programacoesObra.map((p) => ({
         id: p.id,
-        equipeId: p.equipeId,
-        nomeEquipe: mapaEquipes.get(p.equipeId) || "",
+        equipeId: p.equipeId ?? null,
+        nomeEquipe: p.equipe ? `${p.equipe.integrantes.length}/${p.equipe.pessoasPrevistas} pessoas vinculadas` : mapaEquipes.get(p.equipeId ?? 0) || "",
         dataInicio: p.dataInicio ? String(p.dataInicio).split("T")[0] : "",
         dataFim: p.dataFim ? String(p.dataFim).split("T")[0] : "",
       })),

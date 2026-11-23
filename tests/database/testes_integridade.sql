@@ -109,7 +109,7 @@ SELECT pg_temp.deve_rejeitar('perfil_acesso', 'perfil_acesso_nome_perfil_key',
 SELECT pg_temp.deve_rejeitar('usuario', 'usuario_email_key',
     'DROP INDEX idx_usuario_email_busca; UPDATE usuario SET email = ''admin@admin.com'' WHERE id = 2', '23505');
 SELECT pg_temp.deve_rejeitar('usuario', 'idx_usuario_email_busca',
-    'UPDATE usuario SET email = (SELECT upper(email) FROM usuario WHERE id = 1) WHERE id = 2', '23505');
+    'UPDATE usuario SET email = ''ADMIN@ZL.COM.BR'' WHERE id = 2', '23505');
 SELECT pg_temp.deve_rejeitar('cliente', 'cliente_cpf_cnpj_key',
     'UPDATE cliente SET cpf_cnpj = ''12345678000195'' WHERE id = 2', '23505');
 SELECT pg_temp.deve_rejeitar('pagamento', 'pagamento_id_obra_key',

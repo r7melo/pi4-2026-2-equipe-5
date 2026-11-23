@@ -8,10 +8,10 @@ import { alterarCredencialSenhaMock, consumirLinkSenhaMock, criarLinkSenhaMock, 
 
 const mensagem = "Se o e-mail informado estiver cadastrado, você receberá as instruções de redefinição";
 const solicitarSchema = z.object({ email: z.string().trim().toLowerCase().regex(EMAIL_USUARIO) });
-const redefinirSchema = z.object({ token: z.string(), novaSenha: z.string() });
-const alterarSchema = z.object({ senhaAtual: z.string().min(1), novaSenha: z.string() });
+const redefinirSchema = z.object({ token: z.string(), novaSenha: z.string(), confirmacaoSenha: z.string() });
+const alterarSchema = z.object({ senhaAtual: z.string().min(1), novaSenha: z.string(), confirmacaoSenha: z.string() });
 function forte(senha: string): boolean {
-  return Array.from(senha).length >= 8 && /[A-Z]/.test(senha) && /[a-z]/.test(senha) && /[0-9]/.test(senha);
+  return Array.from(senha).length >= 8 && new TextEncoder().encode(senha).length <= 72 && /[A-Z]/.test(senha) && /[a-z]/.test(senha) && /[0-9]/.test(senha);
 }
 const linkInvalido = () => erroUsuarioMock(400, "VALIDATION_ERROR", "Link inválido ou expirado");
 const armazenamento = () => erroUsuarioMock(500, "INTERNAL_ERROR", "Não foi possível concluir a operação.");
@@ -31,6 +31,7 @@ export function registrarSenhas(mock: MockAdapter): void {
     try {
       const body = redefinirSchema.safeParse(extrairDados(config.data));
       if (!body.success) return erroUsuarioMock(400, "INVALID_BODY", "Informe token e nova senha.");
+      if (body.data.novaSenha !== body.data.confirmacaoSenha) return erroUsuarioMock(400, "VALIDATION_ERROR", "A confirmação não é igual à nova senha.");
       const link = consultarLinkSenhaMock(body.data.token);
       if (!link || !buscarUsuarioPorEmailMock(link.email)) return linkInvalido();
       if (!forte(body.data.novaSenha)) return erroUsuarioMock(400, "VALIDATION_ERROR", "A senha não atende aos requisitos mínimos de segurança");
@@ -45,6 +46,7 @@ export function registrarSenhas(mock: MockAdapter): void {
       if (!usuario) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
       const body = alterarSchema.safeParse(extrairDados(config.data));
       if (!body.success) return erroUsuarioMock(400, "INVALID_BODY", "Informe senha atual e nova senha.");
+      if (body.data.novaSenha !== body.data.confirmacaoSenha) return erroUsuarioMock(400, "VALIDATION_ERROR", "A confirmação não é igual à nova senha.");
       const email = usuario.email.trim().toLowerCase();
       const revisao = revisaoSenhaMock(email);
       const atualHash = await gerarHashSenhaMock(body.data.senhaAtual);
@@ -52,7 +54,7 @@ export function registrarSenhas(mock: MockAdapter): void {
       const hashEsperado = credencialSenhaMock(email)?.hash ?? criado?.senhaHash;
       const correta = hashEsperado ? atualHash === hashEsperado : body.data.senhaAtual === "Senha123!";
       if (!resolverUsuarioAutenticadoMock(config.headers?.Authorization) || revisaoSenhaMock(email) !== revisao) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão revogada.");
-      if (!correta) return erroUsuarioMock(400, "VALIDATION_ERROR", "Senha atual incorreta");
+      if (!correta) return erroUsuarioMock(400, "SENHA_ATUAL_INCORRETA", "A senha atual não confere.");
       if (!forte(body.data.novaSenha) || body.data.novaSenha === body.data.senhaAtual) return erroUsuarioMock(400, "VALIDATION_ERROR", "A nova senha não atende aos requisitos mínimos ou é igual à atual");
       const novaHash = await gerarHashSenhaMock(body.data.novaSenha);
       if (!resolverUsuarioAutenticadoMock(config.headers?.Authorization) || !alterarCredencialSenhaMock(email, revisao, novaHash)) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão revogada.");
