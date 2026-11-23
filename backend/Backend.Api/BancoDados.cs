@@ -8,7 +8,7 @@ public sealed record ClienteBanco(int Id, string Nome, string? Cidade);
 public sealed record PagamentoBanco(int Id, DateOnly? DataConfirmacao, int PrazoContratualDias);
 public sealed record ObraBanco(int Id, string Status, string? Categoria, int QuantidadePaineis,
     int? QuantidadeInversores, string Endereco, string? Descricao, DateOnly? DataInicioEstimada, DateOnly? DataFimEstimada, DateOnly? DataInicioReal,
-    DateOnly? DataFimReal, int ClienteId, ClienteBanco Cliente, PagamentoBanco Pagamento);
+    DateOnly? DataFimReal, int ClienteId, ClienteBanco Cliente, PagamentoBanco Pagamento, decimal? ValorObra);
 public sealed record ObraListaBanco(int Id, string Status, string ClienteNome, string? Categoria,
     int QuantidadePaineis, DateOnly? DataFimEstimada);
 public sealed record ListaObrasBanco(int Page, int PageSize, long Total, List<ObraListaBanco> Itens);
@@ -94,9 +94,10 @@ public sealed partial class BancoDados(string connectionString)
         using var comando = Comando(conexao, """
             SELECT o.id, o.status::text, o.categoria, o.quantidade_paineis,
                    o.quantidade_inversores, o.endereco, o.descricao, o.data_inicio_estimada, o.data_fim_estimada, o.data_inicio_real, o.data_fim_real,
-                   o.id_cliente, c.nome, c.cidade, p.id, p.data_confirmacao, p.prazo_contratual_dias
+                   o.id_cliente, c.nome, c.cidade, p.id, p.data_confirmacao, p.prazo_contratual_dias, r.valor_obra
             FROM obra o JOIN cliente c ON c.id = o.id_cliente
             JOIN pagamento p ON p.id_obra = o.id
+            LEFT JOIN relatorio_custo r ON r.id_obra = o.id
             WHERE o.id = @id AND o.excluida_em IS NULL
             """, ("id", id));
         using var leitor = comando.ExecuteReader();
@@ -110,7 +111,8 @@ public sealed partial class BancoDados(string connectionString)
         Data(leitor, 7), Data(leitor, 8), Data(leitor, 9), Data(leitor, 10),
         leitor.GetInt32(11),
         new ClienteBanco(leitor.GetInt32(11), leitor.GetString(12), leitor.IsDBNull(13) ? null : leitor.GetString(13)),
-        new PagamentoBanco(leitor.GetInt32(14), Data(leitor, 15), leitor.GetInt32(16)));
+        new PagamentoBanco(leitor.GetInt32(14), Data(leitor, 15), leitor.GetInt32(16)),
+        leitor.IsDBNull(17) ? null : leitor.GetDecimal(17));
 
     public ListaObrasBanco ListarObras(string? status, string? clienteNome, string? categoria, int page, int pageSize)
     {

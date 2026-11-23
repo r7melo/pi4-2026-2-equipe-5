@@ -123,4 +123,8 @@ public static class UsuarioLogado
         int.TryParse(usuario.FindFirstValue(Autenticacao.ClaimEquipe), out var id) ? id : null;
 
     public static bool Instalador(this ClaimsPrincipal usuario) => usuario.Perfil() == Perfis.Instalador;
+
+    // RF-26: preços, custos, valor da obra e confirmação de pagamento só para Administrador e Financeiro.
+    public static bool VeValores(this ClaimsPrincipal usuario) =>
+        usuario.Perfil() is Perfis.Administrador or Perfis.Financeiro;
 }

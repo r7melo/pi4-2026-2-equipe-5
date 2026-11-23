@@ -90,7 +90,7 @@ public class ObrasController(BancoDados banco, ObrasNotificador notificador) : C
     {
         var obra = banco.BuscarObra(id);
         if (obra is null) return ObraNaoEncontrada(id);
-        return this.PodeVerObra(banco, id) ? Ok(Detalhe(obra)) : this.ObraDeOutraEquipe(id);
+        return this.PodeVerObra(banco, id) ? Ok(Detalhe(obra, User.VeValores())) : this.ObraDeOutraEquipe(id);
     }
 
     // Rota 9 — UC-01, RF-03
@@ -119,10 +119,11 @@ public class ObrasController(BancoDados banco, ObrasNotificador notificador) : C
 
         var obra = banco.EditarObra(id, e.Cidade, e.Categoria, e.QuantidadePaineis, e.QuantidadeInversores,
             e.Endereco?.Trim(), Limpar(e.Descricao), e.DataInicioEstimada, e.DataFimEstimada,
-            e.Pagamento?.PrazoContratualDias, e.Pagamento?.DataConfirmacao);
+            // Rota 15 não recebe campos de valor (RF-26): a data de confirmação só muda no cadastro.
+            e.Pagamento?.PrazoContratualDias, null);
         if (obra is null) return ObraNaoEncontrada(id);
         await notificador.ObraAtualizadaAsync();
-        return Ok(Detalhe(obra));
+        return Ok(Detalhe(obra, User.VeValores()));
     }
 
     // Rota 11 — UC-02, RF-04, RF-06, RF-10, RF-13
@@ -192,14 +193,27 @@ public class ObrasController(BancoDados banco, ObrasNotificador notificador) : C
         return Ok(banco.ListarHistorico(id));
     }
 
-    static object Detalhe(ObraBanco obra) => new
+    // RF-26: para Engenharia e Instalador os campos de valor não vêm nem como null.
+    static object Detalhe(ObraBanco obra, bool veValores)
     {
-        obra.Id, obra.Status, obra.Categoria, obra.QuantidadePaineis, obra.QuantidadeInversores,
-        obra.Endereco, obra.Descricao, obra.DataInicioEstimada, obra.DataFimEstimada,
-        obra.DataInicioReal, obra.DataFimReal,
-        cliente = obra.Cliente,
-        pagamento = obra.Pagamento,
-    };
+        var dados = new Dictionary<string, object?>
+        {
+            ["id"] = obra.Id, ["status"] = obra.Status, ["categoria"] = obra.Categoria,
+            ["quantidadePaineis"] = obra.QuantidadePaineis, ["quantidadeInversores"] = obra.QuantidadeInversores,
+            ["endereco"] = obra.Endereco, ["descricao"] = obra.Descricao,
+            ["dataInicioEstimada"] = obra.DataInicioEstimada, ["dataFimEstimada"] = obra.DataFimEstimada,
+            ["dataInicioReal"] = obra.DataInicioReal, ["dataFimReal"] = obra.DataFimReal,
+            ["cliente"] = obra.Cliente,
+        };
+        if (veValores)
+        {
+            dados["pagamento"] = new { obra.Pagamento.PrazoContratualDias, obra.Pagamento.DataConfirmacao };
+            dados["valorObra"] = obra.ValorObra;
+        }
+        else
+            dados["pagamento"] = new { obra.Pagamento.PrazoContratualDias };
+        return dados;
+    }
 
     // CPF/CNPJ é guardado só com dígitos (o contrato aceita a máscara na entrada).
     static ObjectResult? ValidarCliente(ClienteEntrada c, out ClienteNovoBanco? cliente)
