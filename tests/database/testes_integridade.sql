@@ -107,7 +107,7 @@ SELECT pg_temp.deve_rejeitar('perfil_acesso', 'perfil_acesso_nome_perfil_key',
     'UPDATE perfil_acesso SET nome_perfil = ''Administrador'' WHERE id = 2', '23505');
 -- Isolar a UNIQUE original: o DROP é revertido pelo subbloco que captura a violação.
 SELECT pg_temp.deve_rejeitar('usuario', 'usuario_email_key',
-    'DROP INDEX idx_usuario_email_busca; UPDATE usuario SET email = ''admin@zl.com.br'' WHERE id = 2', '23505');
+    'DROP INDEX idx_usuario_email_busca; UPDATE usuario SET email = ''admin@admin.com'' WHERE id = 2', '23505');
 SELECT pg_temp.deve_rejeitar('usuario', 'idx_usuario_email_busca',
     'UPDATE usuario SET email = ''ADMIN@ZL.COM.BR'' WHERE id = 2', '23505');
 SELECT pg_temp.deve_rejeitar('cliente', 'cliente_cpf_cnpj_key',

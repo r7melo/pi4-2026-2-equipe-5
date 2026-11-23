@@ -6,13 +6,13 @@
 POST {{api}}/auth/login
 Content-Type: application/json
 
-{ "email": "admin@zl.com.br", "senha": "Senha123!" }
+{ "email": "admin@admin.com", "senha": "Senha123!" }
 
 ### 1. Login inválido -> 401 INVALID_CREDENTIALS
 POST {{api}}/auth/login
 Content-Type: application/json
 
-{ "email": "admin@zl.com.br", "senha": "errada" }
+{ "email": "admin@admin.com", "senha": "errada" }
 
 ### 2. Me (token do login)
 GET {{api}}/auth/me

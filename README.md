@@ -37,7 +37,7 @@ docker compose up -d --build
 
 Configure `VITE_USE_MOCK=false` em `frontend/.env.local` para usar a API real. Com o mock ativo, qualquer credencial é aceita.
 
-Usuários do seed (somente ambiente de desenvolvimento): senha `Senha123!`, com e-mails `admin@zl.com.br`, `engenharia@zlengenharia.com`, `financeiro@zl.com.br`, `instalador@zl.com.br` e `leitor@zl.com.br` (perfil em definição).
+Usuários do seed (somente ambiente de desenvolvimento): senha `Senha123!`, com e-mails `admin@admin.com`, `engenharia@zlengenharia.com`, `financeiro@zl.com.br`, `instalador@zl.com.br` e `leitor@zl.com.br` (perfil em definição).
 
 ## Documentação
 

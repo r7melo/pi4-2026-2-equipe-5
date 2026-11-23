@@ -39,7 +39,7 @@ INSERT INTO cliente (id, nome, cidade, dados_contrato, cpf_cnpj, endereco) VALUE
 SELECT setval('cliente_id_seq', (SELECT MAX(id) FROM cliente));
 
 INSERT INTO usuario (id, nome, email, senha, id_perfil, id_equipe) VALUES
-(1,  'Carlos Administrador', 'admin@zl.com.br',              '$2b$12$hkTtA7rMA1J8/gfBHvzHme.rGJzrqOg6RVBhDOxK5tUOjhPcQPxaO', 1, NULL),
+(1,  'Carlos Administrador', 'admin@admin.com',              '$2b$12$hkTtA7rMA1J8/gfBHvzHme.rGJzrqOg6RVBhDOxK5tUOjhPcQPxaO', 1, NULL),
 (2,  'Ana Souza',            'engenharia@zlengenharia.com',  '$2b$12$hkTtA7rMA1J8/gfBHvzHme.rGJzrqOg6RVBhDOxK5tUOjhPcQPxaO', 2, 3),
 (3,  'Fernanda Financeiro',  'financeiro@zl.com.br',         '$2b$12$hkTtA7rMA1J8/gfBHvzHme.rGJzrqOg6RVBhDOxK5tUOjhPcQPxaO', 3, NULL),
 (4,  'Roberto Leitor',       'leitor@zl.com.br',             '$2b$12$hkTtA7rMA1J8/gfBHvzHme.rGJzrqOg6RVBhDOxK5tUOjhPcQPxaO', 4, NULL),

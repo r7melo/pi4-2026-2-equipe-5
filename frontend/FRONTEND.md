@@ -122,7 +122,7 @@ No modo mock, todos os usuários usam a senha `Senha123!`:
 
 | E-mail | Perfil | O que acessa |
 |---|---|---|
-| `admin@zl.com.br` | Administrador | Tudo |
+| `admin@admin.com` | Administrador | Tudo |
 | `engenharia@zlengenharia.com` | Engenharia | Kanban, Gantt, Obras |
 | `financeiro@zl.com.br` | Financeiro | Leitura + DRE e Relatórios |
 | `instalador@zl.com.br` | Instalador de Campo | Instalações da própria equipe |

@@ -7,10 +7,10 @@ export type MockUsuario = Usuario & { ativo?: boolean };
 
 /** Referencia contratual de QA; a demonstracao inicial usa gerarDadosCenario. */
 export const MOCK_USUARIOS: Record<string, MockUsuario> = {
-  "admin@zl.com.br": {
+  "admin@admin.com": {
     id: 1,
     nome: "Carlos Administrador",
-    email: "admin@zl.com.br",
+    email: "admin@admin.com",
     perfil: {
       id: 1,
       nomePerfil: "Administrador",

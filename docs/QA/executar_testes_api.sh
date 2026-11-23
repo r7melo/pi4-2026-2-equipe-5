@@ -29,18 +29,18 @@ token() {
   campo "d['token']"
 }
 
-ADM=$(token admin@zl.com.br)
+ADM=$(token admin@admin.com)
 ENG=$(token engenharia@zlengenharia.com)
 FIN=$(token financeiro@zl.com.br)
 INS=$(token instalador@zl.com.br)
 LEI=$(token leitor@zl.com.br)
 
 echo "== CT-01 Autenticação"
-s=$(chamar POST /auth/login "" "{\"email\":\"admin@zl.com.br\",\"senha\":\"$SENHA\"}")
+s=$(chamar POST /auth/login "" "{\"email\":\"admin@admin.com\",\"senha\":\"$SENHA\"}")
 conferir "CT-01 p5 login admin" 200 "$s"
 conferir "CT-01 p5 perfil" Administrador "$(campo "d['usuario']['perfil']")"
 conferir "CT-01 p5 sem senha na resposta" False "$(campo "'senha' in json.dumps(d)")"
-s=$(chamar POST /auth/login "" '{"email":"admin@zl.com.br","senha":"senhaerrada"}')
+s=$(chamar POST /auth/login "" '{"email":"admin@admin.com","senha":"senhaerrada"}')
 conferir "CT-01 p6 senha errada" 401 "$s"
 s=$(chamar POST /auth/login "" "{\"email\":\"naoexiste@teste.com\",\"senha\":\"$SENHA\"}")
 conferir "CT-01 p4 email inexistente" 401 "$s"

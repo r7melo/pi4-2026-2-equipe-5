@@ -22,7 +22,7 @@ export default function Login() {
     if (import.meta.env.DEV) {
       console.info("🔑 [ZL Engenharia] Usuários para teste e homologação (Senha padrão: Senha123!):");
       console.table([
-        { Perfil: "Administrador", "E-mail": "admin@zl.com.br", Senha: "Senha123!" },
+        { Perfil: "Administrador", "E-mail": "admin@admin.com", Senha: "Senha123!" },
         { Perfil: "Engenharia", "E-mail": "engenharia@zlengenharia.com", Senha: "Senha123!" },
         { Perfil: "Financeiro", "E-mail": "financeiro@zl.com.br", Senha: "Senha123!" },
         { Perfil: "InstaladorCampo", "E-mail": "instalador@zl.com.br", Senha: "Senha123!" },
