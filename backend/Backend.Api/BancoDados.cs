@@ -3,7 +3,7 @@ using Npgsql;
 namespace Backend.Api;
 
 public sealed record UsuarioBanco(int Id, string Nome, string Email, string SenhaHash,
-    int PerfilId, int? EquipeId, string NomePerfil, string Permissoes);
+    int PerfilId, int? EquipeId, string NomePerfil, string Permissoes, long VersaoCredencial);
 public sealed record ClienteBanco(int Id, string Nome, string? Cidade);
 public sealed record PagamentoBanco(int Id, DateOnly? DataConfirmacao, int PrazoContratualDias);
 public sealed record ObraBanco(int Id, string Status, string? Categoria, int QuantidadePaineis,
@@ -60,7 +60,7 @@ public sealed partial class BancoDados(string connectionString)
         using var conexao = Abrir();
         using var comando = Comando(conexao, """
             SELECT u.id, u.nome, u.email, u.senha, u.id_perfil, u.id_equipe,
-                   p.nome_perfil::text, p.permissoes
+                   p.nome_perfil::text, p.permissoes, u.versao_credencial
             FROM usuario u JOIN perfil_acesso p ON p.id = u.id_perfil
             WHERE lower(u.email) = lower(@email)
             """, ("email", email));
@@ -73,7 +73,7 @@ public sealed partial class BancoDados(string connectionString)
         using var conexao = Abrir();
         using var comando = Comando(conexao, """
             SELECT u.id, u.nome, u.email, u.senha, u.id_perfil, u.id_equipe,
-                   p.nome_perfil::text, p.permissoes
+                   p.nome_perfil::text, p.permissoes, u.versao_credencial
             FROM usuario u JOIN perfil_acesso p ON p.id = u.id_perfil
             WHERE u.id = @id
             """, ("id", id));
@@ -84,7 +84,7 @@ public sealed partial class BancoDados(string connectionString)
     static UsuarioBanco LerUsuario(NpgsqlDataReader leitor) => new(
         leitor.GetInt32(0), leitor.GetString(1), leitor.GetString(2), leitor.GetString(3),
         leitor.GetInt32(4), leitor.IsDBNull(5) ? null : leitor.GetInt32(5),
-        leitor.GetString(6), leitor.IsDBNull(7) ? "" : leitor.GetString(7));
+        leitor.GetString(6), leitor.IsDBNull(7) ? "" : leitor.GetString(7), leitor.GetInt64(8));
 
     public ObraBanco? BuscarObra(int id)
     {

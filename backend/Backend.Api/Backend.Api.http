@@ -21,6 +21,25 @@ Authorization: Bearer {{token}}
 ### 2. Sem token -> 401 UNAUTHORIZED
 GET {{api}}/auth/me
 
+### 3. Esqueci a senha (resposta sempre igual; sem SMTP_HOST, em Development o link vai para o log)
+POST {{api}}/auth/esqueci-senha
+Content-Type: application/json
+
+{ "email": "engenharia@zlengenharia.com" }
+
+### 4. Redefinir com o token do link (uso único; invalida os JWT do usuário)
+POST {{api}}/auth/redefinir-senha
+Content-Type: application/json
+
+{ "token": "cole-o-token-do-link", "novaSenha": "NovaSenha123", "confirmacaoSenha": "NovaSenha123" }
+
+### 5. Alterar a própria senha (senha atual errada -> 400 SENHA_ATUAL_INCORRETA; o token atual deixa de valer)
+PUT {{api}}/auth/alterar-senha
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "senhaAtual": "Senha123!", "novaSenha": "NovaSenha123", "confirmacaoSenha": "NovaSenha123" }
+
 ### 7. Criar obra para cliente existente (clienteId inexistente -> 404 CLIENTE_NOT_FOUND)
 POST {{api}}/obras
 Authorization: Bearer {{token}}

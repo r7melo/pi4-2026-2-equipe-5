@@ -11,6 +11,8 @@ public sealed class Autenticacao
 {
     public const string ClaimId = "sub";
     public const string ClaimPerfil = "perfil";
+    // RF-22: versão da credencial; token emitido antes de troca de senha, perfil ou desativação deixa de valer.
+    public const string ClaimVersao = "cv";
     const string ChaveDesenvolvimento = "chave-de-desenvolvimento-pi4-nao-usar-em-producao-2026";
 
     public SymmetricSecurityKey Chave { get; }
@@ -37,6 +39,7 @@ public sealed class Autenticacao
         {
             [ClaimId] = usuario.Id.ToString(),
             [ClaimPerfil] = usuario.NomePerfil == "EngenhariaObras" ? Perfis.Engenharia : usuario.NomePerfil,
+            [ClaimVersao] = usuario.VersaoCredencial.ToString(),
         };
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
         {
@@ -72,17 +75,12 @@ public sealed class Autenticacao
             },
             OnTokenValidated = contexto =>
             {
-                // Compativel com JWTs assinados antes da migracao, apenas ate a expiracao original.
-                // A normalizacao ocorre depois de o middleware validar assinatura e validade.
-                if (contexto.Principal is not null)
-                    foreach (var identidade in contexto.Principal.Identities)
-                        foreach (var claim in identidade.FindAll(ClaimPerfil)
-                                     .Where(c => c.Value == "EngenhariaObras").ToArray())
-                        {
-                            identidade.RemoveClaim(claim);
-                            identidade.AddClaim(new Claim(ClaimPerfil, Perfis.Engenharia,
-                                claim.ValueType, claim.Issuer, claim.OriginalIssuer));
-                        }
+                // Token sem versão (emitido antes do RF-22) ou com versão antiga é recusado (401).
+                var banco = contexto.HttpContext.RequestServices.GetRequiredService<BancoDados>();
+                if (contexto.Principal?.UsuarioId() is not int id
+                    || !long.TryParse(contexto.Principal.FindFirstValue(ClaimVersao), out var versao)
+                    || banco.VersaoCredencial(id) != versao)
+                    contexto.Fail("Credencial alterada depois da emissão do token.");
                 return Task.CompletedTask;
             },
             OnChallenge = async contexto =>
