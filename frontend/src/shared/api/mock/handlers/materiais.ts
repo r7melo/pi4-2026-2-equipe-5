@@ -6,6 +6,7 @@ import {
   removerMaterialArmazenado,
 } from "../dados/materiais";
 import { buscarProdutoPorIdMock } from "../dados/produtos";
+import { registrarManutencoes } from "./manutencoes";
 import { registrarProdutos } from "./produtos";
 import { extrairDados } from "../core/http";
 import { z } from "zod";
@@ -57,8 +58,9 @@ function serializarMaterialPorPerfil(material: Material, nomePerfil?: string): M
 }
 
 export function registrarMateriais(mock: MockAdapter): void {
-  // Registra rotas de catálogo de produtos (/api/produtos) mantendo zero overlap em mock/index.ts.
+  // Registra rotas de catálogo de produtos (/api/produtos) e manutenções mantendo zero overlap em mock/index.ts e handlers/instalador.ts.
   registrarProdutos(mock);
+  registrarManutencoes(mock);
 
   // ─── MATERIAIS ───
   // GET /obras/:id/materiais — Rota #18
