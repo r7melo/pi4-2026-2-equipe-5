@@ -17,11 +17,16 @@ import type { AtualizarCustosPayload } from "@/shared/types/relatorios";
 export function registrarFinanceiro(mock: MockAdapter): void {
   // GET /obras/:id/relatorio-custo — Rota #33
   mock.onGet(/\/obras\/\d+\/relatorio-custo\/?(\?.*)?$/).reply((config) => {
+    const auth = resolverUsuarioAutenticadoMock(config.headers?.Authorization);
+    if (!auth) return [401, { error: { code: "UNAUTHORIZED", message: "Sessão ausente ou expirada." } }];
+    if (!["Administrador", "Financeiro"].includes(auth.perfil.nomePerfil)) {
+      return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para visualizar o relatório de custos." } }];
+    }
     const match = config.url?.match(/\/obras\/(\d+)\/relatorio-custo/);
     const obraId = match ? Number(match[1]) : 0;
     const relatorio = obterRelatorioArmazenado(obraId);
     if (!relatorio) {
-      return [404, { error: { message: "Relatório não encontrado ou sem lançamentos." } }];
+      return [404, { error: { code: "OBRA_NOT_FOUND", message: "Relatório não encontrado ou sem lançamentos." } }];
     }
     return [200, relatorio];
   });
@@ -89,8 +94,11 @@ export function registrarFinanceiro(mock: MockAdapter): void {
       return [403, { error: { code: "ACCESS_DENIED", message: "Você não possui permissão para exportar este relatório." } }];
     }
     const params = extrairQueryParams(config);
-    if (!["pdf", "excel", "xlsx"].includes(params.formato) || (params.tipo !== undefined && params.tipo !== "financeiro")) {
-      return [400, { error: { code: "INVALID_PARAMETER", message: "Informe o formato PDF ou Excel para o relatório financeiro." } }];
+    if (
+      !["pdf", "excel", "xlsx"].includes(params.formato) ||
+      (params.tipo !== undefined && !["financeiro", "cronograma"].includes(params.tipo))
+    ) {
+      return [400, { error: { code: "INVALID_PARAMETER", message: "Informe o formato PDF ou Excel para exportar o relatório." } }];
     }
     if (
       (params.periodoInicio !== undefined && params.dataInicio !== undefined && params.periodoInicio !== params.dataInicio) ||

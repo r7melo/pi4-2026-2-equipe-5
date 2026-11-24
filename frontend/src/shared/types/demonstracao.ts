@@ -1,7 +1,13 @@
 import type { ComponentType, ReactNode } from "react";
 export interface AmbienteAplicacaoProps { children: ReactNode; }
 export interface AplicacaoProps { ambiente?: ComponentType<AmbienteAplicacaoProps>; }
-export interface FiltrosRelatorioDemonstracao { periodoInicio: string; periodoFim: string; clienteFiltro: string; }
+export interface FiltrosRelatorioDemonstracao {
+  periodoInicio: string;
+  periodoFim: string;
+  clienteFiltro: string;
+  tipo?: "financeiro" | "cronograma";
+  obraId?: number;
+}
 
 declare module "axios" {
   interface AxiosRequestConfig { geracaoDemonstracao?: string; }

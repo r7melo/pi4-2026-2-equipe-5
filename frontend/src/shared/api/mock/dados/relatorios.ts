@@ -147,11 +147,38 @@ export function apurarDreArmazenado(obraId: number): { status: number; corpo: DR
  * Obtém o relatório de custos da obra ou calcula dinamicamente se for uma nova obra.
  */
 export function obterRelatorioArmazenado(obraId: number): RelatorioCusto | null {
-  const obra = obterObrasArmazenadas().find(o => o.id === obraId);
-  const relatorio = lerDadosCenario<Record<number, RelatorioCusto>>("mock_relatorios_v1")[obraId];
-  if (!obra || obra.status !== "Concluido" || !relatorio) return null;
-  return { ...relatorio, balancoMateriais: obterMateriaisArmazenados().filter(m => m.obraId === obraId).map(m => ({
-    tipo: m.descricao ?? m.tipo ?? "", unidade: m.unidade ?? "", quantidadeComprada: m.quantidade,
-    quantidadeUtilizada: m.statusLogistico === "Utilizado" ? m.quantidade : 0,
-  })) };
+  const obra = obterObrasArmazenadas().find((o) => o.id === obraId);
+  if (!obra) return null;
+  const relatorios = lerDadosCenario<Record<number, RelatorioCusto>>("mock_relatorios_v1") || {};
+  const relatorio = relatorios[obraId];
+  const custos = buscarCustosArmazenados(obraId);
+  const baseRelatorio: RelatorioCusto = relatorio ?? {
+    obraId,
+    custoTotal: (custos?.custoMaoObra ?? 0) + (custos?.custoInsumos ?? 0),
+    receita: custos?.valorObra ?? 0,
+    lucro: (custos?.valorObra ?? 0) - ((custos?.custoMaoObra ?? 0) + (custos?.custoInsumos ?? 0)),
+    itens: [
+      { descricao: "Mão de Obra e Equipes", valor: custos?.custoMaoObra ?? 0 },
+      { descricao: "Insumos e Materiais de Instalação", valor: custos?.custoInsumos ?? 0 },
+    ],
+  };
+
+  const balancoMateriais = obterMateriaisArmazenados()
+    .filter((m) => m.obraId === obraId)
+    .map((m) => ({
+      tipo: m.produtoNome ?? m.descricao ?? m.tipo ?? "Material",
+      unidade: m.unidade ?? "un",
+      quantidadeComprada: m.quantidade,
+      quantidadeUtilizada:
+        typeof m.quantidadeUtilizada === "number"
+          ? m.quantidadeUtilizada
+          : m.statusLogistico === "Utilizado"
+            ? m.quantidade
+            : 0,
+    }));
+
+  return {
+    ...baseRelatorio,
+    balancoMateriais,
+  };
 }

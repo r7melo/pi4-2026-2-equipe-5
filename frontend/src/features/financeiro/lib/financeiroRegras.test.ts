@@ -8,6 +8,16 @@ const dados = vi.hoisted(() => ({
   atualizar: vi.fn(() => ({ valorObra: 100 })),
   apurar: vi.fn(() => ({ status: 200, corpo: { receita: 100 } })),
   custos: vi.fn(() => ({ obraId: 1, valorObra: 100, custoMaoObra: 20, custoInsumos: 30 })),
+  relatorio: vi.fn(() => ({
+    obraId: 1,
+    custoTotal: 50,
+    receita: 100,
+    lucro: 50,
+    itens: [],
+    balancoMateriais: [
+      { tipo: "Painel Solar 550W", unidade: "un", quantidadeComprada: 10, quantidadeUtilizada: 10 },
+    ],
+  })),
   obras: vi.fn(() => []),
   cenario: vi.fn(() => ({})),
   pdf: vi.fn(async () => new Blob(["%PDF"], { type: "application/pdf" })),
@@ -16,7 +26,7 @@ vi.mock("@/shared/api/mock/core/auth", () => ({
   resolverUsuarioAutenticadoMock: (perfil: unknown) => perfil ? { perfil: { nomePerfil: perfil } } : undefined,
 }));
 vi.mock("@/shared/api/mock/dados/relatorios", () => ({
-  obterRelatorioArmazenado: vi.fn(), buscarCustosArmazenados: dados.custos,
+  obterRelatorioArmazenado: dados.relatorio, buscarCustosArmazenados: dados.custos,
   atualizarCustosArmazenados: dados.atualizar, apurarDreArmazenado: dados.apurar,
 }));
 vi.mock("@/shared/api/mock/dados/obras", () => ({ obterObrasArmazenadas: dados.obras }));
@@ -38,6 +48,8 @@ describe("Regras reais do cliente financeiro e do handler mock", () => {
       expect(dados.apurar).toHaveBeenCalledTimes(consulta === 200 ? 1 : 0);
       expect((await cliente.get("/obras/1/custos", config)).status).toBe(consulta);
       expect(dados.custos).toHaveBeenCalledTimes(consulta === 200 ? 1 : 0);
+      expect((await cliente.get("/obras/1/relatorio-custo", config)).status).toBe(consulta);
+      expect(dados.relatorio).toHaveBeenCalledTimes(consulta === 200 ? 1 : 0);
       expect((await cliente.get("/relatorios/export?formato=pdf&tipo=financeiro", config)).status).toBe(consulta);
       expect(dados.pdf).toHaveBeenCalledTimes(consulta === 200 ? 1 : 0);
       expect((await cliente.post("/obras/1/custos", { valorObra: 100 }, config)).status).toBe(registro);
@@ -45,5 +57,23 @@ describe("Regras reais do cliente financeiro e do handler mock", () => {
       const destino = obterELimparRotaRetorno(perfil, "/financeiro");
       expect(destino === "/financeiro").toBe(consulta === 200);
     } finally { mock.restore(); }
+  });
+
+  it("permite exportar relatório com tipo=cronograma e rejeita tipo inválido com 400", async () => {
+    const cliente = axios.create({ validateStatus: () => true });
+    const mock = new MockAdapter(cliente);
+    registrarFinanceiro(mock);
+    try {
+      const config = { headers: { Authorization: "Financeiro" } };
+      expect(
+        (await cliente.get("/relatorios/export?formato=pdf&tipo=cronograma", config)).status
+      ).toBe(200);
+      expect(
+        (await cliente.get("/relatorios/export?formato=pdf&tipo=inexistente", config)).status
+      ).toBe(400);
+      expect((await cliente.get("/obras/1/relatorio-custo")).status).toBe(401);
+    } finally {
+      mock.restore();
+    }
   });
 });

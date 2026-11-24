@@ -4,12 +4,23 @@ import { normalizarErroExportacao } from '../lib/erroExportacao';
 import type { FiltrosRelatorioDemonstracao } from "@/shared/types/demonstracao";
 import { api } from "@/shared/api/api";
 import type { DREObra } from "@/shared/types/dre";
-import type { CustosObra, AtualizarCustosPayload, RelatorioPublicoDados } from "../types/relatorios";
+import type {
+  CustosObra,
+  AtualizarCustosPayload,
+  RelatorioCusto,
+  RelatorioPublicoDados,
+} from "../types/relatorios";
 
 
 /** GET /api/obras/{obraId}/dre — Rota #34 (RF-20) */
 export async function buscarDreObra(obraId: number): Promise<DREObra> {
   const { data } = await api.get<DREObra>(`/obras/${obraId}/dre`);
+  return data;
+}
+
+/** GET /api/obras/{obraId}/relatorio-custo — Rota #33 (RF-14) */
+export async function buscarRelatorioCustoObra(obraId: number): Promise<RelatorioCusto> {
+  const { data } = await api.get<RelatorioCusto>(`/obras/${obraId}/relatorio-custo`);
   return data;
 }
 
