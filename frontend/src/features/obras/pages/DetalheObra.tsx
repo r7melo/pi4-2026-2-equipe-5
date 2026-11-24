@@ -18,7 +18,8 @@ import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
 import { ModalEditarObra } from "../components/ModalEditarObra";
 import { ExportarDetalhesInstalacao } from "../components/ExportarDetalhesInstalacao";
-import type { ComentarioObra, HistoricoObra } from "../types/obras";
+import type { ComentarioObra } from "../types/obras";
+import { descreverEventoHistorico, montarTimelineCronologica } from "../lib/timelineObra";
 import {
   Calendar,
   MapPin,
@@ -52,31 +53,6 @@ function formatarDataHoraEvento(iso?: string | null): string {
     minute: "2-digit",
   }).format(dt);
   return `${data} às ${hora}`;
-}
-
-function descreverEventoHistorico(h: HistoricoObra & { tipoAcao?: string }): {
-  titulo: string;
-  destaque?: string;
-} {
-  if (h.tipoAcao === "ManutencaoConcluida") {
-    return { titulo: "Manutenção concluída em campo" };
-  }
-  if (h.tipoAcao === "Comentario") {
-    return { titulo: "Comentário registrado na linha do tempo" };
-  }
-  if (h.tipoAcao === "CadastroObra") {
-    return { titulo: "Obra cadastrada no sistema" };
-  }
-  if (h.tipoAcao === "EdicaoObra") {
-    return { titulo: "Dados cadastrais da obra atualizados" };
-  }
-  if (h.statusNovo) {
-    return {
-      titulo: `Status alterado de ${h.statusAnterior || "Início"} para`,
-      destaque: h.statusNovo,
-    };
-  }
-  return { titulo: "Atualização registrada na obra" };
 }
 
 export default function DetalheObra() {
@@ -140,6 +116,8 @@ export default function DetalheObra() {
       });
       setComentarioEmEdicaoId(null);
       setTextoEdicaoComentario("");
+    } catch {
+      // O hook useEditarComentario já exibe o toast de erro tratado
     } finally {
       salvandoComentarioRef.current = false;
     }
@@ -147,49 +125,96 @@ export default function DetalheObra() {
 
   const confirmarExclusaoComentario = async () => {
     if (!comentarioParaExcluir || excluirComentarioMutation.isPending) return;
-    await excluirComentarioMutation.mutateAsync({
-      id: comentarioParaExcluir.id,
-      obraId,
-    });
-    setComentarioParaExcluir(null);
+    try {
+      await excluirComentarioMutation.mutateAsync({
+        id: comentarioParaExcluir.id,
+        obraId,
+      });
+      setComentarioParaExcluir(null);
+    } catch {
+      // O hook useExcluirComentario já exibe o toast de erro tratado
+    }
   };
 
   const confirmarExclusaoObra = async () => {
     if (!obra || excluirObraMutation.isPending) return;
-    await excluirObraMutation.mutateAsync(obra.id);
-    setConfirmExcluirObraAberto(false);
-    void navigate("/kanban", { replace: true });
+    try {
+      await excluirObraMutation.mutateAsync(obra.id);
+      setConfirmExcluirObraAberto(false);
+      void navigate("/kanban", { replace: true });
+    } catch {
+      // O hook useExcluirObraDetalhe já exibe o toast de erro tratado
+    }
   };
 
-  // 1. ESTADO DE CARREGAMENTO
-  if (loadingObra) {
-    return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
-        <PageHeader title="Detalhes da Obra" subtitle="Consultando informações no servidor..." backTo={paginaOrigem} backState={backState} />
-        <FeedbackLoading mensagem="Carregando dados da obra e cliente no banco de dados..." />
-      </div>
-    );
-  }
+  const clienteNome = obra?.cliente?.nome || "Cliente sem identificação";
+  const obraEmAndamento = obra?.status === "EmAndamento";
+  const tituloHeader = !loadingObra && !errorObra && obra ? `Obra: ${clienteNome}` : "Detalhes da Obra";
+  const subtituloHeader = loadingObra
+    ? "Consultando informações no servidor..."
+    : errorObra
+      ? "Falha de conexão"
+      : !obra
+        ? "Obra não encontrada"
+        : `#${obra.id} • Status: ${obra.status}`;
+  const eventosTimeline = montarTimelineCronologica(comentarios, historico);
 
-  // 2. ESTADO DE ERRO
-  if (errorObra) {
-    return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
-        <PageHeader title="Detalhes da Obra" subtitle="Falha de conexão" backTo={paginaOrigem} backState={backState} />
+  return (
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
+      <PageHeader
+        title={tituloHeader}
+        subtitle={subtituloHeader}
+        backTo={paginaOrigem}
+        backState={backState}
+      >
+        {!loadingObra && !errorObra && obra ? (
+          <div className="flex items-center gap-2">
+            {podeEditarObra && (
+              <>
+                <Button
+                  onClick={() => setModalEditarAberto(true)}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Editar Obra
+                </Button>
+                <Button
+                  variant="danger"
+                  disabled={obraEmAndamento || excluirObraMutation.isPending}
+                  onClick={() => setConfirmExcluirObraAberto(true)}
+                  title={
+                    obraEmAndamento
+                      ? "Obras em execução não podem ser excluídas"
+                      : "Excluir obra"
+                  }
+                  aria-label="Excluir obra"
+                  className="flex items-center gap-1.5 text-xs border border-border-subtle"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Excluir</span>
+                </Button>
+              </>
+            )}
+
+            {podeExportarInstalacao && (
+              <ExportarDetalhesInstalacao
+                obraId={obra.id}
+                contextoValido={() => true}
+              />
+            )}
+          </div>
+        ) : null}
+      </PageHeader>
+
+      {loadingObra ? (
+        <FeedbackLoading mensagem="Carregando dados da obra e cliente no banco de dados..." />
+      ) : errorObra ? (
         <FeedbackErro
           titulo="Falha ao carregar detalhes da obra"
           mensagem={error instanceof Error ? error.message : "Não foi possível buscar as informações da obra. Verifique se o servidor está ativo."}
           onTentarNovamente={() => { void refetch(); }}
         />
-      </div>
-    );
-  }
-
-  // 3. ESTADO VAZIO (Obra inexistente / 404)
-  if (!obra) {
-    return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
-        <PageHeader title="Detalhes da Obra" subtitle="Obra não encontrada" backTo={paginaOrigem} backState={backState} />
+      ) : !obra ? (
         <EmptyState
           icone={FileQuestion}
           titulo="Obra não encontrada"
@@ -199,60 +224,8 @@ export default function DetalheObra() {
             onClick: () => { void navigate("/kanban"); },
           }}
         />
-      </div>
-    );
-  }
-
-  const clienteNome = obra.cliente?.nome || "Cliente sem identificação";
-  const obraEmAndamento = obra.status === "EmAndamento";
-
-  // 4. ESTADO COM DADOS (SUCESSO)
-  return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
-      <PageHeader
-        title={`Obra: ${clienteNome}`}
-        subtitle={`#${obra.id} • Status: ${obra.status}`}
-        backTo={paginaOrigem}
-        backState={backState}
-      >
-        <div className="flex items-center gap-2">
-          {podeEditarObra && (
-            <>
-              <Button
-                onClick={() => setModalEditarAberto(true)}
-                className="flex items-center gap-2 text-xs"
-              >
-                <Edit3 className="w-4 h-4" />
-                Editar Obra
-              </Button>
-              <Button
-                variant="danger"
-                disabled={obraEmAndamento || excluirObraMutation.isPending}
-                onClick={() => setConfirmExcluirObraAberto(true)}
-                title={
-                  obraEmAndamento
-                    ? "Obras em execução não podem ser excluídas"
-                    : "Excluir obra"
-                }
-                aria-label="Excluir obra"
-                className="flex items-center gap-1.5 text-xs border border-border-subtle"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Excluir</span>
-              </Button>
-            </>
-          )}
-
-          {podeExportarInstalacao && (
-            <ExportarDetalhesInstalacao
-              obraId={obra.id}
-              contextoValido={() => true}
-            />
-          )}
-        </div>
-      </PageHeader>
-
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+      ) : (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* COLUNA ESQUERDA: Dados Técnicos e Contratuais */}
           <div className="lg:col-span-1 space-y-6">
@@ -366,13 +339,19 @@ export default function DetalheObra() {
               <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
                 {loadingHist || loadingComent ? (
                   <FeedbackLoading mensagem="Atualizando eventos da obra..." />
+                ) : eventosTimeline.length === 0 ? (
+                  <EmptyState
+                    icone={MessageSquare}
+                    titulo="Nenhum evento registrado"
+                    descricao="Ainda não existem comentários ou alterações gravadas para esta obra."
+                  />
                 ) : (
-                  <>
-                    {/* Exibe comentários */}
-                    {comentarios?.map((c) => {
+                  eventosTimeline.map((item) => {
+                    if (item.tipo === "comentario") {
+                      const c = item.comentario;
                       const editandoEste = comentarioEmEdicaoId === c.id;
                       return (
-                        <div key={`c-${c.id}`} className="flex gap-3">
+                        <div key={item.id} className="flex gap-3">
                           <div className="w-8 h-8 rounded-full bg-info-light text-info flex items-center justify-center shrink-0 border border-info-border">
                             <User className="w-4 h-4" />
                           </div>
@@ -455,51 +434,41 @@ export default function DetalheObra() {
                           </div>
                         </div>
                       );
-                    })}
+                    }
 
-                    {/* Exibe histórico de movimentações */}
-                    {historico?.map((h) => {
-                      const infoEvento = descreverEventoHistorico(h);
-                      return (
-                        <div key={`h-${h.id}`} className="flex gap-3">
-                          <div className="w-8 h-8 rounded-full bg-muted text-subtle-foreground flex items-center justify-center shrink-0 border border-border-subtle">
-                            <Clock className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 bg-surface-subtle/60 p-3 rounded-xl border border-border-subtle">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-semibold text-foreground-muted">
-                                {h.usuario?.nome || "Sistema"}
-                              </span>
-                              <span className="text-[11px] text-muted-foreground font-mono">
-                                {formatarDataHoraEvento(h.dataAlteracao)}
-                              </span>
-                            </div>
-                            <p className="text-xs text-foreground-secondary">
-                              {infoEvento.titulo}{" "}
-                              {infoEvento.destaque ? (
-                                <span className="font-semibold text-info">
-                                  {infoEvento.destaque}
-                                </span>
-                              ) : null}
-                            </p>
-                            {h.observacao && (
-                              <p className="text-xs text-muted-foreground mt-1.5 italic bg-surface/60 p-2 rounded-lg border border-border-subtle">
-                                "{h.observacao}"
-                              </p>
-                            )}
-                          </div>
+                    const h = item.historico;
+                    const infoEvento = descreverEventoHistorico(h);
+                    return (
+                      <div key={item.id} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-muted text-subtle-foreground flex items-center justify-center shrink-0 border border-border-subtle">
+                          <Clock className="w-4 h-4" />
                         </div>
-                      );
-                    })}
-
-                    {!historico?.length && !comentarios?.length && (
-                      <EmptyState
-                        icone={MessageSquare}
-                        titulo="Nenhum evento registrado"
-                        descricao="Ainda não existem comentários ou alterações gravadas para esta obra."
-                      />
-                    )}
-                  </>
+                        <div className="flex-1 bg-surface-subtle/60 p-3 rounded-xl border border-border-subtle">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold text-foreground-muted">
+                              {h.usuario?.nome || "Sistema"}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground font-mono">
+                              {formatarDataHoraEvento(h.dataAlteracao)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-foreground-secondary">
+                            {infoEvento.titulo}{" "}
+                            {infoEvento.destaque ? (
+                              <span className="font-semibold text-info">
+                                {infoEvento.destaque}
+                              </span>
+                            ) : null}
+                          </p>
+                          {h.observacao && (
+                            <p className="text-xs text-muted-foreground mt-1.5 italic bg-surface/60 p-2 rounded-lg border border-border-subtle">
+                              "{h.observacao}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
@@ -528,25 +497,29 @@ export default function DetalheObra() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Modal de Edição */}
-      <ModalEditarObra
-        isOpen={modalEditarAberto}
-        onClose={() => setModalEditarAberto(false)}
-        obra={obra}
-      />
+      {/* Modal de Edição e Confirmação de Exclusão Lógica da Obra */}
+      {obra && (
+        <>
+          <ModalEditarObra
+            isOpen={modalEditarAberto}
+            onClose={() => setModalEditarAberto(false)}
+            obra={obra}
+          />
 
-      {/* Confirmação de Exclusão Lógica da Obra */}
-      <ConfirmDialog
-        isOpen={confirmExcluirObraAberto}
-        onClose={() => setConfirmExcluirObraAberto(false)}
-        onConfirm={() => void confirmarExclusaoObra()}
-        isLoading={excluirObraMutation.isPending}
-        variant="danger"
-        titulo="Excluir esta obra?"
-        descricao={`Tem certeza que deseja excluir a obra de "${clienteNome}" (#${obra.id})? Ela deixará de aparecer no funil operacional.`}
-        labelConfirmar="Excluir obra"
-      />
+          <ConfirmDialog
+            isOpen={confirmExcluirObraAberto}
+            onClose={() => setConfirmExcluirObraAberto(false)}
+            onConfirm={() => void confirmarExclusaoObra()}
+            isLoading={excluirObraMutation.isPending}
+            variant="danger"
+            titulo="Excluir esta obra?"
+            descricao={`Tem certeza que deseja excluir a obra de "${clienteNome}" (#${obra.id})? Ela deixará de aparecer no funil operacional.`}
+            labelConfirmar="Excluir obra"
+          />
+        </>
+      )}
 
       {/* Confirmação de Exclusão de Comentário (Exclusivo Administrador) */}
       <ConfirmDialog

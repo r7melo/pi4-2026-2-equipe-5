@@ -6,6 +6,7 @@ import { resetarManutencoesMock } from "@/shared/api/mock/dados/manutencoes";
 import {
   LIMITE_CARACTERES_MANUTENCAO,
   MENSAGENS_VALIDACAO_MANUTENCAO,
+  resolverUrlRotaMapa,
   validarComentarioManutencao,
   validarConclusaoManutencao,
 } from "./validacaoManutencao";
@@ -211,5 +212,16 @@ describe("API Mock de Manutenções do Instalador (Rotas #39, #40 e #41)", () =>
     } finally {
       mock.restore();
     }
+  });
+
+  it("resolve rota no mapa por linkNavegacao ou endereço e retorna null quando ausente", () => {
+    expect(
+      resolverUrlRotaMapa("Rua A, 10", "https://www.google.com/maps/search/?api=1&query=1,2")
+    ).toBe("https://www.google.com/maps/search/?api=1&query=1,2");
+    expect(resolverUrlRotaMapa("Av. Paulista, 1000, São Paulo/SP")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Av.%20Paulista%2C%201000%2C%20S%C3%A3o%20Paulo%2FSP"
+    );
+    expect(resolverUrlRotaMapa("   ", null)).toBeNull();
+    expect(resolverUrlRotaMapa(undefined, undefined)).toBeNull();
   });
 });

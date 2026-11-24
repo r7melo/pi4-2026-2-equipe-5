@@ -12,6 +12,7 @@ import { novaObraSchema as novaObraSchemaFeature } from "@/features/obras/types/
 import { editarObraFormSchema, mapearValoresFormularioObra } from "@/features/obras/lib/editarObraFormulario";
 import { atualizarObra, criarObra } from "@/features/obras/services/obras";
 import { listarClientes } from "@/features/obras/services/clientes";
+import { descreverEventoHistorico, montarTimelineCronologica } from "@/features/obras/lib/timelineObra";
 import { isRotaAutorizadaParaPerfil, obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
 import { capturarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import type { ObraDetalhe } from "@/features/obras/types/obras";
@@ -408,6 +409,66 @@ describe("isRotaAutorizadaParaPerfil e obterELimparRotaRetorno", () => {
     } finally {
       mock.restore();
     }
+  });
+
+  it("descreve tipos canônicos do histórico e ordena timeline em ordem cronológica", () => {
+    const autorTeste = { id: 1, nome: "Admin Teste" };
+
+    expect(
+      descreverEventoHistorico({
+        id: 1,
+        obraId: 301,
+        statusAnterior: "",
+        statusNovo: "MaterialComprado",
+        dataAlteracao: "2026-10-01T10:00:00Z",
+        usuario: autorTeste,
+        tipoAcao: "Cadastro",
+      })
+    ).toEqual({ titulo: "Obra cadastrada no sistema" });
+
+    expect(
+      descreverEventoHistorico({
+        id: 2,
+        obraId: 301,
+        statusAnterior: "Concluido",
+        statusNovo: "Concluido",
+        dataAlteracao: "2026-10-03T10:00:00Z",
+        usuario: autorTeste,
+        tipoAcao: "AlteracaoFinanceira",
+      })
+    ).toEqual({ titulo: "Lançamento financeiro atualizado" });
+
+    const eventos = montarTimelineCronologica(
+      [
+        {
+          id: 10,
+          obraId: 301,
+          descricao: "Comentário intermediário",
+          dataRegistro: "2026-10-02T12:00:00Z",
+          usuario: autorTeste,
+        },
+      ],
+      [
+        {
+          id: 2,
+          obraId: 301,
+          statusAnterior: "MaterialComprado",
+          statusNovo: "NoDeposito",
+          dataAlteracao: "2026-10-03T09:00:00Z",
+          usuario: autorTeste,
+        },
+        {
+          id: 1,
+          obraId: 301,
+          statusAnterior: "",
+          statusNovo: "MaterialComprado",
+          dataAlteracao: "2026-10-01T08:00:00Z",
+          usuario: autorTeste,
+        },
+      ]
+    );
+
+    expect(eventos.map((e) => e.id)).toEqual(["h-1", "c-10", "h-2"]);
   });
 });
 

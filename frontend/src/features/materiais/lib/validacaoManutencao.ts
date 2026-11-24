@@ -53,3 +53,14 @@ export function validarComentarioManutencao(
     caractereInvalido: MENSAGENS_VALIDACAO_MANUTENCAO.comentarioCaractereInvalido,
   });
 }
+
+export function resolverUrlRotaMapa(
+  endereco?: string | null,
+  linkNavegacao?: string | null
+): string | null {
+  const linkLimpo = linkNavegacao?.trim();
+  if (linkLimpo) return linkLimpo;
+  const enderecoLimpo = endereco?.trim();
+  if (!enderecoLimpo) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoLimpo)}`;
+}

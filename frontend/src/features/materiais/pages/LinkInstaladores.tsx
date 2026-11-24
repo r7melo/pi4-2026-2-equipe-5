@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Navigation,
   Package,
@@ -27,6 +28,7 @@ import {
 } from "../hooks/useInstalador";
 import {
   LIMITE_CARACTERES_MANUTENCAO,
+  resolverUrlRotaMapa,
   validarComentarioManutencao,
   validarConclusaoManutencao,
 } from "../lib/validacaoManutencao";
@@ -43,12 +45,12 @@ type FiltroStatusManutencao = "todas" | StatusManutencao;
 const COMENTARIOS_VAZIOS: ComentarioManutencaoResposta[] = [];
 
 function abrirRotaMapa(endereco?: string | null, linkNavegacao?: string | null) {
-  if (linkNavegacao) {
-    window.open(linkNavegacao, "_blank", "noopener,noreferrer");
+  const url = resolverUrlRotaMapa(endereco, linkNavegacao);
+  if (!url) {
+    toast.warning("Endereço não cadastrado para esta obra.");
     return;
   }
-  const query = encodeURIComponent(endereco?.trim() || "Crateús, CE");
-  window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank", "noopener,noreferrer");
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 function formatarDataHoraBR(iso?: string | null): string {
