@@ -153,7 +153,7 @@ conferir "CT-10 p5 conflito" 409 "$s"
 s=$(chamar POST /programacoes "$ENG" '{"obraId":306,"equipeId":5,"dataInicio":"2026-11-07","prioridade":2}')
 conferir "CT-10 p6 sabado" 400 "$s"
 
-echo "== CT-15 Comentários"
+echo "== CT-27 Comentários"
 s=$(chamar POST /obras/303/comentarios "$ENG" '{"descricao":"   "}')
 conferir "CT-15 p1 vazio" 400 "$s"
 s=$(chamar POST /obras/303/comentarios "$ENG" '{"descricao":"Teste QA"}')
