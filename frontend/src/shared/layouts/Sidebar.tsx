@@ -4,6 +4,7 @@ import {
   Settings, 
   LayoutDashboard, 
   Users, 
+  Building2,
   DollarSign, 
   BarChart2,
   Package,
@@ -72,6 +73,12 @@ export default function Sidebar() {
       path: "/equipes",
       icon: Users,
       roles: ["Administrador", "Engenharia", "Financeiro"],
+    },
+    {
+      label: "Clientes",
+      path: "/clientes",
+      icon: Building2,
+      roles: ["Administrador", "Engenharia"],
     },
     {
       label: "Financeiro",

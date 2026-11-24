@@ -14,6 +14,7 @@ const PARAMETROS_SENSIVEIS = ["token", "senha", "password", "code", "secret", "j
 const ROTAS_ESTATICAS_PERMITIDAS = new Set([
   "/kanban",
   "/equipes",
+  "/clientes",
   "/usuarios",
   "/usuarios/novo",
   "/cadastrarobra",
@@ -152,10 +153,11 @@ export function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePe
   }
 
   if (perfilNome === "Engenharia") {
-    // Engenharia acessa: /kanban, /equipes, /cadastrarobra, /acompanharhomologacao, /obras/:id, /obras/:id/materiais
+    // Engenharia acessa: /kanban, /equipes, /clientes, /cadastrarobra, /acompanharhomologacao, /obras/:id, /obras/:id/materiais
     if (
       pathname === "/kanban" ||
       pathname === "/equipes" ||
+      pathname === "/clientes" ||
       pathname === "/cadastrarobra" ||
       pathname === "/acompanharhomologacao"
     ) {
@@ -231,6 +233,7 @@ const TITULOS_ROTAS_ESTATICAS: Readonly<Record<string, string>> = {
   "/redefinir-senha": "Redefinir senha",
   "/kanban": "Obras",
   "/equipes": "Cronograma",
+  "/clientes": "Clientes",
   "/financeiro": "Financeiro",
   "/produtos": "Catálogo de Produtos",
   "/relatorios": "Relatórios",

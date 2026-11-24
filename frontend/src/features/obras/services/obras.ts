@@ -108,10 +108,21 @@ export async function listarComentarios(obraId: number): Promise<ComentarioObra[
   return data;
 }
 
-/** POST /api/obras/{id}/comentarios — Rota #17 do Contrato Oficial 07-api */
+/** POST /api/obras/{id}/comentarios — Rota #23 do Contrato Oficial 07-api */
 export async function adicionarComentario(obraId: number, descricao: string, sessao403?: number): Promise<ComentarioObra> {
   const { data } = await api.post<ComentarioObra>(`/obras/${obraId}/comentarios`, { descricao }, { sessao403 });
   return data;
+}
+
+/** PUT /api/comentarios/{id} — Rota #24 do Contrato Oficial 07-api (Exclusivo Administrador, RF-12) */
+export async function editarComentario(id: number, descricao: string, sessao403?: number): Promise<ComentarioObra> {
+  const { data } = await api.put<ComentarioObra>(`/comentarios/${id}`, { descricao }, { sessao403 });
+  return data;
+}
+
+/** DELETE /api/comentarios/{id} — Rota #25 do Contrato Oficial 07-api (Exclusivo Administrador, RF-12) */
+export async function excluirComentario(id: number, sessao403?: number): Promise<void> {
+  await api.delete(`/comentarios/${id}`, { sessao403 });
 }
 
 /** GET /api/obras/{id}/homologacao — Rota de Homologação (RF-17) */

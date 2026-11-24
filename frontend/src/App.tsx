@@ -18,6 +18,7 @@ import MateriaisObra from "@/features/materiais/pages/MateriaisObra";
 import Relatorios from "@/features/financeiro/pages/Relatorios";
 import Financeiro from "@/features/financeiro/pages/Financeiro";
 import Produtos from "@/features/produtos/pages/Produtos";
+import Clientes from "@/features/clientes/pages/Clientes";
 import RelatorioPublico from "@/features/financeiro/pages/RelatorioPublico";
 import CronogramaPublico from "@/features/cronograma/pages/CronogramaPublico";
 import { Usuarios, CadastroUsuario } from "@/composition/RotasUsuarios";
@@ -97,8 +98,9 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
                 <Route path="/equipes" element={<Equipes />} />
               </Route>
 
-              {/* Gestão de Obras: Apenas Admin e Engenharia */}
+              {/* Gestão de Obras e Clientes: Apenas Admin e Engenharia */}
               <Route element={<ProtectedRoute allowedRoles={["Administrador", "Engenharia"]} />}>
+                <Route path="/clientes" element={<Clientes />} />
                 <Route path="/cadastrarobra" element={<CadastrarObra />} />
                 <Route path="/acompanharhomologacao" element={<AndamentoHomologacao />} />
               </Route>
