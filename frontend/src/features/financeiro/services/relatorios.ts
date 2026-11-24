@@ -36,11 +36,28 @@ export async function atualizarCustosObra(obraId: number, payload: AtualizarCust
   return data;
 }
 
+export function montarParametrosExportacao(
+  formato: "pdf" | "excel",
+  filtros?: FiltrosRelatorioDemonstracao
+): Record<string, string | number> {
+  const params: Record<string, string | number> = {
+    formato: formato === "excel" ? "xlsx" : "pdf",
+  };
+  if (filtros?.tipo) params.tipo = filtros.tipo;
+  if (filtros?.periodoInicio) params.dataInicio = filtros.periodoInicio;
+  if (filtros?.periodoFim) params.dataFim = filtros.periodoFim;
+  if (filtros?.clienteFiltro && filtros.clienteFiltro !== "todos") {
+    params.clienteFiltro = filtros.clienteFiltro;
+  }
+  if (filtros?.obraId !== undefined) params.obraId = filtros.obraId;
+  return params;
+}
+
 /** GET /api/relatorios/export?formato=pdf|xlsx — Rota #35 (RF-15) */
 export async function exportarRelatorio(formato: "pdf" | "excel", filtros?: FiltrosRelatorioDemonstracao, sessao?: number): Promise<Blob> {
   try {
     const { data } = await api.get<Blob>('/relatorios/export', {
-      params: { formato, ...filtros }, responseType: 'blob',
+      params: montarParametrosExportacao(formato, filtros), responseType: 'blob',
       ...(MOCK_ATIVO ? { sessao403: sessao, politica401: 'sessao' as const } : {}),
     });
     if (MOCK_ATIVO) {

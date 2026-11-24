@@ -3,6 +3,7 @@ import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { registrarFinanceiro } from "@/shared/api/mock/handlers/financeiro";
 import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
+import { montarParametrosExportacao } from "../services/relatorios";
 
 const dados = vi.hoisted(() => ({
   atualizar: vi.fn(() => ({ valorObra: 100 })),
@@ -21,6 +22,7 @@ const dados = vi.hoisted(() => ({
   obras: vi.fn(() => []),
   cenario: vi.fn(() => ({})),
   pdf: vi.fn(async () => new Blob(["%PDF"], { type: "application/pdf" })),
+  excel: vi.fn(() => new Blob(["PK"], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })),
 }));
 vi.mock("@/shared/api/mock/core/auth", () => ({
   resolverUsuarioAutenticadoMock: (perfil: unknown) => perfil ? { perfil: { nomePerfil: perfil } } : undefined,
@@ -31,7 +33,7 @@ vi.mock("@/shared/api/mock/dados/relatorios", () => ({
 }));
 vi.mock("@/shared/api/mock/dados/obras", () => ({ obterObrasArmazenadas: dados.obras }));
 vi.mock("@/shared/api/mock/core/estadoCenario", () => ({ lerDadosCenario: dados.cenario }));
-vi.mock("@/shared/api/mock/pdfGenerator", () => ({ gerarExcelRelatorio: vi.fn(), gerarPdfRelatorio: dados.pdf }));
+vi.mock("@/shared/api/mock/pdfGenerator", () => ({ gerarExcelRelatorio: dados.excel, gerarPdfRelatorio: dados.pdf }));
 
 describe("Regras reais do cliente financeiro e do handler mock", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -72,6 +74,60 @@ describe("Regras reais do cliente financeiro e do handler mock", () => {
         (await cliente.get("/relatorios/export?formato=pdf&tipo=inexistente", config)).status
       ).toBe(400);
       expect((await cliente.get("/obras/1/relatorio-custo")).status).toBe(401);
+    } finally {
+      mock.restore();
+    }
+  });
+
+  it("serializa parâmetros canônicos de exportação e integra com o endpoint /relatorios/export", async () => {
+    expect(
+      montarParametrosExportacao("excel", {
+        periodoInicio: "2026-10-01",
+        periodoFim: "2026-10-31",
+        clienteFiltro: "todos",
+        tipo: "cronograma",
+        obraId: 301,
+      })
+    ).toEqual({
+      formato: "xlsx",
+      tipo: "cronograma",
+      dataInicio: "2026-10-01",
+      dataFim: "2026-10-31",
+      obraId: 301,
+    });
+
+    expect(
+      montarParametrosExportacao("pdf", {
+        periodoInicio: "2026-10-01",
+        periodoFim: "2026-10-31",
+        clienteFiltro: "Rede Alfa",
+        tipo: "financeiro",
+      })
+    ).toEqual({
+      formato: "pdf",
+      tipo: "financeiro",
+      dataInicio: "2026-10-01",
+      dataFim: "2026-10-31",
+      clienteFiltro: "Rede Alfa",
+    });
+
+    const cliente = axios.create({ validateStatus: () => true });
+    const mock = new MockAdapter(cliente);
+    registrarFinanceiro(mock);
+    try {
+      const params = montarParametrosExportacao("excel", {
+        periodoInicio: "2026-10-01",
+        periodoFim: "2026-10-31",
+        clienteFiltro: "todos",
+        tipo: "cronograma",
+        obraId: 301,
+      });
+      const res = await cliente.get("/relatorios/export", {
+        params,
+        headers: { Authorization: "Financeiro" },
+      });
+      expect(res.status).toBe(200);
+      expect(dados.excel).toHaveBeenCalledTimes(1);
     } finally {
       mock.restore();
     }

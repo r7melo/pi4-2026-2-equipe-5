@@ -5,6 +5,7 @@ import { filtrarPeriodo } from "@/shared/lib/filtrarPeriodo";
 import { useEffect, useRef, useState } from "react";
 import { baixarArquivoBlob } from "@/shared/lib/arquivoBlob";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
+import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { useObrasSelect, useLinkRelatorioDemonstracao, useExportarRelatorio } from "@/features/financeiro/hooks/useRelatorios";
 import { ApiErro } from '@/shared/api/api';
@@ -82,7 +83,7 @@ export default function Relatorios() {
         ...(obraSelecionada !== "todas" ? { obraId: Number(obraSelecionada) } : {}),
       };
       const blob = await exportacao.mutateAsync(
-        { formato, filtros: MOCK_ATIVO ? filtrosExportacao : undefined },
+        { formato, filtros: filtrosExportacao },
         undefined,
         sessao
       );
@@ -339,16 +340,16 @@ export default function Relatorios() {
                 <Loader2 className="w-6 h-6 motion-safe:animate-spin text-muted-foreground" />
               </div>
             ) : obrasDoPeriodo.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                <BarChart3 className="w-14 h-14 text-muted mb-3" />
-                <p className="text-base font-medium text-foreground">Nenhum dado para o período selecionado</p>
-                <p className="text-sm mt-1 text-muted-foreground">Ajuste os filtros de período ou cliente</p>
-              </div>
+              <EmptyState
+                icone={BarChart3}
+                titulo="Nenhum dado para o período selecionado"
+                descricao="Ajuste os filtros de período, cliente ou obra para visualizar os registros."
+              />
             ) : (
               <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabela com rolagem horizontal">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
                       <th scope="col" className="py-3 px-6 text-left min-w-[240px]">Cliente / Obra</th>
                       <th scope="col" className="py-3 px-5 text-left w-36">Status</th>
                       <th scope="col" className="py-3 px-6 text-right w-36">Painéis</th>
