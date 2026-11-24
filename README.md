@@ -14,6 +14,16 @@ Sistema web para gestão de obras de instalação de energia solar. Reúne o fun
 | Banco | PostgreSQL 16 |
 | Ambiente local | Docker Compose |
 
+## Ambiente publicado
+
+| Serviço | Endereço |
+| :---- | :---- |
+| Frontend | https://pi4.howluks.dev |
+| API | https://api.pi4.howluks.dev/api |
+| Documentação da API (Swagger) | https://api.pi4.howluks.dev/api/docs |
+
+A publicação é feita a partir da branch `Live` (`main` + entregas da sprint em validação). O frontend fica na Vercel; a API e o PostgreSQL ficam em uma VPS, atrás de um proxy com HTTPS. Na inicialização, a API aplica as migrations que ainda não estão no banco. O deploy é manual: a API sobe com o conteúdo da `Live` e o frontend com `npx vercel deploy --prod` na pasta `frontend/`.
+
 ## Executar localmente
 
 ```bash
