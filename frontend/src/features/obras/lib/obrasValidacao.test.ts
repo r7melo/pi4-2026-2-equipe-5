@@ -11,6 +11,7 @@ import { novaObraSchema } from "@/shared/types/obrasCadastro";
 import { novaObraSchema as novaObraSchemaFeature } from "@/features/obras/types/obrasCadastro";
 import { editarObraFormSchema, mapearValoresFormularioObra } from "@/features/obras/lib/editarObraFormulario";
 import { atualizarObra, criarObra } from "@/features/obras/services/obras";
+import { listarClientes } from "@/features/obras/services/clientes";
 import { isRotaAutorizadaParaPerfil, obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
 import { capturarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import type { ObraDetalhe } from "@/features/obras/types/obras";
@@ -385,6 +386,28 @@ describe("isRotaAutorizadaParaPerfil e obterELimparRotaRetorno", () => {
     sessionStorage.setItem("auth_return_url", "/cadastrarobra");
     expect(obterELimparRotaRetorno("Financeiro")).toBe("/kanban");
     expect(sessionStorage.getItem("auth_return_url")).toBeNull();
+  });
+
+  it("solicita pageSize=100 ao listar clientes para seleção de obra", async () => {
+    const mock = new MockAdapter(api);
+    let paramsCapturados: Record<string, unknown> | undefined;
+    mock.onGet("/clientes").reply((config) => {
+      paramsCapturados = config.params as Record<string, unknown> | undefined;
+      return [
+        200,
+        {
+          itens: [{ id: 10, nome: "Cliente Sem Endereço", cidade: "", endereco: "" }],
+        },
+      ];
+    });
+    try {
+      const itens = await listarClientes();
+      expect(paramsCapturados).toEqual({ pageSize: 100 });
+      expect(itens).toHaveLength(1);
+      expect(itens[0].nome).toBe("Cliente Sem Endereço");
+    } finally {
+      mock.restore();
+    }
   });
 });
 
