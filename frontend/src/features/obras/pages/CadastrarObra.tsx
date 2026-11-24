@@ -4,8 +4,8 @@ import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useForm, useWatch } from "react-hook-form";
+import { useNavigate, Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Save,
@@ -13,18 +13,14 @@ import {
   Calendar,
   Zap,
   User,
-  UserCheck,
-  UserPlus,
+  ExternalLink,
   FileText,
   Clock,
   Loader2,
   CheckCircle2,
   AlertCircle,
   X,
-  CreditCard,
   MapPin,
-  Phone,
-  Mail,
 } from "lucide-react";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
@@ -38,7 +34,6 @@ import {
 } from "@/features/obras/types/obrasCadastro";
 
 import { useCriarObra } from "../hooks/useObras";
-import { formatarCpfCnpj, formatarTelefone } from "@/shared/lib/validacoesDocumento";
 import {
   capturarSessaoOperacional,
   erroDaSessaoAnterior,
@@ -59,7 +54,6 @@ export default function CadastrarObra() {
   const navigate = useNavigate();
   const criarObraMutation = useCriarObra();
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [tipoCliente, setTipoCliente] = useState<"existente" | "novo">("existente");
   const [redirecionando, setRedirecionando] = useState(false);
   const catalogo = useClientes();
   const listaClientes = catalogo.data ?? [];
@@ -85,8 +79,6 @@ export default function CadastrarObra() {
     register,
     handleSubmit,
     setValue,
-    control,
-    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<NovaObraInput, unknown, NovaObraFormData>({
     resolver: zodResolver(novaObraSchema),
@@ -113,43 +105,16 @@ export default function CadastrarObra() {
 
   useEffect(() => {
     const primeiro = catalogo.data?.[0];
-    if (!primeiro || catalogoAplicado.current || tipoCliente !== "existente") return;
+    if (!primeiro || catalogoAplicado.current) return;
     catalogoAplicado.current = true;
     setClienteIdSelecionado(primeiro.id);
     setValue("clienteId", primeiro.id);
     setValue("clienteNome", primeiro.nome);
     setValue("cidade", primeiro.cidade);
     setValue("endereco", primeiro.endereco);
-  }, [catalogo.data, tipoCliente, setValue]);
+  }, [catalogo.data, setValue]);
 
   const clienteIdSelecionado = clienteIdSelecionadoState === undefined ? catalogo.data?.[0]?.id : clienteIdSelecionadoState ?? undefined;
-
-  const cpfCnpjValue = useWatch({ control, name: "cpfCnpj" });
-  const telefoneValue = useWatch({ control, name: "telefone" });
-
-  const handleMudarTipoCliente = (novoTipo: "existente" | "novo") => {
-    setTipoCliente(novoTipo);
-    setValue("tipoCliente", novoTipo);
-    clearErrors();
-
-    if (novoTipo === "existente") {
-      const clientePadrao = listaClientes.find((c) => c.id === clienteIdSelecionado) || listaClientes[0];
-      if (!clientePadrao) return;
-      setClienteIdSelecionado(clientePadrao.id);
-      setValue("clienteId", clientePadrao.id);
-      setValue("clienteNome", clientePadrao.nome);
-      setValue("cidade", clientePadrao.cidade);
-      setValue("endereco", clientePadrao.endereco);
-    } else {
-      setValue("clienteId", undefined);
-      setValue("clienteNome", "");
-      setValue("cidade", "");
-      setValue("endereco", "");
-      setValue("cpfCnpj", "");
-      setValue("telefone", "");
-      setValue("email", "");
-    }
-  };
 
   const onSubmit = async (dados: NovaObraFormData) => {
     if (enviandoRef.current || redirecionando) return;
@@ -159,46 +124,21 @@ export default function CadastrarObra() {
     try {
       const dataConfirmacao = dados.dataInicioEstimada || new Date().toISOString().split("T")[0];
 
-      let payload: CriarObraPayload;
-
-      if (dados.tipoCliente === "existente") {
-        payload = {
-          clienteId: dados.clienteId,
-          clienteNome: dados.clienteNome,
-          cidade: dados.cidade,
-          endereco: dados.endereco?.trim() || "",
-          categoria: dados.categoria,
-          quantidadePaineis: Number(dados.quantidadePaineis),
-          quantidadeInversores: Number(dados.quantidadeInversores ?? 1),
-          dataInicioEstimada: dados.dataInicioEstimada,
-          dataFimEstimada: dados.dataFimEstimada,
-          pagamento: {
-            prazoContratualDias: Number(dados.pagamento.prazoContratualDias),
-            dataConfirmacao,
-          },
-        };
-      } else {
-        payload = {
-          cliente: {
-            nome: dados.clienteNome!.trim(),
-            cpfCnpj: dados.cpfCnpj!.replace(/\D/g, ""),
-            cidade: dados.cidade?.trim(),
-            endereco: dados.endereco?.trim(),
-            telefone: dados.telefone?.trim() || undefined,
-            email: dados.email?.trim() || undefined,
-          },
-          categoria: dados.categoria,
-          quantidadePaineis: Number(dados.quantidadePaineis),
-          quantidadeInversores: Number(dados.quantidadeInversores ?? 1),
-          endereco: dados.endereco!.trim(),
-          dataInicioEstimada: dados.dataInicioEstimada,
-          dataFimEstimada: dados.dataFimEstimada,
-          pagamento: {
-            prazoContratualDias: Number(dados.pagamento.prazoContratualDias),
-            dataConfirmacao,
-          },
-        };
-      }
+      const payload: CriarObraPayload = {
+        clienteId: dados.clienteId,
+        clienteNome: dados.clienteNome,
+        cidade: dados.cidade,
+        endereco: dados.endereco?.trim() || "",
+        categoria: dados.categoria,
+        quantidadePaineis: Number(dados.quantidadePaineis),
+        quantidadeInversores: Number(dados.quantidadeInversores ?? 1),
+        dataInicioEstimada: dados.dataInicioEstimada,
+        dataFimEstimada: dados.dataFimEstimada,
+        pagamento: {
+          prazoContratualDias: Number(dados.pagamento.prazoContratualDias),
+          dataConfirmacao,
+        },
+      };
 
       await criarObraMutation.mutateAsync(payload, undefined, sessao);
       if (
@@ -298,200 +238,102 @@ export default function CadastrarObra() {
 
       {catalogo.isLoading && <FeedbackLoading />}
       {catalogo.isError && <FeedbackErro mensagem={catalogo.error.message} />}
-      {catalogo.isSuccess && tipoCliente === "existente" && listaClientes.length === 0 && (
-        <EmptyState titulo="Nenhum cliente cadastrado" descricao="Cadastre um novo cliente junto com a obra." />
+      {catalogo.isSuccess && listaClientes.length === 0 && (
+        <EmptyState
+          titulo="Nenhum cliente cadastrado"
+          descricao="Cadastre o cliente na Gestão de Clientes antes de abrir uma nova obra."
+        />
       )}
       {/* Área do Formulário */}
       <section className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
         <div className="w-full max-w-3xl bg-surface rounded-2xl border border-border-subtle overflow-hidden h-fit my-auto">
           <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="p-6 md:p-8 space-y-8" noValidate>
 
-            {/* Seção: Dados do Cliente com Alternador */}
+            {/* Seção: Dados do Cliente */}
             <div>
               <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 mb-5">
                 <h3 className="text-base md:text-lg font-bold text-foreground flex items-center gap-2">
                   <User className="w-5 h-5 text-warning" /> Identificação do Cliente
                 </h3>
 
-                {/* Alternador Visual (Tabs) */}
-                <div className="flex flex-wrap items-center p-1 bg-surface-subtle rounded-xl w-fit max-w-full border border-border-subtle">
-                  <button
-                    type="button"
-                    onClick={() => handleMudarTipoCliente("existente")}
-                    className={`flex items-center gap-2 max-w-full min-w-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      tipoCliente === "existente"
-                        ? "bg-surface text-foreground border border-border-subtle"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    <span>Cliente Cadastrado</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMudarTipoCliente("novo")}
-                    className={`flex items-center gap-2 max-w-full min-w-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      tipoCliente === "novo"
-                        ? "bg-surface text-foreground border border-border-subtle"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>Novo Cliente</span>
-                  </button>
-                </div>
+                <Link
+                  to="/clientes"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground-secondary bg-surface-subtle hover:bg-surface hover:text-foreground border border-border-subtle transition-colors w-fit"
+                >
+                  <span>Gerenciar ou cadastrar cliente</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
               </div>
 
-              {/* Modo: Cliente Existente */}
-              {tipoCliente === "existente" ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-surface-subtle/80 rounded-2xl border border-border-subtle">
-                  <div className="md:col-span-2 flex flex-col gap-1.5">
-                    <label htmlFor="obra-cliente" className="text-sm font-semibold text-foreground-secondary">
-                      Selecione o Cliente <span className="text-destructive">*</span>
-                    </label>
-                    <select id="obra-cliente" {...register("clienteId", { valueAsNumber: true })}
-                      aria-invalid={!!errors.clienteId} aria-describedby={errors.clienteId ? "obra-cliente-erro" : undefined}
-                      value={clienteIdSelecionado || ""}
-                      onChange={(e) => {
-                        const id = Number(e.target.value);
-                        const idValido = Number.isFinite(id) && id > 0 ? id : undefined;
-                        setClienteIdSelecionado(idValido ?? null);
-                        setValue("clienteId", idValido, { shouldValidate: true });
-                        const c = listaClientes.find((item) => item.id === idValido);
-                        if (c) {
-                          setValue("clienteNome", c.nome, { shouldValidate: true });
-                          setValue("cidade", c.cidade, { shouldValidate: true });
-                          setValue("endereco", c.endereco, { shouldValidate: true });
-                        }
-                      }}
-                      className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-warning-border cursor-pointer transition-colors"
-                    >
-                      <option value="">Selecione um cliente</option>
-                      {listaClientes.map((c) => (
-                        <option key={c.id} value={c.id} className="bg-surface text-foreground">
-                          {c.nome} — {c.cidade}
-                        </option>
-                      ))}
-                    </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-surface-subtle/80 rounded-2xl border border-border-subtle">
+                <div className="md:col-span-2 flex flex-col gap-1.5">
+                  <label htmlFor="obra-cliente" className="text-sm font-semibold text-foreground-secondary">
+                    Selecione o Cliente <span className="text-destructive">*</span>
+                  </label>
+                  <select id="obra-cliente" {...register("clienteId", { valueAsNumber: true })}
+                    aria-invalid={!!errors.clienteId} aria-describedby={errors.clienteId ? "obra-cliente-erro" : undefined}
+                    value={clienteIdSelecionado || ""}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      const idValido = Number.isFinite(id) && id > 0 ? id : undefined;
+                      setClienteIdSelecionado(idValido ?? null);
+                      setValue("clienteId", idValido, { shouldValidate: true });
+                      const c = listaClientes.find((item) => item.id === idValido);
+                      if (c) {
+                        setValue("clienteNome", c.nome, { shouldValidate: true });
+                        setValue("cidade", c.cidade, { shouldValidate: true });
+                        setValue("endereco", c.endereco, { shouldValidate: true });
+                      }
+                    }}
+                    className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-warning-border cursor-pointer transition-colors"
+                  >
+                    <option value="">Selecione um cliente</option>
+                    {listaClientes.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-surface text-foreground">
+                        {c.nome} — {c.cidade}
+                      </option>
+                    ))}
+                  </select>
 
-                    {errors.clienteId?.message && (
-                      <p id="obra-cliente-erro" className="text-xs text-destructive font-medium mt-1">{errors.clienteId.message}</p>
-                    )}
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Input
-                      label="Nome / Razão Social"
-                      required
-                      icon={<User className="w-4 h-4" />}
-                      readOnly
-                      className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
-                      error={errors.clienteNome?.message}
-                      {...register("clienteNome")}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label="Cidade"
-                      required
-                      icon={<Building2 className="w-4 h-4" />}
-                      readOnly
-                      className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
-                      error={errors.cidade?.message}
-                      {...register("cidade")}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label="Endereço Padrão"
-                      required
-                      icon={<MapPin className="w-4 h-4" />}
-                      readOnly
-                      className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
-                      error={errors.endereco?.message}
-                      {...register("endereco")}
-                    />
-                  </div>
+                  {errors.clienteId?.message && (
+                    <p id="obra-cliente-erro" className="text-xs text-destructive font-medium mt-1">{errors.clienteId.message}</p>
+                  )}
                 </div>
-              ) : (
-                /* Modo: Novo Cliente */
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-surface-subtle/80 rounded-2xl border border-border-subtle">
-                  <div className="md:col-span-2">
-                    <Input
-                      label="Nome Completo ou Razão Social"
-                      placeholder="Ex: João da Silva ou Solartech Comércio Ltda"
-                      required
-                      icon={<User className="w-4 h-4" />}
-                      error={errors.clienteNome?.message}
-                      {...register("clienteNome")}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label="CPF ou CNPJ"
-                      placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                      required
-                      icon={<CreditCard className="w-4 h-4" />}
-                      {...register("cpfCnpj")}
-                      value={cpfCnpjValue || ""}
-                      onChange={(e) => {
-                        const formatado = formatarCpfCnpj(e.target.value);
-                        setValue("cpfCnpj", formatado, { shouldValidate: true });
-                      }}
-                      error={errors.cpfCnpj?.message}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label="Cidade"
-                      placeholder="Ex: Campinas"
-                      required
-                      icon={<Building2 className="w-4 h-4" />}
-                      error={errors.cidade?.message}
-                      {...register("cidade")}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Input
-                      label="Endereço da Instalação"
-                      placeholder="Ex: Av. Paulista, 1000 - Bela Vista"
-                      required
-                      icon={<MapPin className="w-4 h-4" />}
-                      error={errors.endereco?.message}
-                      {...register("endereco")}
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label="Telefone / WhatsApp"
-                      placeholder="(99) 99999-9999"
-                      icon={<Phone className="w-4 h-4" />}
-                      {...register("telefone")}
-                      value={telefoneValue || ""}
-                      onChange={(e) => {
-                        const formatado = formatarTelefone(e.target.value);
-                        setValue("telefone", formatado, { shouldValidate: true });
-                      }}
-                      error={errors.telefone?.message}
-                    />
-                  </div>
 
-                  <div>
-                    <Input
-                      label="E-mail de Contato"
-                      type="email"
-                      autoComplete="email"
-                      autoCorrect="off"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      placeholder="contato@cliente.com.br"
-                      icon={<Mail className="w-4 h-4" />}
-                      error={errors.email?.message}
-                      {...register("email")}
-                    />
-                  </div>
+                <div className="md:col-span-2">
+                  <Input
+                    label="Nome / Razão Social"
+                    required
+                    icon={<User className="w-4 h-4" />}
+                    readOnly
+                    className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
+                    error={errors.clienteNome?.message}
+                    {...register("clienteNome")}
+                  />
                 </div>
-              )}
+                <div>
+                  <Input
+                    label="Cidade"
+                    required
+                    icon={<Building2 className="w-4 h-4" />}
+                    readOnly
+                    className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
+                    error={errors.cidade?.message}
+                    {...register("cidade")}
+                  />
+                </div>
+                <div>
+                  <Input
+                    label="Endereço Padrão"
+                    required
+                    icon={<MapPin className="w-4 h-4" />}
+                    readOnly
+                    className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
+                    error={errors.endereco?.message}
+                    {...register("endereco")}
+                  />
+                </div>
+              </div>
             </div>
 
             <hr className="border-border-subtle" />
@@ -601,7 +443,7 @@ export default function CadastrarObra() {
               <Button
                 type="submit"
                 variant="primary"
-                disabled={isSubmitting || redirecionando || (tipoCliente === "existente" && (catalogo.isLoading || catalogo.isError))}
+                disabled={isSubmitting || redirecionando || catalogo.isLoading || catalogo.isError || listaClientes.length === 0}
                 className="min-w-36"
               >
                 {isSubmitting || redirecionando ? (

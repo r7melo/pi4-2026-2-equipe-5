@@ -310,17 +310,19 @@ export default function DetalheObra() {
                   </div>
                 </div>
 
-                {podeVerFaturamento && obra.pagamento && (
+                {obra.pagamento && (
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-surface-subtle text-foreground-muted shrink-0">
                       <CreditCard className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground font-medium">Faturamento e Prazos</p>
-                      <p className="text-sm font-semibold text-foreground">
+                      <p className="text-xs text-muted-foreground font-medium">
+                        {podeVerFaturamento ? "Faturamento e Prazos" : "Prazo Contratual"}
+                      </p>
+                      <p className="text-sm font-semibold text-foreground font-mono">
                         Prazo: {obra.pagamento.prazoContratualDias} dias
                       </p>
-                      {obra.pagamento.dataConfirmacao && (
+                      {podeVerFaturamento && obra.pagamento.dataConfirmacao && (
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Confirmado em: {formatarDataBR(obra.pagamento.dataConfirmacao)}
                         </p>
