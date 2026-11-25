@@ -6,7 +6,12 @@ import { Button } from "@/shared/components/ui/Button";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
-import { useObrasSelect, useDreObra, useCustosObra } from "@/features/financeiro/hooks/useRelatorios";
+import {
+  useObrasSelect,
+  useDreObra,
+  useCustosObra,
+  useRelatorioCustoObra,
+} from "@/features/financeiro/hooks/useRelatorios";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { assinarSessaoOperacional, capturarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { ModalLancamentoCustos } from "../components/ModalLancamentoCustos";
@@ -20,7 +25,7 @@ import {
   type ApuracaoDrePainel,
   type BannerParcialDre,
 } from "../lib/apuracaoDre";
-import type { CustosObra } from "@/shared/types/relatorios";
+import type { BalancoMaterial, CustosObra } from "@/shared/types/relatorios";
 import {
   TrendingUp,
   TrendingDown,
@@ -50,7 +55,10 @@ interface PainelDREConteudoProps {
   apuracao: ApuracaoDrePainel;
   bannerParcial: BannerParcialDre | null;
   custos?: CustosObra;
+  balancoMateriais?: BalancoMaterial[];
 }
+
+const BALANCO_VAZIO: BalancoMaterial[] = [];
 
 function PainelDREConteudo({
   obraId,
@@ -60,6 +68,7 @@ function PainelDREConteudo({
   apuracao,
   bannerParcial,
   custos,
+  balancoMateriais = BALANCO_VAZIO,
 }: PainelDREConteudoProps) {
   const navigate = useNavigate();
   const [modalAberto, setModalAberto] = useState(false);
@@ -233,6 +242,70 @@ function PainelDREConteudo({
         </div>
       </div>
 
+      {/* Balanço Físico de Materiais da Obra */}
+      <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
+        <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-foreground-muted" />
+            <h3 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
+              Balanço de Materiais da Obra
+            </h3>
+          </div>
+          <span className="text-xs text-muted-foreground font-mono tabular-nums">
+            {balancoMateriais.length} {balancoMateriais.length === 1 ? "insumo" : "insumos"}
+          </span>
+        </div>
+
+        {balancoMateriais.length === 0 ? (
+          <div className="p-5 text-xs text-muted-foreground text-center">
+            Nenhum insumo vinculado ao balanço físico desta obra até o momento.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
+                  <th scope="col" className="py-2.5 px-5">Material / Insumo</th>
+                  <th scope="col" className="py-2.5 px-4">Unidade</th>
+                  <th scope="col" className="py-2.5 px-4 text-right">Qtd. Solicitada</th>
+                  <th scope="col" className="py-2.5 px-4 text-right">Qtd. Utilizada</th>
+                  <th scope="col" className="py-2.5 px-5 text-right">Saldo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {balancoMateriais.map((item) => {
+                  const comprada = item.quantidadeComprada ?? 0;
+                  const utilizada = item.quantidadeUtilizada ?? 0;
+                  const saldo = Math.max(0, comprada - utilizada);
+                  return (
+                    <tr
+                      key={`${item.tipo}-${item.unidade ?? ""}-${comprada}-${utilizada}`}
+                      className="hover:bg-surface-subtle/50 transition-colors"
+                    >
+                      <td className="py-2.5 px-5 font-medium text-foreground">
+                        {item.tipo || "Material"}
+                      </td>
+                      <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground">
+                        {item.unidade || "un"}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono text-foreground-secondary tabular-nums">
+                        {comprada}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono text-foreground tabular-nums">
+                        {utilizada}
+                      </td>
+                      <td className="py-2.5 px-5 text-right font-mono font-semibold text-foreground tabular-nums">
+                        {saldo}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* Modal de Lançamento */}
       <ModalLancamentoCustos
         isOpen={modalAberto}
@@ -263,6 +336,7 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
     error: falhaCustos,
     refetch: refetchCustos,
   } = useCustosObra(obraId);
+  const { data: relatorioCusto } = useRelatorioCustoObra(obraId);
 
   const statusErroDre = erroDre ? statusHttpErro(falhaDre) : undefined;
   const erroDreNao400 = erroDre && statusErroDre !== 400;
@@ -304,6 +378,7 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
       apuracao={apuracao}
       bannerParcial={bannerParcial}
       custos={custos}
+      balancoMateriais={relatorioCusto?.balancoMateriais}
     />
   );
 }
@@ -311,6 +386,8 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
 export default function Financeiro() {
   const navigate = useNavigate();
   const location = useLocation();
+  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const podeCadastrarObra = perfil === "Administrador";
   const sessaoAtual = useSyncExternalStore(assinarSessaoOperacional, capturarSessaoOperacional);
   const {
     data: listaObras,
@@ -350,10 +427,14 @@ export default function Financeiro() {
           icone={DollarSign}
           titulo="Nenhuma obra cadastrada"
           descricao="Cadastre uma obra para iniciar os lançamentos de custos e acompanhamento do DRE."
-          acao={{
-            label: "Cadastrar Nova Obra",
-            onClick: () => void navigate("/cadastrarobra"),
-          }}
+          acao={
+            podeCadastrarObra
+              ? {
+                  label: "Cadastrar Nova Obra",
+                  onClick: () => void navigate("/cadastrarobra"),
+                }
+              : undefined
+          }
         />
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col md:flex-row">

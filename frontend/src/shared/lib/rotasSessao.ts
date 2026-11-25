@@ -14,12 +14,14 @@ const PARAMETROS_SENSIVEIS = ["token", "senha", "password", "code", "secret", "j
 const ROTAS_ESTATICAS_PERMITIDAS = new Set([
   "/kanban",
   "/equipes",
+  "/clientes",
   "/usuarios",
   "/usuarios/novo",
   "/cadastrarobra",
   "/acompanharhomologacao",
   "/relatorios",
   "/financeiro",
+  "/produtos",
   "/linkparainstaladores",
 ]);
 
@@ -136,8 +138,14 @@ export function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePe
   }
 
   if (perfilNome === "Financeiro") {
-    // Financeiro acessa também materiais da obra para alterar status (RN-08).
-    if (pathname === "/kanban" || pathname === "/equipes" || pathname === "/relatorios" || pathname === "/financeiro") {
+    // Financeiro acessa também materiais da obra para alterar status (RN-08) e catálogo de produtos (RF-25).
+    if (
+      pathname === "/kanban" ||
+      pathname === "/equipes" ||
+      pathname === "/relatorios" ||
+      pathname === "/financeiro" ||
+      pathname === "/produtos"
+    ) {
       return true;
     }
     // Detalhe da obra e sua rota de materiais; outras sub-rotas continuam bloqueadas.
@@ -145,10 +153,11 @@ export function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePe
   }
 
   if (perfilNome === "Engenharia") {
-    // Engenharia acessa: /kanban, /equipes, /cadastrarobra, /acompanharhomologacao, /obras/:id, /obras/:id/materiais
+    // Engenharia acessa: /kanban, /equipes, /clientes, /cadastrarobra, /acompanharhomologacao, /obras/:id, /obras/:id/materiais
     if (
       pathname === "/kanban" ||
       pathname === "/equipes" ||
+      pathname === "/clientes" ||
       pathname === "/cadastrarobra" ||
       pathname === "/acompanharhomologacao"
     ) {
@@ -224,7 +233,9 @@ const TITULOS_ROTAS_ESTATICAS: Readonly<Record<string, string>> = {
   "/redefinir-senha": "Redefinir senha",
   "/kanban": "Obras",
   "/equipes": "Cronograma",
+  "/clientes": "Clientes",
   "/financeiro": "Financeiro",
+  "/produtos": "Catálogo de Produtos",
   "/relatorios": "Relatórios",
   "/usuarios": "Usuários",
   "/usuarios/novo": "Cadastrar usuário",

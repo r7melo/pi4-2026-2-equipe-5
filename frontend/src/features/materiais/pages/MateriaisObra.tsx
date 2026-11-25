@@ -34,6 +34,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { StatusLogistico, Material } from "@/shared/types/materiais";
+import { formatarMoeda } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
 
 const ICONE_TABELA_POR_STATUS: Record<StatusLogistico, typeof Clock> = {
@@ -53,6 +54,7 @@ export default function MateriaisObra() {
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const podeAlterarStatus = podeAlterarStatusMaterialObra(perfil);
   const podeAdicionar = podeGerenciarCadastroMaterial(perfil);
+  const podeVerValores = perfil === "Administrador" || perfil === "Financeiro";
 
   const { data: materiais, isLoading, isError, error, refetch } = useMateriais(obraId);
   const { data: obra } = useObraContextoMateriais(obraId);
@@ -66,7 +68,11 @@ export default function MateriaisObra() {
   const [materialParaExcluir, setMaterialParaExcluir] = useState<Material | null>(null);
   const origemExclusaoRef = useRef<HTMLButtonElement | null>(null);
 
-  const handleAlterarStatus = async (materialId: number, novoStatus: StatusLogistico) => {
+  const handleAlterarStatus = async (
+    materialId: number,
+    novoStatus: StatusLogistico,
+    quantidadeUtilizada?: number | null
+  ) => {
     if (!podeAlterarStatus) return;
     // Sem trava global para permitir alterações independentes por linha.
     const sessao = iniciarOperacao(false);
@@ -76,18 +82,26 @@ export default function MateriaisObra() {
         {
           id: materialId,
           statusLogistico: novoStatus,
+          ...(quantidadeUtilizada !== undefined ? { quantidadeUtilizada } : {}),
           obraId,
         },
         undefined,
         sessao
       );
       if (vigente(sessao)) {
-        toast.success("Status logístico atualizado com sucesso");
+        toast.success("Material atualizado com sucesso");
       }
     } catch (erro) {
-      informarErro(erro, sessao, "Erro ao atualizar status logístico");
+      informarErro(erro, sessao, "Erro ao atualizar material");
     }
   };
+
+  const totalMateriaisEstimado = (materiais ?? []).reduce(
+    (acc, mat) =>
+      typeof mat.custoUnitario === "number" ? acc + mat.custoUnitario * mat.quantidade : acc,
+    0
+  );
+  const possuiCustos = (materiais ?? []).some((m) => typeof m.custoUnitario === "number");
 
   const handleConfirmarExclusao = async () => {
     if (!materialParaExcluir || !podeAdicionar) return;
@@ -189,6 +203,12 @@ export default function MateriaisObra() {
                       <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
                         <th scope="col" className="py-2.5 px-4">Item / Insumo</th>
                         <th scope="col" className="py-2.5 px-4 text-right">Quantidade</th>
+                        {podeVerValores && (
+                          <>
+                            <th scope="col" className="py-2.5 px-4 text-right">Custo Unitário</th>
+                            <th scope="col" className="py-2.5 px-4 text-right">Subtotal</th>
+                          </>
+                        )}
                         <th scope="col" className="py-2.5 px-4">Status Logístico</th>
                         <th scope="col" className="py-2.5 px-4 text-right">Ações</th>
                       </tr>
@@ -197,6 +217,7 @@ export default function MateriaisObra() {
                       {materiais.map((mat) => {
                         const metaStatus = obterMetaStatusLogistico(mat.statusLogistico);
                         const IconeStatus = ICONE_TABELA_POR_STATUS[metaStatus.valor];
+                        const nomeExibicao = mat.produtoNome || mat.tipo || mat.descricao || "Item sem descrição";
                         return (
                           <tr
                             key={mat.id}
@@ -204,22 +225,73 @@ export default function MateriaisObra() {
                           >
                             <td className="py-2.5 px-4">
                               <p className="text-sm font-semibold text-foreground leading-tight">
-                                {mat.tipo || mat.descricao || "Item sem descrição"}
+                                {nomeExibicao}
                               </p>
                               <p className="text-[11px] text-muted-foreground mt-0.5">
-                                Identificador #{mat.id}
+                                {mat.unidade ? `Unidade: ${mat.unidade} · ` : ""}Identificador #{mat.id}
                               </p>
                             </td>
                             <td className="py-2.5 px-4 text-right font-mono">
-                              <span className="text-sm font-bold text-foreground">
-                                {mat.quantidade}
-                              </span>
-                              {mat.quantidadeUtilizada ? (
-                                <span className="text-xs text-muted-foreground ml-1.5 font-sans font-normal">
-                                  ({mat.quantidadeUtilizada} inst.)
+                              <div className="inline-flex flex-col items-end gap-1">
+                                <span className="text-sm font-bold text-foreground tabular-nums">
+                                  {mat.quantidade}
+                                  {mat.unidade ? (
+                                    <span className="text-xs font-sans font-normal text-muted-foreground ml-1">
+                                      {mat.unidade}
+                                    </span>
+                                  ) : null}
                                 </span>
-                              ) : null}
+                                {podeAlterarStatus ? (
+                                  <label className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-sans">
+                                    <span>Util.:</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={mat.quantidade}
+                                      step={1}
+                                      defaultValue={mat.quantidadeUtilizada ?? ""}
+                                      aria-label={`Quantidade utilizada de ${nomeExibicao}`}
+                                      onBlur={(e) => {
+                                        const bruto = e.target.value.trim();
+                                        const novoValor = bruto === "" ? null : Number(bruto);
+                                        const atual = mat.quantidadeUtilizada ?? null;
+                                        if (novoValor === atual) return;
+                                        if (
+                                          novoValor !== null &&
+                                          (!Number.isSafeInteger(novoValor) ||
+                                            novoValor < 0 ||
+                                            novoValor > mat.quantidade)
+                                        ) {
+                                          toast.error("Informe uma quantidade utilizada entre 0 e a quantidade solicitada.");
+                                          e.target.value = atual === null ? "" : String(atual);
+                                          return;
+                                        }
+                                        void handleAlterarStatus(mat.id, metaStatus.valor, novoValor);
+                                      }}
+                                      className="w-14 h-6 px-1.5 rounded border border-border-subtle bg-surface-subtle text-right font-mono text-xs text-foreground focus:bg-surface focus:outline-none focus:ring-1 focus:ring-info"
+                                    />
+                                  </label>
+                                ) : mat.quantidadeUtilizada ? (
+                                  <span className="text-xs text-muted-foreground font-sans font-normal">
+                                    ({mat.quantidadeUtilizada} util.)
+                                  </span>
+                                ) : null}
+                              </div>
                             </td>
+                            {podeVerValores && (
+                              <>
+                                <td className="py-2.5 px-4 text-right font-mono text-sm text-foreground-secondary tabular-nums">
+                                  {typeof mat.custoUnitario === "number"
+                                    ? formatarMoeda(mat.custoUnitario)
+                                    : "—"}
+                                </td>
+                                <td className="py-2.5 px-4 text-right font-mono text-sm font-semibold text-foreground tabular-nums">
+                                  {typeof mat.custoUnitario === "number"
+                                    ? formatarMoeda(mat.custoUnitario * mat.quantidade)
+                                    : "—"}
+                                </td>
+                              </>
+                            )}
                             <td className="py-2.5 px-4">
                               {podeAlterarStatus ? (
                                 <div className="relative inline-flex items-center">
@@ -303,6 +375,22 @@ export default function MateriaisObra() {
                         );
                       })}
                     </tbody>
+                    {podeVerValores && possuiCustos && (
+                      <tfoot>
+                        <tr className="bg-surface-subtle/60 border-t border-border-subtle text-sm">
+                          <td
+                            colSpan={3}
+                            className="py-2.5 px-4 text-right font-semibold text-foreground-secondary"
+                          >
+                            Total estimado dos materiais
+                          </td>
+                          <td className="py-2.5 px-4 text-right font-mono font-bold text-foreground tabular-nums">
+                            {formatarMoeda(totalMateriaisEstimado)}
+                          </td>
+                          <td colSpan={2} />
+                        </tr>
+                      </tfoot>
+                    )}
                   </table>
                 </div>
               )}

@@ -5,15 +5,19 @@ import { registrarMateriais } from "@/shared/api/mock/handlers/materiais";
 import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
 
 const repositorio = vi.hoisted(() => ({
-  atualizar: vi.fn((id: number, payload: unknown) => ({ id, ...Object(payload) })),
+  atualizar: vi.fn((id: number, payload: unknown) => ({ id, obraId: 1, quantidade: 10, ...Object(payload) })),
   adicionar: vi.fn((obraId: number, payload: unknown) => ({ id: 1, obraId, ...Object(payload) })),
 }));
 vi.mock("@/shared/api/mock/core/auth", () => ({
   resolverUsuarioAutenticadoMock: (perfil: unknown) => perfil ? { perfil: { nomePerfil: perfil } } : undefined,
 }));
 vi.mock("@/shared/api/mock/dados/materiais", () => ({
-  obterMateriaisArmazenados: vi.fn(() => []), removerMaterialArmazenado: vi.fn(),
-  atualizarMaterialArmazenado: repositorio.atualizar, adicionarMaterialArmazenado: repositorio.adicionar,
+  obterMateriaisArmazenados: vi.fn(() => [
+    { id: 1, obraId: 1, tipo: "Painel Solar 550W", quantidade: 10, custoUnitario: 685, statusLogistico: "Comprado" },
+  ]),
+  removerMaterialArmazenado: vi.fn(),
+  atualizarMaterialArmazenado: repositorio.atualizar,
+  adicionarMaterialArmazenado: repositorio.adicionar,
 }));
 
 async function patch(perfil: string, payload: unknown) {
@@ -171,5 +175,128 @@ describe("validarFormularioMaterial", () => {
       ok: false,
       falha: { campo: "quantidade", mensagem: MENSAGENS_VALIDACAO_MATERIAL.quantidadeInvalidaNativa },
     });
+  });
+
+  it("valida seleção obrigatória de produto do catálogo e limite de quantidadeUtilizada", () => {
+    expect(
+      validarFormularioMaterial({
+        produtoId: null,
+        exigirProduto: true,
+        tipo: "",
+        quantidade: "4",
+      })
+    ).toEqual({
+      ok: false,
+      falha: { campo: "produtoId", mensagem: MENSAGENS_VALIDACAO_MATERIAL.produtoObrigatorio },
+    });
+
+    expect(
+      validarFormularioMaterial({
+        produtoId: 1,
+        exigirProduto: true,
+        tipo: "Painel Solar Monocristalino 550W",
+        quantidade: "10",
+        quantidadeUtilizada: "12",
+      })
+    ).toEqual({
+      ok: false,
+      falha: {
+        campo: "quantidadeUtilizada",
+        mensagem: MENSAGENS_VALIDACAO_MATERIAL.quantidadeUtilizadaExcedida,
+      },
+    });
+
+    expect(
+      validarFormularioMaterial({
+        produtoId: 1,
+        exigirProduto: true,
+        tipo: "Painel Solar Monocristalino 550W",
+        quantidade: "10",
+        quantidadeUtilizada: "8",
+      })
+    ).toEqual({
+      ok: true,
+      produtoId: 1,
+      tipo: "Painel Solar Monocristalino 550W",
+      quantidade: 10,
+      quantidadeUtilizada: 8,
+    });
+  });
+});
+
+describe("Integração de materiais com catálogo de produtos e sigilo de valores", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("copia precoUnitario do catálogo no POST por produtoId e oculta custoUnitario para Engenharia", async () => {
+    const cliente = axios.create({ validateStatus: () => true });
+    const mock = new MockAdapter(cliente);
+    registrarMateriais(mock);
+    try {
+      const respEng = await cliente.post(
+        "/obras/1/materiais",
+        { produtoId: 1, quantidade: 6 },
+        { headers: { Authorization: "Engenharia" } }
+      );
+      expect(respEng.status).toBe(201);
+      expect(respEng.data.statusLogistico).toBe("EmSolicitacao");
+      expect("custoUnitario" in respEng.data).toBe(false);
+      expect(repositorio.adicionar).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          produtoId: 1,
+          custoUnitario: 685,
+          statusLogistico: "EmSolicitacao",
+        })
+      );
+
+      const respInativo = await cliente.post(
+        "/obras/1/materiais",
+        { produtoId: 7, quantidade: 2 },
+        { headers: { Authorization: "Administrador" } }
+      );
+      expect(respInativo.status).toBe(400);
+      expect(respInativo.data.error.code).toBe("PRODUTO_INATIVO");
+    } finally {
+      mock.restore();
+    }
+  });
+
+  it("permite Financeiro atualizar quantidadeUtilizada dentro do limite e bloqueia se exceder", async () => {
+    const respOk = await patch("Financeiro", {
+      statusLogistico: "Utilizado",
+      quantidadeUtilizada: 7,
+    });
+    expect(respOk.status).toBe(200);
+    expect(repositorio.atualizar).toHaveBeenCalledWith(1, {
+      statusLogistico: "Utilizado",
+      quantidadeUtilizada: 7,
+    });
+
+    const respExcedido = await patch("Financeiro", {
+      statusLogistico: "Utilizado",
+      quantidadeUtilizada: 15,
+    });
+    expect(respExcedido.status).toBe(400);
+  });
+
+  it("omite custoUnitario no GET de materiais para Engenharia e mantém para Financeiro", async () => {
+    const cliente = axios.create({ validateStatus: () => true });
+    const mock = new MockAdapter(cliente);
+    registrarMateriais(mock);
+    try {
+      const eng = await cliente.get("/obras/1/materiais", {
+        headers: { Authorization: "Engenharia" },
+      });
+      expect(eng.status).toBe(200);
+      expect("custoUnitario" in eng.data[0]).toBe(false);
+
+      const fin = await cliente.get("/obras/1/materiais", {
+        headers: { Authorization: "Financeiro" },
+      });
+      expect(fin.status).toBe(200);
+      expect(fin.data[0].custoUnitario).toBe(685);
+    } finally {
+      mock.restore();
+    }
   });
 });

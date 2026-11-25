@@ -12,11 +12,14 @@ import type { Material, StatusLogistico } from "@/shared/types/materiais";
 import { STATUS_LOGISTICO_OPCOES, obterMetaStatusLogistico } from "@/shared/constants/statusLogistico";
 import {
   useMateriais,
+  useProdutosCatalogoAtivos,
   useAdicionarMaterial,
   useAtualizarDadosMaterial,
   useAtualizarStatusMaterial,
   useLoteMateriais,
 } from "../hooks/useMateriais";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
+import { formatarMoeda } from "@/shared/lib/formatters";
 import { MENSAGEM_ERRO_403_MATERIAL, useSessaoMontadaMaterial } from "../hooks/useSessaoMontadaMaterial";
 import {
   validarFormularioMaterial,
@@ -41,6 +44,8 @@ export function PainelMateriaisObra({
 }: PainelMateriaisObraProps) {
   const podeEditar = !somenteLeitura;
   const podeMudarStatus = podeEditar && podeAlterarStatus;
+  const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
+  const podeVerValores = perfil === "Administrador" || perfil === "Financeiro";
 
   const { data: materiais, isLoading, isError, refetch } = useMateriais(obraId);
   const { mutateAsync: adicionarMaterial, isPending: criando } = useAdicionarMaterial();
@@ -55,10 +60,15 @@ export function PainelMateriaisObra({
   const [formularioAberto, setFormularioAberto] = useState(false);
   const [itemEmEdicao, setItemEmEdicao] = useState<Material | null>(null);
 
+  const [formProdutoId, setFormProdutoId] = useState<number | null>(null);
   const [formTipo, setFormTipo] = useState("");
   const [formQuantidade, setFormQuantidade] = useState("1");
   const [formStatus, setFormStatus] = useState<StatusLogistico>("Comprado");
   const [falha, setFalha] = useState<FalhaValidacaoMaterial | null>(null);
+
+  const { data: produtosCatalogo = [], isLoading: carregandoCatalogo } = useProdutosCatalogoAtivos(
+    podeEditar && formularioAberto && !itemEmEdicao
+  );
 
   const [dialogoExclusaoAberto, setDialogoExclusaoAberto] = useState(false);
   const [idsParaExcluir, setIdsParaExcluir] = useState<number[]>([]);
@@ -94,6 +104,7 @@ export function PainelMateriaisObra({
   const abrirFormCriacao = () => {
     setFalha(null);
     setItemEmEdicao(null);
+    setFormProdutoId(null);
     setFormTipo("");
     setFormQuantidade("1");
     setFormStatus("Comprado");
@@ -103,7 +114,8 @@ export function PainelMateriaisObra({
   const abrirFormEdicao = (mat: Material) => {
     setFalha(null);
     setItemEmEdicao(mat);
-    setFormTipo(mat.tipo || mat.descricao || "");
+    setFormProdutoId(mat.produtoId ?? null);
+    setFormTipo(mat.produtoNome || mat.tipo || mat.descricao || "");
     setFormQuantidade(String(mat.quantidade));
     setFormStatus(mat.statusLogistico || "Comprado");
     setFormularioAberto(true);
@@ -113,12 +125,16 @@ export function PainelMateriaisObra({
     setFalha(null);
     setFormularioAberto(false);
     setItemEmEdicao(null);
+    setFormProdutoId(null);
   };
 
   const handleSalvarFormulario = async (validadeQuantidade?: ValidadeInputMaterial) => {
     setFalha(null);
+    const produtoSelecionado = produtosCatalogo.find((p) => p.id === formProdutoId);
     const validacao = validarFormularioMaterial({
-      tipo: formTipo,
+      produtoId: !itemEmEdicao ? formProdutoId : undefined,
+      exigirProduto: !itemEmEdicao,
+      tipo: !itemEmEdicao ? (produtoSelecionado?.nome ?? formTipo) : formTipo,
       quantidade: formQuantidade,
       validadeQuantidade,
     });
@@ -138,7 +154,7 @@ export function PainelMateriaisObra({
             id: itemEmEdicao.id,
             obraId,
             payload: {
-              tipo: validacao.tipo,
+              ...(itemEmEdicao.produtoId ? {} : { tipo: validacao.tipo }),
               quantidade: validacao.quantidade,
               ...(podeMudarStatus ? { statusLogistico: formStatus } : {}),
             },
@@ -154,7 +170,11 @@ export function PainelMateriaisObra({
         await adicionarMaterial(
           {
             obraId,
-            payload: { tipo: validacao.tipo, quantidade: validacao.quantidade },
+            payload: {
+              produtoId: validacao.produtoId,
+              tipo: validacao.tipo,
+              quantidade: validacao.quantidade,
+            },
           },
           undefined,
           sessao
@@ -342,6 +362,14 @@ export function PainelMateriaisObra({
         {formularioAberto && podeEditar && (
           <FormularioMaterialCompacto
             itemEmEdicao={itemEmEdicao}
+            podeVerValores={podeVerValores}
+            produtosCatalogo={produtosCatalogo}
+            carregandoCatalogo={carregandoCatalogo}
+            formProdutoId={formProdutoId}
+            onFormProdutoIdChange={(produtoId, prod) => {
+              setFormProdutoId(produtoId);
+              setFormTipo(prod?.nome ?? "");
+            }}
             formTipo={formTipo}
             onFormTipoChange={setFormTipo}
             formQuantidade={formQuantidade}
@@ -394,10 +422,13 @@ export function PainelMateriaisObra({
                     )}
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-semibold text-foreground leading-snug break-words">
-                        {mat.tipo || mat.descricao || "Material"}
+                        {mat.produtoNome || mat.tipo || mat.descricao || "Material"}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Quantidade: <strong>{mat.quantidade} un.</strong>
+                        Quantidade: <strong>{mat.quantidade} {mat.unidade || "un."}</strong>
+                        {podeVerValores && typeof mat.custoUnitario === "number"
+                          ? ` · ${formatarMoeda(mat.custoUnitario * mat.quantidade)}`
+                          : ""}
                       </span>
                     </div>
                   </div>

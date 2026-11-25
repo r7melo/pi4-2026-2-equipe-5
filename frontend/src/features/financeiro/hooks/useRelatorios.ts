@@ -11,6 +11,7 @@ import {
   gerarLinkRelatorioDemonstracao,
   buscarDreObra,
   buscarCustosObra,
+  buscarRelatorioCustoObra,
   atualizarCustosObra,
 } from "@/features/financeiro/services/relatorios";
 
@@ -33,6 +34,18 @@ export function useCustosObra(obraId: number | null) {
     queryFn: () => (obraId ? buscarCustosObra(obraId) : Promise.reject(new Error("ID de obra inválido"))),
     staleTime: 1000 * 15,
     enabled: !!obraId,
+  });
+}
+
+/** Hook de consulta do Relatório de Custo e Balanço de Materiais — Rota #33 */
+export function useRelatorioCustoObra(obraId: number | null) {
+  return useQuery({
+    queryKey: ["relatorio-custo", obraId],
+    queryFn: () =>
+      obraId ? buscarRelatorioCustoObra(obraId) : Promise.reject(new Error("ID de obra inválido")),
+    staleTime: 1000 * 15,
+    enabled: !!obraId,
+    retry: false,
   });
 }
 
@@ -68,6 +81,7 @@ export function useAtualizarCustosObra(obraId: number) {
         queryClient.setQueryData(["custos", obraAlvo], resultado);
       }
       void queryClient.invalidateQueries({ queryKey: ["custos", obraAlvo] });
+      void queryClient.invalidateQueries({ queryKey: ["relatorio-custo", obraAlvo] });
       void queryClient.invalidateQueries({ queryKey: ["dre"] });
       void queryClient.invalidateQueries({ queryKey: ["obras"] });
     },

@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
-import { exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
+import { capturarSessaoOperacional, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import {
   listarMateriais,
+  listarProdutosCatalogoAtivos,
   buscarContextoObra,
   registrarMaterial,
   atualizarStatusMaterial,
@@ -28,6 +29,16 @@ export function useMateriais(obraId: number) {
     queryFn: ({ signal }) => listarMateriais(obraId, undefined, signal),
     staleTime: 1000 * 30,
     enabled: obraId > 0,
+  });
+}
+
+export function useProdutosCatalogoAtivos(habilitado = true) {
+  const sessao = capturarSessaoOperacional();
+  return useQuery({
+    queryKey: ["materiais", "catalogo-ativos", sessao],
+    queryFn: ({ signal }) => listarProdutosCatalogoAtivos(sessao, signal),
+    staleTime: 1000 * 60,
+    enabled: habilitado && sessao > 0,
   });
 }
 
@@ -63,8 +74,11 @@ export function useAtualizarStatusMaterial() {
 
   return useMutation({
     mutationKey: ["materiais"],
-    mutationFn: async ({ id, statusLogistico }: AlterarStatusMaterial, sessao) => {
-      const data = await atualizarStatusMaterial(id, statusLogistico, sessao);
+    mutationFn: async (
+      { id, statusLogistico, quantidadeUtilizada }: AlterarStatusMaterial,
+      sessao
+    ) => {
+      const data = await atualizarStatusMaterial(id, statusLogistico, sessao, quantidadeUtilizada);
       exigirSessaoOperacional(sessao);
       return data;
     },

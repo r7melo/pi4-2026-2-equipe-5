@@ -73,7 +73,7 @@ export function BarraLoteMateriais({
 
   return (
     <div
-      className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-surface text-foreground border border-border-subtle rounded-full px-2 py-1 flex items-center gap-1.5 shadow-lg z-30 animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap"
+      className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-surface text-foreground border border-border-strong rounded-full px-2 py-1 flex items-center gap-1.5 z-30 animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap"
       role="toolbar"
       aria-label="Ações em lote para insumos selecionados"
       focusgroup="toolbar wrap"

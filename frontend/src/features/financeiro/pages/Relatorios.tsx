@@ -5,10 +5,12 @@ import { filtrarPeriodo } from "@/shared/lib/filtrarPeriodo";
 import { useEffect, useRef, useState } from "react";
 import { baixarArquivoBlob } from "@/shared/lib/arquivoBlob";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
+import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { useObrasSelect, useLinkRelatorioDemonstracao, useExportarRelatorio } from "@/features/financeiro/hooks/useRelatorios";
 import { ApiErro } from '@/shared/api/api';
 import { capturarSessaoOperacional, sessaoOperacionalVigente } from '@/shared/lib/sessaoOperacao';
+import { formatarDataBR } from "@/shared/lib/formatters";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -22,11 +24,6 @@ import {
   FileText,
 } from "lucide-react";
 
-// Formata data para exibição no filtro (ex: "01/09")
-function formatarDataCurta(data: Date) {
-  return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
-
 export default function Relatorios() {
   const gerarLinkMock = useLinkRelatorioDemonstracao();
   const { data: listaObras, isLoading: loadingObras, isError: erroObras, refetch: refetchObras } = useObrasSelect();
@@ -38,6 +35,8 @@ export default function Relatorios() {
   const limparDownloadRef = useRef<(() => void) | null>(null);
   const [gerandoLink, setGerandoLink] = useState(false);
   const [clienteSelecionado, setClienteSelecionado] = useState<string>("todos");
+  const [obraSelecionada, setObraSelecionada] = useState<string>("todas");
+  const [tipoRelatorio, setTipoRelatorio] = useState<"financeiro" | "cronograma">("financeiro");
   const [periodoInicio, setPeriodoInicio] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
@@ -76,7 +75,18 @@ export default function Relatorios() {
     limparPendente();
     setFormatoEmExportacao(formato);
     try {
-      const blob = await exportacao.mutateAsync({ formato, filtros: MOCK_ATIVO ? { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado } : undefined }, undefined, sessao);
+      const filtrosExportacao = {
+        periodoInicio,
+        periodoFim,
+        clienteFiltro: clienteSelecionado,
+        tipo: tipoRelatorio,
+        ...(obraSelecionada !== "todas" ? { obraId: Number(obraSelecionada) } : {}),
+      };
+      const blob = await exportacao.mutateAsync(
+        { formato, filtros: filtrosExportacao },
+        undefined,
+        sessao
+      );
       if (!vigente()) return;
       const limparDownload = baixarArquivoBlob(
         blob,
@@ -121,9 +131,13 @@ export default function Relatorios() {
   };
 
   // Métricas simuladas do período
-  const obrasDoPeriodo = MOCK_ATIVO
+  const obrasFiltradasBase = MOCK_ATIVO
     ? filtrarPeriodo(listaObras?.itens ?? [], { periodoInicio, periodoFim, clienteFiltro: clienteSelecionado })
     : (listaObras?.itens || []).filter(o => clienteSelecionado === "todos" || o.clienteNome === clienteSelecionado);
+  const obrasDoPeriodo =
+    obraSelecionada === "todas"
+      ? obrasFiltradasBase
+      : obrasFiltradasBase.filter((o) => String(o.id) === obraSelecionada);
   const totalObras = obrasDoPeriodo.length;
   const obrasConcluidasCount = obrasDoPeriodo.filter((o) => o.status === "Concluido").length;
   const totalPaineis = obrasDoPeriodo.reduce((acc, o) => acc + (o.quantidadePaineis ?? 0), 0);
@@ -207,7 +221,10 @@ export default function Relatorios() {
                 <select
                   id="relatorio-cliente"
                   value={clienteSelecionado}
-                  onChange={(e) => setClienteSelecionado(e.target.value)}
+                  onChange={(e) => {
+                    setClienteSelecionado(e.target.value);
+                    setObraSelecionada("todas");
+                  }}
                   disabled={loadingObras}
                   className="appearance-none text-sm border border-border-subtle rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow bg-surface text-foreground cursor-pointer"
                 >
@@ -221,10 +238,54 @@ export default function Relatorios() {
               </div>
             </div>
 
-            {/* Badge de período selecionado */}
+            {/* Filtro: Obra e Tipo de Exportação */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="relatorio-obra" className="text-sm text-muted-foreground font-medium">
+                Obra:
+              </label>
+              <div className="relative">
+                <select
+                  id="relatorio-obra"
+                  value={obraSelecionada}
+                  onChange={(e) => setObraSelecionada(e.target.value)}
+                  disabled={loadingObras}
+                  className="appearance-none text-sm border border-border-subtle rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow bg-surface text-foreground cursor-pointer"
+                >
+                  <option value="todas">Todas as obras</option>
+                  {obrasFiltradasBase.map((o) => (
+                    <option key={o.id} value={String(o.id)}>
+                      #{o.id} • {o.clienteNome}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="relatorio-tipo" className="text-sm text-muted-foreground font-medium">
+                Tipo:
+              </label>
+              <div className="relative">
+                <select
+                  id="relatorio-tipo"
+                  value={tipoRelatorio}
+                  onChange={(e) =>
+                    setTipoRelatorio(e.target.value as "financeiro" | "cronograma")
+                  }
+                  className="appearance-none text-sm border border-border-subtle rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow bg-surface text-foreground cursor-pointer"
+                >
+                  <option value="financeiro">Financeiro e Custos</option>
+                  <option value="cronograma">Cronograma e Execução</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Badge de período selecionado no formato brasileiro */}
             <div className="ml-auto">
-              <span className="text-xs font-medium px-2.5 py-1 bg-surface-subtle text-foreground-secondary rounded-full border border-border-subtle">
-                {formatarDataCurta(new Date(periodoInicio + "T00:00:00"))} → {formatarDataCurta(new Date(periodoFim + "T00:00:00"))}
+              <span className="text-xs font-medium font-mono px-2.5 py-1 bg-surface-subtle text-foreground-secondary rounded-full border border-border-subtle">
+                {formatarDataBR(periodoInicio)} → {formatarDataBR(periodoFim)}
               </span>
             </div>
           </div>
@@ -279,16 +340,16 @@ export default function Relatorios() {
                 <Loader2 className="w-6 h-6 motion-safe:animate-spin text-muted-foreground" />
               </div>
             ) : obrasDoPeriodo.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                <BarChart3 className="w-14 h-14 text-muted mb-3" />
-                <p className="text-base font-medium text-foreground">Nenhum dado para o período selecionado</p>
-                <p className="text-sm mt-1 text-muted-foreground">Ajuste os filtros de período ou cliente</p>
-              </div>
+              <EmptyState
+                icone={BarChart3}
+                titulo="Nenhum dado para o período selecionado"
+                descricao="Ajuste os filtros de período, cliente ou obra para visualizar os registros."
+              />
             ) : (
               <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabela com rolagem horizontal">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
                       <th scope="col" className="py-3 px-6 text-left min-w-[240px]">Cliente / Obra</th>
                       <th scope="col" className="py-3 px-5 text-left w-36">Status</th>
                       <th scope="col" className="py-3 px-6 text-right w-36">Painéis</th>

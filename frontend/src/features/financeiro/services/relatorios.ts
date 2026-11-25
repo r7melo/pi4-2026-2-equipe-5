@@ -4,12 +4,23 @@ import { normalizarErroExportacao } from '../lib/erroExportacao';
 import type { FiltrosRelatorioDemonstracao } from "@/shared/types/demonstracao";
 import { api } from "@/shared/api/api";
 import type { DREObra } from "@/shared/types/dre";
-import type { CustosObra, AtualizarCustosPayload, RelatorioPublicoDados } from "../types/relatorios";
+import type {
+  CustosObra,
+  AtualizarCustosPayload,
+  RelatorioCusto,
+  RelatorioPublicoDados,
+} from "../types/relatorios";
 
 
 /** GET /api/obras/{obraId}/dre — Rota #34 (RF-20) */
 export async function buscarDreObra(obraId: number): Promise<DREObra> {
   const { data } = await api.get<DREObra>(`/obras/${obraId}/dre`);
+  return data;
+}
+
+/** GET /api/obras/{obraId}/relatorio-custo — Rota #33 (RF-14) */
+export async function buscarRelatorioCustoObra(obraId: number): Promise<RelatorioCusto> {
+  const { data } = await api.get<RelatorioCusto>(`/obras/${obraId}/relatorio-custo`);
   return data;
 }
 
@@ -25,11 +36,28 @@ export async function atualizarCustosObra(obraId: number, payload: AtualizarCust
   return data;
 }
 
+export function montarParametrosExportacao(
+  formato: "pdf" | "excel",
+  filtros?: FiltrosRelatorioDemonstracao
+): Record<string, string | number> {
+  const params: Record<string, string | number> = {
+    formato: formato === "excel" ? "xlsx" : "pdf",
+  };
+  if (filtros?.tipo) params.tipo = filtros.tipo;
+  if (filtros?.periodoInicio) params.dataInicio = filtros.periodoInicio;
+  if (filtros?.periodoFim) params.dataFim = filtros.periodoFim;
+  if (filtros?.clienteFiltro && filtros.clienteFiltro !== "todos") {
+    params.clienteFiltro = filtros.clienteFiltro;
+  }
+  if (filtros?.obraId !== undefined) params.obraId = filtros.obraId;
+  return params;
+}
+
 /** GET /api/relatorios/export?formato=pdf|xlsx — Rota #35 (RF-15) */
 export async function exportarRelatorio(formato: "pdf" | "excel", filtros?: FiltrosRelatorioDemonstracao, sessao?: number): Promise<Blob> {
   try {
     const { data } = await api.get<Blob>('/relatorios/export', {
-      params: { formato, ...filtros }, responseType: 'blob',
+      params: montarParametrosExportacao(formato, filtros), responseType: 'blob',
       ...(MOCK_ATIVO ? { sessao403: sessao, politica401: 'sessao' as const } : {}),
     });
     if (MOCK_ATIVO) {
