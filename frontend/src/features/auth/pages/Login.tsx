@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { LogIn, Loader2, AlertCircle } from "lucide-react";
 import { fazerLogin, mapearRespostaParaUsuario } from "@/features/auth/services/auth";
+import { Button } from "@/shared/components/ui/Button";
 import { BotaoVisibilidadeSenha } from "@/shared/components/ui/BotaoVisibilidadeSenha";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
@@ -63,67 +64,66 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background-app flex items-center justify-center p-6 font-sans">
-      
-      {/* Card do Formulário */}
-      <div className="w-full max-w-[480px] bg-surface rounded-xl shadow-lg border border-border-subtle p-8 sm:p-10">
-        
-        <div className="flex flex-col items-center text-center mb-10">
-          {/* Logo placeholder preservado conforme diretriz */}
-          <div className="w-16 h-8 bg-muted rounded-full flex items-center justify-center text-[10px] font-bold text-foreground-muted mb-6">
+    <main className="min-h-dvh w-full bg-background-app flex items-center justify-center p-4 sm:p-6 font-sans text-foreground">
+      <div className="w-full max-w-[440px] bg-surface rounded-xl border border-border-subtle p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col items-center text-center space-y-3">
+          <span className="w-10 h-10 rounded-lg bg-primary text-primary-foreground inline-flex items-center justify-center text-xs font-semibold">
             ZL
+          </span>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Acessar o sistema</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">ZL Engenharia · Gestão de Obras</p>
           </div>
-          
-          <h2 className="text-2xl font-semibold text-foreground-secondary mb-2">Acessar o sistema</h2>
-          <p className="text-sm text-muted-foreground">Gestão de Obras Fotovoltaicas</p>
         </div>
 
         {erro && (
-          <div 
-            role="alert" 
-            className="mb-6 p-4 rounded-lg bg-destructive-light border border-destructive-border text-destructive text-sm flex items-center gap-2"
+          <div
+            role="alert"
+            className="rounded-lg bg-destructive-light border border-destructive-border px-3.5 py-3 text-xs leading-relaxed text-destructive flex items-start gap-2.5"
           >
-            <AlertCircle className="w-5 h-5 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
             <span>{erro}</span>
           </div>
         )}
 
-        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
-          {/* Campo E-mail */}
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-semibold text-foreground-muted block cursor-pointer">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium text-foreground-secondary block cursor-pointer">
               E-mail corporativo
             </label>
             <input
               id="email"
-              type="email" name="email"
+              type="email"
+              name="email"
               autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
               spellCheck={false}
+              enterKeyHint="next"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border bg-surface-subtle border-border-subtle text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
+              className="w-full h-11 px-3.5 rounded-lg border bg-surface-subtle border-border-strong text-foreground placeholder:text-muted-foreground focus:bg-surface user-invalid:border-destructive transition-colors text-sm"
               placeholder="seu.email@zlengenharia.com"
             />
           </div>
 
-          {/* Campo Senha */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label htmlFor="senha" className="text-sm font-semibold text-foreground-muted block cursor-pointer">
-                Senha
-              </label>
-            </div>
+          <div className="space-y-1.5">
+            <label htmlFor="senha" className="text-sm font-medium text-foreground-secondary block cursor-pointer">
+              Senha
+            </label>
             <div className="relative flex items-center">
               <input
                 id="senha"
-                type={mostrarSenha ? "text" : "password"} name="password"
+                type={mostrarSenha ? "text" : "password"}
+                name="password"
                 autoComplete="current-password"
+                enterKeyHint="done"
                 required
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full px-4 py-3 pr-14 rounded-lg border bg-surface-subtle border-border-subtle text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
-                placeholder="••••••••"
+                className="w-full h-11 px-3.5 pr-14 rounded-lg border bg-surface-subtle border-border-strong text-foreground placeholder:text-muted-foreground focus:bg-surface user-invalid:border-destructive transition-colors text-sm"
+                placeholder="Digite sua senha"
               />
               <BotaoVisibilidadeSenha
                 visivel={mostrarSenha}
@@ -133,31 +133,34 @@ export default function Login() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={carregando}
-            className="w-full bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all motion-safe:active:scale-[0.98] shadow-md mt-6 cursor-pointer"
-          >
-            {carregando ? (
-              <>
-                <Loader2 className="w-5 h-5 motion-safe:animate-spin" />
-                <span>Entrando...</span>
-              </>
-            ) : (
-              <>
-                <span>Entrar no sistema</span>
-                <LogIn className="w-5 h-5" />
-              </>
-            )}
-          </button>
+          <div className="space-y-2.5 pt-2">
+            <Button
+              type="submit"
+              disabled={carregando}
+              className="w-full h-11"
+            >
+              {carregando ? (
+                <>
+                  <Loader2 className="w-4 h-4 motion-safe:animate-spin" aria-hidden="true" />
+                  <span>Entrando...</span>
+                </>
+              ) : (
+                <>
+                  <span>Entrar no sistema</span>
+                  <LogIn className="w-4 h-4" aria-hidden="true" />
+                </>
+              )}
+            </Button>
 
-          <Link to="/esqueci-senha"
-            className="block text-center w-full rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm text-foreground hover:bg-surface-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-            Esqueci minha senha
-          </Link>
+            <Link
+              to="/esqueci-senha"
+              className="w-full h-11 flex items-center justify-center rounded-lg border border-border-strong bg-surface px-4 text-sm font-medium text-foreground hover:bg-surface-subtle transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              Esqueci minha senha
+            </Link>
+          </div>
         </form>
-
       </div>
-    </div>
+    </main>
   );
 }

@@ -6,6 +6,7 @@ import { registrarObras } from "@/shared/api/mock/handlers/obras";
 import { coordenarTransporteMock } from "@/shared/api/mock/core/coordenacao";
 import { geracaoCenario, iniciarCenario } from "@/shared/api/mock/core/estadoCenario";
 import { clientesCenario, detalheCenario } from "@/shared/api/mock/dados/detalhes";
+import { MOCK_USUARIOS } from "@/shared/api/mock/dados/usuarios";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { novaObraSchema } from "@/shared/types/obrasCadastro";
 import { novaObraSchema as novaObraSchemaFeature } from "@/features/obras/types/obrasCadastro";
@@ -42,13 +43,7 @@ function criarStorageMemoria(): Storage {
   };
 }
 
-const usuarioAdminTeste: Usuario = {
-  id: 1,
-  nome: "Carlos Administrador",
-  email: "admin@zl.com.br",
-  perfil: { id: 1, nomePerfil: "Administrador", permissoes: ["*"] },
-  equipeId: null,
-};
+const usuarioAdminTeste: Usuario = MOCK_USUARIOS["admin@admin.com"];
 
 describe("Validação e Criação de Obras (Frente Obras - 02 Railton)", () => {
   it("deve formatar corretamente CPF (11 dígitos) e CNPJ (14 dígitos)", () => {
@@ -211,6 +206,7 @@ describe("criarObra e atualizarObra integrados ao handler real registrarObras", 
       localStorage: localStorageMem,
       sessionStorage: sessionStorageMem,
       dispatchEvent: vi.fn(),
+      location: { pathname: "/obras/301", search: "" },
     });
 
     adapterOriginal = api.defaults.adapter;
@@ -227,8 +223,8 @@ describe("criarObra e atualizarObra integrados ao handler real registrarObras", 
     vi.unstubAllGlobals();
   });
 
-  function autenticarSessao(): void {
-    const token = `mock_jwt_token_${btoa(usuarioAdminTeste.email)}_${Date.now()}_v0_a0_g${geracaoCenario()}`;
+  function autenticarSessao(email = usuarioAdminTeste.email): void {
+    const token = `mock_jwt_token_${btoa(email)}_${Date.now()}_v0_a0_g${geracaoCenario()}`;
     useAuthStore.getState().login(token, usuarioAdminTeste, "2099-01-01T00:00:00Z");
   }
 
@@ -247,6 +243,20 @@ describe("criarObra e atualizarObra integrados ao handler real registrarObras", 
         pagamento: { prazoContratualDias: 30 },
       }),
     ).rejects.toMatchObject({ response: { status: 401 } });
+  });
+
+  it("preserva o 401 de conta inexistente, encerra a sessão e bloqueia a escrita", async () => {
+    autenticarSessao("conta-inexistente@exemplo.com");
+    const enderecoAntes = detalheCenario(301)?.endereco;
+
+    await expect(atualizarObra(301, { endereco: "Alteração não autorizada" })).rejects.toMatchObject({
+      response: { status: 401, data: { error: { code: "UNAUTHORIZED" } } },
+    });
+
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(obterELimparRotaRetorno("Administrador")).toBe("/obras/301");
+    expect(detalheCenario(301)?.endereco).toBe(enderecoAntes);
+    expect(mock?.history.put).toHaveLength(0);
   });
 
   it("cria obra com cliente existente e cliente novo em 201 repassando sessao403 e persistindo no cenário", async () => {

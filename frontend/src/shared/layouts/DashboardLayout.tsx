@@ -41,12 +41,12 @@ function DashboardConteudo({ onHeader }: { onHeader: (no: HTMLElement | null) =>
     if (ativo) closeMobile();
   }, [ativo, closeMobile]);
   return (
-    <div className="h-dvh w-full flex flex-col overflow-hidden bg-background-app font-sans">
+    <div className="h-dvh w-full flex overflow-hidden bg-background-app font-sans">
       <a href="#conteudo-principal" className="skip-link">Ir para o conteúdo</a>
-      <header id="dashboard-header-slot" ref={onHeader}
-        className="min-h-14 w-full bg-surface border-b border-border-subtle px-4 md:px-6 py-2 flex flex-wrap gap-2 items-center justify-between shrink-0 z-10 relative" />
-      <div className="flex flex-1 overflow-hidden">
-        {!ativo && <Sidebar />}
+      {!ativo && <Sidebar />}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header id="dashboard-header-slot" ref={onHeader}
+          className="min-h-14 w-full bg-surface border-b border-border-subtle px-4 md:px-6 py-2 flex flex-wrap gap-2 items-center justify-between shrink-0 z-10 relative" />
         <main id="conteudo-principal" tabIndex={-1} className="flex-1 flex flex-col overflow-hidden min-w-0"><Outlet /></main>
       </div>
       {ativo && <SeloModoDisplay />}

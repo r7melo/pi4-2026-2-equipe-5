@@ -156,6 +156,13 @@
 body {
   background-color: var(--background-app);
   color: var(--foreground);
+  accent-color: var(--primary);
+  caret-color: var(--primary);
+}
+
+::selection {
+  background-color: var(--info-light);
+  color: var(--foreground);
 }
 
 @supports not (scrollbar-color: auto) {
@@ -187,22 +194,26 @@ body {
 }
 
 /* Foco sempre visível, inclusive quando box-shadow é removido pelo sistema. */
-:root :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+:root :is(a, button, input[type="checkbox"], input[type="radio"], summary, [tabindex]):focus-visible {
   outline: 2px solid var(--foreground);
   outline-offset: 3px;
 }
-:root :is(button, input:not([type="checkbox"]):not([type="radio"]), select) {
+:root :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+:root :is(button, input:not([type="checkbox"]):not([type="radio"]), select):not(.controle-compacto) {
   min-block-size: 24px;
   min-inline-size: 24px;
 }
 @media (pointer: coarse) {
-  :root :is(button, input:not([type="checkbox"]):not([type="radio"]), select) {
+  :root :is(button, input:not([type="checkbox"]):not([type="radio"]), select):not(.controle-compacto) {
     min-block-size: 44px;
     min-inline-size: 44px;
   }
 }
 @media (max-width: 767px) {
-  :root :is(input, select, textarea) { font-size: 1rem; }
+  :root :is(input, select, textarea):not(.controle-compacto) { font-size: 1rem; }
 }
 @media (forced-colors: active) {
   :root :is(a, button, input, select, textarea, [tabindex]):focus-visible {

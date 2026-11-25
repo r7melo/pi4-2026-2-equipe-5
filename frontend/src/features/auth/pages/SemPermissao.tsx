@@ -1,3 +1,4 @@
+import { cn } from "@/shared/lib/utils";
 import { ROTULOS_PERFIS } from "@/shared/constants/perfis";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,27 +27,68 @@ export default function SemPermissao() {
   const rotulo = !perfilCanonico(perfil) ? "Não identificado" : ROTULOS_PERFIS[perfil];
   const caminho = caminhoTentado(location.state);
   const conteudo = (
-    <main className="flex-1 min-w-0 overflow-y-auto flex items-center justify-center p-4 md:p-6 bg-background-app">
-      <section className="w-full max-w-lg rounded-xl border border-border-subtle bg-surface p-5 sm:p-8 text-center" aria-labelledby="acesso-titulo">
-        <ShieldAlert className="mx-auto mb-4 size-8 text-destructive" aria-hidden="true" />
-        <h1 id="acesso-titulo" tabIndex={-1} className="text-2xl font-semibold text-foreground">Acesso Não Autorizado</h1>
-        <p className="mt-4 text-foreground-secondary">Seu perfil de acesso atual (<strong>{rotulo}</strong>) não possui permissão para visualizar este recurso.</p>
-        {caminho && <p className="mt-3 break-all rounded-lg bg-surface-subtle px-3 py-2 text-sm text-foreground-secondary">{caminho}</p>}
-        <p className="mt-4 text-sm text-muted-foreground">Se você precisa de acesso a esta área, entre em contato com o Administrador do sistema.</p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          {perfilCanonico(perfil) && <Button className={FOCO} onClick={() => void navigate(destinoInicialSeguro(perfil), { replace: true })}>Voltar ao Início</Button>}
-          <Button variant={perfilCanonico(perfil) ? "outline" : "primary"} className={FOCO} onClick={() => {
-            queryClient.clear();
-            useAuthStore.getState().logout();
-            void navigate("/login", { replace: true });
-          }}>Trocar de conta</Button>
+    <main className="flex-1 min-w-0 overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-background-app">
+      <section className="my-auto w-full max-w-lg rounded-xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-5 text-left" aria-labelledby="acesso-titulo">
+        <div className="flex items-center justify-between">
+          <span className="w-10 h-10 rounded-lg bg-destructive-light text-destructive inline-flex items-center justify-center">
+            <ShieldAlert className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="text-xs font-semibold tabular-nums text-muted-foreground bg-surface-subtle px-2.5 py-1 rounded-md">
+            403
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          <h1 id="acesso-titulo" tabIndex={-1} className="text-2xl font-semibold text-foreground">Acesso não autorizado</h1>
+          <p className="text-sm text-foreground-muted leading-relaxed">
+            Seu perfil atual (<strong className="font-semibold text-foreground">{rotulo}</strong>) não possui permissão para visualizar este recurso.
+          </p>
+        </div>
+
+        {caminho && (
+          <p className="border-y border-border-subtle py-2.5 text-xs flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">Endereço solicitado</span>
+            <code className="font-mono text-foreground break-all">{caminho}</code>
+          </p>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          Se você precisa de acesso a esta área, entre em contato com o Administrador do sistema.
+        </p>
+
+        <div className="flex flex-wrap gap-3 pt-1">
+          {perfilCanonico(perfil) && (
+            <Button className={cn("h-11", FOCO)} onClick={() => void navigate(destinoInicialSeguro(perfil), { replace: true })}>
+              Voltar ao início
+            </Button>
+          )}
+          <Button
+            variant={perfilCanonico(perfil) ? "outline" : "primary"}
+            className={cn("h-11", FOCO)}
+            onClick={() => {
+              queryClient.clear();
+              useAuthStore.getState().logout();
+              void navigate("/login", { replace: true });
+            }}
+          >
+            Trocar de conta
+          </Button>
         </div>
       </section>
     </main>
   );
-  if (!perfilEscritorio(perfil)) return <div className="min-h-screen flex flex-col bg-background-app">{conteudo}</div>;
-  return <SidebarProvider><div className="h-screen flex flex-col overflow-hidden bg-background-app">
-    <header className="h-14 shrink-0 border-b border-border-subtle bg-surface px-4 flex items-center"><SidebarTrigger className="md:hidden" /></header>
-    <div className="flex flex-1 min-h-0"><Sidebar />{conteudo}</div>
-  </div></SidebarProvider>;
+  if (!perfilEscritorio(perfil)) return <div className="min-h-dvh flex flex-col bg-background-app">{conteudo}</div>;
+  return (
+    <SidebarProvider>
+      <div className="h-dvh w-full flex overflow-hidden bg-background-app">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <header className="h-14 shrink-0 border-b border-border-subtle bg-surface px-4 flex items-center md:hidden">
+            <SidebarTrigger />
+          </header>
+          {conteudo}
+        </div>
+      </div>
+    </SidebarProvider>
+  );
 }

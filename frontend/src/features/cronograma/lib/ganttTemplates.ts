@@ -1,6 +1,7 @@
 import { gantt as ganttPadrao } from "dhtmlx-gantt";
 import type { GanttTask } from "@/features/cronograma/types/gantt";
 import {
+  dataCivilParaGantt,
   dataGanttParaCivil,
   fimGanttParaCivilInclusivo,
 } from "@/features/cronograma/lib/datasGantt";
@@ -11,18 +12,23 @@ import {
   formatarDataBR,
 } from "@/shared/lib/formatters";
 
-export function configurarTemplatesGantt(ganttInstance: typeof ganttPadrao = ganttPadrao): void {
+export function configurarTemplatesGantt(
+  ganttInstance: typeof ganttPadrao = ganttPadrao,
+  obterHojeCivil?: () => string | undefined,
+): void {
   const gantt = ganttInstance;
     gantt.templates.timeline_cell_class = (_item: unknown, date: Date) => {
       const classes = [];
       if (date.getDay() === 0 || date.getDay() === 6) classes.push("weekend");
 
-      const hoje = new Date();
-      if (
+      const hojeCivil = obterHojeCivil?.();
+      const hoje = hojeCivil ? dataCivilParaGantt(hojeCivil) : new Date();
+      const unidade = gantt.config.scales.at(-1)?.unit ?? "day";
+      if (hojeCivil ? (date <= hoje && hoje < gantt.date.add(date, 1, unidade)) : (
         date.getDate() === hoje.getDate() &&
         date.getMonth() === hoje.getMonth() &&
         date.getFullYear() === hoje.getFullYear()
-      ) {
+      )) {
         classes.push("today-cell");
       }
       return classes.join(" ");

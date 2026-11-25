@@ -7,9 +7,8 @@ export function requisitosSenha(senha: string) {
     { texto: "Uma letra maiúscula", atende: /[A-Z]/.test(senha) },
     { texto: "Uma letra minúscula", atende: /[a-z]/.test(senha) },
     { texto: "Um número", atende: /[0-9]/.test(senha) },
-    { texto: "No máximo 72 bytes", atende: new TextEncoder().encode(senha).length <= 72 },
   ];
 }
 export function senhaValida(senha: string): boolean {
-  return requisitosSenha(senha).every(item => item.atende);
+  return requisitosSenha(senha).every(item => item.atende) && new TextEncoder().encode(senha).length <= 72;
 }

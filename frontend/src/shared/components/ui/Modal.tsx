@@ -10,6 +10,7 @@ export interface ModalProps {
   titulo?: string;
   subtitulo?: string;
   icone?: ReactNode;
+  tamanho?: "sm" | "md" | "lg";
   children: ReactNode;
   fecharBloqueado?: boolean;
   className?: string;
@@ -18,7 +19,13 @@ export interface ModalProps {
   podeRestaurarFoco?: () => boolean;
 }
 
-export function Modal({ isOpen, onClose, titulo, subtitulo, icone, children,
+const TAMANHOS_MODAL = {
+  sm: "max-w-[400px]",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+};
+
+export function Modal({ isOpen, onClose, titulo, subtitulo, icone, tamanho = "md", children,
   fecharBloqueado = false, className, ariaLabelledBy, focoRetorno, podeRestaurarFoco }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -30,21 +37,21 @@ export function Modal({ isOpen, onClose, titulo, subtitulo, icone, children,
     const r = e.currentTarget.getBoundingClientRect();
     return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
   };
-  return createPortal(<dialog ref={ref} closedby={fecharBloqueado ? "none" : "closerequest"}
+  return createPortal(<dialog ref={ref} closedby={fecharBloqueado ? "none" : "any"}
     aria-labelledby={tituloId}
     aria-label={!titulo && !ariaLabelledBy ? "Janela" : undefined}
     onCancel={e => { e.preventDefault(); if (!fecharBloqueado) onClose(); }}
     onPointerDown={e => { iniciouFora.current = e.target === e.currentTarget && fora(e); e.stopPropagation(); }}
     onPointerUp={e => { if (iniciouFora.current && e.target === e.currentTarget && fora(e) && !fecharBloqueado) onClose(); }}
     onClick={e => e.stopPropagation()}
-    className={cn("mwg-dialog m-auto w-[calc(100%-2rem)] max-w-lg max-h-[90dvh] p-0 bg-surface text-foreground rounded-xl border border-border-subtle overflow-y-auto", className)}>
-    {(titulo || icone) && <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border-subtle bg-surface-subtle">
-      <div className="flex items-center gap-2.5">{icone}<div>
-        {titulo && <h2 id={tituloId} className="text-base font-semibold text-foreground-secondary">{titulo}</h2>}
-        {subtitulo && <p className="text-xs text-muted-foreground">{subtitulo}</p>}
+    className={cn("mwg-dialog m-auto w-[calc(100%-2rem)] max-h-[90dvh] p-0 bg-surface text-foreground rounded-xl border border-border-subtle shadow-2xl overflow-y-auto", TAMANHOS_MODAL[tamanho], className)}>
+    {(titulo || icone) && <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-border-subtle bg-surface">
+      <div className="flex items-center gap-2.5 min-w-0">{icone}<div className="min-w-0">
+        {titulo && <h2 id={tituloId} className="text-base font-semibold text-foreground">{titulo}</h2>}
+        {subtitulo && <p className="text-xs text-muted-foreground mt-0.5">{subtitulo}</p>}
       </div></div>
       <button type="button" onClick={onClose} disabled={fecharBloqueado} aria-label="Fechar modal"
-        className="min-w-6 min-h-6 inline-flex items-center justify-center text-foreground-muted rounded-md hover:bg-muted disabled:opacity-50">
+        className="w-8 h-8 inline-flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg border border-border-subtle hover:bg-muted disabled:opacity-50 cursor-pointer shrink-0 transition-colors">
         <X aria-hidden="true" className="w-4 h-4" />
       </button>
     </div>}

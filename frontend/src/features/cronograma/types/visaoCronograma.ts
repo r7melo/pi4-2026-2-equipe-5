@@ -58,6 +58,7 @@ export interface UseGanttFiltrosParams {
  * Interface de retorno do hook useGanttFiltros.
  */
 export interface UseGanttFiltrosRetorno {
+  hojeISO: string;
   filtros: GanttFiltrosAvancados;
   setFiltros: (atualizacao: SetStateAction<GanttFiltrosAvancados>) => void;
   atualizarFiltros: (atualizacao: SetStateAction<GanttFiltrosAvancados>) => void;

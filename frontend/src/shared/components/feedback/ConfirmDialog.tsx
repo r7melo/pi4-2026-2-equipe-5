@@ -45,38 +45,39 @@ export function ConfirmDialog({
       onClose={onClose}
       fecharBloqueado={isLoading}
       ariaLabelledBy={tituloId}
-      className="max-w-md p-6"
+      tamanho="sm"
+      className="p-6"
     >
       <div className="flex flex-col items-center text-center">
         {variant === "danger" && (
           <div className="w-12 h-12 rounded-full bg-destructive-light text-destructive flex items-center justify-center mb-4">
-            <AlertTriangle className="w-6 h-6" />
+            <AlertTriangle className="w-6 h-6" aria-hidden="true" />
           </div>
         )}
         {variant === "warning" && (
           <div className="w-12 h-12 rounded-full bg-warning-light text-warning flex items-center justify-center mb-4">
-            <AlertCircle className="w-6 h-6" />
+            <AlertCircle className="w-6 h-6" aria-hidden="true" />
           </div>
         )}
         {variant === "info" && (
           <div className="w-12 h-12 rounded-full bg-info-light text-info flex items-center justify-center mb-4">
-            <Info className="w-6 h-6" />
+            <Info className="w-6 h-6" aria-hidden="true" />
           </div>
         )}
 
-        <h2 id={tituloId} className="text-lg font-bold text-foreground-secondary mb-1">{titulo}</h2>
+        <h2 id={tituloId} className="text-lg font-bold text-foreground-secondary mb-1 [overflow-wrap:anywhere]">{titulo}</h2>
         {descricao && (
           <p className="w-full min-w-0 text-sm text-muted-foreground mb-3 [overflow-wrap:anywhere]">{descricao}</p>
         )}
         {conteudo}
 
-        <div className="flex gap-3 justify-end w-full mt-2">
+        <div className="flex flex-wrap gap-2.5 sm:justify-end w-full mt-3">
           <Button
             data-autofocus
             variant="outline"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1"
+            className="h-10 flex-1 sm:flex-initial"
           >
             {labelCancelar}
           </Button>
@@ -85,7 +86,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={isLoading || confirmarBloqueado}
             className={cn(
-              "flex-1",
+              "h-10 flex-1 sm:flex-initial",
               variant === "danger" && "bg-destructive hover:bg-destructive-hover text-primary-foreground"
             )}
           >

@@ -79,6 +79,7 @@ function registrarScrollOperacao(
       const d = gantt.dateFromPos(x);
       if (d instanceof Date && !isNaN(d.getTime())) {
         estado.dataCivilVisivel = dataGanttParaJanela(d);
+        estado.instanteVisivelOperacao = d.getTime();
       }
     }
   } catch {
@@ -93,6 +94,7 @@ interface GanttWrapperProps {
   janelaDatas?: JanelaDatasGantt;
   epochInteracao?: number;
   nivelZoom: NivelZoom;
+  hojeCivil?: string;
   focarData?: Date | null;
   mostrarGrade?: boolean;
   onReorder?: (id: number, novaData: string) => void;
@@ -108,6 +110,7 @@ export function GanttDhtmlxWrapper({
   janelaDatas,
   epochInteracao = 0,
   nivelZoom,
+  hojeCivil,
   focarData,
   mostrarGrade = true,
   onReorder,
@@ -123,6 +126,8 @@ export function GanttDhtmlxWrapper({
   const mostrarGradeRef = useRef(mostrarGrade);
   const janelaDatasRef = useRef(janelaDatas);
   const modoAtivoRef = useRef(modoAtivo);
+  const hojeCivilRef = useRef(hojeCivil);
+  const posicaoOperacaoRef = useRef<Date | null>(null);
   const obterEstadoVisualRef = useRef(obterEstadoVisual);
   const salvarEstadoVisualRef = useRef(salvarEstadoVisual);
   const snapshotRef = useRef<SnapshotGantt | null>(null);
@@ -149,6 +154,37 @@ export function GanttDhtmlxWrapper({
   const primeiraSincronizacaoRef = useRef(true);
   const mutacaoInternaRef = useRef(false);
 
+  const posicionarOperacao = useCallback((alvo: Date, y: number, alinharColuna = false) => {
+    const unidade = gantt.config.scales.at(-1)?.unit ?? "day";
+    const data = alinharColuna
+      ? unidade === "month" ? gantt.date.month_start(new Date(alvo))
+      : unidade === "week" ? gantt.date.week_start(new Date(alvo))
+      : gantt.date.day_start(new Date(alvo))
+      : new Date(alvo);
+    // Espaço à direita permite alinhar a coluna mesmo quando hoje sucede todas as obras.
+    const colunas = Math.ceil((container.current?.clientWidth ?? 1600) / Math.max(1, gantt.config.min_column_width)) + 2;
+    const fimNecessario = gantt.date.add(data, colunas, unidade);
+    const limiteInterno = new Date(2000, 11, 31);
+    limiteInterno.setFullYear(10001);
+    const fim = fimNecessario > limiteInterno ? limiteInterno : fimNecessario;
+    let mudouJanela = false;
+    if (!gantt.config.start_date || data < gantt.config.start_date) {
+      gantt.config.start_date = gantt.date.month_start(new Date(data));
+      mudouJanela = true;
+    }
+    if (!gantt.config.end_date || fim > gantt.config.end_date) {
+      gantt.config.end_date = fim;
+      mudouJanela = true;
+    }
+    if (mudouJanela) gantt.render();
+    const x = gantt.posFromDate(data);
+    if (Number.isFinite(x)) gantt.scrollTo(Math.max(0, x), y);
+    const atual = gantt.getScrollState();
+    posicaoOperacaoRef.current = gantt.dateFromPos(atual.x);
+    const estado = obterEstadoVisualRef.current?.();
+    if (estado) registrarScrollOperacao(estado, atual.x, atual.y, salvarEstadoVisualRef.current);
+  }, []);
+
   const sincronizarDados = useCallback((tarefasAtuais = tarefasRef.current) => {
     if (!inicializado.current) return;
     if (gestoRef.current || interacaoRef.current || gantt.getState().drag_id != null) {
@@ -157,6 +193,11 @@ export function GanttDhtmlxWrapper({
     }
     const scrollStateAntes = gantt.getScrollState();
     const estadoVisualAntes = obterEstadoVisualRef.current?.();
+    const posicaoOperacaoAntes = estadoVisualAntes?.instanteVisivelOperacao !== undefined
+      ? new Date(estadoVisualAntes.instanteVisivelOperacao)
+      : estadoVisualAntes?.dataCivilVisivel
+      ? dataJanelaParaGantt(estadoVisualAntes.dataCivilVisivel)
+      : posicaoOperacaoRef.current;
 
     const openStates = new Map<string | number, boolean>();
     if (estadoVisualAntes?.arvore) {
@@ -227,7 +268,10 @@ export function GanttDhtmlxWrapper({
         }
       });
 
-      if (estaEmDisplay) {
+      if (hojeCivilRef.current && !estaEmDisplay) {
+        const alvo = posicaoOperacaoAntes ?? dataCivilParaGantt(hojeCivilRef.current);
+        posicionarOperacao(alvo, estadoVisualAntes?.scrollOperacao.y ?? scrollStateAntes.y, !posicaoOperacaoAntes);
+      } else if (estaEmDisplay) {
         if (ehPrimeiraSincronizacao) {
           const dataAlvoCivil = estadoVisualAntes?.dataCivilVisivel ?? menorInicioAtual;
           const posAlvo = dataAlvoCivil ? calcularPosicaoDataCivil(dataAlvoCivil) : null;
@@ -323,7 +367,7 @@ export function GanttDhtmlxWrapper({
     }
 
     sincronizacaoPendenteRef.current = false;
-  }, []);
+  }, [posicionarOperacao]);
 
   useLayoutEffect(() => { tarefasRef.current = tarefas; }, [tarefas]);
   useLayoutEffect(() => {
@@ -333,6 +377,7 @@ export function GanttDhtmlxWrapper({
     janelaDatasRef.current = janelaDatas;
     epochInteracaoRef.current = epochInteracao;
     modoAtivoRef.current = modoAtivo;
+    hojeCivilRef.current = hojeCivil;
     obterEstadoVisualRef.current = obterEstadoVisual;
     salvarEstadoVisualRef.current = salvarEstadoVisual;
     const interacao = interacaoRef.current ?? gestoRef.current;
@@ -344,7 +389,7 @@ export function GanttDhtmlxWrapper({
       gantt.config.drag_move = canDrag;
       gantt.config.drag_resize = false;
     }
-  }, [onReorder, onSelectTask, canDrag, epochInteracao, janelaDatas, modoAtivo, obterEstadoVisual, salvarEstadoVisual]);
+  }, [onReorder, onSelectTask, canDrag, epochInteracao, janelaDatas, modoAtivo, hojeCivil, obterEstadoVisual, salvarEstadoVisual]);
 
   useEffect(() => {
     mostrarGradeRef.current = mostrarGrade;
@@ -365,7 +410,7 @@ export function GanttDhtmlxWrapper({
       mostrarGrade: mostrarGradeRef.current,
       temOnSelectTask: () => Boolean(onSelectTaskRef.current),
     });
-    configurarTemplatesGantt(gantt);
+    configurarTemplatesGantt(gantt, () => hojeCivilRef.current);
 
     gantt.config.drag_move = canDragRef.current;
     gantt.config.drag_resize = false;
@@ -411,6 +456,7 @@ export function GanttDhtmlxWrapper({
       const estado = obterEstadoVisualRef.current?.();
       if (estado && !gestoRef.current?.invalidada && !interacaoRef.current?.invalidada) {
         const atual = gantt.getScrollState();
+        if (hojeCivilRef.current) posicaoOperacaoRef.current = gantt.dateFromPos(atual.x);
         if (modoAtivoRef.current) {
           estado.scrollDisplay = { x: atual.x, y: atual.y };
         } else {
@@ -828,6 +874,7 @@ export function GanttDhtmlxWrapper({
               const d = gantt.dateFromPos(scrollFinal.x);
               if (d instanceof Date && !isNaN(d.getTime())) {
                 estadoFinal.dataCivilVisivel = dataGanttParaJanela(d);
+                estadoFinal.instanteVisivelOperacao = d.getTime();
               }
             }
           } catch {
@@ -882,27 +929,25 @@ export function GanttDhtmlxWrapper({
 
   useEffect(() => {
     if (!inicializado.current || !janelaInicio || !janelaFim) return;
+    const posicao = posicaoOperacaoRef.current;
     const scroll = gantt.getScrollState();
     gantt.config.start_date = dataJanelaParaGantt(janelaInicio);
     gantt.config.end_date = fimJanelaParaGanttExclusivo(janelaFim);
     mutacaoInternaRef.current = true;
     try {
       gantt.render();
-      gantt.scrollTo(scroll.x, scroll.y);
+      if (hojeCivilRef.current && posicao) posicionarOperacao(posicao, scroll.y);
+      else gantt.scrollTo(scroll.x, scroll.y);
     } finally {
       mutacaoInternaRef.current = false;
     }
-  }, [janelaInicio, janelaFim]);
-
-  useEffect(() => {
-    if (focarData && inicializado.current) {
-      gantt.showDate(focarData);
-    }
-  }, [focarData]);
+  }, [janelaInicio, janelaFim, posicionarOperacao]);
 
   useEffect(() => {
     if (!inicializado.current) return;
 
+    const posicao = posicaoOperacaoRef.current;
+    const scroll = gantt.getScrollState();
     aplicarConfiguracaoZoom(gantt, nivelZoom);
 
     mutacaoInternaRef.current = true;
@@ -911,7 +956,41 @@ export function GanttDhtmlxWrapper({
     } finally {
       mutacaoInternaRef.current = false;
     }
-  }, [nivelZoom]);
+      if (hojeCivilRef.current && posicao) {
+        mutacaoInternaRef.current = true;
+        try { posicionarOperacao(posicao, scroll.y); }
+        finally { mutacaoInternaRef.current = false; }
+      }
+  }, [nivelZoom, posicionarOperacao]);
+
+  useEffect(() => {
+    if (!focarData || !inicializado.current) return;
+    if (!hojeCivilRef.current) {
+      gantt.showDate(focarData);
+      return;
+    }
+    const estado = obterEstadoVisualRef.current?.();
+    const comando = focarData;
+    if (estado?.ultimoFocoSolicitado === comando) return;
+    if (estado) {
+      estado.ultimoFocoSolicitado = comando;
+      salvarEstadoVisualRef.current?.(estado);
+    }
+    mutacaoInternaRef.current = true;
+    try { posicionarOperacao(focarData, gantt.getScrollState().y, true); }
+    finally { mutacaoInternaRef.current = false; }
+  }, [focarData, posicionarOperacao]);
+
+  useEffect(() => {
+    if (!hojeCivil || !inicializado.current) return;
+    const posicao = posicaoOperacaoRef.current;
+    const scroll = gantt.getScrollState();
+    mutacaoInternaRef.current = true;
+    try {
+      gantt.render();
+      if (posicao) posicionarOperacao(posicao, scroll.y);
+    } finally { mutacaoInternaRef.current = false; }
+  }, [hojeCivil, posicionarOperacao]);
 
   // Preservação do estado da árvore pós-render
   useEffect(() => { sincronizarDados(tarefas); }, [tarefas, sincronizarDados]);

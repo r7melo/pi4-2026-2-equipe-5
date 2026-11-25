@@ -1,4 +1,5 @@
 import { NOMES_PERFIS, ROTULOS_PERFIS } from "@/shared/constants/perfis";
+import { cn } from "@/shared/lib/utils";
 import { useContextoUsuario } from "../hooks/useContextoUsuario";
 import { usePerdaPermissao } from "../hooks/usePerdaPermissao";
 import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
@@ -24,10 +25,10 @@ import { useCriarUsuario, useEquipesOpcoes } from "../hooks/useUsuarios";
 const VALORES_INICIAIS: CadastroUsuarioEntrada = {
   nome: "", email: "", senha: "", perfil: "", equipeId: "",
 };
-const CLASSE_SELECT = "w-full min-w-0 rounded-lg border border-border-subtle bg-surface-subtle px-4 py-2.5 text-sm text-foreground-secondary focus:outline-none focus:ring-2 focus:ring-border-strong disabled:opacity-50";
-const CLASSE_LABEL = "block text-sm font-semibold text-foreground-muted";
+const CLASSE_SELECT = "w-full h-11 min-w-0 rounded-lg border border-border-subtle bg-surface-subtle px-3.5 text-sm text-foreground-secondary focus:bg-surface focus:border-border-strong disabled:opacity-50";
+const CLASSE_LABEL = "block text-sm font-medium text-foreground-secondary";
 
-export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onSemPermissao }: FormularioCadastroProps) {
+export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onSemPermissao, emModal = false, onCancelar }: FormularioCadastroProps) {
   const capturarContexto = useContextoUsuario();
   const navigate = useNavigate();
   const [semPermissao, setSemPermissao] = useState(false);
@@ -151,78 +152,128 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
 
   if (semPermissao) return <p role="alert" className="p-4 text-destructive">Você não tem permissão para cadastrar usuários.</p>;
   return (
-        <form noValidate onSubmit={(evento) => void submeter(evento)}
-          className="mx-auto w-full max-w-xl rounded-xl border border-border-subtle bg-surface p-4 sm:p-6">
-          <fieldset disabled={ocupado} className="min-w-0 space-y-5">
-            <legend className="sr-only">Dados do usuário</legend>
-            <Input id="usuario-nome" label="Nome completo" autoComplete="off"
-              required {...register("nome")} error={errors.nome?.message} />
-            <Input id="usuario-email" type="email" label="E-mail" autoComplete="off"
-              required {...register("email")} error={errors.email?.message} />
-            <div className="space-y-1.5">
-              <label htmlFor="usuario-perfil" className={CLASSE_LABEL}>Perfil de acesso</label>
-              <select id="usuario-perfil" required autoComplete="off" className={CLASSE_SELECT}
-                {...register("perfil")} aria-invalid={!!errors.perfil}
-                aria-describedby={errors.perfil ? "usuario-perfil-erro" : undefined}>
-                <option value="">Selecionar perfil</option>
-                {NOMES_PERFIS.map(nomePerfil => <option key={nomePerfil} value={nomePerfil}>{ROTULOS_PERFIS[nomePerfil]}</option>)}
-              </select>
-              {errors.perfil && (
-                <p id="usuario-perfil-erro" className="text-xs text-destructive">
-                  {errors.perfil.message}
-                </p>
-              )}
-            </div>
-            {instalador && (
-              <div className="space-y-1.5">
-                <label htmlFor="usuario-equipe" className={CLASSE_LABEL}>Equipe (opcional)</label>
-                <select id="usuario-equipe" autoComplete="off" className={CLASSE_SELECT}
-                  {...register("equipeId")} disabled={ocupado}
-                  aria-invalid={!!errors.equipeId}
-                  aria-describedby={`usuario-equipe-ajuda${errors.equipeId ? " usuario-equipe-erro" : ""}`}>
-                  <option value="">Sem equipe — vincular depois</option>
-                  {opcoes?.map((equipe) => (
-                    <option key={equipe.id} value={equipe.id}>{equipe.nome}</option>
-                  ))}
-                </select>
-                <p id="usuario-equipe-ajuda" className="text-xs text-foreground-muted">
-                  Você pode cadastrar o instalador sem equipe e vinculá-lo ao criar a equipe.
-                </p>
-                {errors.equipeId && (
-                  <p id="usuario-equipe-erro" className="text-xs text-destructive">
-                    {errors.equipeId.message}
-                  </p>
-                )}
-                {(equipes.isPending || equipes.isFetching) && (
-                  <FeedbackLoading mensagem="Carregando equipes..." />
-                )}
-                {equipes.isError && !equipes.isFetching && (
-                  <FeedbackErro mensagem="Não foi possível carregar as equipes."
-                    onTentarNovamente={() => { void equipes.refetch(); }} />
-                )}
-                {equipes.isSuccess && !equipes.isFetching && opcoes?.length === 0 && (
-                  <EmptyState titulo="Nenhuma equipe cadastrada."
-                    descricao="O instalador pode ser cadastrado sem equipe e vinculado depois."
-                    acao={{ label: "Cadastrar equipe", onClick: () => { void navigate("/equipes"); } }} />
-                )}
-              </div>
+    <form
+      noValidate
+      onSubmit={(evento) => void submeter(evento)}
+      className={cn(
+        "w-full",
+        emModal ? "p-5" : "mx-auto max-w-xl rounded-xl border border-border-subtle bg-surface p-4 sm:p-6"
+      )}
+    >
+      <fieldset disabled={ocupado} className="min-w-0 space-y-4">
+        <legend className="sr-only">Dados do usuário</legend>
+        <Input
+          id="usuario-nome"
+          label="Nome completo"
+          placeholder="Ex.: Mariana Costa"
+          autoComplete="off"
+          className="h-11 py-0"
+          required
+          {...register("nome")}
+          error={errors.nome?.message}
+        />
+        <Input
+          id="usuario-email"
+          type="email"
+          label="E-mail"
+          placeholder="nome@zl.com.br"
+          autoComplete="off"
+          className="h-11 py-0"
+          required
+          {...register("email")}
+          error={errors.email?.message}
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+          <div className="space-y-1.5">
+            <label htmlFor="usuario-perfil" className={CLASSE_LABEL}>Perfil de acesso</label>
+            <select
+              id="usuario-perfil"
+              required
+              autoComplete="off"
+              className={CLASSE_SELECT}
+              {...register("perfil")}
+              aria-invalid={!!errors.perfil}
+              aria-describedby={errors.perfil ? "usuario-perfil-erro" : undefined}
+            >
+              <option value="">Selecionar perfil</option>
+              {NOMES_PERFIS.map(nomePerfil => <option key={nomePerfil} value={nomePerfil}>{ROTULOS_PERFIS[nomePerfil]}</option>)}
+            </select>
+            {errors.perfil && (
+              <p id="usuario-perfil-erro" className="text-xs text-destructive">
+                {errors.perfil.message}
+              </p>
             )}
-            <Input id="usuario-senha" type={mostrarSenha ? "text" : "password"}
-              label="Senha inicial" autoComplete="new-password" required
-              className="py-3 pr-14" {...register("senha")} error={errors.senha?.message}
-              acaoDireita={
-                <BotaoVisibilidadeSenha
-                  visivel={mostrarSenha}
-                  onAlternar={() => setMostrarSenha((visivel) => !visivel)}
-                  disabled={ocupado}
-                />
-              } />
-            <Button type="submit" disabled={ocupado}
-              className="w-full sm:w-auto" aria-busy={ocupado}>
-              {ocupado && <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />}
-              {ocupado ? "Cadastrando usuário..." : "Cadastrar usuário"}
+          </div>
+          <Input
+            id="usuario-senha"
+            type={mostrarSenha ? "text" : "password"}
+            label="Senha inicial"
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+            required
+            className="h-11 py-0 pr-14"
+            {...register("senha")}
+            error={errors.senha?.message}
+            acaoDireita={
+              <BotaoVisibilidadeSenha
+                visivel={mostrarSenha}
+                onAlternar={() => setMostrarSenha((visivel) => !visivel)}
+                disabled={ocupado}
+              />
+            }
+          />
+        </div>
+        {instalador && (
+          <div className="space-y-1.5">
+            <label htmlFor="usuario-equipe" className={CLASSE_LABEL}>Equipe (opcional)</label>
+            <select
+              id="usuario-equipe"
+              autoComplete="off"
+              className={CLASSE_SELECT}
+              {...register("equipeId")}
+              disabled={ocupado}
+              aria-invalid={!!errors.equipeId}
+              aria-describedby={`usuario-equipe-ajuda${errors.equipeId ? " usuario-equipe-erro" : ""}`}
+            >
+              <option value="">Sem equipe — vincular depois</option>
+              {opcoes?.map((equipe) => (
+                <option key={equipe.id} value={equipe.id}>{equipe.nome}</option>
+              ))}
+            </select>
+            <p id="usuario-equipe-ajuda" className="text-xs text-foreground-muted">
+              Você pode cadastrar o instalador sem equipe e vinculá-lo ao criar a equipe.
+            </p>
+            {errors.equipeId && (
+              <p id="usuario-equipe-erro" className="text-xs text-destructive">
+                {errors.equipeId.message}
+              </p>
+            )}
+            {(equipes.isPending || equipes.isFetching) && (
+              <FeedbackLoading mensagem="Carregando equipes..." />
+            )}
+            {equipes.isError && !equipes.isFetching && (
+              <FeedbackErro mensagem="Não foi possível carregar as equipes."
+                onTentarNovamente={() => { void equipes.refetch(); }} />
+            )}
+            {equipes.isSuccess && !equipes.isFetching && opcoes?.length === 0 && (
+              <EmptyState titulo="Nenhuma equipe cadastrada."
+                descricao="O instalador pode ser cadastrado sem equipe e vinculado depois."
+                acao={{ label: "Cadastrar equipe", onClick: () => { void navigate("/equipes"); } }} />
+            )}
+          </div>
+        )}
+        <div className="pt-3 border-t border-border-subtle flex items-center justify-end gap-2">
+          {onCancelar && (
+            <Button type="button" variant="outline" onClick={onCancelar} disabled={ocupado} className="h-10">
+              Cancelar
             </Button>
-          </fieldset>
-        </form>
+          )}
+          <Button type="submit" disabled={ocupado} className="h-10 w-full sm:w-auto" aria-busy={ocupado}>
+            {ocupado && <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />}
+            {ocupado ? "Cadastrando usuário..." : "Cadastrar usuário"}
+          </Button>
+        </div>
+      </fieldset>
+    </form>
   );
 }

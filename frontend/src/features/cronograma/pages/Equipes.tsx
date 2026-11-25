@@ -84,7 +84,7 @@ export default function Equipes({ obras, carregandoObras = false, mapaHomologaco
   return <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden" style={modo.ativo ? { paddingBottom: modo.alturaSelo } : undefined}>
     <PageHeader title="Cronograma de Equipes" subtitle="Programações, equipes temporais e ocupação" ocultarMenuLateral={modo.ativo}>
       {consulta.data?.length ? <GanttToolbar nivelAtual={zoom} onMudarNivel={setZoom} onHoje={() => setDataFoco(new Date())} mostrarGrade={mostrarGrade} onToggleGrade={() => setMostrarGrade(v => !v)}
-        onImprimir={() => window.print()} onAbrirCompartilhar={canEdit ? () => overlays.setModalCompartilharAberto(true) : undefined}
+        onAbrirCompartilhar={canEdit ? () => overlays.setModalCompartilharAberto(true) : undefined}
         onAbrirFiltros={() => overlays.setDrawerFiltrosAberto(true)} totalFiltrosAtivos={filtros.totalFiltrosAtivos} modoAtivo={modo.ativo} /> : null}
       {podeVerModo(perfil) && modo.elegivelParaModo && <BotaoModoDisplay />}
     </PageHeader>
@@ -110,7 +110,7 @@ export default function Equipes({ obras, carregandoObras = false, mapaHomologaco
       {consulta.isLoading || carregandoObras ? <FeedbackLoading mensagem="Carregando cronograma..." /> : consulta.isError ? <FeedbackErro mensagem={consulta.error.message} onTentarNovamente={() => void consulta.refetch()} /> : !consulta.data?.length ? <EmptyState titulo="Nenhuma programação encontrada" descricao="Programe uma obra apta para iniciar o cronograma." /> :
         <div className="flex-1 min-h-0 p-2 relative">
           {!linhas.length ? <EmptyState titulo="Nenhuma alocação encontrada para os filtros aplicados" acao={{ label: 'Limpar filtros', onClick: () => filtros.atualizarFiltros({}) }} /> :
-            <GanttDhtmlxWrapper key={modo.ativo ? 'display' : 'operacao'} tarefas={linhas} canDrag={canEdit && !modo.ativo && !mutacaoEmVoo} janelaDatas={modo.ativo ? undefined : (janela ?? undefined)} nivelZoom={zoom} focarData={dataFoco} mostrarGrade={mostrarGrade}
+            <GanttDhtmlxWrapper key={modo.ativo ? 'display' : 'operacao'} tarefas={linhas} hojeCivil={modo.ativo ? undefined : filtros.hojeISO} canDrag={canEdit && !modo.ativo && !mutacaoEmVoo} janelaDatas={modo.ativo ? undefined : (janela ?? undefined)} nivelZoom={zoom} focarData={dataFoco} mostrarGrade={mostrarGrade}
               modoAtivo={modo.ativo} epochInteracao={epoch} onReorder={aoReordenar} onSelectTask={modo.ativo ? undefined : id => { if (podeInteragir()) { setAviso(''); overlays.setTarefaSelecionadaId(id); } }} obterEstadoVisual={armazenamento.obterEstadoVisual} salvarEstadoVisual={armazenamento.salvarEstadoVisual} />}
         </div>}
     </>}

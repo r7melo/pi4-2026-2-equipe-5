@@ -9,9 +9,10 @@ export interface CampoSenhaProps {
   id: string; label: string; value: string; onChange: (valor: string) => void;
   descricaoId?: string; erro?: boolean; onBlur?: () => void;
   disabled?: boolean; autoComplete?: "current-password" | "new-password";
+  placeholder?: string; enterKeyHint?: "next" | "done";
 }
 export interface CamposNovaSenhaProps {
   nova: string; confirmar: string; onNova: (valor: string) => void;
   onConfirmar: (valor: string) => void; disabled?: boolean; validar?: boolean; erroNova?: string;
 }
-export interface PaginaAcessoProps { titulo: string; children: ReactNode }
+export interface PaginaAcessoProps { titulo: string; subtitulo?: string; children: ReactNode }

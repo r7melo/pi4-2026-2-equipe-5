@@ -38,9 +38,9 @@ export function BotaoVisibilidadeSenha({
       )}
     >
       {visivel ? (
-        <EyeOff aria-hidden="true" className="size-5" />
+        <EyeOff aria-hidden="true" className="size-4" />
       ) : (
-        <Eye aria-hidden="true" className="size-5" />
+        <Eye aria-hidden="true" className="size-4" />
       )}
     </button>
   );

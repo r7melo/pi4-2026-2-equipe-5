@@ -174,6 +174,7 @@ export function useGanttFiltros({
     ]);
 
   return {
+    hojeISO,
     filtros,
     setFiltros: atualizarFiltros,
     atualizarFiltros,

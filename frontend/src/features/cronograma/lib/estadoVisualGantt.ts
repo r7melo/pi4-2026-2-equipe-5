@@ -8,6 +8,8 @@ export interface EstadoVisualGantt {
   scrollOperacao: CoordenadasScrollGantt;
   scrollDisplay: CoordenadasScrollGantt;
   dataCivilVisivel: string | null;
+  instanteVisivelOperacao?: number;
+  ultimoFocoSolicitado?: Date;
   ultimoMenorInicio: string | null;
 }
 
@@ -27,6 +29,8 @@ export function clonarEstadoVisual(estado: EstadoVisualGantt): EstadoVisualGantt
     scrollOperacao: { ...estado.scrollOperacao },
     scrollDisplay: { ...estado.scrollDisplay },
     dataCivilVisivel: estado.dataCivilVisivel,
+    instanteVisivelOperacao: estado.instanteVisivelOperacao,
+    ultimoFocoSolicitado: estado.ultimoFocoSolicitado,
     ultimoMenorInicio: estado.ultimoMenorInicio,
   };
 }

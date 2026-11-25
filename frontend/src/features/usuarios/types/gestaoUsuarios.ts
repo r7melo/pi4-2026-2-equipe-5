@@ -10,7 +10,7 @@ export interface FiltrosUsuarios { page: number; pageSize: number; busca: string
 export interface EditarUsuario { nome: string; perfil: UsuarioItem["perfil"]; equipeId: number | null; revisao: string }
 export interface StatusUsuario { ativo: boolean; revisao: string }
 export interface UsuariosProps { usuarioId: number }
-export interface FormularioCadastroProps { onConcluido?: () => void; onSemPermissao?: () => void; onOcupado?: (ocupado: boolean) => void }
+export interface FormularioCadastroProps { onConcluido?: () => void; onSemPermissao?: () => void; onOcupado?: (ocupado: boolean) => void; emModal?: boolean; onCancelar?: () => void }
 export interface EditorUsuarioProps { usuario: UsuarioItem; proprio: boolean; onFechar: () => void; onConcluido: () => void }
 export interface StatusUsuarioProps { usuario: UsuarioItem; onFechar: () => void; onConcluido: () => void }
 

@@ -109,20 +109,20 @@ describe("Demanda #114 — RF-24 (PaginaNaoEncontrada, MetadadosRota e Estados d
 
   it("oculta caminhos malformados ou reservados e limita caminhos extensos na PaginaNaoEncontrada", () => {
     expect(renderizarPagina404("/obras/1/inexistente/", "Administrador")).toContain(
-      '<p class="mt-3 break-all rounded-lg bg-surface-subtle px-3 py-2 text-sm text-foreground-secondary">/obras/1/inexistente</p>',
+      '<code class="font-mono text-foreground break-all">/obras/1/inexistente</code>',
     );
     const longo = "/" + "a".repeat(120);
     expect(renderizarPagina404(longo, "Administrador")).toContain(
-      `<p class="mt-3 break-all rounded-lg bg-surface-subtle px-3 py-2 text-sm text-foreground-secondary">${"/" + "a".repeat(79)}</p>`,
+      `<code class="font-mono text-foreground break-all">${"/" + "a".repeat(79)}</code>`,
     );
 
     const htmlComQuery = renderizarPagina404("/obras?token=1", "Administrador");
     expect(htmlComQuery).not.toContain("token=1");
-    expect(htmlComQuery).toContain(">/obras</p>");
+    expect(htmlComQuery).toContain(">/obras</code>");
 
     const htmlComHash = renderizarPagina404("/obras#frag", "Administrador");
     expect(htmlComHash).not.toContain("frag");
-    expect(htmlComHash).toContain(">/obras</p>");
+    expect(htmlComHash).toContain(">/obras</code>");
 
     for (const invalido of [
       "/",
@@ -133,7 +133,7 @@ describe("Demanda #114 — RF-24 (PaginaNaoEncontrada, MetadadosRota e Estados d
       "/obras/%0a",
     ]) {
       const htmlInvalido = renderizarPagina404(invalido, "Administrador");
-      expect(htmlInvalido).not.toContain("bg-surface-subtle px-3 py-2");
+      expect(htmlInvalido).not.toContain("Endereço acessado");
     }
   });
 
@@ -161,7 +161,7 @@ describe("Demanda #114 — RF-24 (PaginaNaoEncontrada, MetadadosRota e Estados d
     expect(html).toContain('<h1 id="nao-encontrada-titulo" tabindex="-1"');
     expect(html).toContain("Página não encontrada");
     expect(html).toContain("/obras/1/inexistente");
-    expect(html).toContain("Voltar ao Início");
+    expect(html).toContain("Voltar ao início");
     expect(html).toMatch(/<svg[^>]*aria-hidden="true"/);
     expect(html).not.toMatch(/\b(?:RF|UC|RN|RNF)-\d+\b/);
   });
@@ -169,12 +169,12 @@ describe("Demanda #114 — RF-24 (PaginaNaoEncontrada, MetadadosRota e Estados d
   it("renderiza layout standalone sem skip-link para InstaladorCampo e Trocar de conta para sessão não canônica", () => {
     const htmlInstalador = renderizarPagina404("/rota-inexistente", "InstaladorCampo");
     expect(htmlInstalador).not.toContain("skip-link");
-    expect(htmlInstalador).toContain("Voltar ao Início");
+    expect(htmlInstalador).toContain("Voltar ao início");
     expect(htmlInstalador).not.toContain("Trocar de conta");
 
     const htmlSemPerfil = renderizarPagina404("/rota-inexistente", null);
     expect(htmlSemPerfil).not.toContain("skip-link");
-    expect(htmlSemPerfil).not.toContain("Voltar ao Início");
+    expect(htmlSemPerfil).not.toContain("Voltar ao início");
     expect(htmlSemPerfil).toContain("Trocar de conta");
   });
 

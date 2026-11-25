@@ -34,12 +34,12 @@ export function FormularioAlterarSenha({ geracao }: { geracao: number }) {
       void navigate("/login", { replace: true });
     }).catch((error: unknown) => { if (operacao.vigente()) setErro(error instanceof Error ? error.message : "Não foi possível confirmar a troca."); });
   }}>
-    <CampoSenha key={`atual-${revisaoCampos}`} id="senha-atual" erro={tentouEnviar && !atual} descricaoId={tentouEnviar && !atual ? "erro-alterar-senha" : undefined} label="Senha atual" autoComplete="current-password" value={atual} onChange={setAtual} disabled={operacao.pendente} />
+    <CampoSenha key={`atual-${revisaoCampos}`} id="senha-atual" erro={tentouEnviar && !atual} descricaoId={tentouEnviar && !atual ? "erro-alterar-senha" : undefined} label="Senha atual" placeholder="Digite sua senha atual" enterKeyHint="next" autoComplete="current-password" value={atual} onChange={setAtual} disabled={operacao.pendente} />
     <CamposNovaSenha key={`novas-${revisaoCampos}`} validar={tentouEnviar} erroNova={nova && atual === nova ? "A nova senha não pode ser igual à senha atual." : undefined} nova={nova} confirmar={confirmar} onNova={setNova} onConfirmar={setConfirmar} disabled={operacao.pendente} />
-    {erro && <p id="erro-alterar-senha" role="alert" className="text-sm text-destructive">{erro}</p>}
+    {erro && <p id="erro-alterar-senha" role="alert" className="rounded-lg border border-destructive-border bg-destructive-light px-3.5 py-3 text-xs leading-relaxed text-destructive">{erro}</p>}
     <div className="flex flex-wrap gap-3">
-      <Button className="min-h-11" type="submit" disabled={operacao.pendente}>{operacao.pendente ? "Salvando..." : "Salvar nova senha"}</Button>
-      <Button className="min-h-11" variant="outline" disabled={operacao.pendente} onClick={limpar}>Cancelar</Button>
+      <Button className="h-11" type="submit" disabled={operacao.pendente}>{operacao.pendente ? "Salvando..." : "Salvar nova senha"}</Button>
+      <Button className="h-11" variant="outline" disabled={operacao.pendente} onClick={limpar}>Cancelar</Button>
     </div>
   </form>;
 }
