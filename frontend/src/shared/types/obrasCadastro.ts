@@ -20,6 +20,7 @@ export const novaObraSchema = z
       .number()
       .min(0, "Quantidade de inversores não pode ser negativa")
       .default(1),
+    descricao: z.string().optional(),
     dataInicioEstimada: z.string().min(1, "Data de início estimada é obrigatória"),
     dataFimEstimada: z.string().min(1, "Data de término estimada é obrigatória"),
     pagamento: z.object({

@@ -1,16 +1,27 @@
 import { gantt as ganttPadrao } from "dhtmlx-gantt";
 import type { GanttTask } from "@/features/cronograma/types/gantt";
 import {
-  dataCivilParaGantt,
   dataGanttParaCivil,
   fimGanttParaCivilInclusivo,
 } from "@/features/cronograma/lib/datasGantt";
-import { escaparHtml } from "@/features/cronograma/lib/ganttConfiguracao";
-import { diasUteisCivis } from "@/shared/lib/datasCivis";
 import {
-  formatarDiasUteis,
-  formatarDataBR,
-} from "@/shared/lib/formatters";
+  ehCelulaHoje,
+  escaparHtml,
+} from "@/features/cronograma/lib/ganttConfiguracao";
+import { diasUteisCivis } from "@/shared/lib/datasCivis";
+import { formatarDataBR } from "@/shared/lib/formatters";
+
+const TOOLTIP_STATUS_META: Record<
+  string,
+  { label: string; tone: "success" | "info" | "warning"; mat: string; matTone: "success" | "info" | "warning" }
+> = {
+  Separado: { label: "Separado", tone: "success", mat: "Kit Pronto / Separado", matTone: "success" },
+  Concluido: { label: "Concluído", tone: "success", mat: "Kit Pronto / Separado", matTone: "success" },
+  EmAndamento: { label: "Em Andamento", tone: "info", mat: "Kit Pronto / Separado", matTone: "success" },
+  NoDeposito: { label: "No Depósito", tone: "info", mat: "No Depósito", matTone: "info" },
+  MaterialComprado: { label: "Material Comprado", tone: "warning", mat: "Comprado", matTone: "warning" },
+  Assistencia: { label: "Assistência", tone: "warning", mat: "Assistência", matTone: "warning" },
+};
 
 export function configurarTemplatesGantt(
   ganttInstance: typeof ganttPadrao = ganttPadrao,
@@ -21,22 +32,21 @@ export function configurarTemplatesGantt(
       const classes = [];
       if (date.getDay() === 0 || date.getDay() === 6) classes.push("weekend");
 
-      const hojeCivil = obterHojeCivil?.();
-      const hoje = hojeCivil ? dataCivilParaGantt(hojeCivil) : new Date();
       const unidade = gantt.config.scales.at(-1)?.unit ?? "day";
-      if (hojeCivil ? (date <= hoje && hoje < gantt.date.add(date, 1, unidade)) : (
-        date.getDate() === hoje.getDate() &&
-        date.getMonth() === hoje.getMonth() &&
-        date.getFullYear() === hoje.getFullYear()
-      )) {
+      if (ehCelulaHoje(gantt, date, unidade, obterHojeCivil?.())) {
         classes.push("today-cell");
       }
       return classes.join(" ");
     };
 
     gantt.templates.scale_cell_class = (date: Date) => {
-      if (date.getDay() === 0 || date.getDay() === 6) return "weekend";
-      return "";
+      const classes = [];
+      if (date.getDay() === 0 || date.getDay() === 6) classes.push("weekend");
+      const unidade = gantt.config.scales.at(-1)?.unit ?? "day";
+      if (ehCelulaHoje(gantt, date, unidade, obterHojeCivil?.())) {
+        classes.push("today-head");
+      }
+      return classes.join(" ");
     };
 
     gantt.templates.task_class = (_start: Date, _end: Date, rawTask: unknown) => {
@@ -45,7 +55,13 @@ export function configurarTemplatesGantt(
         return "gantt-project-team";
       }
       if ((task.pessoasFaltantes ?? 0) > 0) return "gantt-equipe-incompleta";
-      if (task.statusObra === "Assistencia") {
+      if (task.statusObra === "Separado" || task.statusObra === "Concluido") {
+        return "gantt-material-pronto";
+      }
+      if (task.statusObra === "EmAndamento" || task.statusObra === "NoDeposito") {
+        return "gantt-material-pendente";
+      }
+      if (task.statusObra === "MaterialComprado" || task.statusObra === "Assistencia") {
         return "gantt-material-assistencia";
       }
       if (task.materialPronto === true) {
@@ -63,22 +79,28 @@ export function configurarTemplatesGantt(
       return task.type === "project" ? "gantt-row-project" : "";
     };
 
-    gantt.templates.task_text = (_start: Date, _end: Date, rawTask: unknown) => {
+    gantt.templates.task_text = (start: Date, end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
       if (task.type === "project") {
         return `<strong>${escaparHtml(task.text || "")}</strong>`;
       }
-      const matBadge = task.materialPronto
-        ? `<span class="gantt-bar-badge" role="img" aria-label="Materiais prontos para obra" title="Materiais prontos p/ obra">📦</span>`
-        : "";
-      const homBadge = task.homologacaoOk
-        ? `<span class="gantt-bar-badge" role="img" aria-label="Homologação concluída na concessionária" title="Homologação concluída na concessionária">⚡</span>`
-        : "";
       const rotuloBarra = task.nomeCliente || task.text || "";
-      return `<span>${escaparHtml(rotuloBarra)}</span> ${matBadge} ${homBadge} ${task.equipeRotulo ? `<strong>${escaparHtml(task.equipeRotulo)}</strong>` : ""} ${(task.pessoasFaltantes ?? 0) > 0 ? `<span>Faltam ${escaparHtml(task.pessoasFaltantes ?? 0)}</span>` : ""}`;
+      const dataIni = start instanceof Date ? dataGanttParaCivil(start) : "";
+      const dataFim =
+        task.dataFimInclusiva ??
+        (end instanceof Date ? fimGanttParaCivilInclusivo(end) : "");
+      const iniCurto = dataIni ? formatarDataBR(dataIni).slice(0, 5) : "";
+      const fimCurto = dataFim ? formatarDataBR(dataFim).slice(0, 5) : "";
+      const janelaCurta =
+        iniCurto && fimCurto ? `${iniCurto}–${fimCurto}` : iniCurto || fimCurto;
+      const metaTexto = task.equipeRotulo
+        ? `${task.equipeRotulo}${(task.pessoasFaltantes ?? 0) > 0 ? ` · Faltam ${task.pessoasFaltantes ?? 0}` : ""}`
+        : janelaCurta;
+
+      return `<span class="gantt-bar-main"><span class="gantt-bar-accent" aria-hidden="true"></span><span class="gantt-bar-title">${escaparHtml(rotuloBarra)}</span></span>${metaTexto ? `<span class="gantt-bar-meta">${escaparHtml(metaTexto)}</span>` : ""}`;
     };
 
-    // Tooltip dinâmico com guard para nó de projeto
+    // Tooltip dinâmico no padrão P04 com faixa semântica à esquerda
     gantt.templates.tooltip_text = (start: Date, end: Date, rawTask: unknown) => {
       const task = rawTask as GanttTask;
       const dataIniCivil = dataGanttParaCivil(start);
@@ -88,44 +110,70 @@ export function configurarTemplatesGantt(
       const dataFim = formatarDataBR(dataFimCivil);
 
       if (task.type === "project") {
-        return `<div class="tooltip-title">${escaparHtml(task.text || "")}</div><div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${escaparHtml(dataIni)} — ${escaparHtml(dataFim)}</span></div>`;
+        return `<div class="gantt-tt-card"><div class="gantt-tt-accent is-info" aria-hidden="true"></div><div class="gantt-tt-body"><div class="gantt-tt-head"><span class="gantt-tt-title">${escaparHtml(task.text || "")}</span></div><div class="gantt-tt-meta">${escaparHtml(dataIni)} – ${escaparHtml(dataFim)}</div></div></div>`;
       }
 
-      const matRotulo =
-        task.statusObra === "Assistencia"
-          ? "Peças p/ Manutenção 🔧"
-          : task.materialPronto
-          ? "Separado p/ Obra 📦"
-          : "Em trânsito / depósito";
+      const metaStatus = task.statusObra ? TOOLTIP_STATUS_META[task.statusObra] : undefined;
+      const tone: "success" | "info" | "warning" =
+        metaStatus?.tone ?? (task.materialPronto ? "success" : "info");
+      const matLabel =
+        metaStatus?.mat ??
+        (task.materialPronto ? "Kit Pronto / Separado" : "Em trânsito / depósito");
+      const matTone: "success" | "info" | "warning" =
+        metaStatus?.matTone ?? (task.materialPronto ? "success" : "warning");
 
-      const linhas = [
-        `<div class="tooltip-title">${escaparHtml(task.text || "")}</div>`,
-        `<div class="tooltip-row"><span class="tooltip-label">Equipe:</span> <span class="tooltip-value">${escaparHtml(task.nomeEquipe || "—")}</span></div>`,
-        `<div class="tooltip-row"><span class="tooltip-label">Cliente:</span> <span class="tooltip-value">${escaparHtml(task.nomeCliente || "—")}</span></div>`,
-      ];
+      const tituloTooltip = task.nomeCliente || task.text || "";
+      const dur = task.duracaoDias ?? diasUteisCivis(dataIniCivil, dataFimCivil);
+      const metaPartes = [
+        `${dataIni}–${dataFim}${dur > 0 ? ` (${dur}d)` : ""}`,
+        task.paineis !== undefined ? `${task.paineis} un.` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
-      if (task.paineis !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Painéis:</span> <span class="tooltip-value">${escaparHtml(task.paineis)} un.</span></div>`);
-      }
+      const faltantes = task.pessoasFaltantes ?? 0;
+      const temEquipe = Boolean(task.equipeRotulo || (task.integrantesNomes && task.integrantesNomes.length > 0));
+      const nomesEquipe =
+        task.integrantesNomes && task.integrantesNomes.length > 0
+          ? task.integrantesNomes.join(", ")
+          : "Sem instaladores vinculados";
 
-      linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Período:</span> <span class="tooltip-value">${dataIni} — ${dataFim}</span></div>`);
+      const badgeEquipeHtml =
+        faltantes > 0
+          ? `<span class="gantt-tt-team-status is-warning">Falta ${escaparHtml(faltantes)}</span>`
+          : task.equipeRotulo && !task.equipeRotulo.startsWith("0/")
+          ? `<span class="gantt-tt-team-status is-success">Completa</span>`
+          : "";
 
-      if (task.duracaoDias !== undefined || task.duration !== undefined) {
-        const dur = task.duracaoDias ?? diasUteisCivis(dataIniCivil, dataFimCivil);
-        if (dur > 0) {
-          linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Duração:</span> <span class="tooltip-value">${formatarDiasUteis(dur)}</span></div>`);
-        }
-      }
+      const equipeHtml = temEquipe
+        ? `<div class="gantt-tt-team"><div class="gantt-tt-team-top"><span class="gantt-tt-team-label ${faltantes > 0 ? "is-warning" : ""}">Equipe ${escaparHtml(task.equipeRotulo || "")}</span>${badgeEquipeHtml}</div><p class="gantt-tt-team-names">${escaparHtml(nomesEquipe)}</p></div>`
+        : "";
 
-      if (task.materialPronto !== undefined || task.statusObra !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Materiais:</span> <span class="tooltip-value">${matRotulo}</span></div>`);
-      }
+      const temRodape =
+        task.materialPronto !== undefined ||
+        task.statusObra !== undefined ||
+        task.homologacaoOk !== undefined;
 
-      if (task.homologacaoOk !== undefined) {
-        linhas.push(`<div class="tooltip-row"><span class="tooltip-label">Homologação:</span> <span class="tooltip-value">${task.homologacaoOk ? "Parecer Aprovado ⚡" : "Em análise / pendente"}</span></div>`);
-      }
+      const homTone = task.homologacaoOk ? "success" : "warning";
+      const homLabel = task.homologacaoOk ? "Homolog.: Aprovado" : "Homolog.: Em análise";
 
-      return linhas.join("");
+      const rodapeHtml = temRodape
+        ? `<div class="gantt-tt-foot">${
+            task.materialPronto !== undefined || task.statusObra !== undefined
+              ? `<span class="gantt-tt-foot-item"><span class="gantt-tt-dot is-${matTone}" aria-hidden="true"></span><span class="gantt-tt-foot-text">${escaparHtml(matLabel)}</span></span>`
+              : "<span></span>"
+          }${
+            task.homologacaoOk !== undefined
+              ? `<span class="gantt-tt-foot-item"><span class="gantt-tt-dot is-${homTone}" aria-hidden="true"></span><span>${escaparHtml(homLabel)}</span></span>`
+              : ""
+          }</div>`
+        : "";
+
+      const statusPillHtml = metaStatus
+        ? `<span class="gantt-tt-pill is-${tone}">${escaparHtml(metaStatus.label)}</span>`
+        : "";
+
+      return `<div class="gantt-tt-card"><div class="gantt-tt-accent is-${tone}" aria-hidden="true"></div><div class="gantt-tt-body"><div class="gantt-tt-head"><span class="gantt-tt-title">${escaparHtml(tituloTooltip)}</span>${statusPillHtml}</div><div class="gantt-tt-meta">${escaparHtml(metaPartes)}</div>${equipeHtml}${rodapeHtml}</div></div>`;
     };
 
 }

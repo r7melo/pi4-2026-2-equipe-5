@@ -16,6 +16,7 @@ export interface ObraDetalheKanban {
   dataFimReal?: string | null;
   endereco?: string;
   quantidadePaineis?: number;
+  quantidadeInversores?: number;
   valorTotal?: number;
   categoria?: string;
   observacoes?: string;
@@ -43,6 +44,7 @@ export interface ComentarioItemKanban {
 export interface EditarObraKanbanPayload {
   endereco?: string;
   quantidadePaineis?: number;
+  quantidadeInversores?: number;
   dataFimEstimada?: string;
   descricao?: string;
 }
@@ -50,12 +52,24 @@ export interface EditarObraKanbanPayload {
 export interface EquipeAlocadaResumo {
   id: number;
   nome: string;
+  pessoasPrevistas?: number;
+  pessoasAlocadas?: number;
+  pessoasFaltantes?: number;
+  dataInicio?: string;
+  dataFim?: string;
+  integrantes?: {
+    usuarioId: number;
+    nome: string;
+    dataEntrada: string;
+    dataSaida: string;
+  }[];
 }
 
 export interface DrawerKanbanSlotProps {
   card: ObraKanbanCard;
   isOpen: boolean;
   onClose: () => void;
+  onMoverCard?: (card: ObraKanbanCard, novoStatus: StatusObra) => void;
   renderizarAcoesObra?: (obraId: number) => ReactNode;
 }
 
@@ -63,6 +77,7 @@ export interface KanbanTaskDrawerProps {
   card: ObraKanbanCard | null;
   isOpen: boolean;
   onClose: () => void;
+  onMoverCard?: (card: ObraKanbanCard, novoStatus: StatusObra) => void;
   renderizarAcoesObra?: (obraId: number) => ReactNode;
   detalheObra?: ObraDetalheKanban;
   carregandoDetalhe?: boolean;
@@ -86,6 +101,7 @@ export interface KanbanTaskDrawerProps {
   focoRetorno?: () => HTMLElement | null;
   totalMateriais?: number;
   renderAbaMateriais?: (obraId: number) => ReactNode;
+  renderSecaoEquipe?: (canEdit: boolean) => ReactNode;
 }
 
 export type ComentariosObraProps = Pick<KanbanTaskDrawerProps,

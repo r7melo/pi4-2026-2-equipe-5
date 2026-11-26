@@ -34,8 +34,6 @@ export default memo(function KanbanColumn({
   isDestinoValido,
   isDestinoInvalido,
   mapaMateriais,
-  alocacoesAtivasSet,
-  onExcluirCard,
   isVisivelMobile = true,
   somenteLeitura = false,
 }: KanbanColumnProps) {
@@ -46,7 +44,7 @@ export default memo(function KanbanColumn({
       ref={setNodeRef}
       data-column-id={id}
       className={cn(
-        "flex flex-col bg-muted/90 rounded-xl p-2.5 transition-all border border-border-subtle/80 w-full min-w-[240px]",
+        "flex flex-col bg-surface-subtle rounded-xl p-2 transition-colors border border-border-subtle w-full min-w-[254px]",
         !isVisivelMobile && "hidden md:flex",
         isDestinoValido && "border-success/80 bg-success-light/40 ring-1 ring-success-border",
         isDestinoInvalido && "opacity-45 grayscale-[20%]",
@@ -54,9 +52,9 @@ export default memo(function KanbanColumn({
         isOver && isDestinoInvalido && "bg-destructive-light border-destructive ring-2 ring-destructive/40"
       )}
     >
-      <div className="flex items-center justify-between pb-2 mb-2 border-b border-border-subtle/70">
+      <div className="flex items-center justify-between gap-1.5 px-1 pb-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className={cn(
+          <span aria-hidden="true" className={cn(
             "w-2 h-2 rounded-full shrink-0",
             id === "Assistencia" ? "bg-warning" : "bg-info"
           )} />
@@ -71,7 +69,7 @@ export default memo(function KanbanColumn({
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {headerAction}
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface text-muted-foreground border border-border-subtle shrink-0">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface text-muted-foreground border border-border-subtle tabular-nums shrink-0">
             {cards.length}
           </span>
         </div>
@@ -86,8 +84,6 @@ export default memo(function KanbanColumn({
             onSelect={onSelectCard}
             onMover={onMoverCard}
             materiaisObra={mapaMateriais?.get(Number(card.id))}
-            temAlocacaoAtiva={alocacoesAtivasSet?.has(card.id)}
-            onExcluir={onExcluirCard}
           />
         ))}
 

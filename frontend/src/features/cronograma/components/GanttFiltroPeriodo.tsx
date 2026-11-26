@@ -1,5 +1,7 @@
-import { useId, useRef } from "react";
+import { useId, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { DateInputBR } from "@/shared/components/ui/DateInputBR";
+import { dataBRParaIso, isoParaDataBR } from "@/shared/lib/datasBrasileiras";
 
 export interface GanttFiltroPeriodoProps {
   dataInicial?: string;
@@ -22,11 +24,26 @@ export function GanttFiltroPeriodo({
   const idInicio = `${idBase}-inicio`;
   const idFim = `${idBase}-fim`;
   const dataInicialRef = useRef<HTMLInputElement>(null);
-  const temFiltroData = Boolean(dataInicial || dataFinal);
+
+  const [prevInicio, setPrevInicio] = useState(dataInicial);
+  const [textoInicio, setTextoInicio] = useState(() => isoParaDataBR(dataInicial));
+  if (prevInicio !== dataInicial) {
+    setPrevInicio(dataInicial);
+    setTextoInicio(isoParaDataBR(dataInicial));
+  }
+
+  const [prevFim, setPrevFim] = useState(dataFinal);
+  const [textoFim, setTextoFim] = useState(() => isoParaDataBR(dataFinal));
+  if (prevFim !== dataFinal) {
+    setPrevFim(dataFinal);
+    setTextoFim(isoParaDataBR(dataFinal));
+  }
+
+  const temFiltroData = Boolean(dataInicial || dataFinal || textoInicio || textoFim);
   const containerClassName =
     variante === "kpi"
-      ? "flex items-center gap-1 bg-surface-subtle border border-border-subtle rounded-md px-2 py-1 text-xs"
-      : "flex items-center gap-1 bg-surface border border-border-subtle rounded-md px-2 py-1 text-xs shrink-0";
+      ? "flex items-center gap-1 h-7 bg-surface-subtle border border-border-subtle rounded-md px-2 text-xs"
+      : "flex items-center gap-1 h-7 bg-surface border border-border-subtle rounded-md px-2 text-xs shrink-0";
 
   return (
     <div role="group" aria-label="Filtro de período" className={containerClassName}>
@@ -36,35 +53,53 @@ export function GanttFiltroPeriodo({
       >
         De:<span className="sr-only left-0 top-0"> Data inicial do filtro</span>
       </label>
-      <input
+      <DateInputBR
         ref={dataInicialRef}
         id={idInicio}
-        type="date"
-        value={dataInicial}
-        onChange={(e) => onDataInicialChange(e.target.value)}
-        className="border-none bg-transparent p-0 text-xs text-foreground-muted cursor-pointer w-24 sm:w-28"
+        valor={textoInicio}
+        onChange={(mascarado) => {
+          setTextoInicio(mascarado);
+          if (!mascarado.trim()) {
+            onDataInicialChange("");
+          } else if (mascarado.length === 10) {
+            const iso = dataBRParaIso(mascarado);
+            if (iso) onDataInicialChange(iso);
+          }
+        }}
+        tamanho="xs"
+        className="border-none bg-transparent focus:bg-transparent p-0 text-[11px] w-[74px]"
       />
       <label
         htmlFor={idFim}
-        className="relative text-muted-foreground font-medium text-[11px] ml-1 cursor-pointer"
+        className="relative text-muted-foreground font-medium text-[11px] ml-0.5 cursor-pointer"
       >
         Até:<span className="sr-only left-0 top-0"> Data final do filtro</span>
       </label>
-      <input
+      <DateInputBR
         id={idFim}
-        type="date"
-        value={dataFinal}
-        onChange={(e) => onDataFinalChange(e.target.value)}
-        className="border-none bg-transparent p-0 text-xs text-foreground-muted cursor-pointer w-24 sm:w-28"
+        valor={textoFim}
+        onChange={(mascarado) => {
+          setTextoFim(mascarado);
+          if (!mascarado.trim()) {
+            onDataFinalChange("");
+          } else if (mascarado.length === 10) {
+            const iso = dataBRParaIso(mascarado);
+            if (iso) onDataFinalChange(iso);
+          }
+        }}
+        tamanho="xs"
+        className="border-none bg-transparent focus:bg-transparent p-0 text-[11px] w-[74px]"
       />
       {temFiltroData && onLimpar && (
         <button
           type="button"
           onClick={() => {
+            setTextoInicio("");
+            setTextoFim("");
             dataInicialRef.current?.focus();
             onLimpar();
           }}
-          className="text-subtle-foreground hover:text-destructive p-0.5 transition-colors cursor-pointer inline-flex items-center justify-center"
+          className="controle-compacto text-subtle-foreground hover:text-destructive p-0.5 transition-colors cursor-pointer inline-flex items-center justify-center"
           aria-label="Limpar filtro de período"
           title="Limpar filtro de período"
         >

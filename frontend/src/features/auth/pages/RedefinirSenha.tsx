@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiErro } from "@/shared/api/api";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { Button } from "@/shared/components/ui/Button";
 import { destinoInicialSeguro } from "@/shared/lib/rotasSessao";
 import { PaginaAcesso } from "../components/PaginaAcesso";
@@ -49,12 +50,14 @@ function Redefinicao({ token, geracao }: { token: string; geracao: number }) {
     <PaginaAcesso titulo="Redefinir senha" subtitulo="Defina uma nova senha segura para sua conta.">
       {invalido ? (
         <div className="space-y-4">
-          <div role="alert" className="rounded-lg border border-warning-border bg-warning-light px-3.5 py-3 text-xs text-foreground-secondary leading-relaxed space-y-1">
-            <strong className="block text-sm font-semibold text-warning">
-              {token.trim() ? "Link inválido ou expirado" : "Link inválido ou não fornecido"}
-            </strong>
-            <span>Este link já foi utilizado ou expirou. Solicite um novo link para continuar.</span>
-          </div>
+          <AlertBanner
+            variante="warning"
+            titulo={token.trim() ? "Link inválido ou expirado" : "Link inválido ou não fornecido"}
+          >
+            <span className="text-foreground-secondary">
+              Este link já foi utilizado ou expirou. Solicite um novo link para continuar.
+            </span>
+          </AlertBanner>
           <Link
             to="/esqueci-senha"
             className="w-full h-11 flex items-center justify-center rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground font-medium text-sm px-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -64,13 +67,13 @@ function Redefinicao({ token, geracao }: { token: string; geracao: number }) {
         </div>
       ) : concluida ? (
         <div className="space-y-4">
-          <p role="status" className="rounded-lg border border-success-border bg-success-light px-3.5 py-3 text-xs leading-relaxed font-medium text-success">
+          <AlertBanner variante="success" className="font-medium">
             Senha redefinida com sucesso
-          </p>
+          </AlertBanner>
           {erro && (
-            <p role="alert" className="rounded-lg bg-destructive-light border border-destructive-border px-3.5 py-3 text-xs leading-relaxed text-destructive">
+            <AlertBanner variante="destructive">
               {erro}
-            </p>
+            </AlertBanner>
           )}
           <div className="flex flex-wrap gap-3">
             {verificada ? (
@@ -122,9 +125,9 @@ function Redefinicao({ token, geracao }: { token: string; geracao: number }) {
         >
           <CamposNovaSenha validar={tentouEnviar} nova={nova} confirmar={confirmar} onNova={setNova} onConfirmar={setConfirmar} disabled={operacao.pendente} />
           {erro && (
-            <p role="alert" className="rounded-lg bg-destructive-light border border-destructive-border px-3.5 py-3 text-xs leading-relaxed text-destructive">
+            <AlertBanner variante="destructive">
               {erro}
-            </p>
+            </AlertBanner>
           )}
           <Button className="h-11 w-full" type="submit" disabled={operacao.pendente}>
             {operacao.pendente ? "Redefinindo..." : "Redefinir senha"}

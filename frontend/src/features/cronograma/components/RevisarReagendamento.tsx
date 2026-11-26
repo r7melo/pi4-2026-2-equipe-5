@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { ConfirmDialog } from '@/shared/components/feedback/ConfirmDialog';
 import { projetarReordenacao } from '@/shared/lib/reordenarProgramacoes';
 import { temVinculosParciais } from '@/shared/lib/equipeTemporal';
+import { formatarDataBR } from '@/shared/lib/formatters';
 import type { Programacao } from '@/shared/types/programacoes';
 import { FormularioReagendamento } from './drawer/FormularioReagendamento';
 import type { FormularioReagendamentoProps } from '../types/gavetaGantt';
@@ -28,7 +29,7 @@ export function RevisarReagendamento({ programacoes, ...props }: FormularioReage
         const atual = revisao; setRevisao(null);
         void Promise.resolve(props.onReagendar?.(props.tarefaId, atual.inicio) ?? null).then(atual.resolver, () => atual.resolver(false));
       }} conteudo={<div className="w-full space-y-3 text-sm text-left">
-        {projecao?.alteradas.map(p => <div key={p.id}><strong>Obra {p.obraId}</strong>{p.equipe?.integrantes.map(i => <p key={i.usuarioId}>{i.nome}: {i.dataEntrada} a {i.dataSaida}</p>)}</div>)}
+        {projecao?.alteradas.map(p => <div key={p.id}><strong>Obra {p.obraId}</strong>{p.equipe?.integrantes.map(i => <p key={i.usuarioId}>{i.nome}: {formatarDataBR(i.dataEntrada)} a {formatarDataBR(i.dataSaida)}</p>)}</div>)}
         <div className="flex items-center gap-2 min-h-12"><input id={id} name="revisaoParciais" type="checkbox" checked={confirmado} onChange={e => setAceite(e.target.checked ? assinatura : null)} /><label htmlFor={id}>Revisei as datas de participação</label></div>
       </div>} />
   </>;

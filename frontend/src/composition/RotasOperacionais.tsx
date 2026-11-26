@@ -21,6 +21,7 @@ import {
 import { useMateriais } from "@/features/materiais/hooks/useMateriais";
 import { useMateriaisObras } from "@/features/materiais/hooks/useMateriaisObras";
 import { PainelMateriaisObra } from "@/features/materiais/components/PainelMateriaisObra";
+import { PainelEquipeTemporal } from "@/features/cronograma/components/PainelEquipeTemporal";
 import KanbanTaskDrawer from "@/features/kanban/components/KanbanTaskDrawer";
 import { obterHojeLocalISO } from "@/features/kanban/components/kanbanUtils";
 import type {
@@ -43,6 +44,7 @@ function KanbanDrawerConcreto({
   obras,
   isOpen,
   onClose,
+  onMoverCard,
   renderizarAcoesObra,
 }: DrawerKanbanSlotProps & { obras: ObraKanbanCard[] }) {
   const cardEfetivo = useMemo(() => {
@@ -75,7 +77,21 @@ function KanbanDrawerConcreto({
 
   const equipeAlocada: EquipeAlocadaResumo | null = useMemo(() => {
     if (!alocacao?.equipe) return null;
-    return { id: alocacao.id, nome: `${alocacao.equipe.integrantes.length}/${alocacao.equipe.pessoasPrevistas} pessoas vinculadas` };
+    const integrantes = alocacao.equipe.integrantes;
+    const pessoasPrevistas = alocacao.equipe.pessoasPrevistas;
+    const pessoasAlocadas = alocacao.equipe.pessoasAlocadas ?? integrantes.length;
+    const pessoasFaltantes =
+      alocacao.equipe.pessoasFaltantes ?? Math.max(0, pessoasPrevistas - pessoasAlocadas);
+    return {
+      id: alocacao.id,
+      nome: `${pessoasAlocadas}/${pessoasPrevistas} pessoas vinculadas`,
+      pessoasPrevistas,
+      pessoasAlocadas,
+      pessoasFaltantes,
+      dataInicio: alocacao.dataInicio,
+      dataFim: alocacao.dataFim,
+      integrantes,
+    };
   }, [alocacao]);
 
   const temAlocacaoAtiva = useMemo(() => {
@@ -100,6 +116,7 @@ function KanbanDrawerConcreto({
       dataFimReal: detalhe.dataFimReal,
       endereco: detalhe.endereco ?? cardEfetivo?.endereco,
       quantidadePaineis: detalhe.quantidadePaineis ?? cardEfetivo?.quantidadePaineis,
+      quantidadeInversores: detalhe.quantidadeInversores,
       valorTotal: detalhe.valorObra,
       categoria: detalhe.categoria ?? cardEfetivo?.categoria,
       observacoes: detalhe.descricao ?? cardEfetivo?.observacoes ?? "",
@@ -138,6 +155,7 @@ function KanbanDrawerConcreto({
         payload: {
           endereco: payload.endereco,
           quantidadePaineis: payload.quantidadePaineis,
+          quantidadeInversores: payload.quantidadeInversores,
           dataFimEstimada: payload.dataFimEstimada,
           descricao: payload.descricao,
         },
@@ -172,6 +190,18 @@ function KanbanDrawerConcreto({
     [podeGerenciarMateriais, podeAlterarStatusDrawer]
   );
 
+  const renderSecaoEquipe = useCallback(
+    (canEdit: boolean) => (
+      <PainelEquipeTemporal
+        key={alocacao ? `${alocacao.id}-${alocacao.dataInicio}-${alocacao.dataFim}` : "sem-prog"}
+        programacao={alocacao}
+        canEdit={canEdit}
+        variante="kanban"
+      />
+    ),
+    [alocacao]
+  );
+
   const focoRetorno = useCallback(() => {
     if (obraId > 0) {
       const cardEl = document.querySelector<HTMLElement>(`[data-card-id="${obraId}"]`);
@@ -185,6 +215,7 @@ function KanbanDrawerConcreto({
       card={cardEfetivo}
       isOpen={isOpen}
       onClose={onClose}
+      onMoverCard={onMoverCard}
       renderizarAcoesObra={renderizarAcoesObra}
       detalheObra={detalheMapeado}
       carregandoDetalhe={loadingDetalhe}
@@ -208,6 +239,7 @@ function KanbanDrawerConcreto({
       focoRetorno={focoRetorno}
       totalMateriais={materiaisDrawer?.length ?? 0}
       renderAbaMateriais={renderAbaMateriais}
+      renderSecaoEquipe={renderSecaoEquipe}
     />
   );
 }

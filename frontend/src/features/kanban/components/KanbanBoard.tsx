@@ -263,6 +263,19 @@ export default function KanbanBoard({
     [moverCardMutation, restaurarEstadoOficial, somenteLeitura, podeInteragir, epochRender]
   );
 
+  // Mover card acionado pela Gaveta da Obra (sem puxar o foco para o quadro atras do modal)
+  const handleMoverCardNaGaveta = useCallback(
+    (card: ObraKanbanCard, novoStatus: StatusObra) => {
+      if (!montadoRef.current || somenteLeitura || !podeInteragir(epochRender)) return;
+      if (novoStatus === "Concluido") {
+        setObraParaConcluir(card);
+        return;
+      }
+      executarMudancaStatus(card, novoStatus);
+    },
+    [executarMudancaStatus, somenteLeitura, podeInteragir, epochRender]
+  );
+
   // Mover card acionado via menu acessível "Mover para..." (UX-09)
   const handleMoverCard = useCallback(
     (card: ObraKanbanCard, novoStatus: StatusObra) => {
@@ -345,6 +358,8 @@ export default function KanbanBoard({
     }
   };
 
+  const RenderDrawer = renderDrawer;
+
   return (
     <DndContext
       key={epochRender}
@@ -356,23 +371,36 @@ export default function KanbanBoard({
     >
       <div className="w-full space-y-4">
         {erroMateriais && <FeedbackErro mensagem="Não foi possível carregar os materiais de algumas obras." onTentarNovamente={() => onRecarregarMateriais?.()} />}
-        {/* Seletor de Colunas para Telas Mobile (RNF-01 / UX-09) */}
-        <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-2 mb-2 custom-scrollbar">
-          {COLUNAS_KANBAN.map((col) => (
-            <button
-              key={col.id}
-              type="button"
-              onClick={() => setColunaMobileAtiva(col.id)}
-              className={cn(
-                "px-2.5 py-1 text-xs font-semibold rounded-lg shrink-0 transition-colors cursor-pointer",
-                colunaMobileAtiva === col.id
-                  ? "bg-info text-primary-foreground font-bold shadow-xs"
-                  : "bg-muted text-foreground-muted hover:bg-border-subtle"
-              )}
-            >
-              {col.label}
-            </button>
-          ))}
+        {/* Seletor de Colunas para Telas Mobile */}
+        <div className="flex md:hidden items-center gap-1.5 overflow-x-auto pb-2 custom-scrollbar">
+          {COLUNAS_KANBAN.map((col) => {
+            const ativo = colunaMobileAtiva === col.id;
+            const totalColuna = (itensColunas[col.id] || []).length;
+            return (
+              <button
+                key={col.id}
+                type="button"
+                aria-pressed={ativo}
+                onClick={() => setColunaMobileAtiva(col.id)}
+                className={cn(
+                  "h-7 px-2.5 controle-compacto text-xs font-medium rounded-lg shrink-0 inline-flex items-center gap-1.5 transition-colors cursor-pointer",
+                  ativo
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-surface text-foreground-muted border border-border-subtle hover:bg-muted"
+                )}
+              >
+                <span>{col.label}</span>
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold px-1.5 rounded-full tabular-nums",
+                    ativo ? "bg-surface/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {totalColuna}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* As 6 Colunas Operacionais Verticais com Grid Responsivo */}
@@ -428,13 +456,14 @@ export default function KanbanBoard({
 
       {!somenteLeitura && (
         <>
-          {renderDrawer && drawerCard ? (
-            renderDrawer({
-              card: drawerCard,
-              isOpen: Boolean(drawerCard),
-              onClose: handleFecharDrawer,
-              renderizarAcoesObra,
-            })
+          {RenderDrawer && drawerCard ? (
+            <RenderDrawer
+              card={drawerCard}
+              isOpen={Boolean(drawerCard)}
+              onClose={handleFecharDrawer}
+              onMoverCard={handleMoverCardNaGaveta}
+              renderizarAcoesObra={renderizarAcoesObra}
+            />
           ) : null}
           <ModalConfirmarConclusao obra={obraParaConcluir} isOpen={Boolean(obraParaConcluir)}
             onClose={handleCancelarConclusao} onConfirmar={handleConfirmarConclusao}

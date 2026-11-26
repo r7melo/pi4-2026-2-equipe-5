@@ -32,6 +32,7 @@ import DashboardLayout from "@/shared/layouts/DashboardLayout";
 import { useThemeStore, aplicarTemaNoDOM } from "@/shared/stores/useThemeStore";
 import SessionLifecycleSentinel from "@/features/auth/components/SessionLifecycleSentinel";
 import { ApiModeSwitcher } from "@/shared/components/dev/ApiModeSwitcher";
+import { RastreadorHistoricoNavegacao } from "@/shared/hooks/useVoltarSeguro";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,7 @@ function App({ ambiente: Ambiente = Fragment }: AplicacaoProps) {
       <ReloadPrompt />
       <BrowserRouter>
         <MetadadosRota />
+        <RastreadorHistoricoNavegacao />
         <Ambiente>
         <SessionLifecycleSentinel />
         <Routes>

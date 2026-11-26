@@ -1,8 +1,13 @@
 // Financeiro — DRE (Demonstrativo de Resultado do Exercício) e Gestão de Custos por Obra
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
+import { Badge, type BadgeVariante } from "@/shared/components/ui/Badge";
 import { Button } from "@/shared/components/ui/Button";
+import { ComboboxPesquisavel } from "@/shared/components/ui/ComboboxPesquisavel";
+import { SearchInput } from "@/shared/components/ui/SearchInput";
+import { COLUNAS_KANBAN } from "@/shared/constants/kanbanStatus";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
@@ -31,25 +36,50 @@ import {
   TrendingDown,
   DollarSign,
   BarChart3,
-  Search,
   ExternalLink,
   PlusCircle,
   FileText,
   AlertTriangle,
-  Building2,
   HardHat,
   Package,
 } from "lucide-react";
 
+function rotuloStatusObra(status: string): string {
+  return COLUNAS_KANBAN.find((c) => c.id === status)?.label ?? status;
+}
+
+function varianteStatusObra(status: string): BadgeVariante {
+  switch (status) {
+    case "MaterialComprado":
+      return "warning";
+    case "NoDeposito":
+      return "neutral";
+    case "Separado":
+      return "accent";
+    case "EmAndamento":
+      return "info";
+    case "Concluido":
+      return "success";
+    case "Assistencia":
+      return "destructive";
+    default:
+      return "neutral";
+  }
+}
+
 interface PainelDREProps {
   obraId: number;
   clienteNome: string;
+  categoria?: string;
+  cidade?: string;
   statusObra: string;
 }
 
 interface PainelDREConteudoProps {
   obraId: number;
   clienteNome: string;
+  categoria?: string;
+  cidade?: string;
   statusObra: string;
   podeGerenciarCustos: boolean;
   apuracao: ApuracaoDrePainel;
@@ -63,6 +93,8 @@ const BALANCO_VAZIO: BalancoMaterial[] = [];
 function PainelDREConteudo({
   obraId,
   clienteNome,
+  categoria,
+  cidade,
   statusObra,
   podeGerenciarCustos,
   apuracao,
@@ -77,25 +109,29 @@ function PainelDREConteudo({
   const textoCusto = (valor: number) => (valor > 0 ? `-${formatarMoeda(valor)}` : formatarMoeda(0));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Barra de ações superior */}
-      <div className="bg-surface rounded-xl border border-border-subtle p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-foreground-muted" /> {clienteNome}
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Obra #{obraId} • Situação: <strong className="text-foreground">{statusObra}</strong>
+      <div className="bg-surface rounded-xl border border-border-subtle p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <h2 className="text-sm font-bold text-foreground truncate">{clienteNome}</h2>
+            <Badge variante={varianteStatusObra(statusObra)} tamanho="xs" comBorda>
+              {rotuloStatusObra(statusObra)}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {categoria || "Residencial"}
+            {cidade ? ` · ${cidade}` : ""}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto shrink-0">
           {podeGerenciarCustos && (
             <Button
               onClick={() => setModalAberto(true)}
-              className="flex items-center gap-2 text-xs"
+              className="flex-1 sm:flex-none justify-center h-8 px-3 flex items-center gap-1.5 text-xs font-medium cursor-pointer whitespace-nowrap"
             >
-              <PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-3.5 h-3.5 shrink-0" />
               Lançar / Atualizar Custos
             </Button>
           )}
@@ -107,10 +143,10 @@ function PainelDREConteudo({
                 state: { from: "/financeiro", selectedObraId: obraId },
               })
             }
-            className="flex items-center gap-2 text-xs"
+            className="flex-1 sm:flex-none justify-center h-8 px-3 flex items-center gap-1.5 text-xs font-medium cursor-pointer whitespace-nowrap"
             title="Ir para página detalhada da obra"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
             Ver Obra
           </Button>
         </div>
@@ -118,16 +154,15 @@ function PainelDREConteudo({
 
       {/* Banner de aviso parcial quando obra em execução, precificação incompleta ou pendente de apuração oficial */}
       {bannerParcial && (
-        <div
+        <AlertBanner
+          variante="warning"
           role="status"
-          className="p-4 rounded-xl bg-warning-light border border-warning-border text-warning flex items-start gap-3"
+          icone={<AlertTriangle className="w-5 h-5" />}
+          titulo={bannerParcial.titulo}
+          className="rounded-xl p-4"
         >
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-warning" />
-          <div className="text-xs space-y-1">
-            <p className="font-semibold text-sm">{bannerParcial.titulo}</p>
-            <p>{bannerParcial.descricao}</p>
-          </div>
-        </div>
+          {bannerParcial.descricao}
+        </AlertBanner>
       )}
 
       {/* Cards de Resumo Executivo */}
@@ -137,7 +172,7 @@ function PainelDREConteudo({
             <p className="text-xs font-semibold text-muted-foreground">Valor da Obra (Receita)</p>
             <DollarSign className="w-4 h-4 text-muted-foreground" />
           </div>
-          <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
+          <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
             {formatarMoeda(apuracao.valorObra)}
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">
@@ -150,7 +185,7 @@ function PainelDREConteudo({
             <p className="text-xs font-semibold text-muted-foreground">Custo Total Apurado</p>
             <TrendingDown className="w-4 h-4 text-destructive" />
           </div>
-          <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
+          <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
             {formatarMoeda(apuracao.custoTotal)}
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">
@@ -174,14 +209,14 @@ function PainelDREConteudo({
             />
           </div>
           <p
-            className={`text-2xl font-bold font-mono tracking-tight ${
+            className={`text-2xl font-bold font-mono tracking-tight tabular-nums ${
               positivo ? "text-success" : "text-destructive"
             }`}
           >
             {formatarMoeda(apuracao.resultado)}
           </p>
           <p
-            className={`text-xs mt-1 font-semibold ${
+            className={`text-xs mt-1 font-semibold tabular-nums ${
               positivo ? "text-success" : "text-destructive"
             }`}
           >
@@ -205,7 +240,7 @@ function PainelDREConteudo({
         <div className="divide-y divide-border-subtle text-sm">
           <div className="px-5 py-3.5 flex items-center justify-between">
             <span className="text-foreground-secondary font-medium">Valor da Obra (Receita Bruta)</span>
-            <span className="font-mono font-bold text-foreground">
+            <span className="font-mono font-bold tabular-nums text-foreground">
               {formatarMoeda(apuracao.valorObra)}
             </span>
           </div>
@@ -214,7 +249,7 @@ function PainelDREConteudo({
               <HardHat className="w-4 h-4 text-muted-foreground" />
               <span className="text-foreground-secondary">(-) Custo de Mão de Obra e Instalação</span>
             </div>
-            <span className="font-mono font-medium text-destructive">
+            <span className="font-mono font-medium tabular-nums text-destructive">
               {textoCusto(apuracao.custoMaoObra)}
             </span>
           </div>
@@ -223,19 +258,19 @@ function PainelDREConteudo({
               <Package className="w-4 h-4 text-muted-foreground" />
               <span className="text-foreground-secondary">(-) Custo de Insumos e Materiais</span>
             </div>
-            <span className="font-mono font-medium text-destructive">
+            <span className="font-mono font-medium tabular-nums text-destructive">
               {textoCusto(apuracao.custoInsumos)}
             </span>
           </div>
           <div className="px-5 py-3.5 flex items-center justify-between bg-surface-subtle/30 font-medium">
             <span className="text-foreground-muted">(=) Custo Total Apurado</span>
-            <span className="font-mono text-destructive">
+            <span className="font-mono tabular-nums text-destructive">
               {textoCusto(apuracao.custoTotal)}
             </span>
           </div>
           <div className="px-5 py-4 flex items-center justify-between bg-surface-subtle/50 font-bold border-t border-border-subtle">
             <span className="text-foreground">(=) Resultado da Obra (Valor da Obra − Custo Total)</span>
-            <span className={`font-mono text-base ${positivo ? "text-success" : "text-destructive"}`}>
+            <span className={`font-mono text-base tabular-nums ${positivo ? "text-success" : "text-destructive"}`}>
               {formatarMoeda(apuracao.resultado)}
             </span>
           </div>
@@ -318,7 +353,7 @@ function PainelDREConteudo({
   );
 }
 
-function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
+function PainelDRE({ obraId, clienteNome, categoria, cidade, statusObra }: PainelDREProps) {
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const podeGerenciarCustos = perfil === "Financeiro";
 
@@ -373,6 +408,8 @@ function PainelDRE({ obraId, clienteNome, statusObra }: PainelDREProps) {
       key={podeGerenciarCustos ? "editavel" : "leitura"}
       obraId={obraId}
       clienteNome={clienteNome}
+      categoria={categoria}
+      cidade={cidade}
       statusObra={statusObra}
       podeGerenciarCustos={podeGerenciarCustos}
       apuracao={apuracao}
@@ -399,6 +436,20 @@ export default function Financeiro() {
   const stateObraId = (location.state as { selectedObraId?: number } | null)?.selectedObraId ?? null;
   const [obraIdSelecionadaState, setObraIdSelecionada] = useState<number | null>(stateObraId);
   const [busca, setBusca] = useState("");
+  const [desktop, setDesktop] = useState(() =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(min-width: 768px)").matches
+      : true
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(min-width: 768px)");
+    const atualizar = () => setDesktop(media.matches);
+    atualizar();
+    media.addEventListener("change", atualizar);
+    return () => media.removeEventListener("change", atualizar);
+  }, []);
 
   const primeiroObraId = listaObras?.itens?.[0]?.id ?? null;
   const obraIdSelecionada = obraIdSelecionadaState ?? primeiroObraId;
@@ -411,7 +462,7 @@ export default function Financeiro() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-background-app">
-      <PageHeader title="Financeiro" subtitle="DRE e apuração de custos por obra" />
+      <PageHeader title="Financeiro" />
 
       {/* Tratamento dos 4 estados da listagem de obras */}
       {loadingObras ? (
@@ -437,81 +488,114 @@ export default function Financeiro() {
           }
         />
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col md:flex-row">
-          {/* Painel lateral: lista de obras */}
-          <div className="w-full md:w-80 shrink-0 border-r border-border-subtle bg-surface flex flex-col overflow-hidden">
-            <div className="p-3 border-b border-border-subtle">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  aria-label="Buscar obra por cliente"
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+          {desktop ? (
+            /* Painel lateral desktop: lista de obras */
+            <div className="w-72 shrink-0 border-r border-border-subtle bg-surface flex flex-col overflow-hidden">
+              <div className="p-3 border-b border-border-subtle">
+                <SearchInput
+                  valor={busca}
+                  onChange={setBusca}
                   placeholder="Buscar obra por cliente..."
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  className="w-full text-xs bg-surface-subtle border border-border-subtle rounded-lg pl-9 pr-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  ariaLabel="Buscar obra por cliente"
+                  tamanho="sm"
                 />
               </div>
-            </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-border-subtle">
-              {obrasFiltradas.length === 0 ? (
-                <div className="p-6 text-center text-xs text-muted-foreground">
-                  Nenhuma obra corresponde à busca.
-                </div>
-              ) : (
-                obrasFiltradas.map((obra) => {
-                  const ativa = obra.id === obraIdSelecionada;
-                  return (
-                    <button
-                      key={obra.id}
-                      onClick={() => setObraIdSelecionada(obra.id)}
-                      className={`w-full text-left p-3.5 transition-colors flex flex-col gap-1 cursor-pointer ${
-                        ativa
-                          ? "bg-muted font-semibold border-l-4 border-primary"
-                          : "hover:bg-surface-subtle"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-foreground truncate max-w-[170px]">
-                          {obra.clienteNome}
-                        </span>
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                            obra.status === "Concluido"
-                              ? "bg-success-light text-success border border-success-border"
-                              : "bg-surface-subtle text-foreground-muted border border-border-subtle"
-                          }`}
-                        >
-                          {obra.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>#{obra.id}</span>
-                        <span>{obra.quantidadePaineis ?? 0} módulos</span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
+              <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-border-subtle">
+                {obrasFiltradas.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-muted-foreground">
+                    Nenhuma obra corresponde à busca.
+                  </div>
+                ) : (
+                  obrasFiltradas.map((obra) => {
+                    const ativa = obra.id === obraIdSelecionada;
+                    return (
+                      <button
+                        key={obra.id}
+                        type="button"
+                        onClick={() => setObraIdSelecionada(obra.id)}
+                        className={`w-full text-left p-3.5 transition-colors flex flex-col gap-1 cursor-pointer ${
+                          ativa
+                            ? "bg-surface-subtle font-semibold border-l-2 border-l-primary"
+                            : "hover:bg-surface-subtle"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-foreground truncate">
+                            {obra.clienteNome}
+                          </span>
+                          <Badge
+                            variante={varianteStatusObra(obra.status)}
+                            tamanho="xs"
+                            comBorda
+                            className="shrink-0 font-medium"
+                          >
+                            {rotuloStatusObra(obra.status)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                          <span className="truncate">
+                            {obra.categoria || "Residencial"}
+                            {obra.cidade ? ` · ${obra.cidade}` : ""}
+                          </span>
+                          <span className="tabular-nums shrink-0">
+                            {obra.quantidadePaineis ?? 0} painéis
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Barra compacta mobile: evita empilhar todas as obras acima do DRE */
+            <div className="p-3 border-b border-border-subtle bg-surface shrink-0">
+              <ComboboxPesquisavel
+                key={obraAtual?.id ?? "vazio"}
+                compacto
+                ariaLabel="Selecionar obra"
+                listboxAriaLabel="Obras no módulo financeiro"
+                placeholder="Selecionar ou buscar obra..."
+                opcoes={(listaObras.itens || []).map((obra) => ({
+                  valor: String(obra.id),
+                  rotulo: obra.clienteNome,
+                  subtitulo: `${obra.categoria || "Residencial"}${obra.cidade ? ` · ${obra.cidade}` : ""} · ${obra.quantidadePaineis ?? 0} painéis`,
+                  badge: rotuloStatusObra(obra.status),
+                  badgeVariante:
+                    obra.status === "Concluido"
+                      ? "success"
+                      : obra.status === "EmAndamento"
+                        ? "warning"
+                        : "muted",
+                }))}
+                valorSelecionado={obraIdSelecionada ? String(obraIdSelecionada) : ""}
+                textoInicial={obraAtual?.clienteNome ?? ""}
+                onSelecionar={(valor) => {
+                  if (valor) setObraIdSelecionada(Number(valor));
+                }}
+              />
+            </div>
+          )}
 
           {/* Área principal: Painel DRE da obra selecionada */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-            <div className="max-w-4xl mx-auto">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
+            <div className="max-w-5xl mx-auto">
               {obraAtual ? (
                 <PainelDRE
                   key={`${obraAtual.id}-${sessaoAtual}`}
                   obraId={obraAtual.id}
                   clienteNome={obraAtual.clienteNome}
+                  categoria={obraAtual.categoria}
+                  cidade={obraAtual.cidade}
                   statusObra={obraAtual.status}
                 />
               ) : (
                 <EmptyState
                   icone={FileText}
                   titulo="Selecione uma obra"
-                  descricao="Escolha uma obra na lista lateral para visualizar sua demonstração de resultado."
+                  descricao="Escolha uma obra para visualizar sua demonstração de resultado."
                 />
               )}
             </div>

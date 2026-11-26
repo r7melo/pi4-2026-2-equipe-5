@@ -16,6 +16,7 @@ export function transformarTarefasGantt({ programacoesVisiveis, obras, homologac
       nomeEquipe: p.equipe ? `${p.equipe.integrantes.length}/${p.equipe.pessoasPrevistas} pessoas vinculadas` : 'Equipe não informada',
       equipeRotulo: p.equipe ? `${p.equipe.integrantes.length}/${p.equipe.pessoasPrevistas}` : undefined,
       pessoasFaltantes: resumo?.faltantes,
+      integrantesNomes: p.equipe?.integrantes.map(i => i.nome) ?? [],
       nomeCliente: obra?.clienteNome, paineis: obra?.quantidadePaineis,
       duracaoDias: diasUteisCivis(p.dataInicio, p.dataFim), statusObra: obra?.status,
       materialPronto: materialEstaPronto(obra?.status), homologacaoOk: homologacoesMap?.[p.obraId]?.parecerAcesso === 'Aprovado',

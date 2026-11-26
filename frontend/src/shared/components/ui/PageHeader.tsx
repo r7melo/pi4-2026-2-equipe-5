@@ -1,10 +1,10 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { SidebarTrigger } from "@/shared/layouts/Sidebar";
 import { Button } from "@/shared/components/ui/Button";
 import { useHeaderPortal } from "@/shared/contexts/HeaderPortalContext";
+import { useVoltarSeguro } from "@/shared/hooks/useVoltarSeguro";
 
 export interface PageHeaderProps {
   title: string;
@@ -29,9 +29,9 @@ export function PageHeader({
   children,
   extraRow,
   ocultarMenuLateral = false,
-  voltarCompacto = false,
+  voltarCompacto: _voltarCompacto = false,
 }: PageHeaderProps) {
-  const navigate = useNavigate();
+  const voltarSeguro = useVoltarSeguro(backTo, { backState });
   const contextNode = useHeaderPortal();
   const targetNode =
     contextNode ||
@@ -47,19 +47,18 @@ export function PageHeader({
           <Button
             type="button"
             variant="outline"
-            size={voltarCompacto ? "sm" : "md"}
             onClick={() => {
               if (onBack) {
                 onBack();
               } else if (backTo) {
-                void navigate(backTo, { state: backState });
+                voltarSeguro();
               }
             }}
-            className="shrink-0 cursor-pointer h-8 py-0 px-2.5 gap-1.5 rounded-lg border-border-subtle bg-surface-subtle text-xs font-medium text-foreground-muted hover:text-foreground hover:border-border-strong"
-            title="Voltar" aria-label="Voltar"
+            className="shrink-0 cursor-pointer w-8 h-8 p-0 inline-flex items-center justify-center rounded-lg border-border-subtle bg-surface-subtle text-foreground-muted hover:text-foreground hover:border-border-strong"
+            title="Voltar"
+            aria-label="Voltar"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            <span className="hidden md:inline">Voltar</span>
           </Button>
         )}
         <div className="min-w-0">

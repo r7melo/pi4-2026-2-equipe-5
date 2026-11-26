@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
+import { Badge } from "@/shared/components/ui/Badge";
 import { Button } from "@/shared/components/ui/Button";
 import { Modal } from "@/shared/components/ui/Modal";
 import { useFiltrosUsuarios } from "../hooks/useFiltrosUsuarios";
@@ -51,9 +52,9 @@ export default function Usuarios({ usuarioId }: UsuariosProps) {
         title="Gestão de usuários"
         badge={
           total !== undefined ? (
-            <span className="hidden sm:inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground tabular-nums whitespace-nowrap">
+            <Badge variante="neutral" className="hidden sm:inline-flex font-medium tabular-nums">
               {total} {total === 1 ? "usuário" : "usuários"}
-            </span>
+            </Badge>
           ) : undefined
         }
         extraRow={!desktopFiltros ? <ControlesUsuariosMobile {...controlesProps} /> : undefined}

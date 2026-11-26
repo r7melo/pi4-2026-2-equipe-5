@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Modal } from "@/shared/components/ui/Modal";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { toast } from "sonner";
@@ -170,13 +171,13 @@ function FormularioLancamentoCustos({
       </div>
 
       {erroValidacao && (
-        <div
-          role="alert"
-          className="p-3.5 rounded-xl bg-destructive-light border border-destructive-border text-destructive flex items-center gap-2.5 text-xs"
+        <AlertBanner
+          variante="destructive"
+          icone={<AlertCircle className="w-4 h-4" />}
+          className="rounded-xl p-3.5 font-medium"
         >
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span className="font-medium">{erroValidacao}</span>
-        </div>
+          {erroValidacao}
+        </AlertBanner>
       )}
 
       {/* Campo Principal: Receita Contratual */}

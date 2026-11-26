@@ -164,7 +164,33 @@ export function registrarMateriais(mock: MockAdapter): void {
         }
       }
 
-      const atualizado = atualizarMaterialArmazenado(id, payload);
+      let payloadAtualizado: Partial<Material> = { ...payload };
+      if (payload.produtoId !== undefined) {
+        const produtoCatalogo = buscarProdutoPorIdMock(payload.produtoId);
+        if (!produtoCatalogo || !produtoCatalogo.ativo) {
+          return [
+            400,
+            {
+              error: {
+                code: "PRODUTO_INATIVO",
+                message: "O produto selecionado não está ativo no catálogo.",
+              },
+            },
+          ];
+        }
+        payloadAtualizado = {
+          ...payloadAtualizado,
+          produtoId: produtoCatalogo.id,
+          produtoNome: produtoCatalogo.nome,
+          tipo: payload.tipo?.trim() || produtoCatalogo.nome,
+          unidade: produtoCatalogo.unidade,
+          ...(produtoCatalogo.precoUnitario !== undefined
+            ? { custoUnitario: produtoCatalogo.precoUnitario }
+            : {}),
+        };
+      }
+
+      const atualizado = atualizarMaterialArmazenado(id, payloadAtualizado);
       if (!atualizado) {
         return [404, { error: { code: "MATERIAL_NOT_FOUND", message: "Material não encontrado." } }];
       }

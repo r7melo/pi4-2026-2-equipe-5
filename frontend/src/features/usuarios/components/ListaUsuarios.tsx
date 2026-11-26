@@ -1,4 +1,8 @@
+import { Pencil, Power } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
+import { AvatarIniciais } from "@/shared/components/ui/AvatarIniciais";
+import { Badge, type BadgeVariante } from "@/shared/components/ui/Badge";
+import { IconActionButton } from "@/shared/components/ui/IconActionButton";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
@@ -7,19 +11,12 @@ import { cn } from "@/shared/lib/utils";
 import type { UsuarioItem } from "../types/gestaoUsuarios";
 import type { ListaUsuariosProps } from "../types/gestaoUsuariosUI";
 
-const BADGE_PERFIL: Record<UsuarioItem["perfil"], string> = {
-  Administrador: "bg-accent-light text-accent",
-  Engenharia: "bg-info-light text-info",
-  Financeiro: "bg-success-light text-success",
-  InstaladorCampo: "bg-muted text-foreground-secondary",
+const VARIANTE_PERFIL: Record<UsuarioItem["perfil"], BadgeVariante> = {
+  Administrador: "accent",
+  Engenharia: "info",
+  Financeiro: "success",
+  InstaladorCampo: "neutral",
 };
-
-function iniciaisUsuario(nome: string): string {
-  const partes = nome.trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return "US";
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
-}
 
 function StatusIndicador({ ativo }: { ativo: boolean }) {
   return (
@@ -33,43 +30,36 @@ function StatusIndicador({ ativo }: { ativo: boolean }) {
 function BotoesLinha({
   usuario,
   proprio,
-  compacto = false,
   aoEditar,
   aoStatus,
 }: {
   usuario: UsuarioItem;
   proprio: boolean;
-  compacto?: boolean;
   aoEditar: (u: UsuarioItem, origem: HTMLButtonElement) => void;
   aoStatus: (u: UsuarioItem, origem: HTMLButtonElement) => void;
 }) {
   const acaoStatus = usuario.ativo ? "Inativar" : "Reativar";
   return (
-    <div className="inline-flex items-center justify-end gap-1.5 shrink-0">
-      <Button
+    <div className="inline-flex items-center justify-end gap-1 shrink-0">
+      <IconActionButton
         size="sm"
-        variant="outline"
-        aria-label={`Editar ${usuario.nome}`}
-        className={cn("controle-compacto h-7 py-0 text-[11px] font-medium", compacto ? "px-2" : "px-2.5")}
+        label={`Editar ${usuario.nome}`}
+        title="Editar"
         onClick={e => aoEditar(usuario, e.currentTarget)}
       >
-        Editar
-      </Button>
-      <Button
+        <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+      </IconActionButton>
+      <IconActionButton
         size="sm"
-        variant="outline"
+        tone={usuario.ativo ? "destructive" : "neutral"}
         disabled={proprio}
-        title={proprio ? "Você não pode inativar a própria conta" : undefined}
-        aria-label={`${acaoStatus} ${usuario.nome}`}
-        className={cn(
-          "controle-compacto h-7 py-0 text-[11px] font-medium",
-          compacto ? "px-2" : "px-2.5",
-          usuario.ativo ? "text-destructive hover:text-destructive" : "text-info hover:text-info"
-        )}
+        title={proprio ? "Você não pode inativar a própria conta" : acaoStatus}
+        label={`${acaoStatus} ${usuario.nome}`}
+        className={!usuario.ativo ? "hover:text-info hover:bg-info-light" : undefined}
         onClick={e => aoStatus(usuario, e.currentTarget)}
       >
-        {acaoStatus}
-      </Button>
+        <Power className="w-3.5 h-3.5" aria-hidden="true" />
+      </IconActionButton>
     </div>
   );
 }
@@ -120,16 +110,14 @@ export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, a
                   <tr key={u.id} className="hover:bg-surface-subtle transition-colors">
                     <th scope="row" className="px-4 py-2.5 font-normal">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-7 h-7 rounded-full bg-muted text-foreground flex items-center justify-center text-[11px] font-semibold shrink-0" aria-hidden="true">
-                          {iniciaisUsuario(u.nome)}
-                        </span>
+                        <AvatarIniciais nome={u.nome} fallback="US" size="sm" tone="muted" className="text-[11px]" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="font-semibold text-foreground truncate">{u.nome}</span>
                             {proprio && (
-                              <span className="rounded-full bg-info-light px-1.5 py-0.5 text-[10px] font-semibold text-info shrink-0">
+                              <Badge variante="info" tamanho="xs">
                                 Você
-                              </span>
+                              </Badge>
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
@@ -137,9 +125,9 @@ export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, a
                       </div>
                     </th>
                     <td className="px-3 py-2.5">
-                      <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-medium", BADGE_PERFIL[u.perfil])}>
+                      <Badge variante={VARIANTE_PERFIL[u.perfil]} tamanho="sm" className="font-medium">
                         {ROTULOS_PERFIS[u.perfil]}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-3 py-2.5 text-foreground-muted truncate">{u.equipeNome ?? "—"}</td>
                     <td className="px-3 py-2.5"><StatusIndicador ativo={u.ativo} /></td>
@@ -160,16 +148,14 @@ export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, a
               <li key={u.id} className="p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-7 h-7 rounded-full bg-muted text-foreground flex items-center justify-center text-[11px] font-semibold shrink-0" aria-hidden="true">
-                      {iniciaisUsuario(u.nome)}
-                    </span>
+                    <AvatarIniciais nome={u.nome} fallback="US" size="sm" tone="muted" className="text-[11px]" />
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-semibold text-foreground truncate">{u.nome}</span>
                         {proprio && (
-                          <span className="rounded-full bg-info-light px-1.5 text-[10px] font-semibold text-info shrink-0">
+                          <Badge variante="info" tamanho="xs">
                             Você
-                          </span>
+                          </Badge>
                         )}
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate">{u.email}</p>
@@ -180,14 +166,14 @@ export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, a
 
                 <div className="flex items-center justify-between gap-2 pt-0.5">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium shrink-0", BADGE_PERFIL[u.perfil])}>
+                    <Badge variante={VARIANTE_PERFIL[u.perfil]} tamanho="xs" className="font-medium">
                       {ROTULOS_PERFIS[u.perfil]}
-                    </span>
+                    </Badge>
                     {u.equipeNome && (
                       <span className="text-[11px] text-muted-foreground truncate">· {u.equipeNome}</span>
                     )}
                   </div>
-                  <BotoesLinha usuario={u} proprio={proprio} compacto aoEditar={aoEditar} aoStatus={aoStatus} />
+                  <BotoesLinha usuario={u} proprio={proprio} aoEditar={aoEditar} aoStatus={aoStatus} />
                 </div>
               </li>
             );

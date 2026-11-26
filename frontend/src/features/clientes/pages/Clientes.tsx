@@ -1,7 +1,10 @@
-import { useDeferredValue, useRef, useState } from "react";
-import { Building2, Edit2, Plus, Trash2 } from "lucide-react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { Building2, Pencil, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/shared/components/ui/PageHeader";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
+import { Badge } from "@/shared/components/ui/Badge";
 import { Button } from "@/shared/components/ui/Button";
+import { IconActionButton } from "@/shared/components/ui/IconActionButton";
 import { SearchInput } from "@/shared/components/ui/SearchInput";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
@@ -20,6 +23,20 @@ export default function Clientes() {
 
   const [busca, setBusca] = useState("");
   const buscaDebounced = useDeferredValue(busca);
+  const [desktop, setDesktop] = useState(() =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(min-width: 1024px)").matches
+      : true
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(min-width: 1024px)");
+    const atualizar = () => setDesktop(media.matches);
+    atualizar();
+    media.addEventListener("change", atualizar);
+    return () => media.removeEventListener("change", atualizar);
+  }, []);
 
   const [modalAberto, setModalAberto] = useState(false);
   const [clienteEmEdicao, setClienteEmEdicao] = useState<Cliente | null>(null);
@@ -82,53 +99,69 @@ export default function Clientes() {
     <div className="flex flex-col flex-1 min-h-0 bg-background-app">
       <PageHeader
         title="Clientes"
-        subtitle="Cadastro centralizado de clientes, documentos e vínculo com obras"
+        badge={
+          !isLoading && !isError ? (
+            <Badge variante="neutral" className="hidden sm:inline-flex font-medium tabular-nums">
+              {clientes.length} {clientes.length === 1 ? "cliente" : "clientes"}
+            </Badge>
+          ) : undefined
+        }
+        extraRow={
+          !desktop ? (
+            <div className="basis-full w-full pt-1.5 border-t border-border-subtle/60">
+              <SearchInput
+                valor={busca}
+                onChange={setBusca}
+                placeholder="Buscar cliente por nome, cidade ou CPF/CNPJ..."
+                ariaLabel="Buscar cliente por nome, cidade ou CPF/CNPJ"
+                tamanho="xs"
+                className="w-full"
+              />
+            </div>
+          ) : undefined
+        }
       >
-        {podeGerenciar && (
-          <Button size="md" onClick={abrirNovoCliente}>
-            <Plus className="w-4 h-4" />
-            <span>Novo Cliente</span>
-          </Button>
-        )}
-      </PageHeader>
-
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-[1440px] w-full mx-auto">
-        {avisoOperacao && (
-          <div
-            role={avisoOperacao.tipo === "erro" ? "alert" : "status"}
-            className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5 text-sm ${
-              avisoOperacao.tipo === "erro"
-                ? "border-destructive-border bg-destructive-light/60 text-destructive"
-                : "border-success-border bg-success-light/60 text-success"
-            }`}
-          >
-            <span>{avisoOperacao.texto}</span>
-            <button
-              type="button"
-              onClick={() => setAvisoOperacao(null)}
-              className="text-xs font-semibold underline cursor-pointer shrink-0"
-            >
-              Dispensar
-            </button>
-          </div>
-        )}
-
-        {/* Barra de busca operacional (Quiet Panel) */}
-        <section
-          aria-label="Busca de clientes"
-          className="bg-surface border border-border-subtle rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3"
-        >
+        {desktop && (
           <SearchInput
             valor={busca}
             onChange={setBusca}
             placeholder="Buscar cliente por nome, cidade ou CPF/CNPJ..."
-            className="flex-1 min-w-0"
+            ariaLabel="Buscar cliente por nome, cidade ou CPF/CNPJ"
+            tamanho="xs"
+            className="w-56"
           />
+        )}
+        {podeGerenciar && (
+          <Button
+            size="sm"
+            onClick={abrirNovoCliente}
+            className="controle-compacto h-7 py-0 px-2.5 gap-1 text-xs font-medium shrink-0 whitespace-nowrap"
+          >
+            <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="sm:hidden">Novo</span>
+            <span className="hidden sm:inline">Novo cliente</span>
+          </Button>
+        )}
+      </PageHeader>
 
-          <span className="text-xs font-medium text-muted-foreground font-mono tabular-nums sm:ml-auto">
-            {clientes.length} {clientes.length === 1 ? "cliente" : "clientes"}
-          </span>
-        </section>
+      <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 max-w-[1440px] w-full mx-auto">
+        {avisoOperacao && (
+          <AlertBanner
+            variante={avisoOperacao.tipo === "erro" ? "destructive" : "success"}
+            className="px-4 py-2.5 text-sm"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span>{avisoOperacao.texto}</span>
+              <button
+                type="button"
+                onClick={() => setAvisoOperacao(null)}
+                className="text-xs font-semibold underline cursor-pointer shrink-0"
+              >
+                Dispensar
+              </button>
+            </div>
+          </AlertBanner>
+        )}
 
         {isLoading ? (
           <div className="bg-surface border border-border-subtle rounded-xl min-h-[280px] flex">
@@ -175,94 +208,148 @@ export default function Clientes() {
           </div>
         ) : (
           <div className="bg-surface border border-border-subtle rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
-                    <th scope="col" className="py-2.5 px-4">Cliente</th>
-                    <th scope="col" className="py-2.5 px-4">CPF / CNPJ</th>
-                    <th scope="col" className="py-2.5 px-4">Cidade / Endereço</th>
-                    <th scope="col" className="py-2.5 px-4">Contato</th>
-                    <th scope="col" className="py-2.5 px-4 text-right">Obras</th>
-                    {podeGerenciar && (
-                      <th scope="col" className="py-2.5 px-4 text-right">Ações</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border-subtle text-sm">
-                  {clientes.map((cliente) => {
-                    const qtdObras = cliente.quantidadeObras ?? 0;
-                    return (
-                      <tr
-                        key={cliente.id}
-                        className="transition-colors hover:bg-surface-subtle/50"
-                      >
-                        <td className="py-2.5 px-4">
-                          <p className="font-semibold text-foreground leading-tight">
+            {desktop ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface-subtle border-b border-border-subtle text-xs font-semibold text-muted-foreground">
+                      <th scope="col" className="py-2.5 px-4">Cliente</th>
+                      <th scope="col" className="py-2.5 px-4">CPF / CNPJ</th>
+                      <th scope="col" className="py-2.5 px-4">Cidade / Endereço</th>
+                      <th scope="col" className="py-2.5 px-4">Contato</th>
+                      <th scope="col" className="py-2.5 px-4 text-right">Obras</th>
+                      {podeGerenciar && (
+                        <th scope="col" className="py-2.5 px-4 text-right">Ações</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-subtle text-sm">
+                    {clientes.map((cliente) => {
+                      const qtdObras = cliente.quantidadeObras ?? 0;
+                      return (
+                        <tr
+                          key={cliente.id}
+                          className="transition-colors hover:bg-surface-subtle/50"
+                        >
+                          <td className="py-2.5 px-4">
+                            <p className="font-semibold text-foreground leading-tight">
+                              {cliente.nome}
+                            </p>
+                            {cliente.email && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {cliente.email}
+                              </p>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-4 font-mono text-xs text-foreground-secondary tabular-nums whitespace-nowrap">
+                            {cliente.cpfCnpj ? formatarCpfCnpj(cliente.cpfCnpj) : "—"}
+                          </td>
+                          <td className="py-2.5 px-4 text-foreground-secondary">
+                            <p className="text-xs font-medium text-foreground">
+                              {cliente.cidade || "—"}
+                            </p>
+                            {cliente.endereco && (
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">
+                                {cliente.endereco}
+                              </p>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                            {cliente.telefone || "—"}
+                          </td>
+                          <td className="py-2.5 px-4 text-right font-mono font-semibold text-foreground tabular-nums">
+                            {qtdObras}
+                          </td>
+                          {podeGerenciar && (
+                            <td className="py-2.5 px-4 text-right">
+                              <div className="inline-flex items-center justify-end gap-1">
+                                <IconActionButton
+                                  size="sm"
+                                  onClick={() => abrirEdicaoCliente(cliente)}
+                                  title={`Editar ${cliente.nome}`}
+                                  label={`Editar ${cliente.nome}`}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                                </IconActionButton>
+                                <IconActionButton
+                                  size="sm"
+                                  tone="destructive"
+                                  disabled={excluirMutation.isPending}
+                                  onClick={() => setClienteParaExcluir(cliente)}
+                                  title={
+                                    qtdObras > 0
+                                      ? `Cliente possui ${qtdObras} obra(s) vinculada(s)`
+                                      : `Excluir ${cliente.nome}`
+                                  }
+                                  label={`Excluir ${cliente.nome}`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                                </IconActionButton>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <ul aria-label="Lista de clientes" className="divide-y divide-border-subtle">
+                {clientes.map((cliente) => {
+                  const qtdObras = cliente.quantidadeObras ?? 0;
+                  return (
+                    <li key={cliente.id} className="p-3 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">
                             {cliente.nome}
                           </p>
-                          {cliente.email && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {cliente.email}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-4 font-mono text-xs text-foreground-secondary tabular-nums whitespace-nowrap">
-                          {cliente.cpfCnpj ? formatarCpfCnpj(cliente.cpfCnpj) : "—"}
-                        </td>
-                        <td className="py-2.5 px-4 text-foreground-secondary">
-                          <p className="text-xs font-medium text-foreground">
-                            {cliente.cidade || "—"}
+                          <p className="text-[11px] font-mono text-muted-foreground tabular-nums">
+                            {cliente.cpfCnpj ? formatarCpfCnpj(cliente.cpfCnpj) : "—"}
                           </p>
-                          {cliente.endereco && (
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">
-                              {cliente.endereco}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                          {cliente.telefone || "—"}
-                        </td>
-                        <td className="py-2.5 px-4 text-right font-mono font-semibold text-foreground tabular-nums">
-                          {qtdObras}
-                        </td>
+                        </div>
+                        <Badge variante="neutral" tamanho="xs" className="tabular-nums">
+                          {qtdObras} {qtdObras === 1 ? "obra" : "obras"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                        <span className="truncate">
+                          {cliente.cidade || "—"}
+                          {cliente.telefone ? ` · ${cliente.telefone}` : ""}
+                        </span>
                         {podeGerenciar && (
-                          <td className="py-2.5 px-4 text-right">
-                            <div className="inline-flex items-center justify-end gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => abrirEdicaoCliente(cliente)}
-                                title={`Editar ${cliente.nome}`}
-                                aria-label={`Editar ${cliente.nome}`}
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Editar</span>
-                              </Button>
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                disabled={excluirMutation.isPending}
-                                onClick={() => setClienteParaExcluir(cliente)}
-                                title={
-                                  qtdObras > 0
-                                    ? `Cliente possui ${qtdObras} obra(s) vinculada(s)`
-                                    : `Excluir ${cliente.nome}`
-                                }
-                                aria-label={`Excluir ${cliente.nome}`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">Excluir</span>
-                              </Button>
-                            </div>
-                          </td>
+                          <div className="inline-flex items-center gap-1 shrink-0">
+                            <IconActionButton
+                              size="sm"
+                              onClick={() => abrirEdicaoCliente(cliente)}
+                              title={`Editar ${cliente.nome}`}
+                              label={`Editar ${cliente.nome}`}
+                            >
+                              <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                            </IconActionButton>
+                            <IconActionButton
+                              size="sm"
+                              tone="destructive"
+                              disabled={excluirMutation.isPending}
+                              onClick={() => setClienteParaExcluir(cliente)}
+                              title={
+                                qtdObras > 0
+                                  ? `Cliente possui ${qtdObras} obra(s) vinculada(s)`
+                                  : `Excluir ${cliente.nome}`
+                              }
+                              label={`Excluir ${cliente.nome}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                            </IconActionButton>
+                          </div>
                         )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         )}
       </div>

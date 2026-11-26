@@ -94,7 +94,7 @@ export function ExportarDetalhesInstalacao({ obraId, contextoValido, sinalContex
         aria-expanded={menuAberto}
         aria-label="Exportar detalhes da instalação"
         title="Exportar detalhes da instalação"
-        className="h-8 px-2.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+        className="controle-compacto h-7 px-2.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
       >
         {estaOcupado ? (
           <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />

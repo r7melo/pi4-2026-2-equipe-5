@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { LogIn, Loader2, AlertCircle } from "lucide-react";
 import { fazerLogin, mapearRespostaParaUsuario } from "@/features/auth/services/auth";
 import { Button } from "@/shared/components/ui/Button";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { BotaoVisibilidadeSenha } from "@/shared/components/ui/BotaoVisibilidadeSenha";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
@@ -77,13 +78,9 @@ export default function Login() {
         </div>
 
         {erro && (
-          <div
-            role="alert"
-            className="rounded-lg bg-destructive-light border border-destructive-border px-3.5 py-3 text-xs leading-relaxed text-destructive flex items-start gap-2.5"
-          >
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-            <span>{erro}</span>
-          </div>
+          <AlertBanner variante="destructive" icone={<AlertCircle className="w-4 h-4" />}>
+            {erro}
+          </AlertBanner>
         )}
 
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">

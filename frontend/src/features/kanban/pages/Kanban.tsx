@@ -1,8 +1,8 @@
-import { useState, useRef, useLayoutEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useModoDisplay } from "@/shared/contexts/ModoDisplayContext";
 import { podeVerModo } from "@/shared/lib/podeVerModo";
 import { BotaoModoDisplay } from "@/shared/components/display/BotaoModoDisplay";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
@@ -33,6 +33,23 @@ export interface KanbanProps {
   renderizarAcoesObra?: (obraId: number) => ReactNode;
 }
 
+function useIsDesktop(): boolean {
+  const [desktop, setDesktop] = useState(() =>
+    typeof window === "undefined" ? true : window.matchMedia("(min-width: 768px)").matches
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia("(min-width: 768px)");
+    const atualizar = () => setDesktop(mql.matches);
+    atualizar();
+    mql.addEventListener("change", atualizar);
+    return () => mql.removeEventListener("change", atualizar);
+  }, []);
+
+  return desktop;
+}
+
 export default function Kanban({
   obras: obrasExternas,
   carregandoObras = false,
@@ -50,6 +67,7 @@ export default function Kanban({
   const navigate = useNavigate();
   const perfil = useAuthStore((s) => s.usuario?.perfil?.nomePerfil);
   const canCriarObra = perfil === "Administrador" || perfil === "Engenharia";
+  const isDesktop = useIsDesktop();
 
   const busca = useKanbanFilterStore((s) => s.busca);
   const setBusca = useKanbanFilterStore((s) => s.setBusca);
@@ -60,21 +78,28 @@ export default function Kanban({
   const exibirArquivadas = useKanbanFilterStore((s) => s.exibirArquivadas);
   const limparFiltrosStore = useKanbanFilterStore((s) => s.limparFiltros);
 
-  // Inicializa aberto se já houver termo de busca salvo na sessão
-  const [buscaAberta, setBuscaAberta] = useState(() => Boolean(busca.trim()));
-  const pesquisarRef = useRef<HTMLButtonElement>(null);
-  const devolverFocoBuscaRef = useRef(false);
-  useLayoutEffect(() => {
-    if (!buscaAberta && devolverFocoBuscaRef.current) {
-      devolverFocoBuscaRef.current = false;
-      pesquisarRef.current?.focus();
-    }
-  }, [buscaAberta]);
-  const fecharBusca = () => {
-    devolverFocoBuscaRef.current = true;
-    setBusca("");
-    setBuscaAberta(false);
-  };
+  const buscaInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (modoAtivo || typeof document === "undefined") return;
+    const handleAtalhoBusca = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const alvo = e.target as HTMLElement | null;
+      if (
+        alvo &&
+        (alvo.tagName === "INPUT" ||
+          alvo.tagName === "TEXTAREA" ||
+          alvo.tagName === "SELECT" ||
+          alvo.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      buscaInputRef.current?.focus();
+    };
+    document.addEventListener("keydown", handleAtalhoBusca);
+    return () => document.removeEventListener("keydown", handleAtalhoBusca);
+  }, [modoAtivo]);
 
   const obras = obrasExternas || [];
   const temFiltroAtivo = Boolean(categoriaFiltro || materialFiltro);
@@ -82,8 +107,27 @@ export default function Kanban({
 
   const limparFiltros = () => {
     limparFiltrosStore();
-    setBuscaAberta(false);
   };
+
+  const renderCampoBusca = (compactoDesktop: boolean) => (
+    <SearchInput
+      ref={buscaInputRef}
+      valor={busca}
+      onChange={setBusca}
+      onLimpar={() => setBusca("")}
+      onEscape={() => {
+        if (busca) {
+          setBusca("");
+        } else {
+          buscaInputRef.current?.blur();
+        }
+      }}
+      placeholder={compactoDesktop ? "Buscar cliente (/)" : "Buscar cliente..."}
+      ariaLabel="Buscar obra por cliente"
+      tamanho={compactoDesktop ? "xs" : "sm"}
+      className={compactoDesktop ? "w-48 lg:w-56" : "flex-1 min-w-0"}
+    />
+  );
 
   const renderContent = () => {
     if (carregandoObras) {
@@ -140,43 +184,69 @@ export default function Kanban({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden"
-      style={modoAtivo ? { paddingBottom: alturaSelo } : undefined}>
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
       <PageHeader
         title="Funil de Obras"
         ocultarMenuLateral={modoAtivo}
-        subtitle="Acompanhamento por etapa"
+        badge={
+          !carregandoObras && !erroObras && obras.length > 0 ? (
+            <span className="text-xs font-medium text-muted-foreground tabular-nums whitespace-nowrap">
+              {obras.length} {obras.length === 1 ? "obra" : "obras"}
+            </span>
+          ) : undefined
+        }
       >
-        {podeVerModo(perfil) && elegivelParaModo && <BotaoModoDisplay />}
-        {!modoAtivo && <div className="flex items-center gap-2">
-          {/* Busca Expansível Inline Suave */}
-          {buscaAberta ? (
-            <SearchInput
-              valor={busca}
-              onChange={setBusca}
-              onLimpar={fecharBusca}
-              onEscape={fecharBusca}
-              placeholder="Buscar cliente ou ID..."
-              tamanho="sm"
-              autoFocus
-              exibirLimparSempre
-              className="w-48 md:w-56"
+        {modoAtivo ? (
+          podeVerModo(perfil) && elegivelParaModo ? <BotaoModoDisplay compacto /> : null
+        ) : isDesktop ? (
+          <div className="flex items-center gap-1.5">
+            {renderCampoBusca(true)}
+            {podeVerModo(perfil) && elegivelParaModo && <BotaoModoDisplay compacto />}
+            <KanbanQuickFilters
+              categoriaFiltro={categoriaFiltro}
+              setCategoriaFiltro={setCategoriaFiltro}
+              materialFiltro={materialFiltro}
+              setMaterialFiltro={setMaterialFiltro}
+              onLimparFiltros={limparFiltros}
+              temFiltroAtivo={temFiltroAtivo}
+              temLimpezaDisponivel={temLimpezaDisponivel}
+              compacto
             />
-          ) : (
-            <Button
-              variant="outline"
-              size="md"
-              ref={pesquisarRef}
-              onClick={() => setBuscaAberta(true)}
-              aria-label="Pesquisar"
-              className="px-3 md:px-4"
-            >
-              <Search className="w-4 h-4" aria-hidden="true" />
-              <span className="hidden md:inline">Pesquisar</span>
-            </Button>
-          )}
+            <RoleGate allowedRoles={["Administrador", "Engenharia"]}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => { void navigate("/cadastrarobra"); }}
+                aria-label="Nova obra"
+                className="h-7 py-0 px-2.5 controle-compacto text-xs gap-1.5 shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Nova obra</span>
+              </Button>
+            </RoleGate>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            {podeVerModo(perfil) && elegivelParaModo && <BotaoModoDisplay compacto />}
+            <RoleGate allowedRoles={["Administrador", "Engenharia"]}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => { void navigate("/cadastrarobra"); }}
+                aria-label="Nova obra"
+                className="h-7 py-0 px-2.5 controle-compacto text-xs gap-1 shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Nova obra</span>
+              </Button>
+            </RoleGate>
+          </div>
+        )}
+      </PageHeader>
 
-          {/* Caixinha com Dropdown de Filtros Rápidos */}
+      {!isDesktop && !modoAtivo && (
+        <div className="shrink-0 border-b border-border-subtle bg-surface px-3 py-2 flex items-center gap-2">
+          {renderCampoBusca(false)}
           <KanbanQuickFilters
             categoriaFiltro={categoriaFiltro}
             setCategoriaFiltro={setCategoriaFiltro}
@@ -185,26 +255,18 @@ export default function Kanban({
             onLimparFiltros={limparFiltros}
             temFiltroAtivo={temFiltroAtivo}
             temLimpezaDisponivel={temLimpezaDisponivel}
+            compacto={false}
           />
+        </div>
+      )}
 
-          {/* Botão Nova Obra com RoleGate */}
-          <RoleGate allowedRoles={["Administrador", "Engenharia"]}>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => { void navigate("/cadastrarobra"); }}
-              aria-label="Nova obra"
-              className="px-3 md:px-4"
-            >
-              <Plus className="w-4 h-4" aria-hidden="true" />
-              <span className="hidden md:inline">Nova obra</span>
-            </Button>
-          </RoleGate>
-        </div>}
-      </PageHeader>
-
-      <section className="flex-1 min-h-0 overflow-auto p-4 md:p-8 custom-scrollbar bg-background-app flex flex-col">
-        {renderContent()}
+      <section className="flex-1 min-h-0 overflow-auto p-3 md:p-4 custom-scrollbar bg-background-app flex flex-col">
+        <div
+          className="flex-1 flex flex-col"
+          style={modoAtivo ? { paddingBottom: alturaSelo } : undefined}
+        >
+          {renderContent()}
+        </div>
       </section>
     </div>
   );

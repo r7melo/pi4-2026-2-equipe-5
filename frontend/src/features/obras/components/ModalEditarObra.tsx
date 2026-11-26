@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
+import { dataBRParaIso, isoParaDataBR, mascararDataBR } from "@/shared/lib/datasBrasileiras";
 import { useEditarObra } from "@/features/obras/hooks/useObraDetalhe";
 import {
   editarObraFormSchema,
@@ -31,6 +32,22 @@ interface ModalEditarObraProps {
 
 export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps) {
   const editarObraMutation = useEditarObra();
+  const chaveSessao = `${isOpen}-${obra.id}-${obra.dataInicioEstimada ?? ""}-${obra.dataFimEstimada ?? ""}`;
+  const [chaveAnterior, setChaveAnterior] = useState(chaveSessao);
+  const [dataInicioBR, setDataInicioBR] = useState(() => isoParaDataBR(obra.dataInicioEstimada));
+  const [dataFimBR, setDataFimBR] = useState(() => isoParaDataBR(obra.dataFimEstimada));
+  const [erroDataInicio, setErroDataInicio] = useState<string | undefined>(undefined);
+  const [erroDataFim, setErroDataFim] = useState<string | undefined>(undefined);
+
+  if (chaveAnterior !== chaveSessao) {
+    setChaveAnterior(chaveSessao);
+    if (isOpen) {
+      setDataInicioBR(isoParaDataBR(obra.dataInicioEstimada));
+      setDataFimBR(isoParaDataBR(obra.dataFimEstimada));
+      setErroDataInicio(undefined);
+      setErroDataFim(undefined);
+    }
+  }
 
   const {
     register,
@@ -50,14 +67,30 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
   }, [isOpen, obra, reset]);
 
   const onSubmit = async (data: EditarObraFormData) => {
+    const inicioLimpo = dataInicioBR.trim();
+    const fimLimpo = dataFimBR.trim();
+    const inicioISO = inicioLimpo ? dataBRParaIso(inicioLimpo) : undefined;
+    const fimISO = fimLimpo ? dataBRParaIso(fimLimpo) : undefined;
+
+    if (inicioLimpo && !inicioISO) {
+      setErroDataInicio("Informe uma data válida no formato dd/mm/aaaa");
+      document.getElementById("editar-inicio-estimado")?.focus();
+      return;
+    }
+    if (fimLimpo && !fimISO) {
+      setErroDataFim("Informe uma data válida no formato dd/mm/aaaa");
+      document.getElementById("editar-conclusao-estimada")?.focus();
+      return;
+    }
+
     const payload: EditarObraPayload = {
       cidade: data.cidade,
       endereco: data.endereco,
       categoria: data.categoria,
       quantidadePaineis: data.quantidadePaineis,
       quantidadeInversores: data.quantidadeInversores,
-      dataInicioEstimada: data.dataInicioEstimada || undefined,
-      dataFimEstimada: data.dataFimEstimada || undefined,
+      dataInicioEstimada: inicioISO ?? undefined,
+      dataFimEstimada: fimISO ?? undefined,
       descricao: data.descricao || undefined,
       pagamento: {
         prazoContratualDias: data.prazoContratualDias,
@@ -127,7 +160,7 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
               <select
                 id="editar-categoria"
                 {...register("categoria")}
-                className="w-full appearance-none rounded-lg border bg-surface-subtle border-border-subtle pl-4 pr-10 py-2.5 text-sm text-foreground-secondary outline-none transition-all focus:bg-surface focus:border-border-strong focus:ring-2 focus:ring-border-subtle cursor-pointer"
+                className="w-full appearance-none rounded-lg border bg-surface-subtle border-border-subtle pl-4 pr-10 py-2.5 text-sm text-foreground-secondary transition-all focus:bg-surface focus:border-border-strong cursor-pointer"
               >
                 <option value="Residencial" className="bg-surface text-foreground">
                   Residencial
@@ -190,16 +223,34 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
         {/* Linha 4: Datas Estimadas da Obra (Rota #15) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
+            id="editar-inicio-estimado"
             label="Início Estimado"
-            type="date"
-            error={errors.dataInicioEstimada?.message}
-            {...register("dataInicioEstimada")}
+            type="text"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="dd/mm/aaaa"
+            className="font-mono tabular-nums"
+            value={dataInicioBR}
+            onChange={(e) => {
+              setDataInicioBR(mascararDataBR(e.target.value));
+              if (erroDataInicio) setErroDataInicio(undefined);
+            }}
+            error={erroDataInicio ?? errors.dataInicioEstimada?.message}
           />
           <Input
+            id="editar-conclusao-estimada"
             label="Conclusão Estimada"
-            type="date"
-            error={errors.dataFimEstimada?.message}
-            {...register("dataFimEstimada")}
+            type="text"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="dd/mm/aaaa"
+            className="font-mono tabular-nums"
+            value={dataFimBR}
+            onChange={(e) => {
+              setDataFimBR(mascararDataBR(e.target.value));
+              if (erroDataFim) setErroDataFim(undefined);
+            }}
+            error={erroDataFim ?? errors.dataFimEstimada?.message}
           />
         </div>
 
@@ -213,13 +264,13 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-3 text-subtle-foreground pointer-events-none">
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4" aria-hidden="true" />
             </div>
             <textarea
               id="editar-descricao"
               rows={3}
               placeholder="Instruções de acesso, orientações técnicas..."
-              className="w-full rounded-lg border bg-surface-subtle border-border-subtle pl-10 pr-4 py-2.5 text-sm text-foreground-secondary placeholder-subtle-foreground outline-none transition-all focus:bg-surface focus:border-border-strong focus:ring-2 focus:ring-border-subtle custom-scrollbar resize-none"
+              className="w-full rounded-lg border bg-surface-subtle border-border-subtle pl-10 pr-4 py-2.5 text-sm text-foreground-secondary placeholder-subtle-foreground transition-all focus:bg-surface focus:border-border-strong custom-scrollbar resize-none"
               {...register("descricao")}
             />
           </div>
@@ -232,14 +283,14 @@ export function ModalEditarObra({ isOpen, onClose, obra }: ModalEditarObraProps)
             variant="outline"
             onClick={onClose}
             disabled={isSubmitting}
-            className="cursor-pointer"
+            className="h-10 cursor-pointer"
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="flex items-center gap-2 cursor-pointer"
+            className="h-10 flex items-center gap-2 cursor-pointer"
           >
             {isSubmitting ? (
               <>

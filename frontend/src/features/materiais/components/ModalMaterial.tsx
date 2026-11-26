@@ -1,8 +1,10 @@
-import { useState, useRef, useId, useLayoutEffect, type FormEvent } from "react";
+import { useState, useRef, useId, useLayoutEffect, useMemo, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { Modal } from "@/shared/components/ui/Modal";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { Button } from "@/shared/components/ui/Button";
+import { ComboboxPesquisavel, type OpcaoCombobox } from "@/shared/components/ui/ComboboxPesquisavel";
 import { Package, Loader2, ChevronDown } from "lucide-react";
 import type { Material, StatusLogistico } from "@/shared/types/materiais";
 import type { Produto } from "@/shared/types/produtos";
@@ -77,16 +79,14 @@ function FormularioMaterial({
     materialParaEditar?.statusLogistico || "EmSolicitacao"
   );
   const [falha, setFalha] = useState<FalhaValidacaoMaterial | null>(null);
-  const produtoRef = useRef<HTMLSelectElement>(null);
-  const tipoRef = useRef<HTMLInputElement>(null);
+  const produtoRef = useRef<HTMLInputElement>(null);
   const quantidadeRef = useRef<HTMLInputElement>(null);
   const quantidadeUtilizadaRef = useRef<HTMLInputElement>(null);
   const erroId = useId();
 
   useLayoutEffect(() => {
     if (!falha) return;
-    if (falha.campo === "produtoId") produtoRef.current?.focus();
-    else if (falha.campo === "tipo") tipoRef.current?.focus();
+    if (falha.campo === "produtoId" || falha.campo === "tipo") produtoRef.current?.focus();
     else if (falha.campo === "quantidadeUtilizada") quantidadeUtilizadaRef.current?.focus();
     else quantidadeRef.current?.focus();
   }, [falha]);
@@ -95,16 +95,33 @@ function FormularioMaterial({
     (p) => p.id === Number(produtoIdSelecionado)
   );
 
+  const opcoesCatalogo: OpcaoCombobox[] = useMemo(
+    () =>
+      produtosCatalogo.map((prod) => ({
+        valor: String(prod.id),
+        rotulo: prod.nome,
+        subtitulo: `${prod.tipo ? `${prod.tipo} · ` : ""}Unidade: ${prod.unidade}${
+          podeVerValores && typeof prod.precoUnitario === "number"
+            ? ` · ${formatarMoeda(prod.precoUnitario)}`
+            : ""
+        }`,
+        textoBusca: [prod.nome, prod.tipo, prod.unidade].filter(Boolean).join(" "),
+      })),
+    [podeVerValores, produtosCatalogo]
+  );
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (isPending) return;
     setFalha(null);
 
     const inputQtd = quantidadeRef.current;
+    const produtoIdNum = produtoIdSelecionado ? Number(produtoIdSelecionado) : null;
+    const exigirProduto = !isEditing || Boolean(materialParaEditar?.produtoId);
     const validacao = validarFormularioMaterial({
-      produtoId: !isEditing ? (produtoIdSelecionado ? Number(produtoIdSelecionado) : null) : undefined,
-      exigirProduto: !isEditing,
-      tipo: !isEditing ? (produtoAtivoSelecionado?.nome ?? tipo) : tipo,
+      produtoId: produtoIdNum,
+      exigirProduto,
+      tipo: produtoAtivoSelecionado?.nome ?? tipo,
       quantidade,
       ...(isEditing && podeAlterarStatus ? { quantidadeUtilizada } : {}),
       validadeQuantidade: inputQtd
@@ -122,7 +139,7 @@ function FormularioMaterial({
     }
 
     await onSalvar({
-      ...(validacao.produtoId ? { produtoId: validacao.produtoId } : {}),
+      ...(produtoIdNum ? { produtoId: produtoIdNum } : {}),
       tipo: validacao.tipo,
       quantidade: validacao.quantidade,
       ...(validacao.quantidadeUtilizada !== undefined
@@ -135,13 +152,9 @@ function FormularioMaterial({
   return (
     <form noValidate onSubmit={(e) => void handleSubmit(e)} className="p-6 space-y-5">
       {falha && (
-        <div
-          id={erroId}
-          role="alert"
-          className="bg-destructive-light text-destructive border border-destructive-border px-3.5 py-2.5 rounded-lg text-xs font-medium"
-        >
+        <AlertBanner id={erroId} variante="destructive" className="py-2.5 font-medium">
           {falha.mensagem}
-        </div>
+        </AlertBanner>
       )}
 
       {isEditing && materialParaEditar && (
@@ -150,10 +163,11 @@ function FormularioMaterial({
             <p className="font-semibold text-foreground truncate">
               {materialParaEditar.produtoNome || materialParaEditar.tipo || materialParaEditar.descricao || "Insumo"}
             </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Identificador: #{materialParaEditar.id}
-              {materialParaEditar.unidade ? ` · Unidade: ${materialParaEditar.unidade}` : ""}
-            </p>
+            {materialParaEditar.unidade && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Unidade: {materialParaEditar.unidade}
+              </p>
+            )}
           </div>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface border border-border-subtle text-foreground-secondary shrink-0">
             Qtd atual: {materialParaEditar.quantidade}
@@ -161,90 +175,68 @@ function FormularioMaterial({
         </div>
       )}
 
-      {!isEditing ? (
-        <div>
-          <label
-            htmlFor="material-produto"
-            className="block text-sm font-semibold text-foreground-muted mb-1.5"
-          >
-            Produto do catálogo <span aria-hidden="true" className="text-destructive">*</span>
-          </label>
-          <div className="relative">
-            <select
-              id="material-produto"
-              ref={produtoRef}
-              required
-              aria-invalid={falha?.campo === "produtoId" || undefined}
-              aria-describedby={falha?.campo === "produtoId" ? erroId : undefined}
-              disabled={isPending || carregandoCatalogo}
-              value={produtoIdSelecionado}
-              onChange={(e) => {
-                const novoId = e.target.value;
-                setProdutoIdSelecionado(novoId);
-                const encontrado = produtosCatalogo.find((p) => p.id === Number(novoId));
-                setTipo(encontrado?.nome ?? "");
-                setFalha((atual) => (atual?.campo === "produtoId" ? null : atual));
-              }}
-              className="w-full h-10 appearance-none border border-border-subtle bg-surface-subtle rounded-lg pl-3.5 pr-9 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-subtle focus:border-border-strong transition-colors cursor-pointer disabled:opacity-60"
-            >
-              <option value="">
-                {carregandoCatalogo
-                  ? "Carregando catálogo de produtos..."
-                  : erroCatalogo
-                    ? "Erro ao carregar produtos"
-                    : produtosCatalogo.length === 0
-                      ? "Nenhum produto ativo no catálogo"
-                      : "Selecione um produto ativo..."}
-              </option>
-              {produtosCatalogo.map((prod) => (
-                <option key={prod.id} value={prod.id} className="bg-surface text-foreground">
-                  {prod.nome} ({prod.unidade})
-                  {podeVerValores && typeof prod.precoUnitario === "number"
-                    ? ` — ${formatarMoeda(prod.precoUnitario)}`
-                    : ""}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              aria-hidden="true"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
-            />
-          </div>
-          {produtoAtivoSelecionado && (
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Categoria: {produtoAtivoSelecionado.tipo} · Unidade: {produtoAtivoSelecionado.unidade}
-              {podeVerValores && typeof produtoAtivoSelecionado.precoUnitario === "number"
-                ? ` · Valor unitário de referência: ${formatarMoeda(produtoAtivoSelecionado.precoUnitario)}`
-                : ""}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div>
-          <label
-            htmlFor="material-tipo"
-            className="block text-sm font-semibold text-foreground-muted mb-1.5"
-          >
-            Descrição / Tipo do Material <span aria-hidden="true" className="text-destructive">*</span>
-          </label>
-          <input
-            id="material-tipo"
-            ref={tipoRef}
-            aria-invalid={falha?.campo === "tipo" || undefined}
-            aria-describedby={falha?.campo === "tipo" ? erroId : undefined}
-            type="text"
-            required
-            disabled={isPending || Boolean(materialParaEditar?.produtoId)}
-            value={tipo}
-            onChange={(e) => {
-              setTipo(e.target.value);
+      <div>
+        <label
+          htmlFor="material-produto"
+          className="block text-sm font-semibold text-foreground-muted mb-1.5"
+        >
+          Produto do catálogo <span aria-hidden="true" className="text-destructive">*</span>
+        </label>
+        <ComboboxPesquisavel
+          id="material-produto"
+          inputRef={produtoRef}
+          compacto={false}
+          listboxAriaLabel="Produto do catálogo"
+          ariaInvalid={falha?.campo === "produtoId" || falha?.campo === "tipo" || undefined}
+          ariaDescribedBy={falha?.campo === "produtoId" || falha?.campo === "tipo" ? erroId : undefined}
+          opcoes={opcoesCatalogo}
+          valorSelecionado={produtoIdSelecionado}
+          textoInicial={tipo}
+          desabilitado={isPending || carregandoCatalogo}
+          permitirTextoLivre={Boolean(isEditing && !materialParaEditar?.produtoId)}
+          placeholder={
+            carregandoCatalogo
+              ? "Carregando catálogo de produtos..."
+              : erroCatalogo
+                ? "Erro ao carregar produtos"
+                : produtosCatalogo.length === 0
+                  ? "Nenhum produto ativo no catálogo"
+                  : "Digite nome ou tipo para pesquisar..."
+          }
+          onSelecionar={(valor) => {
+            setProdutoIdSelecionado(valor);
+            const encontrado = valor
+              ? produtosCatalogo.find((p) => p.id === Number(valor))
+              : undefined;
+            setTipo(
+              encontrado?.nome ??
+                (isEditing && !materialParaEditar?.produtoId
+                  ? materialParaEditar?.produtoNome ||
+                    materialParaEditar?.tipo ||
+                    materialParaEditar?.descricao ||
+                    ""
+                  : "")
+            );
+            setFalha((atual) =>
+              atual?.campo === "produtoId" || atual?.campo === "tipo" ? null : atual
+            );
+          }}
+          onTextoChange={(texto) => {
+            if (isEditing && !materialParaEditar?.produtoId) {
+              setTipo(texto);
               setFalha((atual) => (atual?.campo === "tipo" ? null : atual));
-            }}
-            placeholder="Descrição do insumo"
-            className="w-full h-10 border border-border-subtle bg-surface-subtle rounded-lg px-3.5 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-subtle transition-colors disabled:opacity-60"
-          />
-        </div>
-      )}
+            }
+          }}
+        />
+        {produtoAtivoSelecionado && (
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Categoria: {produtoAtivoSelecionado.tipo} · Unidade: {produtoAtivoSelecionado.unidade}
+            {podeVerValores && typeof produtoAtivoSelecionado.precoUnitario === "number"
+              ? ` · Valor unitário de referência: ${formatarMoeda(produtoAtivoSelecionado.precoUnitario)}`
+              : ""}
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -271,7 +263,7 @@ function FormularioMaterial({
               setFalha((atual) => (atual?.campo === "quantidade" ? null : atual));
             }}
             placeholder="Ex: 10"
-            className="w-full h-10 border border-border-subtle bg-surface-subtle rounded-lg px-3.5 text-sm text-foreground font-mono text-right focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-subtle transition-colors disabled:opacity-60"
+            className="w-full h-10 border border-border-strong bg-surface-subtle rounded-lg px-3.5 text-sm text-foreground font-mono text-right focus:bg-surface transition-colors disabled:opacity-60"
           />
         </div>
 
@@ -289,7 +281,7 @@ function FormularioMaterial({
                 disabled={isPending}
                 value={statusLogistico}
                 onChange={(e) => setStatusLogistico(e.target.value as StatusLogistico)}
-                className="w-full h-10 appearance-none border border-border-subtle bg-surface-subtle rounded-lg pl-3.5 pr-8 text-sm text-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-subtle transition-colors cursor-pointer disabled:opacity-60"
+                className="w-full h-10 appearance-none border border-border-strong bg-surface-subtle rounded-lg pl-3.5 pr-8 text-sm text-foreground focus:bg-surface transition-colors cursor-pointer disabled:opacity-60"
               >
                 {STATUS_LOGISTICO_OPCOES.map((opcao) => (
                   <option
@@ -343,7 +335,7 @@ function FormularioMaterial({
               setFalha((atual) => (atual?.campo === "quantidadeUtilizada" ? null : atual));
             }}
             placeholder="Opcional"
-            className="w-full h-10 border border-border-subtle bg-surface-subtle rounded-lg px-3.5 text-sm text-foreground font-mono text-right focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-subtle transition-colors disabled:opacity-60"
+            className="w-full h-10 border border-border-strong bg-surface-subtle rounded-lg px-3.5 text-sm text-foreground font-mono text-right focus:bg-surface transition-colors disabled:opacity-60"
           />
         </div>
       )}
@@ -354,14 +346,14 @@ function FormularioMaterial({
           variant="outline"
           disabled={isPending}
           onClick={onCancelar}
-          className="h-9 px-4 text-xs cursor-pointer"
+          className="h-10 px-4 text-xs cursor-pointer"
         >
           Cancelar
         </Button>
         <Button
           type="submit"
-          disabled={isPending || (!isEditing && carregandoCatalogo)}
-          className="h-9 px-4 text-xs font-medium cursor-pointer flex items-center gap-1.5"
+          disabled={isPending || carregandoCatalogo}
+          className="h-10 px-4 text-xs font-medium cursor-pointer flex items-center gap-1.5"
         >
           {isPending ? (
             <>
@@ -394,7 +386,7 @@ export function ModalMaterial({
     data: produtosCatalogo = [],
     isLoading: carregandoCatalogo,
     isError: erroCatalogo,
-  } = useProdutosCatalogoAtivos(isOpen && !isEditing);
+  } = useProdutosCatalogoAtivos(isOpen);
 
   const adicionarMutation = useAdicionarMaterial();
   const atualizarMutation = useAtualizarDadosMaterial();
@@ -415,7 +407,9 @@ export function ModalMaterial({
             id: materialParaEditar.id,
             obraId,
             payload: {
-              ...(materialParaEditar.produtoId ? {} : { tipo: dados.tipo }),
+              ...(dados.produtoId
+                ? { produtoId: dados.produtoId, tipo: dados.tipo }
+                : { tipo: dados.tipo }),
               quantidade: dados.quantidade,
               ...(podeAlterarStatus
                 ? {
@@ -467,7 +461,7 @@ export function ModalMaterial({
       titulo={isEditing ? "Editar Insumo da Obra" : "Adicionar Insumo à Obra"}
       subtitulo={
         isEditing
-          ? `Atualize as especificações e quantidades do item #${materialParaEditar?.id}`
+          ? "Atualize as especificações e quantidades do insumo"
           : "Selecione um produto ativo do catálogo e defina a quantidade solicitada"
       }
       icone={

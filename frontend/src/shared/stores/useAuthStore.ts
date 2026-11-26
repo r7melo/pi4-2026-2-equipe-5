@@ -2,6 +2,7 @@ import { CHAVE_AUTH_ATUAL, MOCK_ATIVO } from "@/shared/lib/modoApi";
 import { tokenDemonstracaoVigente } from "@/shared/lib/contextoDemonstracao";
 import { create } from "zustand";
 import { invalidarSessaoOperacional, sincronizarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
+import { useHistoricoNavegacaoStore } from "@/shared/stores/useHistoricoNavegacaoStore";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { AuthState, Usuario } from "@/shared/types/autorizacao";
 
@@ -77,11 +78,13 @@ export const useAuthStore = create<AuthState>()(
             : calcularFallback480Min();
 
         invalidarSessaoOperacional();
+        useHistoricoNavegacaoStore.getState().limpar();
         set({ token, usuario, expiresAt: expiracaoValida });
       },
       logout: () => {
         // Encerramento puramente em estado (SPA); sem recarga imperativa de window.location.href
         invalidarSessaoOperacional();
+        useHistoricoNavegacaoStore.getState().limpar();
         set({ token: null, usuario: null, expiresAt: null });
       },
     }),

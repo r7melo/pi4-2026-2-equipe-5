@@ -1,13 +1,25 @@
-import { Sun, Calendar, User } from "lucide-react";
+import { Sun, Calendar } from "lucide-react";
 import type { StatusLogistico } from "@/shared/types/materiais";
 import { obterMetaStatusLogistico } from "@/shared/constants/statusLogistico";
 import type { ObraKanbanCard } from "../types/kanban";
 import { cn } from "@/shared/lib/utils";
-import {
-  getCategoriaBadgeStyle,
-  getIniciaisNome,
-  calcularDiasRestantes,
-} from "./kanbanUtils";
+import { getIniciaisNome, calcularDiasRestantes } from "./kanbanUtils";
+
+function getCategoriaCardBadgeStyle(categoria: string): string {
+  switch (categoria.toLowerCase()) {
+    case "residencial":
+      return "bg-muted text-foreground-muted";
+    case "comercial":
+      return "bg-accent-light text-accent";
+    case "rural":
+      return "bg-success-light text-success";
+    case "manutenção":
+    case "manutencao":
+      return "bg-warning-light text-warning";
+    default:
+      return "bg-muted text-foreground-muted";
+  }
+}
 
 export interface KanbanCardVisualProps {
   card: ObraKanbanCard;
@@ -22,12 +34,12 @@ export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCa
 
   return (
     <>
-      <div className="flex items-center justify-between gap-1 mb-1">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center justify-between gap-1.5 mb-1.5">
+        <div className="flex items-center gap-1 min-w-0 flex-nowrap">
           <span
             className={cn(
-              "inline-block px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border",
-              getCategoriaBadgeStyle(card.categoria)
+              "px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0",
+              getCategoriaCardBadgeStyle(card.categoria)
             )}
           >
             {card.categoria}
@@ -35,7 +47,7 @@ export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCa
           {metaStatusMaterial && (
             <span
               className={cn(
-                "inline-block px-1.5 py-0.5 text-[9px] font-semibold rounded-md border",
+                "px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap truncate",
                 metaStatusMaterial.badgeClasse
               )}
             >
@@ -47,47 +59,43 @@ export function KanbanCardVisual({ card, statusMaterial, acaoDireita }: KanbanCa
       </div>
 
       <h4
-        className="text-xs font-semibold text-foreground-secondary line-clamp-1 mb-1"
+        className="text-[13px] font-semibold text-foreground leading-tight truncate mb-1.5"
         title={card.clienteNome}
       >
         {card.clienteNome}
       </h4>
 
-      <div className="flex items-center justify-between mb-1.5">
-        <span
-          className="text-[10px] text-muted-foreground font-medium flex items-center gap-1"
-          title={`${card.quantidadePaineis} painéis`}
-        >
-          <Sun className="w-3 h-3 text-subtle-foreground shrink-0" />
-          {`${card.quantidadePaineis} painéis`}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border-subtle text-muted-foreground">
-        <div className="flex items-center gap-1 font-medium">
-          <Calendar className="w-3 h-3 text-subtle-foreground shrink-0" />
-          <span>{card.prazoContratualDias || 30}d •</span>
+      <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-border-subtle text-xs text-muted-foreground tabular-nums">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="inline-flex items-center gap-1 whitespace-nowrap"
+            title={`${card.quantidadePaineis} painéis`}
+          >
+            <Sun className="w-3 h-3 text-subtle-foreground shrink-0" aria-hidden="true" />
+            {card.quantidadePaineis}
+          </span>
           <span
             className={cn(
-              "font-semibold",
+              "inline-flex items-center gap-1 whitespace-nowrap",
               prazoRestante.concluido
                 ? "text-muted-foreground"
                 : prazoRestante.urgente
-                ? "text-destructive"
+                ? "text-destructive font-semibold"
                 : "text-muted-foreground"
             )}
+            title={`Prazo: ${card.prazoContratualDias || 30}d`}
           >
+            <Calendar className="w-3 h-3 text-subtle-foreground shrink-0" aria-hidden="true" />
             {prazoRestante.texto}
           </span>
         </div>
 
-        <div
+        <span
           title={`Última alteração por: ${card.atualizadoPor || "Carlos Administrador"}`}
-          className="flex items-center gap-1 font-medium"
+          className="font-semibold text-foreground-muted shrink-0"
         >
-          <User className="w-3 h-3 text-subtle-foreground shrink-0" />
-          <span>{iniciaisAutor}</span>
-        </div>
+          {iniciaisAutor}
+        </span>
       </div>
     </>
   );

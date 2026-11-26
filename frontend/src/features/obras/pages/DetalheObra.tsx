@@ -12,6 +12,9 @@ import {
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
+import { Badge } from "@/shared/components/ui/Badge";
+import { AvatarIniciais } from "@/shared/components/ui/AvatarIniciais";
+import { IconActionButton } from "@/shared/components/ui/IconActionButton";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
@@ -19,6 +22,7 @@ import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
 import { ModalEditarObra } from "../components/ModalEditarObra";
 import { ExportarDetalhesInstalacao } from "../components/ExportarDetalhesInstalacao";
 import type { ComentarioObra } from "../types/obras";
+import { COLUNAS_KANBAN } from "@/shared/constants/kanbanStatus";
 import { descreverEventoHistorico, montarTimelineCronologica } from "../lib/timelineObra";
 import {
   Calendar,
@@ -26,7 +30,6 @@ import {
   CreditCard,
   Send,
   Clock,
-  User,
   MessageSquare,
   Package,
   Zap,
@@ -149,6 +152,9 @@ export default function DetalheObra() {
 
   const clienteNome = obra?.cliente?.nome || "Cliente sem identificação";
   const obraEmAndamento = obra?.status === "EmAndamento";
+  const rotuloStatus = obra
+    ? COLUNAS_KANBAN.find((c) => c.id === obra.status)?.label ?? obra.status
+    : "";
   const tituloHeader = !loadingObra && !errorObra && obra ? `Obra: ${clienteNome}` : "Detalhes da Obra";
   const subtituloHeader = loadingObra
     ? "Consultando informações no servidor..."
@@ -156,7 +162,7 @@ export default function DetalheObra() {
       ? "Falha de conexão"
       : !obra
         ? "Obra não encontrada"
-        : `#${obra.id} • Status: ${obra.status}`;
+        : `${obra.categoria || "Residencial"} · ${obra.cliente?.cidade || "Cidade não informada"} · ${rotuloStatus}`;
   const eventosTimeline = montarTimelineCronologica(comentarios, historico);
 
   return (
@@ -168,16 +174,16 @@ export default function DetalheObra() {
         backState={backState}
       >
         {!loadingObra && !errorObra && obra ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {podeExportarInstalacao && (
+              <ExportarDetalhesInstalacao
+                obraId={obra.id}
+                contextoValido={() => true}
+              />
+            )}
+
             {podeEditarObra && (
               <>
-                <Button
-                  onClick={() => setModalEditarAberto(true)}
-                  className="flex items-center gap-2 text-xs"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Editar Obra
-                </Button>
                 <Button
                   variant="danger"
                   disabled={obraEmAndamento || excluirObraMutation.isPending}
@@ -188,19 +194,20 @@ export default function DetalheObra() {
                       : "Excluir obra"
                   }
                   aria-label="Excluir obra"
-                  className="flex items-center gap-1.5 text-xs border border-border-subtle"
+                  className="controle-compacto h-7 px-2.5 text-xs font-medium flex items-center gap-1.5 border border-border-subtle"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   <span className="hidden sm:inline">Excluir</span>
                 </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => setModalEditarAberto(true)}
+                  className="controle-compacto h-7 px-2.5 text-xs font-medium flex items-center gap-1.5"
+                >
+                  <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Editar Obra</span>
+                </Button>
               </>
-            )}
-
-            {podeExportarInstalacao && (
-              <ExportarDetalhesInstalacao
-                obraId={obra.id}
-                contextoValido={() => true}
-              />
             )}
           </div>
         ) : null}
@@ -218,14 +225,14 @@ export default function DetalheObra() {
         <EmptyState
           icone={FileQuestion}
           titulo="Obra não encontrada"
-          descricao={`Não encontramos nenhum registro de obra com o identificador #${obraId} no banco de dados.`}
+          descricao="Não encontramos nenhum registro de obra para o endereço solicitado no sistema."
           acao={{
             label: "Voltar para o Funil Kanban",
             onClick: () => { void navigate("/kanban"); },
           }}
         />
       ) : (
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* COLUNA ESQUERDA: Dados Técnicos e Contratuais */}
           <div className="lg:col-span-1 space-y-6">
@@ -234,9 +241,9 @@ export default function DetalheObra() {
                 <h2 className="text-xs font-bold text-foreground-muted uppercase tracking-wider">
                   Dados do Contrato e Local
                 </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-surface-subtle font-semibold border border-border-subtle text-foreground-secondary">
+                <Badge variante="neutral" tamanho="sm" comBorda>
                   {obra.categoria || "Residencial"}
-                </span>
+                </Badge>
               </div>
 
               <div className="space-y-4">
@@ -257,11 +264,11 @@ export default function DetalheObra() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Capacidade Instalada</p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-semibold text-foreground tabular-nums">
                       {obra.quantidadePaineis ?? 0} módulos solares
                     </p>
                     {obra.quantidadeInversores ? (
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                         {obra.quantidadeInversores} inversor(es)
                       </p>
                     ) : null}
@@ -274,10 +281,10 @@ export default function DetalheObra() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Cronograma Previsto</p>
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-semibold text-foreground tabular-nums">
                       Início: {obra.dataInicioEstimada ? formatarDataBR(obra.dataInicioEstimada) : "A definir"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       Conclusão: {obra.dataFimEstimada ? formatarDataBR(obra.dataFimEstimada) : "A definir"}
                     </p>
                   </div>
@@ -292,15 +299,26 @@ export default function DetalheObra() {
                       <p className="text-xs text-muted-foreground font-medium">
                         {podeVerFaturamento ? "Faturamento e Prazos" : "Prazo Contratual"}
                       </p>
-                      <p className="text-sm font-semibold text-foreground font-mono">
+                      <p className="text-sm font-semibold text-foreground font-mono tabular-nums">
                         Prazo: {obra.pagamento.prazoContratualDias} dias
                       </p>
                       {podeVerFaturamento && obra.pagamento.dataConfirmacao && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                           Confirmado em: {formatarDataBR(obra.pagamento.dataConfirmacao)}
                         </p>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {obra.descricao && (
+                  <div className="rounded-lg border border-border-subtle bg-surface-subtle p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      Descrição da obra
+                    </p>
+                    <p className="text-xs text-foreground-secondary mt-1 leading-relaxed whitespace-pre-line">
+                      {obra.descricao}
+                    </p>
                   </div>
                 )}
               </div>
@@ -331,9 +349,9 @@ export default function DetalheObra() {
                     Linha do Tempo e Comentários
                   </h2>
                 </div>
-                <span className="text-xs text-muted-foreground font-mono">
+                <Badge variante="neutral" tamanho="sm" className="font-mono tabular-nums">
                   {(historico?.length || 0) + (comentarios?.length || 0)} eventos
-                </span>
+                </Badge>
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
@@ -352,38 +370,44 @@ export default function DetalheObra() {
                       const editandoEste = comentarioEmEdicaoId === c.id;
                       return (
                         <div key={item.id} className="flex gap-3">
-                          <div className="w-8 h-8 rounded-full bg-info-light text-info flex items-center justify-center shrink-0 border border-info-border">
-                            <User className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 bg-surface-subtle p-3 rounded-xl border border-border-subtle">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className="text-xs font-bold text-foreground">
-                                {c.usuario?.nome || "Colaborador"}
-                              </span>
+                          <AvatarIniciais nome={c.usuario?.nome || "Colaborador"} size="md" tone="primary" />
+                          <div className="flex-1 min-w-0 bg-surface-subtle p-3.5 rounded-xl border border-border-subtle">
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-xs font-bold text-foreground truncate">
+                                  {c.usuario?.nome || "Colaborador"}
+                                </span>
+                                <Badge
+                                  variante={c.tipo === "Timeline" ? "accent" : "info"}
+                                  tamanho="xs"
+                                >
+                                  {c.tipo === "Timeline" ? "Financeiro / Timeline" : "Comentário"}
+                                </Badge>
+                              </div>
                               <div className="flex items-center gap-2">
-                                <span className="text-[11px] text-muted-foreground font-mono">
+                                <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
                                   {formatarDataHoraEvento(c.dataRegistro)}
                                 </span>
                                 {podeGerenciarComentarios && !editandoEste && (
                                   <div className="inline-flex items-center gap-1">
-                                    <button
-                                      type="button"
+                                    <IconActionButton
+                                      size="sm"
                                       onClick={() => iniciarEdicaoComentario(c)}
                                       title="Editar comentário"
-                                      aria-label={`Editar comentário de ${c.usuario?.nome || "Colaborador"}`}
-                                      className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-surface transition-colors cursor-pointer"
+                                      label={`Editar comentário de ${c.usuario?.nome || "Colaborador"}`}
+                                      className="hover:bg-surface"
                                     >
                                       <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
+                                    </IconActionButton>
+                                    <IconActionButton
+                                      size="sm"
+                                      tone="destructive"
                                       onClick={() => setComentarioParaExcluir(c)}
                                       title="Excluir comentário"
-                                      aria-label={`Excluir comentário de ${c.usuario?.nome || "Colaborador"}`}
-                                      className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive-light/30 transition-colors cursor-pointer"
+                                      label={`Excluir comentário de ${c.usuario?.nome || "Colaborador"}`}
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    </IconActionButton>
                                   </div>
                                 )}
                               </div>
@@ -397,7 +421,7 @@ export default function DetalheObra() {
                                   value={textoEdicaoComentario}
                                   disabled={editarComentarioMutation.isPending}
                                   onChange={(e) => setTextoEdicaoComentario(e.target.value)}
-                                  className="flex-1 bg-surface border border-border-subtle rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-border-strong"
+                                  className="flex-1 bg-surface border border-border-strong rounded-lg px-3 py-1.5 text-xs text-foreground focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25"
                                 />
                                 <button
                                   type="button"
@@ -443,12 +467,17 @@ export default function DetalheObra() {
                         <div className="w-8 h-8 rounded-full bg-muted text-subtle-foreground flex items-center justify-center shrink-0 border border-border-subtle">
                           <Clock className="w-4 h-4" />
                         </div>
-                        <div className="flex-1 bg-surface-subtle/60 p-3 rounded-xl border border-border-subtle">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-foreground-muted">
-                              {h.usuario?.nome || "Sistema"}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground font-mono">
+                        <div className="flex-1 min-w-0 bg-surface-subtle/60 p-3.5 rounded-xl border border-border-subtle">
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-foreground-muted">
+                                {h.usuario?.nome || "Sistema"}
+                              </span>
+                              <Badge variante="neutral" tamanho="xs">
+                                Avanço automático
+                              </Badge>
+                            </div>
+                            <span className="text-[11px] text-muted-foreground font-mono tabular-nums">
                               {formatarDataHoraEvento(h.dataAlteracao)}
                             </span>
                           </div>
@@ -481,13 +510,13 @@ export default function DetalheObra() {
                     onChange={(e) => setNovoComentario(e.target.value)}
                     aria-label="Comentário sobre a obra"
                     placeholder="Adicionar um comentário ou observação na obra..."
-                    className="flex-1 bg-surface border border-border-subtle rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-border-strong focus:border-border-strong transition-colors"
+                    className="flex-1 h-10 bg-surface border border-border-strong rounded-lg px-3.5 text-sm text-foreground focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 transition-colors"
                     disabled={addComentario.isPending}
                   />
                   <Button
                     type="submit"
                     disabled={!novoComentario.trim() || addComentario.isPending}
-                    className="px-4"
+                    className="h-10 px-4"
                   >
                     {addComentario.isPending ? "Enviando..." : <Send className="w-4 h-4" />}
                   </Button>
@@ -515,7 +544,7 @@ export default function DetalheObra() {
             isLoading={excluirObraMutation.isPending}
             variant="danger"
             titulo="Excluir esta obra?"
-            descricao={`Tem certeza que deseja excluir a obra de "${clienteNome}" (#${obra.id})? Ela deixará de aparecer no funil operacional.`}
+            descricao={`Tem certeza que deseja excluir a obra de "${clienteNome}"? Ela deixará de aparecer no funil operacional.`}
             labelConfirmar="Excluir obra"
           />
         </>

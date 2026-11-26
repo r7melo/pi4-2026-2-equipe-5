@@ -52,9 +52,13 @@ describe("GanttFiltroPeriodo (RN-108-01 / RN-108-02 / RN-108-05)", () => {
     const inputFinal =
       html.match(new RegExp(`<input[^>]*id="${idFim.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>`))?.[0] ?? "";
 
-    expect(inputInicial).toContain('type="date"');
+    expect(inputInicial).toContain('type="text"');
+    expect(inputInicial).toContain('inputMode="numeric"');
+    expect(inputInicial).toContain('placeholder="dd/mm/aaaa"');
     expect(inputInicial).toContain('value=""');
-    expect(inputFinal).toContain('type="date"');
+    expect(inputFinal).toContain('type="text"');
+    expect(inputFinal).toContain('inputMode="numeric"');
+    expect(inputFinal).toContain('placeholder="dd/mm/aaaa"');
     expect(inputFinal).toContain('value=""');
 
     expect(inputInicial).not.toContain("aria-label=");

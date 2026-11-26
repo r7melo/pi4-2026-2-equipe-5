@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
+import { DateInputBR } from "@/shared/components/ui/DateInputBR";
 import {
   dataCivilValida,
   proximoDiaUtilCivil,
 } from "@/shared/lib/datasCivis";
+import {
+  dataBRParaIso,
+  isoParaDataBR,
+} from "@/shared/lib/datasBrasileiras";
 import {
   capturarSessaoOperacional,
   sessaoOperacionalVigente,
@@ -15,13 +20,15 @@ export function FormularioReagendamento({
   tarefaId,
   dataInicio,
   canEdit,
-  onCancelar,
+  onCancelar: _onCancelar,
   onReagendar,
   reagendamentoBloqueado = false,
   reagendamentoFase = "livre",
   avisoReagendamento = null,
 }: FormularioReagendamentoProps) {
-  const [dataInicioRascunho, setDataInicioRascunho] = useState(dataInicio);
+  const [dataInicioRascunho, setDataInicioRascunho] = useState(() =>
+    isoParaDataBR(dataInicio)
+  );
   const [erroDataInicio, setErroDataInicio] = useState<string | null>(null);
   const [avisoAjuste, setAvisoAjuste] = useState<string | null>(null);
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
@@ -39,7 +46,7 @@ export function FormularioReagendamento({
       id: tarefaId,
       dataInicio,
     });
-    setDataInicioRascunho(dataInicio);
+    setDataInicioRascunho(isoParaDataBR(dataInicio));
     setErroDataInicio(null);
     setAvisoAjuste(null);
     setMensagemSucesso(null);
@@ -49,7 +56,7 @@ export function FormularioReagendamento({
       id: tarefaId,
       dataInicio,
     });
-    setDataInicioRascunho(dataInicio);
+    setDataInicioRascunho(isoParaDataBR(dataInicio));
   }
 
   useEffect(() => {
@@ -59,8 +66,7 @@ export function FormularioReagendamento({
     };
   }, []);
 
-  const handleDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const valor = e.target.value;
+  const handleDataChange = (valor: string) => {
     setMensagemSucesso(null);
 
     if (!valor) {
@@ -70,29 +76,30 @@ export function FormularioReagendamento({
       return;
     }
 
-    if (!dataCivilValida(valor)) {
+    if (valor.length < 10) {
       setDataInicioRascunho(valor);
       setAvisoAjuste(null);
-      setErroDataInicio("Data inicial inválida. Use o formato AAAA-MM-DD.");
+      setErroDataInicio(null);
+      return;
+    }
+
+    const iso = dataBRParaIso(valor);
+    if (!iso || !dataCivilValida(iso)) {
+      setDataInicioRascunho(valor);
+      setAvisoAjuste(null);
+      setErroDataInicio("Data inicial inválida. Use o formato dd/mm/aaaa.");
       return;
     }
 
     setErroDataInicio(null);
-    const normalizada = proximoDiaUtilCivil(valor);
-    if (normalizada !== valor) {
-      setDataInicioRascunho(normalizada);
+    const normalizada = proximoDiaUtilCivil(iso);
+    if (normalizada !== iso) {
+      setDataInicioRascunho(isoParaDataBR(normalizada));
       setAvisoAjuste("Data ajustada para a próxima segunda-feira útil.");
     } else {
       setDataInicioRascunho(valor);
       setAvisoAjuste(null);
     }
-  };
-
-  const handleCancelarEdicao = () => {
-    setDataInicioRascunho(dataInicio);
-    setErroDataInicio(null);
-    setAvisoAjuste(null);
-    onCancelar();
   };
 
   const handleSubmitReagendamento = async (e: React.FormEvent) => {
@@ -107,15 +114,16 @@ export function FormularioReagendamento({
       return;
     }
 
-    if (!dataCivilValida(dataInicioRascunho)) {
-      setErroDataInicio("Data inicial inválida. Use o formato AAAA-MM-DD.");
+    const iso = dataBRParaIso(dataInicioRascunho);
+    if (!iso || !dataCivilValida(iso)) {
+      setErroDataInicio("Data inicial inválida. Use o formato dd/mm/aaaa.");
       inputDataInicioRef.current?.focus();
       return;
     }
 
-    const dataFinal = proximoDiaUtilCivil(dataInicioRascunho);
-    if (dataFinal !== dataInicioRascunho) {
-      setDataInicioRascunho(dataFinal);
+    const dataFinal = proximoDiaUtilCivil(iso);
+    if (dataFinal !== iso) {
+      setDataInicioRascunho(isoParaDataBR(dataFinal));
       setAvisoAjuste("Data ajustada para a próxima segunda-feira útil.");
     }
 
@@ -155,42 +163,63 @@ export function FormularioReagendamento({
   };
 
   return (
-    <form onSubmit={handleSubmitReagendamento} className="cronograma-reagendamento p-3 bg-surface border border-border-subtle rounded-xl space-y-3">
-      <div className="space-y-1.5">
-        <label
-          htmlFor="gantt-input-data-inicio"
-          className="text-xs font-semibold text-foreground-secondary block"
-        >
-          Data Inicial
-        </label>
-        <input
-          ref={inputDataInicioRef}
-          id="gantt-input-data-inicio"
-          type="date"
-          min="0001-01-01"
-          max="9999-12-31"
-          value={dataInicioRascunho}
-          readOnly={!canEdit}
-          disabled={salvandoLocal || reagendamentoBloqueado || reagendamentoFase !== "livre"}
-          aria-describedby={
-            erroDataInicio
-              ? "gantt-data-inicio-hint gantt-data-inicio-erro"
-              : "gantt-data-inicio-hint"
-          }
-          aria-invalid={Boolean(erroDataInicio)}
-          onChange={handleDataChange}
-          className={cn(
-            "w-full min-h-[44px] px-3 py-2 text-xs border rounded-lg bg-surface text-foreground-secondary focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-border-strong transition-colors",
-            erroDataInicio
-              ? "border-destructive focus-visible:ring-destructive"
-              : "border-border-subtle",
-            !canEdit ? "bg-muted cursor-not-allowed opacity-80" : "cursor-pointer"
-          )}
-        />
-        <p id="gantt-data-inicio-hint" className="text-[11px] text-muted-foreground">
-          Alocações iniciam em dias úteis. Datas em sábados ou domingos são ajustadas automaticamente para a segunda-feira seguinte.
-        </p>
+    <form onSubmit={handleSubmitReagendamento} className="pt-1 space-y-2">
+      <div className="flex items-end gap-2">
+        <div className="flex-1 min-w-0">
+          <label
+            htmlFor="gantt-input-data-inicio"
+            className="text-[11px] font-medium text-muted-foreground block mb-1"
+          >
+            Novo início (dia útil)
+          </label>
+          <DateInputBR
+            ref={inputDataInicioRef}
+            id="gantt-input-data-inicio"
+            tamanho="md"
+            valor={dataInicioRascunho}
+            readOnly={!canEdit}
+            invalido={Boolean(erroDataInicio)}
+            disabled={salvandoLocal || reagendamentoBloqueado || reagendamentoFase !== "livre"}
+            aria-describedby={
+              erroDataInicio
+                ? "gantt-data-inicio-hint gantt-data-inicio-erro"
+                : "gantt-data-inicio-hint"
+            }
+            onChange={handleDataChange}
+          />
+        </div>
+
+        {canEdit && (
+          <button
+            type="submit"
+            disabled={
+              !onReagendar ||
+              salvandoLocal ||
+              reagendamentoBloqueado ||
+              reagendamentoFase !== "livre"
+            }
+            className="h-9 px-3.5 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary-hover rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5 shrink-0"
+          >
+            {salvandoLocal || reagendamentoFase === "salvando" ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />
+                <span>Salvando...</span>
+              </>
+            ) : reagendamentoFase === "sincronizando" ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />
+                <span>Sincronizando...</span>
+              </>
+            ) : (
+              <span>Reagendar</span>
+            )}
+          </button>
+        )}
       </div>
+
+      <p id="gantt-data-inicio-hint" className="text-[11px] text-muted-foreground">
+        Sábados e domingos ajustam automaticamente para a segunda-feira seguinte.
+      </p>
 
       {avisoAjuste && !erroDataInicio && (
         <p
@@ -225,13 +254,13 @@ export function FormularioReagendamento({
       )}
 
       {avisoReagendamento && (
-        <div
-          role="alert"
-          className="p-2.5 bg-warning-light/60 border border-warning-border rounded-lg text-xs text-warning flex items-start gap-2"
+        <AlertBanner
+          variante="warning"
+          icone={<AlertTriangle className="w-4 h-4" />}
+          className="p-2.5 border-transparent"
         >
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="flex-1">{avisoReagendamento}</span>
-        </div>
+          {avisoReagendamento}
+        </AlertBanner>
       )}
 
       {(salvandoLocal || reagendamentoFase !== "livre") && (
@@ -256,43 +285,6 @@ export function FormularioReagendamento({
               <span>Salvando nova data da alocação...</span>
             </>
           )}
-        </div>
-      )}
-
-      {canEdit && (
-        <div className="flex items-center gap-2 pt-1">
-          <button
-            type="submit"
-            disabled={
-              !onReagendar ||
-              salvandoLocal ||
-              reagendamentoBloqueado ||
-              reagendamentoFase !== "livre"
-            }
-            className="min-h-[44px] min-w-[44px] px-4 py-2 text-xs font-semibold text-primary-foreground bg-info hover:bg-info-hover rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-border-strong"
-          >
-            {salvandoLocal || reagendamentoFase === "salvando" ? (
-              <>
-                <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
-                <span>Salvando...</span>
-              </>
-            ) : reagendamentoFase === "sincronizando" ? (
-              <>
-                <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
-                <span>Sincronizando...</span>
-              </>
-            ) : (
-              <span>Salvar</span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCancelarEdicao}
-            className="min-h-[44px] min-w-[44px] px-4 py-2 text-xs font-semibold text-foreground-muted bg-surface border border-border-subtle hover:bg-surface-subtle rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-border-strong"
-          >
-            Cancelar
-          </button>
         </div>
       )}
     </form>

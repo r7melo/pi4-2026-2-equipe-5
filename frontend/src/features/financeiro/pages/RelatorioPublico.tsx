@@ -1,6 +1,7 @@
 // RF-16: Visualização pública e somente leitura do relatório/cronograma de obras
 import { useParams, Link } from "react-router-dom";
 import { useRelatorioPublico } from "@/features/financeiro/hooks/useRelatorioPublico";
+import { Badge, type BadgeVariante } from "@/shared/components/ui/Badge";
 import { Button } from "@/shared/components/ui/Button";
 import {
   Sun,
@@ -89,13 +90,13 @@ export default function RelatorioPublico() {
           </div>
 
           <div className="flex items-center gap-2.5 print:hidden">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success-light border border-success-border text-success text-[11px] font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5" /> Somente Leitura
-            </span>
+            <Badge variante="success" tamanho="sm" comBorda className="gap-1.5 px-2.5 py-1">
+              <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" /> Somente Leitura
+            </Badge>
             <Button
               variant="outline"
               onClick={handleImprimir}
-              className="min-h-8 h-auto py-1 px-3 text-xs gap-1.5 cursor-pointer"
+              className="h-8 px-3 text-xs font-medium gap-1.5 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5 text-muted-foreground" />
               Imprimir / PDF
@@ -119,7 +120,7 @@ export default function RelatorioPublico() {
               {periodoInicio && periodoFim && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-surface-subtle border border-border-subtle rounded-lg text-foreground-secondary">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>Período: <strong className="font-mono">{periodoInicio}</strong> até <strong className="font-mono">{periodoFim}</strong></span>
+                  <span>Período: <strong className="font-mono tabular-nums">{periodoInicio}</strong> até <strong className="font-mono tabular-nums">{periodoFim}</strong></span>
                 </div>
               )}
               {clienteFiltro && clienteFiltro !== "todos" && (
@@ -139,7 +140,7 @@ export default function RelatorioPublico() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total de Obras</span>
               <Clock className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{totalObras}</p>
+            <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{totalObras}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">no escopo selecionado</p>
           </div>
 
@@ -148,8 +149,8 @@ export default function RelatorioPublico() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Concluídas</span>
               <CheckCircle2 className="w-4 h-4 text-success" />
             </div>
-            <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{obrasConcluidas}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
+            <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{obrasConcluidas}</p>
+            <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">
               {totalObras > 0 ? `${Math.round((obrasConcluidas / totalObras) * 100)}% de conclusão` : "0%"}
             </p>
           </div>
@@ -159,7 +160,7 @@ export default function RelatorioPublico() {
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Painéis Instalados</span>
               <Sun className="w-4 h-4 text-foreground-muted" />
             </div>
-            <p className="text-2xl font-bold font-mono tracking-tight text-foreground">
+            <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">
               {totalPaineis.toLocaleString("pt-BR")}
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">módulos solares</p>
@@ -182,7 +183,7 @@ export default function RelatorioPublico() {
               <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                 Cronograma e Status das Instalações
               </h3>
-              <span className="text-xs font-mono text-muted-foreground">{obras.length} obra(s) listada(s)</span>
+              <span className="text-xs font-mono tabular-nums text-muted-foreground">{obras.length} obra(s) listada(s)</span>
             </div>
 
             <div className="divide-y divide-border-subtle">
@@ -190,44 +191,22 @@ export default function RelatorioPublico() {
                 const progresso = obra.progressoGeral ?? null;
 
                 const getStatusBadge = (status?: string | null) => {
-                  switch (status) {
-                    case "Concluido":
-                      return (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-success-light text-success border border-success-border">
-                          Concluída
-                        </span>
-                      );
-                    case "EmAndamento":
-                      return (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-warning-light text-warning border border-warning-border">
-                          Em Andamento
-                        </span>
-                      );
-                    case "NoDeposito":
-                      return (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-subtle text-foreground-secondary border border-border-subtle">
-                          No Depósito
-                        </span>
-                      );
-                    case "Separado":
-                      return (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-subtle text-foreground-secondary border border-border-subtle">
-                          Separado
-                        </span>
-                      );
-                    case "MaterialComprado":
-                      return (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-subtle text-muted-foreground border border-border-subtle">
-                          Material Comprado
-                        </span>
-                      );
-                    default:
-                      return (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-destructive-light text-destructive border border-destructive-border">
-                          Assistência
-                        </span>
-                      );
-                  }
+                  const meta: Record<string, { rotulo: string; variante: BadgeVariante }> = {
+                    Concluido: { rotulo: "Concluída", variante: "success" },
+                    EmAndamento: { rotulo: "Em Andamento", variante: "warning" },
+                    NoDeposito: { rotulo: "No Depósito", variante: "neutral" },
+                    Separado: { rotulo: "Separado", variante: "neutral" },
+                    MaterialComprado: { rotulo: "Material Comprado", variante: "neutral" },
+                  };
+                  const escolhido = (status && meta[status]) || {
+                    rotulo: "Assistência",
+                    variante: "destructive" as const,
+                  };
+                  return (
+                    <Badge variante={escolhido.variante} tamanho="sm" comBorda>
+                      {escolhido.rotulo}
+                    </Badge>
+                  );
                 };
 
                 return (
@@ -246,7 +225,7 @@ export default function RelatorioPublico() {
                             <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
                             {obra.cidade || "N/I"} - {obra.uf || "UF"}
                           </span>
-                          <span className="flex items-center gap-1 font-mono">
+                          <span className="flex items-center gap-1 font-mono tabular-nums">
                             <Sun className="w-3.5 h-3.5 text-muted-foreground" />
                             {obra.quantidadePaineis} painéis
                           </span>
@@ -260,7 +239,7 @@ export default function RelatorioPublico() {
                           {progresso === null ? (
                             <span className="text-muted-foreground">Não informado</span>
                           ) : (
-                            <span className="font-mono font-bold text-foreground">{progresso}%</span>
+                            <span className="font-mono font-bold tabular-nums text-foreground">{progresso}%</span>
                           )}
                         </div>
                         {progresso !== null && (

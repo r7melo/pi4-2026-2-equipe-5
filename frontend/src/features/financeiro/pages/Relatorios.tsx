@@ -7,6 +7,8 @@ import { baixarArquivoBlob } from "@/shared/lib/arquivoBlob";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
+import { Badge, type BadgeVariante } from "@/shared/components/ui/Badge";
+import { Button } from "@/shared/components/ui/Button";
 import { useObrasSelect, useLinkRelatorioDemonstracao, useExportarRelatorio } from "@/features/financeiro/hooks/useRelatorios";
 import { ApiErro } from '@/shared/api/api';
 import { capturarSessaoOperacional, sessaoOperacionalVigente } from '@/shared/lib/sessaoOperacao';
@@ -17,12 +19,30 @@ import {
   Download,
   BarChart3,
   Link2,
-  Calendar,
-  Users,
   ChevronDown,
   TrendingUp,
   FileText,
 } from "lucide-react";
+import { COLUNAS_KANBAN } from "@/shared/constants/kanbanStatus";
+
+function varianteStatusObra(status: string): BadgeVariante {
+  switch (status) {
+    case "MaterialComprado":
+      return "warning";
+    case "NoDeposito":
+      return "neutral";
+    case "Separado":
+      return "accent";
+    case "EmAndamento":
+      return "info";
+    case "Concluido":
+      return "success";
+    case "Assistencia":
+      return "destructive";
+    default:
+      return "neutral";
+  }
+}
 
 export default function Relatorios() {
   const gerarLinkMock = useLinkRelatorioDemonstracao();
@@ -149,74 +169,70 @@ export default function Relatorios() {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
       <PageHeader title="Relatórios e Exportação">
-        <button
+        <Button
+          variant="outline"
           onClick={() => handleExportar("excel")}
           disabled={exportando}
-          className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
+          className="controle-compacto h-7 px-2.5 text-xs font-medium border-border-strong text-foreground-secondary shadow-none"
         >
-          {exportandoExcel ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Download className="w-4 h-4 text-success" />}
+          {exportandoExcel ? <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" /> : <Download className="w-3.5 h-3.5 text-success" />}
           Exportar Excel
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
           onClick={() => handleExportar("pdf")}
           disabled={exportando}
-          className="bg-surface border border-border-subtle hover:bg-surface-subtle text-foreground-secondary px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
+          className="controle-compacto h-7 px-2.5 text-xs font-medium border-border-strong text-foreground-secondary shadow-none"
         >
-          {exportandoPdf ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Download className="w-4 h-4 text-destructive" />}
+          {exportandoPdf ? <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" /> : <Download className="w-3.5 h-3.5 text-destructive" />}
           Exportar PDF
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleGerarLink}
           disabled={gerandoLink}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 cursor-pointer"
+          className="controle-compacto h-7 px-2.5 text-xs font-medium shadow-none"
         >
-          {gerandoLink ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Link2 className="w-4 h-4" />}
+          {gerandoLink ? <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
           Gerar link compartilhável
-        </button>
+        </Button>
       </PageHeader>
 
       {erroObras && <div className="flex-1 overflow-y-auto p-6"><FeedbackErro mensagem="Não foi possível carregar os dados do relatório." onTentarNovamente={() => { void refetchObras(); }} /></div>}
-      <div hidden={erroObras} className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-background-app">
-        <div className="max-w-5xl mx-auto space-y-6">
+      <div hidden={erroObras} className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 bg-background-app">
+        <div className="max-w-5xl mx-auto space-y-5">
 
-          {/* Barra de filtros */}
-          <div className="bg-surface rounded-xl border border-border-subtle p-4 flex flex-wrap items-center gap-4">
-            {/* Filtro: Período */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
-                <Calendar className="w-4 h-4" />
-                <span>Período:</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <label htmlFor="relatorio-periodo-inicio" className="sr-only">Início do período</label>
-                <input
-                  type="date"
-                  id="relatorio-periodo-inicio"
-                  value={periodoInicio}
-                  onChange={(e) => setPeriodoInicio(e.target.value)}
-                  className="text-sm bg-surface border border-border-subtle text-foreground rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow"
-                />
-                <span className="text-muted-foreground text-sm">—</span>
-                <label htmlFor="relatorio-periodo-fim" className="sr-only">Fim do período</label>
-                <input
-                  type="date"
-                  id="relatorio-periodo-fim"
-                  value={periodoFim}
-                  onChange={(e) => setPeriodoFim(e.target.value)}
-                  className="text-sm bg-surface border border-border-subtle text-foreground rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow"
-                />
-              </div>
+          {/* Barra de filtros em grade responsiva alinhada */}
+          <div className="bg-surface rounded-xl border border-border-subtle p-4 grid grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <div className="space-y-1">
+              <label htmlFor="relatorio-periodo-inicio" className="block text-[11px] font-medium text-muted-foreground">
+                Início
+              </label>
+              <input
+                type="date"
+                id="relatorio-periodo-inicio"
+                value={periodoInicio}
+                onChange={(e) => setPeriodoInicio(e.target.value)}
+                className="w-full h-8 text-xs font-mono tabular-nums bg-surface border border-border-strong text-foreground rounded-lg px-2.5 focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 transition-colors"
+              />
             </div>
 
-            {/* Divider */}
-            <div className="hidden sm:block w-px h-6 bg-border-subtle" />
+            <div className="space-y-1">
+              <label htmlFor="relatorio-periodo-fim" className="block text-[11px] font-medium text-muted-foreground">
+                Fim
+              </label>
+              <input
+                type="date"
+                id="relatorio-periodo-fim"
+                value={periodoFim}
+                onChange={(e) => setPeriodoFim(e.target.value)}
+                className="w-full h-8 text-xs font-mono tabular-nums bg-surface border border-border-strong text-foreground rounded-lg px-2.5 focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 transition-colors"
+              />
+            </div>
 
-            {/* Filtro: Cliente */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground font-medium">
-                <Users className="w-4 h-4" />
-                <label htmlFor="relatorio-cliente">Cliente:</label>
-              </div>
+            <div className="col-span-2 sm:col-span-1 space-y-1">
+              <label htmlFor="relatorio-cliente" className="block text-[11px] font-medium text-muted-foreground">
+                Cliente
+              </label>
               <div className="relative">
                 <select
                   id="relatorio-cliente"
@@ -226,7 +242,7 @@ export default function Relatorios() {
                     setObraSelecionada("todas");
                   }}
                   disabled={loadingObras}
-                  className="appearance-none text-sm border border-border-subtle rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow bg-surface text-foreground cursor-pointer"
+                  className="w-full appearance-none h-8 text-xs border border-border-strong rounded-lg pl-2.5 pr-7 focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 transition-colors bg-surface text-foreground cursor-pointer"
                 >
                   {clientes.map((c) => (
                     <option key={c} value={c} className="bg-surface text-foreground">
@@ -234,14 +250,13 @@ export default function Relatorios() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               </div>
             </div>
 
-            {/* Filtro: Obra e Tipo de Exportação */}
-            <div className="flex items-center gap-2">
-              <label htmlFor="relatorio-obra" className="text-sm text-muted-foreground font-medium">
-                Obra:
+            <div className="col-span-2 sm:col-span-1 space-y-1">
+              <label htmlFor="relatorio-obra" className="block text-[11px] font-medium text-muted-foreground">
+                Obra
               </label>
               <div className="relative">
                 <select
@@ -249,22 +264,22 @@ export default function Relatorios() {
                   value={obraSelecionada}
                   onChange={(e) => setObraSelecionada(e.target.value)}
                   disabled={loadingObras}
-                  className="appearance-none text-sm border border-border-subtle rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow bg-surface text-foreground cursor-pointer"
+                  className="w-full appearance-none h-8 text-xs border border-border-strong rounded-lg pl-2.5 pr-7 focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 transition-colors bg-surface text-foreground cursor-pointer"
                 >
                   <option value="todas">Todas as obras</option>
                   {obrasFiltradasBase.map((o) => (
                     <option key={o.id} value={String(o.id)}>
-                      #{o.id} • {o.clienteNome}
+                      {o.clienteNome}
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <label htmlFor="relatorio-tipo" className="text-sm text-muted-foreground font-medium">
-                Tipo:
+            <div className="col-span-2 sm:col-span-1 space-y-1">
+              <label htmlFor="relatorio-tipo" className="block text-[11px] font-medium text-muted-foreground">
+                Tipo
               </label>
               <div className="relative">
                 <select
@@ -273,20 +288,13 @@ export default function Relatorios() {
                   onChange={(e) =>
                     setTipoRelatorio(e.target.value as "financeiro" | "cronograma")
                   }
-                  className="appearance-none text-sm border border-border-subtle rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-border-strong transition-shadow bg-surface text-foreground cursor-pointer"
+                  className="w-full appearance-none h-8 text-xs border border-border-strong rounded-lg pl-2.5 pr-7 focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 transition-colors bg-surface text-foreground cursor-pointer"
                 >
                   <option value="financeiro">Financeiro e Custos</option>
                   <option value="cronograma">Cronograma e Execução</option>
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
               </div>
-            </div>
-
-            {/* Badge de período selecionado no formato brasileiro */}
-            <div className="ml-auto">
-              <span className="text-xs font-medium font-mono px-2.5 py-1 bg-surface-subtle text-foreground-secondary rounded-full border border-border-subtle">
-                {formatarDataBR(periodoInicio)} → {formatarDataBR(periodoFim)}
-              </span>
             </div>
           </div>
 
@@ -302,7 +310,7 @@ export default function Relatorios() {
                   <p className="text-xs font-semibold text-muted-foreground">Obras no Período</p>
                   <FileText className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{totalObras}</p>
+                <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{totalObras}</p>
                 <p className="text-xs text-muted-foreground mt-1">obras no filtro atual</p>
               </div>
 
@@ -311,8 +319,8 @@ export default function Relatorios() {
                   <p className="text-xs font-semibold text-muted-foreground">Concluídas</p>
                   <TrendingUp className="w-4 h-4 text-success" />
                 </div>
-                <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{obrasConcluidasCount}</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{obrasConcluidasCount}</p>
+                <p className="text-xs text-muted-foreground tabular-nums mt-1">
                   {totalObras > 0 ? Math.round((obrasConcluidasCount / totalObras) * 100) : 0}% de conclusão
                 </p>
               </div>
@@ -322,7 +330,7 @@ export default function Relatorios() {
                   <p className="text-xs font-semibold text-muted-foreground">Total de Painéis</p>
                   <BarChart3 className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <p className="text-2xl font-bold font-mono tracking-tight text-foreground">{totalPaineis.toLocaleString("pt-BR")}</p>
+                <p className="text-2xl font-bold font-mono tracking-tight tabular-nums text-foreground">{totalPaineis.toLocaleString("pt-BR")}</p>
                 <p className="text-xs text-muted-foreground mt-1">painéis instalados / previstos</p>
               </div>
             </div>
@@ -330,9 +338,14 @@ export default function Relatorios() {
 
           {/* Área de gráfico / tabela resumo do período */}
           <div className="bg-surface rounded-xl border border-border-subtle overflow-hidden">
-            <div className="px-5 py-4 border-b border-border-subtle flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-semibold text-foreground">Resumo do Período</h3>
+            <div className="px-5 py-3.5 border-b border-border-subtle flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">Resumo do Período</h3>
+              </div>
+              <span className="text-xs font-medium font-mono tabular-nums px-2.5 py-0.5 bg-surface-subtle text-foreground-secondary rounded-full border border-border-subtle">
+                {formatarDataBR(periodoInicio)} → {formatarDataBR(periodoFim)}
+              </span>
             </div>
 
             {loadingObras ? (
@@ -357,35 +370,38 @@ export default function Relatorios() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-subtle">
-                    {obrasDoPeriodo.map((obra) => (
-                      <tr key={obra.id} className="hover:bg-surface-subtle/50 transition-colors">
-                        <td className="py-3.5 px-6">
-                          <p className="font-semibold text-foreground text-sm leading-snug">
-                            {obra.clienteNome}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                            Obra #{obra.id} • {obra.categoria || "Residencial"}
-                          </p>
-                        </td>
-                        <td className="py-3.5 px-5">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                            obra.status === "Concluido"
-                              ? "bg-success-light text-success border-success-border"
-                              : obra.status === "EmAndamento"
-                              ? "bg-info-light text-info border-info-border"
-                              : "bg-surface-subtle text-foreground-secondary border-border-subtle"
-                          }`}>
-                            {obra.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-6 text-right font-mono text-sm font-bold text-foreground">
-                          {obra.quantidadePaineis ? obra.quantidadePaineis.toLocaleString("pt-BR") : "—"}
-                        </td>
-                        <td className="py-3.5 px-6 text-left text-sm text-foreground-secondary">
-                          {obra.cidade || "—"}
-                        </td>
-                      </tr>
-                    ))}
+                    {obrasDoPeriodo.map((obra) => {
+                      const rotuloStatus =
+                        COLUNAS_KANBAN.find((c) => c.id === obra.status)?.label ?? obra.status;
+                      return (
+                        <tr key={obra.id} className="hover:bg-surface-subtle/50 transition-colors">
+                          <td className="py-3.5 px-6">
+                            <p className="font-semibold text-foreground text-sm leading-snug">
+                              {obra.clienteNome}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {obra.categoria || "Residencial"}
+                            </p>
+                          </td>
+                          <td className="py-3.5 px-5">
+                            <Badge
+                              variante={varianteStatusObra(obra.status)}
+                              tamanho="sm"
+                              comBorda
+                              className="px-2.5 text-xs whitespace-nowrap"
+                            >
+                              {rotuloStatus}
+                            </Badge>
+                          </td>
+                          <td className="py-3.5 px-6 text-right font-mono text-sm font-bold tabular-nums text-foreground">
+                            {obra.quantidadePaineis ? obra.quantidadePaineis.toLocaleString("pt-BR") : "—"}
+                          </td>
+                          <td className="py-3.5 px-6 text-left text-sm text-foreground-secondary">
+                            {obra.cidade || "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -198,9 +198,17 @@ body {
   outline: 2px solid var(--foreground);
   outline-offset: 3px;
 }
+:root :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: var(--info);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--info) 18%, transparent);
+  outline: 2px solid transparent;
+  outline-offset: 0;
+}
 :root :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: -1px;
+  border-color: var(--info);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--info) 22%, transparent);
+  outline: 2px solid transparent;
+  outline-offset: 0;
 }
 :root :is(button, input:not([type="checkbox"]):not([type="radio"]), select):not(.controle-compacto) {
   min-block-size: 24px;

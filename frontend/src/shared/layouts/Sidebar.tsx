@@ -14,6 +14,8 @@ import {
   Menu,
 } from "lucide-react";
 import { Drawer } from "@/shared/components/ui/Drawer";
+import { AvatarIniciais } from "@/shared/components/ui/AvatarIniciais";
+import { IconActionButton } from "@/shared/components/ui/IconActionButton";
 import { cn } from "@/shared/lib/utils";
 import { ROTULOS_PERFIS } from "@/shared/constants/perfis";
 import { perfilCanonico } from "@/shared/lib/rotasSessao";
@@ -23,28 +25,22 @@ import type { NomePerfil } from "@/shared/types/autorizacao";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-function iniciaisUsuario(nome?: string): string {
-  const partes = (nome || "").trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return "ZL";
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
-}
-
 export function SidebarTrigger({ className }: { className?: string }) {
   const { toggleMobile, isMobileOpen } = useSidebar();
 
   return (
-    <button
+    <IconActionButton
+      size="md"
       onClick={toggleMobile}
-      aria-label="Abrir menu lateral"
+      label="Abrir menu lateral"
       aria-expanded={isMobileOpen}
       className={cn(
-        "shrink-0 w-8 h-8 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer",
+        "rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         className
       )}
     >
       <Menu className="w-4 h-4" aria-hidden="true" />
-    </button>
+    </IconActionButton>
   );
 }
 
@@ -117,7 +113,6 @@ export default function Sidebar() {
   const perfil = usuario?.perfil?.nomePerfil;
   const rotuloPerfil = perfilCanonico(perfil) ? ROTULOS_PERFIS[perfil] : perfil || "Conta ativa";
   const nomeConta = usuario?.nome?.trim() || "Usuário autenticado";
-  const iniciais = iniciaisUsuario(usuario?.nome);
   const mostrarConfiguracoes = location.pathname.replace(/\/+$/, "") !== "/sem-permissao" &&
     Boolean(perfil && ["Administrador", "Engenharia", "Financeiro"].includes(perfil));
   const allowedItems = navItems.filter((item) => perfil && item.roles.includes(perfil));
@@ -135,7 +130,7 @@ export default function Sidebar() {
       <aside
         aria-label="Barra lateral de navegação"
         className={cn(
-          "hidden md:flex flex-col justify-between shrink-0 transition-[width] duration-150 overflow-hidden border-r border-border-subtle bg-surface",
+          "hidden md:flex flex-col justify-between shrink-0 overflow-hidden border-r border-border-subtle bg-surface",
           isCollapsed ? "w-16" : "w-60"
         )}
       >
@@ -157,16 +152,16 @@ export default function Sidebar() {
               </div>
             )}
 
-            <button
-              type="button"
+            <IconActionButton
+              size="md"
               onClick={toggleCollapse}
               aria-expanded={!isCollapsed}
-              aria-label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+              label={isCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
               title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-              className="w-8 h-8 rounded-lg inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-subtle cursor-pointer shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="rounded-lg hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {isCollapsed ? <ChevronRight className="w-4 h-4" aria-hidden="true" /> : <ChevronLeft className="w-4 h-4" aria-hidden="true" />}
-            </button>
+            </IconActionButton>
           </div>
 
           <nav aria-label="Menu principal de navegação" className="p-2.5 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
@@ -233,9 +228,7 @@ export default function Sidebar() {
             )}
             title={isCollapsed ? `${nomeConta} (${rotuloPerfil})` : undefined}
           >
-            <span className="size-8 rounded-full bg-muted text-foreground text-xs font-semibold inline-flex items-center justify-center shrink-0" aria-hidden="true">
-              {iniciais}
-            </span>
+            <AvatarIniciais nome={usuario?.nome} size="md" tone="muted" />
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-foreground truncate">{nomeConta}</p>
@@ -296,9 +289,7 @@ export default function Sidebar() {
             <LogOut aria-hidden="true" className="size-[18px] shrink-0" />Sair
           </button>
           <div className="pt-2 mt-1 border-t border-border-subtle flex items-center gap-2.5 px-2 py-1.5">
-            <span className="size-8 rounded-full bg-muted text-foreground text-xs font-semibold inline-flex items-center justify-center shrink-0" aria-hidden="true">
-              {iniciais}
-            </span>
+            <AvatarIniciais nome={usuario?.nome} size="md" tone="muted" />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-foreground truncate">{nomeConta}</p>
               <p className="text-xs text-muted-foreground truncate">{rotuloPerfil}</p>

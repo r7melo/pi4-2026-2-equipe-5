@@ -38,7 +38,6 @@ export function modificarUsuario(id: number, dados: { nome?: string; perfil?: st
   if (id === operador && (!proxima.ativo || proxima.perfil !== "Administrador")) throw new FalhaGestao(400, "VALIDATION_ERROR", "Não é possível alterar o acesso da própria conta.");
   const vinculoMudou = proxima.equipeId !== atual.equipeId || proxima.perfil !== atual.perfil;
   const equipes = equipesValidas();
-  if (proxima.perfil === "InstaladorCampo" && proxima.equipeId === null) throw new FalhaGestao(400, "VALIDATION_ERROR", "Selecione uma equipe.");
   if (proxima.equipeId !== null && !equipes.some(e => e.id === proxima.equipeId)) throw new FalhaGestao(404, "EQUIPE_NOT_FOUND", "Equipe não encontrada.");
   if (vinculoMudou && responsavelUsuario(id)) throw new FalhaGestao(400, "VALIDATION_ERROR", "Substitua o responsável na gestão de equipes antes de alterar este vínculo.");
   const ids = [id];

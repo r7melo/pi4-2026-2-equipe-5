@@ -26,13 +26,22 @@ export function useEditorUsuario({ usuario, onFechar, onConcluido }: Omit<Editor
   const atual = useConsultaUsuario(usuario.id, usuario.email);
   usePerdaPermissao(equipes.error, onFechar);
   usePerdaPermissao(atual.error, onFechar);
-  const indisponivel = perfil === "InstaladorCampo" && (!equipes.isSuccess || equipes.isFetching || !equipes.data.length || !equipes.data.some(e => e.id === Number(equipe)));
+  const equipeSelecionada = equipe !== "" ? Number(equipe) : null;
+  const indisponivel =
+    perfil === "InstaladorCampo" &&
+    equipeSelecionada !== null &&
+    (!equipes.isSuccess || equipes.isFetching || !equipes.data.some(e => e.id === equipeSelecionada));
   async function salvar(evento: FormEvent) {
     evento.preventDefault(); if (trava.current || conflito) return; trava.current = true;
     const vigente = capturarContexto(); setErro("");
     try {
       if (nomeInvalido) { setErro("Informe um nome entre 3 e 200 caracteres."); nomeRef.current?.focus(); return; }
-      await mutacao.mutateAsync({ nome: nome.trim(), perfil, equipeId: perfil === "InstaladorCampo" ? Number(equipe) : perfil === base.perfil ? base.equipeId : null, revisao: base.revisao });
+      await mutacao.mutateAsync({
+        nome: nome.trim(),
+        perfil,
+        equipeId: perfil === "InstaladorCampo" ? equipeSelecionada : perfil === base.perfil ? base.equipeId : null,
+        revisao: base.revisao,
+      });
       if (!vigente()) return;
       toast.success("Usuário atualizado com sucesso."); onConcluido();
     } catch (e) {

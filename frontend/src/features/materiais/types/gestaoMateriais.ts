@@ -19,7 +19,7 @@ export type AlterarMaterial = {
 
 export type AlterarStatusMaterial = {
   id: number;
-  statusLogistico: StatusLogistico;
+  statusLogistico?: StatusLogistico;
   quantidadeUtilizada?: number | null;
   obraId: number;
 };

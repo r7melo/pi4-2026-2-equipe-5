@@ -1,4 +1,5 @@
 import { Package, FileCheck, AlertTriangle } from "lucide-react";
+import { Badge } from "@/shared/components/ui/Badge";
 import { formatarDataBR } from "@/shared/lib/formatters";
 import { materialEstaPronto } from "@/features/cronograma/lib/prontidaoObra";
 import type { PainelProntidaoProps } from "@/features/cronograma/types/gavetaGantt";
@@ -20,114 +21,102 @@ export function PainelProntidao({
   const homologacaoReprovada = parecerStatus === "Reprovado";
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-xs font-bold text-foreground-secondary uppercase tracking-wider flex items-center gap-1.5">
-        <Package className="w-4 h-4 text-muted-foreground" />
-        <span>Prontidão Operacional</span>
+    <section className="space-y-3 text-xs">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <Package className="w-3.5 h-3.5 text-muted-foreground" aria-hidden="true" />
+        <span>Prontidão operacional</span>
       </h3>
 
-      <div className="space-y-2">
-        {/* Card de Material */}
-        <div className="p-3 bg-surface border border-border-subtle rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5 text-subtle-foreground" /> Insumos & Materiais
-            </span>
-            <span
-              className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
-                materialSeparado
-                  ? "bg-success-light text-success border border-success-border"
-                  : materialNoDeposito
-                  ? "bg-info-light text-info border border-info-border"
-                  : materialComprado
-                  ? "bg-warning-light text-warning border border-warning-border"
-                  : materialAssistencia
-                  ? "bg-warning-light text-warning border border-warning-border"
-                  : "bg-destructive-light text-destructive border border-destructive-border"
-              }`}
-            >
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
+              <span>Insumos &amp; Materiais</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               {materialSeparado
-                ? "Kit Pronto / Separado"
+                ? "Todos os componentes estão prontos para saída a campo."
                 : materialNoDeposito
-                ? "No Depósito Central"
+                ? "Materiais recebidos no depósito central da empresa."
                 : materialComprado
-                ? "Comprado"
+                ? "Insumos adquiridos pelo setor de compras em entrega."
                 : materialAssistencia
-                ? "Assistência"
-                : "Pendente"}
-            </span>
+                ? "Aguardando peças de reposição para manutenção."
+                : "Obra ainda não possui os kits separados para instalação."}
+            </p>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <Badge
+            formato="rounded"
+            variante={
+              materialSeparado
+                ? "success"
+                : materialNoDeposito
+                ? "info"
+                : materialComprado || materialAssistencia
+                ? "warning"
+                : "destructive"
+            }
+          >
             {materialSeparado
-              ? "Todos os componentes estão prontos para saída a campo."
+              ? "Kit Pronto / Separado"
               : materialNoDeposito
-              ? "Materiais recebidos no depósito central da empresa."
+              ? "No Depósito Central"
               : materialComprado
-              ? "Insumos adquiridos pelo setor de compras em entrega."
+              ? "Comprado"
               : materialAssistencia
-              ? "Aguardando peças de reposição para manutenção."
-              : "Obra ainda não possui os kits separados para instalação."}
-          </p>
+              ? "Assistência"
+              : "Pendente"}
+          </Badge>
         </div>
 
-        {/* Card de Parecer de Acesso */}
-        <div className="p-3 bg-surface border border-border-subtle rounded-xl space-y-1 shadow-2xs">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground font-medium flex items-center gap-1.5">
-              <FileCheck className="w-3.5 h-3.5 text-subtle-foreground" /> Parecer de Acesso
-            </span>
-            <span
-              className={`font-semibold px-2 py-0.5 rounded text-[11px] flex items-center gap-1 ${
-                homologacaoAprovada
-                  ? "bg-success-light text-success border border-success-border"
-                  : homologacaoEmAnalise
-                  ? "bg-info-light text-info border border-info-border"
-                  : homologacaoReprovada
-                  ? "bg-destructive-light text-destructive border border-destructive-border"
-                  : "bg-warning-light text-warning border border-warning-border"
-              }`}
-            >
-              {homologacaoReprovada ? (
-                <>
-                  <AlertTriangle className="w-3 h-3 text-destructive" /> Reprovado
-                </>
-              ) : (
-                parecerStatus
-              )}
-            </span>
+        <div className="pt-3 border-t border-border-subtle flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground flex items-center gap-1.5">
+              <FileCheck className="w-3.5 h-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
+              <span>Parecer de Acesso</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {homologacaoAprovada &&
+                "Projeto aprovado na concessionária. Instalação liberada para ligação."}
+              {homologacaoEmAnalise &&
+                "Documentação em análise técnica junto à rede distribuidora."}
+              {homologacaoReprovada &&
+                "Pendências técnicas apontadas. Acesso reprovado provisoriamente."}
+              {parecerStatus === "Pendente" &&
+                "Aguardando submissão do projeto elétrico à concessionária."}
+            </p>
+            {(registroTecnico || prazoVistoria) && (
+              <p className="text-[11px] text-muted-foreground font-mono mt-1 tabular-nums">
+                {registroTecnico && `ART/TRT: ${registroTecnico}`}
+                {registroTecnico && prazoVistoria && " · "}
+                {prazoVistoria && `Vistoria: ${formatarDataBR(prazoVistoria)}`}
+              </p>
+            )}
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            {homologacaoAprovada && (
-              "Projeto aprovado na concessionária. Instalação liberada para ligação."
+          <Badge
+            formato="rounded"
+            variante={
+              homologacaoAprovada
+                ? "success"
+                : homologacaoEmAnalise
+                ? "info"
+                : homologacaoReprovada
+                ? "destructive"
+                : "warning"
+            }
+          >
+            {homologacaoReprovada ? (
+              <>
+                <AlertTriangle className="w-3 h-3 text-destructive" aria-hidden="true" />
+                <span>Reprovado</span>
+              </>
+            ) : (
+              parecerStatus
             )}
-            {homologacaoEmAnalise && (
-              "Documentação em análise técnica junto à rede distribuidora."
-            )}
-            {homologacaoReprovada && (
-              "Pendências técnicas apontadas. Acesso reprovado provisoriamente."
-            )}
-            {parecerStatus === "Pendente" && (
-              "Aguardando submissão do projeto elétrico à concessionária."
-            )}
-          </p>
-          {(registroTecnico || prazoVistoria) && (
-            <div className="pt-2 mt-2 border-t border-border-subtle grid grid-cols-2 gap-2 text-[11px]">
-              {registroTecnico && (
-                <div>
-                  <span className="text-muted-foreground block text-[10px]">Registro Técnico</span>
-                  <span className="font-mono font-semibold text-foreground-muted">{registroTecnico}</span>
-                </div>
-              )}
-              {prazoVistoria && (
-                <div>
-                  <span className="text-muted-foreground block text-[10px]">Prazo de Vistoria</span>
-                  <span className="font-semibold text-foreground-muted">{formatarDataBR(prazoVistoria)}</span>
-                </div>
-              )}
-            </div>
-          )}
+          </Badge>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

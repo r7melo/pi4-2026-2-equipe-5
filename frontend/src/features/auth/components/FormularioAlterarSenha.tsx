@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { Button } from "@/shared/components/ui/Button";
 import { CampoSenha } from "./CampoSenha";
 import { CamposNovaSenha } from "./CamposNovaSenha";
@@ -36,7 +37,7 @@ export function FormularioAlterarSenha({ geracao }: { geracao: number }) {
   }}>
     <CampoSenha key={`atual-${revisaoCampos}`} id="senha-atual" erro={tentouEnviar && !atual} descricaoId={tentouEnviar && !atual ? "erro-alterar-senha" : undefined} label="Senha atual" placeholder="Digite sua senha atual" enterKeyHint="next" autoComplete="current-password" value={atual} onChange={setAtual} disabled={operacao.pendente} />
     <CamposNovaSenha key={`novas-${revisaoCampos}`} validar={tentouEnviar} erroNova={nova && atual === nova ? "A nova senha não pode ser igual à senha atual." : undefined} nova={nova} confirmar={confirmar} onNova={setNova} onConfirmar={setConfirmar} disabled={operacao.pendente} />
-    {erro && <p id="erro-alterar-senha" role="alert" className="rounded-lg border border-destructive-border bg-destructive-light px-3.5 py-3 text-xs leading-relaxed text-destructive">{erro}</p>}
+    {erro && <AlertBanner id="erro-alterar-senha" variante="destructive">{erro}</AlertBanner>}
     <div className="flex flex-wrap gap-3">
       <Button className="h-11" type="submit" disabled={operacao.pendente}>{operacao.pendente ? "Salvando..." : "Salvar nova senha"}</Button>
       <Button className="h-11" variant="outline" disabled={operacao.pendente} onClick={limpar}>Cancelar</Button>

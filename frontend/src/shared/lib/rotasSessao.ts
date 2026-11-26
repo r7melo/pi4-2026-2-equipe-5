@@ -142,6 +142,7 @@ export function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePe
     if (
       pathname === "/kanban" ||
       pathname === "/equipes" ||
+      pathname === "/configuracoes" ||
       pathname === "/relatorios" ||
       pathname === "/financeiro" ||
       pathname === "/produtos"
@@ -153,10 +154,11 @@ export function isRotaAutorizadaParaPerfil(pathname: string, perfilNome?: NomePe
   }
 
   if (perfilNome === "Engenharia") {
-    // Engenharia acessa: /kanban, /equipes, /clientes, /cadastrarobra, /acompanharhomologacao, /obras/:id, /obras/:id/materiais
+    // Engenharia acessa: /kanban, /equipes, /configuracoes, /clientes, /cadastrarobra, /acompanharhomologacao, /obras/:id, /obras/:id/materiais
     if (
       pathname === "/kanban" ||
       pathname === "/equipes" ||
+      pathname === "/configuracoes" ||
       pathname === "/clientes" ||
       pathname === "/cadastrarobra" ||
       pathname === "/acompanharhomologacao"

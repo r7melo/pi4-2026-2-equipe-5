@@ -104,12 +104,12 @@ export function listarProdutosCatalogoAtivos(
 /** PATCH /api/materiais/{id} — Rota #20 do Contrato (atualização de status logístico e quantidade utilizada) */
 export function atualizarStatusMaterial(
   id: number,
-  statusLogistico: StatusLogistico,
+  statusLogistico?: StatusLogistico,
   sessao?: number,
   quantidadeUtilizada?: number | null
 ): Promise<Material> {
   const payload: AtualizarMaterialPayload = {
-    statusLogistico,
+    ...(statusLogistico !== undefined ? { statusLogistico } : {}),
     ...(quantidadeUtilizada !== undefined ? { quantidadeUtilizada } : {}),
   };
   return atualizarMaterial(id, payload, sessao);

@@ -49,6 +49,7 @@ export function ehLinhaProjeto(task?: { type?: string; id?: string | number } | 
 export interface GanttTask {
   equipeRotulo?: string;
   pessoasFaltantes?: number;
+  integrantesNomes?: string[];
   id: string | number;
   parent?: string | number;
   type?: "project" | "task";

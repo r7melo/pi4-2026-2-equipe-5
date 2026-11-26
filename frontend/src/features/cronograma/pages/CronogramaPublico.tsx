@@ -15,16 +15,19 @@ import type { NivelZoom } from "../types/gantt";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
-import { CalendarX2, Shield, Sun } from "lucide-react";
+import { Badge } from "@/shared/components/ui/Badge";
+import { CalendarX2 } from "lucide-react";
 import "@/features/cronograma/components/gantt.css";
 
 export default function CronogramaPublico() {
-  const [anoAtual] = useState(() => new Date().getFullYear());
   const { token = "" } = useParams<{ token: string }>();
   const [nivelZoom, setNivelZoom] = useState<NivelZoom>("day");
-  const [dataFoco, setDataFoco] = useState<Date | null>(null);
+  const [dataFoco, setDataFoco] = useState<Date | null>(() => new Date());
   const [dataFiltroInicio, setDataFiltroInicio] = useState("");
   const [dataFiltroFim, setDataFiltroFim] = useState("");
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(min-width: 768px)").matches : true
+  );
   const [mostrarGrade, setMostrarGrade] = useState(() => {
     if (typeof window !== "undefined") {
       return window.innerWidth >= 768;
@@ -34,6 +37,13 @@ export default function CronogramaPublico() {
 
   useEffect(() => {
     document.title = "Cronograma Público — ZL Engenharia Solar";
+  }, []);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
   }, []);
 
   const {
@@ -52,20 +62,20 @@ export default function CronogramaPublico() {
     if (!programacoes || erroProg) return [];
     return programacoes.map((p) => {
       const nomeEquipe = `Equipe ${p.equipeId}`;
-      const nomeCliente = `Obra #${p.obraId}`;
+      const tituloObra = `Obra ${p.obraId}`;
       const fimNormalizado = p.dataFim;
       const duracaoCalculada = diasUteisCivis(p.dataInicio, fimNormalizado);
 
       return {
         id: p.id,
-        text: `${nomeEquipe} — ${nomeCliente}`,
+        text: tituloObra,
         start_date: dataCivilParaGanttPublico(p.dataInicio),
         end_date: dataCivilParaGanttPublico(fimNormalizado, 1),
         dataFimInclusiva: fimNormalizado,
         duration: duracaoCalculada,
         equipeId: p.equipeId,
         nomeEquipe,
-        nomeCliente,
+        nomeCliente: tituloObra,
         duracaoDias: duracaoCalculada,
       };
     });
@@ -75,29 +85,24 @@ export default function CronogramaPublico() {
     setDataFoco(new Date());
   };
 
-  const handleImprimir = () => {
-    window.print();
+  const limparDatas = () => {
+    setDataFiltroInicio("");
+    setDataFiltroFim("");
   };
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-background-app">
-      {/* Header Público Limpo */}
-      <header className="bg-surface border-b border-border-subtle px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0 no-print">
-        <div className="flex items-center gap-3 min-w-0 max-w-full">
-          <div className="w-9 h-9 shrink-0 rounded-xl bg-info text-primary-foreground flex items-center justify-center shadow-xs">
-            <Sun className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-sm font-bold text-foreground-secondary">ZL Engenharia Solar</h1>
-              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-success-light text-success border border-success-border">
-                <Shield className="w-2.5 h-2.5" />
-                Visualização Pública
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Cronograma Executivo de Instalações e Obras
-            </p>
+      {/* Header Público Limpo (P04) */}
+      <header className="bg-surface border-b border-border-subtle px-3 sm:px-4 py-1.5 flex flex-wrap items-center justify-between gap-2 shrink-0 no-print">
+        <div className="flex items-center gap-2.5 min-w-0 max-w-full">
+          <span className="w-7 h-7 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
+            ZL
+          </span>
+          <div className="min-w-0 flex flex-wrap items-center gap-2">
+            <h1 className="text-base font-bold text-foreground truncate">Cronograma de Obras</h1>
+            <Badge comBorda className="font-medium">
+              Somente leitura
+            </Badge>
           </div>
         </div>
 
@@ -108,56 +113,69 @@ export default function CronogramaPublico() {
           mostrarGrade={mostrarGrade}
           onToggleGrade={() => setMostrarGrade((prev) => !prev)}
           dataFiltroInicio={dataFiltroInicio}
-          onDataInicioChange={setDataFiltroInicio}
+          onDataInicioChange={isDesktop ? setDataFiltroInicio : undefined}
           dataFiltroFim={dataFiltroFim}
-          onDataFimChange={setDataFiltroFim}
-          onLimparDatas={() => {
-            setDataFiltroInicio("");
-            setDataFiltroFim("");
-          }}
-          onImprimir={handleImprimir}
+          onDataFimChange={isDesktop ? setDataFiltroFim : undefined}
+          onLimparDatas={isDesktop ? limparDatas : undefined}
         />
       </header>
 
-      {/* Conteúdo do Cronograma */}
-      <main className="flex-1 p-2 md:p-3 overflow-hidden flex flex-col min-h-0">
-        <div className="relative flex-1 bg-surface rounded-xl shadow-xs border border-border-subtle overflow-hidden flex flex-col min-h-0">
-          {loadingProg ? (
-            <div className="flex h-full items-center justify-center"><FeedbackLoading mensagem="Carregando cronograma..." /></div>
-          ) : erroProg ? (
-            <FeedbackErro
-              titulo={status === 404 ? "Link inválido ou expirado" : status === 400 ? "Confira os filtros de data" : "Não foi possível carregar o cronograma"}
-              mensagem={status === 404 ? "Confira o endereço recebido ou solicite um novo link." : status === 400 ? "Corrija ou limpe as datas na barra superior." : "Verifique sua conexão e tente novamente."}
-              onTentarNovamente={status === 400 || status === 404 ? undefined : () => { void refetch(); }}
-            />
-          ) : (
-          <>
-          {dadosFormatados.length === 0 && (
-            <EmptyState
-              className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex items-center justify-center animate-fade-in"
-              icone={CalendarX2}
-              titulo="Nenhuma alocação encontrada para este período"
-              descricao="Ajuste ou limpe os filtros dentro do período compartilhado."
-            />
-          )}
-
-          <GanttDhtmlxWrapper
-            tarefas={dadosFormatados}
-            canDrag={false}
-            nivelZoom={nivelZoom}
-            focarData={dataFoco}
-            mostrarGrade={mostrarGrade}
+      {/* Conteúdo 100% área útil (P04) */}
+      <main className="relative flex-1 min-h-0 flex flex-col overflow-hidden bg-surface">
+        {loadingProg ? (
+          <div className="flex h-full items-center justify-center">
+            <FeedbackLoading mensagem="Carregando cronograma..." />
+          </div>
+        ) : erroProg ? (
+          <FeedbackErro
+            titulo={
+              status === 404
+                ? "Link inválido ou expirado"
+                : status === 400
+                ? "Confira os filtros de data"
+                : "Não foi possível carregar o cronograma"
+            }
+            mensagem={
+              status === 404
+                ? "Confira o endereço recebido ou solicite um novo link."
+                : status === 400
+                ? "Corrija ou limpe as datas na barra superior."
+                : "Verifique sua conexão e tente novamente."
+            }
+            onTentarNovamente={
+              status === 400 || status === 404
+                ? undefined
+                : () => {
+                    void refetch();
+                  }
+            }
           />
-          </>
-          )}
-        </div>
-      </main>
+        ) : (
+          <>
+            {dadosFormatados.length === 0 && (
+              <EmptyState
+                className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-xs flex items-center justify-center"
+                icone={CalendarX2}
+                titulo="Nenhuma alocação encontrada para este período"
+                descricao="Ajuste ou limpe os filtros dentro do período compartilhado."
+                acao={
+                  dataFiltroInicio || dataFiltroFim
+                    ? { label: "Limpar filtros", onClick: limparDatas }
+                    : undefined
+                }
+              />
+            )}
 
-      {/* Rodapé Informativo */}
-      <footer className="bg-surface border-t border-border-subtle px-4 py-2 flex items-center justify-between text-[11px] text-muted-foreground shrink-0 no-print">
-        <span>© {anoAtual} ZL Engenharia Solar · Todos os direitos reservados</span>
-        <span>Acesso com permissões restritas (somente-leitura)</span>
-      </footer>
+            <GanttDhtmlxWrapper
+              tarefas={dadosFormatados}
+              canDrag={false}
+              nivelZoom={nivelZoom}
+              focarData={dataFoco}
+              mostrarGrade={mostrarGrade}
+            />
+          </>
+        )}
+      </main>
     </div>
   );
 }

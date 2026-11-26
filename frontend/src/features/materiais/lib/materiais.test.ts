@@ -34,6 +34,10 @@ describe("Permissões e validação do handler real de materiais", () => {
     expect((await patch("Financeiro", { statusLogistico })).status).toBe(200);
     expect(repositorio.atualizar).toHaveBeenCalledWith(1, { statusLogistico });
   });
+  it("Financeiro atualiza apenas quantidadeUtilizada sem reenviar statusLogistico", async () => {
+    expect((await patch("Financeiro", { quantidadeUtilizada: 5 })).status).toBe(200);
+    expect(repositorio.atualizar).toHaveBeenCalledWith(1, { quantidadeUtilizada: 5 });
+  });
   it.each([
     { statusLogistico: null }, { statusLogistico: "Inexistente" },
     { tipo: "Troca" }, { quantidade: 99 }, { custoUnitario: 100 },

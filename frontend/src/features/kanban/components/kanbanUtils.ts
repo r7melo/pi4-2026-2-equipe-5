@@ -148,12 +148,15 @@ export function calcularDiasRestantes(dataFimISO: string, status?: StatusObra): 
       return { texto: "Em dia", urgente: false };
     }
     if (diffDias < 0) {
-      return { texto: `${Math.abs(diffDias)}d atrasado`, urgente: true };
+      return { texto: `${Math.abs(diffDias)}d atraso`, urgente: true };
     }
     if (diffDias === 0) {
       return { texto: "Hoje", urgente: true };
     }
-    return { texto: `restam ${diffDias}d`, urgente: false };
+    if (diffDias <= 3) {
+      return { texto: `${diffDias}d rest.`, urgente: true };
+    }
+    return { texto: `${diffDias}d rest.`, urgente: false };
   } catch {
     return { texto: "Em dia", urgente: false };
   }

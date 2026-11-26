@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Info } from "lucide-react";
 import { ROTULOS_PERFIS } from "@/shared/constants/perfis";
-import { perfilCanonico } from "@/shared/lib/rotasSessao";
+import { destinoInicialSeguro, perfilCanonico } from "@/shared/lib/rotasSessao";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
+import { AvatarIniciais } from "@/shared/components/ui/AvatarIniciais";
+import { Badge } from "@/shared/components/ui/Badge";
+import { Button } from "@/shared/components/ui/Button";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
+import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { useThemeStore } from "@/shared/stores/useThemeStore";
 import { useGeracaoSenha } from "../hooks/useOperacaoSenha";
 import { useUsuarioConfiguracoes } from "../hooks/useUsuarioConfiguracoes";
@@ -17,13 +22,6 @@ const TEMAS: { valor: TemaSistema; texto: string }[] = [
   { valor: "dark", texto: "Escuro" },
   { valor: "system", texto: "Sistema" },
 ];
-
-function iniciaisUsuario(nome?: string): string {
-  const partes = (nome || "").trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return "ZL";
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-  return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
-}
 
 function MiniaturaTema({ tema }: { tema: TemaSistema }) {
   if (tema === "light") {
@@ -69,9 +67,11 @@ export default function Configuracoes() {
 }
 
 function Conteudo({ geracao }: { geracao: number }) {
+  const usuario = useAuthStore(s => s.usuario);
   const tema = useThemeStore(s => s.tema);
   const setTema = useThemeStore(s => s.setTema);
   const consulta = useUsuarioConfiguracoes(geracao);
+  const perfilAtual = consulta.data?.perfil.nomePerfil ?? usuario?.perfil?.nomePerfil;
   const [copiado, setCopiado] = useState(false);
   const [sistemaEscuro, setSistemaEscuro] = useState(() =>
     typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -107,7 +107,7 @@ function Conteudo({ geracao }: { geracao: number }) {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <PageHeader title="Configurações" />
+      <PageHeader title="Configurações" backTo={destinoInicialSeguro(perfilAtual)} />
       <section className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 bg-background-app text-foreground">
         <div className="max-w-3xl space-y-6">
           <p className="text-sm text-muted-foreground">
@@ -180,17 +180,15 @@ function Conteudo({ geracao }: { geracao: number }) {
               <>
                 <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border-subtle">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-full border border-border-strong bg-surface-subtle flex items-center justify-center font-semibold text-sm text-foreground shrink-0" aria-hidden="true">
-                      {iniciaisUsuario(consulta.data.nome)}
-                    </div>
+                    <AvatarIniciais nome={consulta.data.nome} size="lg" tone="subtle" />
                     <div>
                       <h2 id="dados" className="text-base font-semibold text-foreground">{consulta.data.nome}</h2>
                       <p className="text-xs text-muted-foreground">Dados da conta autenticada</p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center rounded-md border border-accent-border bg-accent-light px-2.5 py-1 text-xs font-medium text-accent">
+                  <Badge variante="accent" formato="rounded" comBorda className="px-2.5 py-1 text-xs font-medium">
                     {perfilCanonico(consulta.data.perfil.nomePerfil) ? ROTULOS_PERFIS[consulta.data.perfil.nomePerfil] : consulta.data.perfil.nomePerfil}
-                  </span>
+                  </Badge>
                 </div>
 
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
@@ -198,14 +196,16 @@ function Conteudo({ geracao }: { geracao: number }) {
                     <dt className="text-xs text-muted-foreground">E-mail de acesso</dt>
                     <dd className="mt-1 flex items-center gap-2.5 flex-wrap">
                       <span className="font-medium text-foreground break-all">{consulta.data.email}</span>
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={copiarEmail}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md border border-border-strong bg-surface-subtle px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="shrink-0 bg-surface-subtle hover:bg-muted text-foreground px-2.5 py-1 gap-1 shadow-none"
                       >
                         {copiado ? <Check className="w-3.5 h-3.5 text-success" aria-hidden="true" /> : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
                         <span>{copiado ? "Copiado" : "Copiar"}</span>
-                      </button>
+                      </Button>
                     </dd>
                   </div>
                   <div>
@@ -226,10 +226,9 @@ function Conteudo({ geracao }: { geracao: number }) {
                 Altere sua senha de acesso quando necessário.
               </p>
             </div>
-            <p className="rounded-lg border border-info-border bg-info-light px-3.5 py-3 text-xs leading-relaxed text-info flex items-start gap-2.5">
-              <Info className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-              <span>Ao salvar uma nova senha, sua sessão atual será encerrada por segurança e você fará login novamente.</span>
-            </p>
+            <AlertBanner variante="info" icone={<Info className="w-4 h-4" />}>
+              Ao salvar uma nova senha, sua sessão atual será encerrada por segurança e você fará login novamente.
+            </AlertBanner>
             <FormularioAlterarSenha geracao={geracao} />
           </section>
         </div>

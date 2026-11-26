@@ -37,6 +37,21 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const tituloId = useId();
 
+  const iconeVariant =
+    variant === "danger" ? (
+      <div className="w-10 h-10 bg-destructive-light text-destructive rounded-xl flex items-center justify-center shrink-0">
+        <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+      </div>
+    ) : variant === "warning" ? (
+      <div className="w-10 h-10 bg-warning-light text-warning rounded-xl flex items-center justify-center shrink-0">
+        <AlertCircle className="w-5 h-5" aria-hidden="true" />
+      </div>
+    ) : (
+      <div className="w-10 h-10 bg-info-light text-info rounded-xl flex items-center justify-center shrink-0">
+        <Info className="w-5 h-5" aria-hidden="true" />
+      </div>
+    );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -44,55 +59,44 @@ export function ConfirmDialog({
       podeRestaurarFoco={podeRestaurarFoco}
       onClose={onClose}
       fecharBloqueado={isLoading}
+      titulo={titulo}
+      icone={iconeVariant}
       ariaLabelledBy={tituloId}
       tamanho="sm"
-      className="p-6"
     >
-      <div className="flex flex-col items-center text-center">
-        {variant === "danger" && (
-          <div className="w-12 h-12 rounded-full bg-destructive-light text-destructive flex items-center justify-center mb-4">
-            <AlertTriangle className="w-6 h-6" aria-hidden="true" />
-          </div>
-        )}
-        {variant === "warning" && (
-          <div className="w-12 h-12 rounded-full bg-warning-light text-warning flex items-center justify-center mb-4">
-            <AlertCircle className="w-6 h-6" aria-hidden="true" />
-          </div>
-        )}
-        {variant === "info" && (
-          <div className="w-12 h-12 rounded-full bg-info-light text-info flex items-center justify-center mb-4">
-            <Info className="w-6 h-6" aria-hidden="true" />
-          </div>
-        )}
-
-        <h2 id={tituloId} className="text-lg font-bold text-foreground-secondary mb-1 [overflow-wrap:anywhere]">{titulo}</h2>
+      <div className="px-5 py-4 space-y-3">
         {descricao && (
-          <p className="w-full min-w-0 text-sm text-muted-foreground mb-3 [overflow-wrap:anywhere]">{descricao}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed [overflow-wrap:anywhere]">
+            {descricao}
+          </p>
         )}
         {conteudo}
+      </div>
 
-        <div className="flex flex-wrap gap-2.5 sm:justify-end w-full mt-3">
-          <Button
-            data-autofocus
-            variant="outline"
-            onClick={onClose}
-            disabled={isLoading}
-            className="h-10 flex-1 sm:flex-initial"
-          >
-            {labelCancelar}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={onConfirm}
-            disabled={isLoading || confirmarBloqueado}
-            className={cn(
-              "h-10 flex-1 sm:flex-initial",
-              variant === "danger" && "bg-destructive hover:bg-destructive-hover text-primary-foreground"
-            )}
-          >
-            {isLoading ? "Processando..." : labelConfirmar}
-          </Button>
-        </div>
+      <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-border-subtle bg-surface-subtle">
+        <Button
+          data-autofocus
+          variant="outline"
+          size="sm"
+          onClick={onClose}
+          disabled={isLoading}
+          className="h-10 px-4"
+        >
+          {labelCancelar}
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onConfirm}
+          disabled={isLoading || confirmarBloqueado}
+          className={cn(
+            "h-10 px-4",
+            variant === "danger" &&
+              "bg-destructive hover:bg-destructive-hover text-primary-foreground"
+          )}
+        >
+          {isLoading ? "Processando..." : labelConfirmar}
+        </Button>
       </div>
     </Modal>
   );

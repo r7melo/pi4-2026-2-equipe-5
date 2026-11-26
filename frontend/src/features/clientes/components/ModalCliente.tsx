@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from "react";
 import { Save } from "lucide-react";
 import { Modal } from "@/shared/components/ui/Modal";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
 import {
@@ -126,130 +127,139 @@ function FormularioClienteInterno({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-5" noValidate>
-      {erroCampo && !erroCampo.campo && (
-        <div
-          role="alert"
-          className="rounded-lg border border-destructive-border bg-destructive-light/60 px-3.5 py-2.5 text-xs font-medium text-destructive"
-        >
-          {erroCampo.mensagem}
+    <form onSubmit={handleSubmit} className="p-5 space-y-4" noValidate>
+      <fieldset disabled={salvando} className="space-y-4 min-w-0">
+        {erroCampo && !erroCampo.campo && (
+          <AlertBanner variante="destructive" className="font-medium">
+            {erroCampo.mensagem}
+          </AlertBanner>
+        )}
+
+        <div className="space-y-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Identificação
+          </p>
+
+          <Input
+            id={nomeId}
+            label="Nome completo ou Razão Social"
+            required
+            autoFocus
+            maxLength={200}
+            placeholder="Ex: Rede Alfa Supermercados"
+            value={nome}
+            onChange={(e) => {
+              setNome(e.target.value);
+              if (erroCampo?.campo === "nome") setErroCampo(null);
+            }}
+            error={erroCampo?.campo === "nome" ? erroCampo.mensagem : undefined}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <Input
+              id={cpfCnpjId}
+              label="CPF / CNPJ"
+              required
+              inputMode="numeric"
+              maxLength={18}
+              placeholder="000.000.000-00 ou 00.000.000/0000-00"
+              className="font-mono tabular-nums"
+              value={cpfCnpj}
+              onChange={(e) => {
+                setCpfCnpj(formatarCpfCnpj(e.target.value));
+                if (erroCampo?.campo === "cpfCnpj") setErroCampo(null);
+              }}
+              error={erroCampo?.campo === "cpfCnpj" ? erroCampo.mensagem : undefined}
+            />
+
+            <Input
+              id={telefoneId}
+              label="Telefone / WhatsApp"
+              inputMode="tel"
+              maxLength={30}
+              placeholder="(88) 99999-0000"
+              className="font-mono tabular-nums"
+              value={telefone}
+              onChange={(e) => {
+                setTelefone(formatarTelefone(e.target.value));
+                if (erroCampo?.campo === "telefone") setErroCampo(null);
+              }}
+              error={erroCampo?.campo === "telefone" ? erroCampo.mensagem : undefined}
+            />
+          </div>
         </div>
-      )}
 
-      <Input
-        id={nomeId}
-        label="Nome completo ou Razão Social"
-        required
-        autoFocus
-        maxLength={200}
-        placeholder="Ex: Rede Alfa Supermercados"
-        value={nome}
-        disabled={salvando}
-        onChange={(e) => {
-          setNome(e.target.value);
-          if (erroCampo?.campo === "nome") setErroCampo(null);
-        }}
-        error={erroCampo?.campo === "nome" ? erroCampo.mensagem : undefined}
-      />
+        <div className="pt-3 border-t border-border-subtle space-y-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Contato e localização
+          </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          id={cpfCnpjId}
-          label="CPF / CNPJ"
-          required
-          inputMode="numeric"
-          maxLength={18}
-          placeholder="000.000.000-00 ou 00.000.000/0000-00"
-          className="font-mono"
-          value={cpfCnpj}
-          disabled={salvando}
-          onChange={(e) => {
-            setCpfCnpj(formatarCpfCnpj(e.target.value));
-            if (erroCampo?.campo === "cpfCnpj") setErroCampo(null);
-          }}
-          error={erroCampo?.campo === "cpfCnpj" ? erroCampo.mensagem : undefined}
-        />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <Input
+              id={cidadeId}
+              label="Cidade"
+              maxLength={100}
+              placeholder="Ex: Crateús"
+              value={cidade}
+              onChange={(e) => {
+                setCidade(e.target.value);
+                if (erroCampo?.campo === "cidade") setErroCampo(null);
+              }}
+              error={erroCampo?.campo === "cidade" ? erroCampo.mensagem : undefined}
+            />
 
-        <Input
-          id={telefoneId}
-          label="Telefone / WhatsApp"
-          inputMode="tel"
-          maxLength={30}
-          placeholder="(88) 99999-0000"
-          className="font-mono"
-          value={telefone}
-          disabled={salvando}
-          onChange={(e) => {
-            setTelefone(formatarTelefone(e.target.value));
-            if (erroCampo?.campo === "telefone") setErroCampo(null);
-          }}
-          error={erroCampo?.campo === "telefone" ? erroCampo.mensagem : undefined}
-        />
-      </div>
+            <Input
+              id={emailId}
+              type="email"
+              label="E-mail"
+              maxLength={200}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="contato@empresa.com.br"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (erroCampo?.campo === "email") setErroCampo(null);
+              }}
+              error={erroCampo?.campo === "email" ? erroCampo.mensagem : undefined}
+            />
+          </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          id={cidadeId}
-          label="Cidade"
-          maxLength={100}
-          placeholder="Ex: Crateús"
-          value={cidade}
-          disabled={salvando}
-          onChange={(e) => {
-            setCidade(e.target.value);
-            if (erroCampo?.campo === "cidade") setErroCampo(null);
-          }}
-          error={erroCampo?.campo === "cidade" ? erroCampo.mensagem : undefined}
-        />
+          <Input
+            id={enderecoId}
+            label="Endereço completo"
+            maxLength={255}
+            placeholder="Ex: Av. Sargento Hermínio, 1200 - Centro"
+            value={endereco}
+            onChange={(e) => {
+              setEndereco(e.target.value);
+              if (erroCampo?.campo === "endereco") setErroCampo(null);
+            }}
+            error={erroCampo?.campo === "endereco" ? erroCampo.mensagem : undefined}
+          />
+        </div>
 
-        <Input
-          id={emailId}
-          type="email"
-          label="E-mail"
-          maxLength={200}
-          placeholder="contato@empresa.com.br"
-          value={email}
-          disabled={salvando}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (erroCampo?.campo === "email") setErroCampo(null);
-          }}
-          error={erroCampo?.campo === "email" ? erroCampo.mensagem : undefined}
-        />
-      </div>
-
-      <Input
-        id={enderecoId}
-        label="Endereço completo"
-        maxLength={255}
-        placeholder="Ex: Av. Sargento Hermínio, 1200 - Centro"
-        value={endereco}
-        disabled={salvando}
-        onChange={(e) => {
-          setEndereco(e.target.value);
-          if (erroCampo?.campo === "endereco") setErroCampo(null);
-        }}
-        error={erroCampo?.campo === "endereco" ? erroCampo.mensagem : undefined}
-      />
-
-      <div className="flex items-center justify-end gap-3 pt-2 border-t border-border-subtle">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          disabled={salvando}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={salvando}>
-          <Save className="w-4 h-4" />
-          {salvando
-            ? "Salvando..."
-            : emEdicao
-              ? "Salvar alterações"
-              : "Cadastrar cliente"}
-        </Button>
-      </div>
+        <div className="-mx-5 -mb-5 px-5 py-3.5 border-t border-border-subtle bg-surface-subtle flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={salvando}
+            className="h-10"
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={salvando} className="h-10">
+            <Save className="w-4 h-4" aria-hidden="true" />
+            {salvando
+              ? "Salvando..."
+              : emEdicao
+                ? "Salvar alterações"
+                : "Cadastrar cliente"}
+          </Button>
+        </div>
+      </fieldset>
     </form>
   );
 }
@@ -270,13 +280,14 @@ export function ModalCliente({
         if (!salvando) onClose();
       }}
       fecharBloqueado={salvando}
+      tamanho="md"
       titulo={emEdicao ? "Editar cliente" : "Novo cliente"}
       subtitulo={
         emEdicao
           ? "Atualize os dados cadastrais e de contato do cliente."
           : "Cadastre um cliente para vincular a novas obras e projetos."
       }
-      className="max-w-lg"
+      className="max-h-[90dvh] overflow-y-auto"
     >
       {isOpen && (
         <FormularioClienteInterno

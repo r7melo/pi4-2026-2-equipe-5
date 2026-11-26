@@ -1,7 +1,7 @@
 import { useState, type KeyboardEvent, type FocusEvent } from "react";
-import { ShoppingCart, Truck, CheckCircle, Wrench, Trash2, X } from "lucide-react";
+import { Clock, ShoppingCart, Truck, CheckCircle, Wrench, Trash2, X } from "lucide-react";
 import type { StatusLogistico } from "@/shared/types/materiais";
-import { STATUS_LOGISTICO_OPERACIONAIS } from "@/shared/constants/statusLogistico";
+import { STATUS_LOGISTICO_OPCOES } from "@/shared/constants/statusLogistico";
 
 interface BarraLoteMateriaisProps {
   podeAlterarStatus: boolean;
@@ -11,6 +11,7 @@ interface BarraLoteMateriaisProps {
 }
 
 const ICONE_POR_STATUS: Partial<Record<StatusLogistico, typeof ShoppingCart>> = {
+  EmSolicitacao: Clock,
   Comprado: ShoppingCart,
   EmTransito: Truck,
   Disponivel: CheckCircle,
@@ -26,7 +27,7 @@ export function BarraLoteMateriais({
   const [indiceFoco, setIndiceFoco] = useState(0);
   const suportaFocusgroupNativo =
     typeof HTMLElement !== "undefined" && "focusGroup" in HTMLElement.prototype;
-  const etapasLote = podeAlterarStatus ? STATUS_LOGISTICO_OPERACIONAIS : [];
+  const etapasLote = podeAlterarStatus ? STATUS_LOGISTICO_OPCOES : [];
   const totalBotoes = etapasLote.length + 2;
   const indiceAtivo = indiceFoco < totalBotoes ? indiceFoco : 0;
 
@@ -73,7 +74,7 @@ export function BarraLoteMateriais({
 
   return (
     <div
-      className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-surface text-foreground border border-border-strong rounded-full px-2 py-1 flex items-center gap-1.5 z-30 animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap"
+      className="sticky bottom-1 mx-auto mt-4 w-fit max-w-full overflow-x-auto bg-surface text-foreground border border-border-strong rounded-full px-2.5 py-1.5 flex items-center gap-1.5 shadow-lg z-30 animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap"
       role="toolbar"
       aria-label="Ações em lote para insumos selecionados"
       focusgroup="toolbar wrap"
@@ -97,7 +98,7 @@ export function BarraLoteMateriais({
                   data-toolbar-index={idx}
                   tabIndex={tabIndexFallback(idx)}
                   onClick={() => onAplicarStatus(valor)}
-                  className={`w-7 h-7 rounded-full border flex items-center justify-center transition-all motion-safe:hover:scale-105 cursor-pointer ${classeBotaoLote}`}
+                  className={`controle-compacto w-7 h-7 rounded-full border flex items-center justify-center transition-all motion-safe:hover:scale-105 cursor-pointer ${classeBotaoLote}`}
                   title={tituloAcao}
                   aria-label={tituloAcao}
                 >
@@ -125,7 +126,7 @@ export function BarraLoteMateriais({
           data-toolbar-index={indiceExcluir}
           tabIndex={tabIndexFallback(indiceExcluir)}
           onClick={onSolicitarExclusao}
-          className="w-7 h-7 rounded-full border border-destructive-border bg-surface text-destructive hover:bg-destructive-light flex items-center justify-center transition-all motion-safe:hover:scale-105 cursor-pointer"
+          className="controle-compacto w-7 h-7 rounded-full border border-destructive-border bg-surface text-destructive hover:bg-destructive-light flex items-center justify-center transition-all motion-safe:hover:scale-105 cursor-pointer"
           title="Excluir insumos selecionados"
           aria-label="Excluir insumos selecionados"
         >
@@ -137,7 +138,7 @@ export function BarraLoteMateriais({
           data-toolbar-index={indiceLimpar}
           tabIndex={tabIndexFallback(indiceLimpar)}
           onClick={onLimparSelecao}
-          className="w-7 h-7 rounded-full border border-border-subtle bg-surface text-muted-foreground hover:text-foreground hover:bg-surface-subtle flex items-center justify-center transition-all motion-safe:hover:scale-105 cursor-pointer"
+          className="controle-compacto w-7 h-7 rounded-full border border-border-subtle bg-surface text-muted-foreground hover:text-foreground hover:bg-surface-subtle flex items-center justify-center transition-all motion-safe:hover:scale-105 cursor-pointer"
           title="Desmarcar seleção"
           aria-label="Desmarcar seleção"
         >

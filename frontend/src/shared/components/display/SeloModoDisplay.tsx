@@ -83,9 +83,8 @@ export function SeloModoDisplay() {
       className={`fixed bottom-4 right-4 z-40 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-lg border border-border-strong bg-surface p-3 shadow-sm${visivel ? "" : " invisible"}`}>
       <Monitor className="h-5 w-5 shrink-0 text-foreground-muted" aria-hidden="true" />
       <div role="status" aria-live="polite" className="text-sm text-foreground">
-        <p className="font-semibold">Modo apresentação</p>
-        <p>Somente leitura</p>
-        <p className="text-foreground-muted">Esc ou Sair encerra</p>
+        <p className="font-semibold">Apresentação</p>
+        <p className="text-xs text-foreground-muted">Esc encerra</p>
       </div>
       <Button ref={sairRef} variant="outline" onClick={() => sair()}
         className="focus-visible:ring-2 focus-visible:ring-info focus-visible:ring-offset-2 ring-offset-surface">

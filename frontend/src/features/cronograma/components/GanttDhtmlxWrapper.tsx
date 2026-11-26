@@ -520,6 +520,7 @@ export function GanttDhtmlxWrapper({
     let frameFim: number | null = null;
     let frameResize: number | null = null;
     let ultimaLargura = containerEl?.getBoundingClientRect().width ?? 0;
+    let ultimaAltura = containerEl?.getBoundingClientRect().height ?? 0;
 
     const suprimirClique = () => {
       dragEmAndamentoRef.current = true;
@@ -640,8 +641,13 @@ export function GanttDhtmlxWrapper({
     window.addEventListener("blur", finalizarCancelamento, { signal: listenersController.signal });
 
     const resizeObserver = new ResizeObserver(([entrada]) => {
-      if (!entrada || entrada.contentRect.width === ultimaLargura) return;
+      if (
+        !entrada ||
+        (entrada.contentRect.width === ultimaLargura &&
+          entrada.contentRect.height === ultimaAltura)
+      ) return;
       ultimaLargura = entrada.contentRect.width;
+      ultimaAltura = entrada.contentRect.height;
       if (frameResize !== null) cancelAnimationFrame(frameResize);
       frameResize = requestAnimationFrame(() => {
         frameResize = null;
@@ -948,7 +954,7 @@ export function GanttDhtmlxWrapper({
 
     const posicao = posicaoOperacaoRef.current;
     const scroll = gantt.getScrollState();
-    aplicarConfiguracaoZoom(gantt, nivelZoom);
+    aplicarConfiguracaoZoom(gantt, nivelZoom, () => hojeCivilRef.current);
 
     mutacaoInternaRef.current = true;
     try {

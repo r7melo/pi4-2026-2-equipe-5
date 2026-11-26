@@ -3,28 +3,18 @@ import { useClientes } from "../hooks/useClientes";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useId, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Save,
   Building2,
-  Calendar,
-  Zap,
-  User,
   ExternalLink,
-  FileText,
-  Clock,
   Loader2,
-  CheckCircle2,
-  AlertCircle,
-  X,
-  MapPin,
 } from "lucide-react";
 import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { Button } from "@/shared/components/ui/Button";
-import { Input } from "@/shared/components/ui/Input";
 import { toast as sonnerToast } from "sonner";
 import {
   novaObraSchema,
@@ -40,21 +30,33 @@ import {
   sessaoOperacionalVigente,
 } from "@/shared/lib/sessaoOperacao";
 
-interface ToastState {
-  tipo: "sucesso" | "erro";
-  mensagem: string;
-}
-
 const CATEGORIAS_OBRA = [
   "Residencial",
   "Comercial",
 ] as const;
 
+const CLASSE_CONTROLE_OBRA =
+  "w-full h-11 rounded-lg border border-border-strong bg-surface-subtle focus:bg-surface px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 disabled:opacity-50 transition-colors";
+
+const CLASSE_CONTROLE_PAINEL =
+  "w-full h-11 rounded-lg border border-border-strong bg-surface px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 disabled:opacity-50 transition-colors";
+
 export default function CadastrarObra() {
   const navigate = useNavigate();
   const criarObraMutation = useCriarObra();
-  const [toast, setToast] = useState<ToastState | null>(null);
   const [redirecionando, setRedirecionando] = useState(false);
+  const baseId = useId();
+  const clienteSelectId = `${baseId}-cliente`;
+  const clienteNomeId = `${baseId}-cliente-nome`;
+  const cidadeId = `${baseId}-cidade`;
+  const enderecoId = `${baseId}-endereco`;
+  const categoriaId = `${baseId}-categoria`;
+  const paineisId = `${baseId}-paineis`;
+  const inversoresId = `${baseId}-inversores`;
+  const descricaoId = `${baseId}-descricao`;
+  const inicioId = `${baseId}-inicio`;
+  const fimId = `${baseId}-fim`;
+  const prazoId = `${baseId}-prazo`;
   const catalogo = useClientes();
   const listaClientes = catalogo.data ?? [];
   const catalogoAplicado = useRef(false);
@@ -97,6 +99,7 @@ export default function CadastrarObra() {
       categoria: "Residencial",
       quantidadePaineis: undefined,
       quantidadeInversores: 1,
+      descricao: "",
       dataInicioEstimada: "",
       dataFimEstimada: "",
       pagamento: {
@@ -141,6 +144,7 @@ export default function CadastrarObra() {
         categoria: dados.categoria,
         quantidadePaineis: Number(dados.quantidadePaineis),
         quantidadeInversores: Number(dados.quantidadeInversores ?? 1),
+        descricao: dados.descricao?.trim() || undefined,
         dataInicioEstimada: dados.dataInicioEstimada,
         dataFimEstimada: dados.dataFimEstimada,
         pagamento: {
@@ -161,10 +165,6 @@ export default function CadastrarObra() {
 
       setRedirecionando(true);
       sonnerToast.success("Obra cadastrada com sucesso!");
-      setToast({
-        tipo: "sucesso",
-        mensagem: "Obra cadastrada com sucesso! Redirecionando para o funil...",
-      });
 
       if (timerNavegacaoRef.current !== null) {
         clearTimeout(timerNavegacaoRef.current);
@@ -200,44 +200,12 @@ export default function CadastrarObra() {
       const mensagem =
         errObj?.response?.data?.error?.message ||
         (erro instanceof Error ? erro.message : "Erro ao cadastrar obra. Tente novamente.");
-      setToast({
-        tipo: "erro",
-        mensagem,
-      });
       sonnerToast.error(mensagem);
     }
   };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
-      {/* Toast flutuante de feedback */}
-      {toast && (
-        <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all duration-300 animate-in fade-in slide-in-from-top-4 ${
-            toast.tipo === "sucesso"
-              ? "bg-success-light border-success-border text-success"
-              : "bg-destructive-light border-destructive-border text-destructive"
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          {toast.tipo === "sucesso" ? (
-            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
-          )}
-          <span className="font-medium">{toast.mensagem}</span>
-          <button
-            type="button"
-            onClick={() => setToast(null)}
-            className="p-1 hover:bg-surface-overlay/5 rounded-md transition-colors cursor-pointer"
-            aria-label="Fechar notificação"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-      )}
-
       {/* Header Reutilizável com Botão Voltar */}
       <PageHeader
         title="Nova Obra"
@@ -267,33 +235,36 @@ export default function CadastrarObra() {
           }}
         />
       ) : (
-        <section className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center bg-background-app custom-scrollbar">
-          <div className="w-full max-w-3xl bg-surface rounded-2xl border border-border-subtle overflow-hidden h-fit my-auto">
-            <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="p-6 md:p-8 space-y-8" noValidate>
+        <section className="flex-1 overflow-y-auto p-3 sm:p-6 flex justify-center bg-background-app custom-scrollbar">
+          <div className="w-full max-w-3xl bg-surface rounded-xl border border-border-subtle overflow-hidden h-fit">
+            <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="p-4 sm:p-6 space-y-6" noValidate>
 
-              {/* Seção: Dados do Cliente */}
-              <div>
-                <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 mb-5">
-                  <h3 className="text-base md:text-lg font-bold text-foreground flex items-center gap-2">
-                    <User className="w-5 h-5 text-warning" /> Identificação do Cliente
-                  </h3>
+              {/* 1. Identificação do Cliente */}
+              <section className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border-subtle">
+                  <h2 className="text-sm font-semibold text-foreground">
+                    1. Identificação do Cliente
+                  </h2>
 
                   <Link
                     to="/clientes"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-foreground-secondary bg-surface-subtle hover:bg-surface hover:text-foreground border border-border-subtle transition-colors w-fit"
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border-subtle bg-surface-subtle hover:bg-muted text-xs font-medium text-foreground-secondary hover:text-foreground transition-colors w-fit"
                   >
                     <span>Gerenciar ou cadastrar cliente</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-surface-subtle/80 rounded-2xl border border-border-subtle">
-                  <div className="md:col-span-2 flex flex-col gap-1.5">
-                    <label htmlFor="obra-cliente" className="text-sm font-semibold text-foreground-secondary">
-                      Selecione o Cliente <span className="text-destructive">*</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 rounded-xl border border-border-subtle bg-surface-subtle p-4">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label htmlFor={clienteSelectId} className="text-xs font-medium text-foreground-secondary block">
+                      Selecione o Cliente <span aria-hidden="true" className="text-destructive">*</span>
                     </label>
-                    <select id="obra-cliente" {...register("clienteId", { valueAsNumber: true })}
-                      aria-invalid={!!errors.clienteId} aria-describedby={errors.clienteId ? "obra-cliente-erro" : undefined}
+                    <select
+                      id={clienteSelectId}
+                      {...register("clienteId", { valueAsNumber: true })}
+                      aria-invalid={!!errors.clienteId}
+                      aria-describedby={errors.clienteId ? `${clienteSelectId}-erro` : undefined}
                       value={clienteIdSelecionado || ""}
                       onChange={(e) => {
                         const id = Number(e.target.value);
@@ -308,7 +279,7 @@ export default function CadastrarObra() {
                           clearErrors(["cidade", "endereco"]);
                         }
                       }}
-                      className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-warning-border cursor-pointer transition-colors"
+                      className={`${CLASSE_CONTROLE_PAINEL} cursor-pointer`}
                     >
                       <option value="">Selecione um cliente</option>
                       {listaClientes.map((c) => (
@@ -317,171 +288,267 @@ export default function CadastrarObra() {
                         </option>
                       ))}
                     </select>
-
                     {errors.clienteId?.message && (
-                      <p id="obra-cliente-erro" className="text-xs text-destructive font-medium mt-1">{errors.clienteId.message}</p>
+                      <p id={`${clienteSelectId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.clienteId.message}
+                      </p>
                     )}
                   </div>
 
-                  <div className="md:col-span-2">
-                    <Input
-                      label="Nome / Razão Social"
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label htmlFor={clienteNomeId} className="text-xs font-medium text-foreground-secondary block">
+                      Nome / Razão Social <span aria-hidden="true" className="text-destructive">*</span>
+                    </label>
+                    <input
+                      id={clienteNomeId}
+                      type="text"
                       required
-                      icon={<User className="w-4 h-4" />}
                       readOnly
-                      className="bg-surface-subtle cursor-not-allowed text-muted-foreground"
-                      error={errors.clienteNome?.message}
+                      aria-invalid={!!errors.clienteNome}
+                      aria-describedby={errors.clienteNome ? `${clienteNomeId}-erro` : undefined}
+                      className="w-full h-11 rounded-lg border border-border-subtle bg-muted px-3 text-sm text-muted-foreground cursor-not-allowed"
                       {...register("clienteNome")}
                     />
+                    {errors.clienteNome?.message && (
+                      <p id={`${clienteNomeId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.clienteNome.message}
+                      </p>
+                    )}
                   </div>
-                  <div>
-                    <Input
-                      label="Cidade"
-                      placeholder="Ex: Campinas"
-                      icon={<Building2 className="w-4 h-4" />}
-                      error={errors.cidade?.message}
+
+                  <div className="space-y-1.5">
+                    <label htmlFor={cidadeId} className="text-xs font-medium text-foreground-secondary block">
+                      Cidade
+                    </label>
+                    <input
+                      id={cidadeId}
+                      type="text"
+                      placeholder="Ex: Campinas / SP"
+                      aria-invalid={!!errors.cidade}
+                      aria-describedby={errors.cidade ? `${cidadeId}-erro` : undefined}
+                      className={CLASSE_CONTROLE_PAINEL}
                       {...register("cidade")}
                     />
+                    {errors.cidade?.message && (
+                      <p id={`${cidadeId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.cidade.message}
+                      </p>
+                    )}
                   </div>
-                  <div>
-                    <Input
-                      label="Endereço da Obra"
+
+                  <div className="space-y-1.5">
+                    <label htmlFor={enderecoId} className="text-xs font-medium text-foreground-secondary block">
+                      Endereço da Obra <span aria-hidden="true" className="text-destructive">*</span>
+                    </label>
+                    <input
+                      id={enderecoId}
+                      type="text"
                       required
                       placeholder="Rua, número, bairro..."
-                      icon={<MapPin className="w-4 h-4" />}
-                      error={errors.endereco?.message}
+                      aria-invalid={!!errors.endereco}
+                      aria-describedby={errors.endereco ? `${enderecoId}-erro` : undefined}
+                      className={CLASSE_CONTROLE_PAINEL}
                       {...register("endereco")}
                     />
+                    {errors.endereco?.message && (
+                      <p id={`${enderecoId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.endereco.message}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </div>
+              </section>
 
-            <hr className="border-border-subtle" />
+              {/* 2. Dimensionamento e Categoria */}
+              <section className="pt-4 border-t border-border-subtle space-y-4">
+                <h2 className="text-sm font-semibold text-foreground">
+                  2. Dimensionamento e Categoria
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  <div className="space-y-1.5">
+                    <label htmlFor={categoriaId} className="text-xs font-medium text-foreground-secondary block">
+                      Categoria da Obra <span aria-hidden="true" className="text-destructive">*</span>
+                    </label>
+                    <select
+                      id={categoriaId}
+                      aria-invalid={!!errors.categoria}
+                      aria-describedby={errors.categoria ? `${categoriaId}-erro` : undefined}
+                      {...register("categoria")}
+                      className={`${CLASSE_CONTROLE_OBRA} cursor-pointer`}
+                    >
+                      {CATEGORIAS_OBRA.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.categoria?.message && (
+                      <p id={`${categoriaId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.categoria.message}
+                      </p>
+                    )}
+                  </div>
 
-            {/* Seção: Dimensionamento e Categoria */}
-            <div>
-              <h3 className="text-base md:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                <Zap className="w-5 h-5 text-warning" /> Dimensionamento e Categoria
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="obra-categoria" className="text-sm font-semibold text-foreground-secondary">
-                    Categoria da Obra <span className="text-destructive">*</span>
+                  <div className="space-y-1.5">
+                    <label htmlFor={paineisId} className="text-xs font-medium text-foreground-secondary block">
+                      Quantidade de Painéis <span aria-hidden="true" className="text-destructive">*</span>
+                    </label>
+                    <input
+                      id={paineisId}
+                      type="number"
+                      placeholder="Ex: 45"
+                      min={1}
+                      required
+                      aria-invalid={!!errors.quantidadePaineis}
+                      aria-describedby={errors.quantidadePaineis ? `${paineisId}-erro` : undefined}
+                      className={`${CLASSE_CONTROLE_OBRA} font-mono tabular-nums`}
+                      {...register("quantidadePaineis")}
+                    />
+                    {errors.quantidadePaineis?.message && (
+                      <p id={`${paineisId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.quantidadePaineis.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor={inversoresId} className="text-xs font-medium text-foreground-secondary block">
+                      Inversores
+                    </label>
+                    <input
+                      id={inversoresId}
+                      type="number"
+                      placeholder="Ex: 1"
+                      min={0}
+                      aria-invalid={!!errors.quantidadeInversores}
+                      aria-describedby={errors.quantidadeInversores ? `${inversoresId}-erro` : undefined}
+                      className={`${CLASSE_CONTROLE_OBRA} font-mono tabular-nums`}
+                      {...register("quantidadeInversores")}
+                    />
+                    {errors.quantidadeInversores?.message && (
+                      <p id={`${inversoresId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.quantidadeInversores.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor={descricaoId} className="text-xs font-medium text-foreground-secondary block">
+                    Descrição / Observações da obra
                   </label>
-                  <select id="obra-categoria" aria-invalid={!!errors.categoria} aria-describedby={errors.categoria ? "obra-categoria-erro" : undefined}
-                    {...register("categoria")}
-                    className="w-full text-sm px-3.5 py-2.5 bg-surface border border-border-subtle rounded-xl text-foreground font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-warning-border cursor-pointer transition-colors"
-                  >
-                    {CATEGORIAS_OBRA.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.categoria && <p id="obra-categoria-erro" className="text-xs text-destructive">{errors.categoria.message}</p>}
-                </div>
-                <div>
-                  <Input
-                    label="Quantidade de Painéis"
-                    type="number"
-                    placeholder="Ex: 45"
-                    min={1}
-                    required
-                    icon={<Zap className="w-4 h-4" />}
-                    error={errors.quantidadePaineis?.message}
-                    {...register("quantidadePaineis")}
+                  <textarea
+                    id={descricaoId}
+                    rows={2}
+                    placeholder="Tipo de telhado, padrão elétrico ou restrições de acesso..."
+                    className="w-full rounded-lg border border-border-strong bg-surface-subtle focus:bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 transition-colors"
+                    {...register("descricao")}
                   />
                 </div>
-                <div>
-                  <Input
-                    label="Inversores"
-                    type="number"
-                    placeholder="Ex: 1"
-                    min={0}
-                    required
-                    icon={<Zap className="w-4 h-4" />}
-                    error={errors.quantidadeInversores?.message}
-                    {...register("quantidadeInversores")}
-                  />
+              </section>
+
+              {/* 3. Contrato e Cronograma Estimado */}
+              <section className="pt-4 border-t border-border-subtle space-y-4">
+                <h2 className="text-sm font-semibold text-foreground">
+                  3. Contrato e Cronograma Estimado
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  <div className="space-y-1.5">
+                    <label htmlFor={inicioId} className="text-xs font-medium text-foreground-secondary block">
+                      Data de Início Estimada <span aria-hidden="true" className="text-destructive">*</span>
+                    </label>
+                    <input
+                      id={inicioId}
+                      type="date"
+                      required
+                      aria-invalid={!!errors.dataInicioEstimada}
+                      aria-describedby={errors.dataInicioEstimada ? `${inicioId}-erro` : undefined}
+                      className={`${CLASSE_CONTROLE_OBRA} font-mono tabular-nums`}
+                      {...register("dataInicioEstimada")}
+                    />
+                    {errors.dataInicioEstimada?.message && (
+                      <p id={`${inicioId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.dataInicioEstimada.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor={fimId} className="text-xs font-medium text-foreground-secondary block">
+                      Data de Término Estimada <span aria-hidden="true" className="text-destructive">*</span>
+                    </label>
+                    <input
+                      id={fimId}
+                      type="date"
+                      required
+                      aria-invalid={!!errors.dataFimEstimada}
+                      aria-describedby={errors.dataFimEstimada ? `${fimId}-erro` : undefined}
+                      className={`${CLASSE_CONTROLE_OBRA} font-mono tabular-nums`}
+                      {...register("dataFimEstimada")}
+                    />
+                    {errors.dataFimEstimada?.message && (
+                      <p id={`${fimId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.dataFimEstimada.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor={prazoId} className="text-xs font-medium text-foreground-secondary block">
+                      Prazo Contratual (Dias) <span aria-hidden="true" className="text-destructive">*</span>
+                    </label>
+                    <input
+                      id={prazoId}
+                      type="number"
+                      placeholder="Ex: 30"
+                      min={1}
+                      required
+                      aria-invalid={!!errors.pagamento?.prazoContratualDias}
+                      aria-describedby={errors.pagamento?.prazoContratualDias ? `${prazoId}-erro` : undefined}
+                      className={`${CLASSE_CONTROLE_OBRA} font-mono tabular-nums`}
+                      {...register("pagamento.prazoContratualDias")}
+                    />
+                    {errors.pagamento?.prazoContratualDias?.message && (
+                      <p id={`${prazoId}-erro`} className="text-xs text-destructive font-medium">
+                        {errors.pagamento.prazoContratualDias.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
+              </section>
+
+              {/* Ações */}
+              <div className="pt-4 border-t border-border-subtle flex flex-col-reverse sm:flex-row justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void navigate("/kanban")}
+                  disabled={isSubmitting || redirecionando}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isSubmitting || redirecionando || catalogo.isLoading || catalogo.isError || listaClientes.length === 0}
+                  className="min-w-36"
+                >
+                  {isSubmitting || redirecionando ? (
+                    <>
+                      <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
+                      <span>Cadastrando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Salvar Obra</span>
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-
-            <hr className="border-border-subtle" />
-
-            {/* Seção: Contrato e Prazos */}
-            <div>
-              <h3 className="text-base md:text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-muted-foreground" /> Contrato e Cronograma Estimado
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div>
-                  <Input
-                    label="Data de Início Estimada"
-                    type="date"
-                    required
-                    icon={<Calendar className="w-4 h-4" />}
-                    error={errors.dataInicioEstimada?.message}
-                    {...register("dataInicioEstimada")}
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="Data de Término Estimada"
-                    type="date"
-                    required
-                    icon={<Calendar className="w-4 h-4" />}
-                    error={errors.dataFimEstimada?.message}
-                    {...register("dataFimEstimada")}
-                  />
-                </div>
-                <div>
-                  <Input
-                    label="Prazo Contratual (Dias)"
-                    type="number"
-                    placeholder="Ex: 30"
-                    min={1}
-                    required
-                    icon={<Clock className="w-4 h-4" />}
-                    error={errors.pagamento?.prazoContratualDias?.message}
-                    {...register("pagamento.prazoContratualDias")}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Ações */}
-            <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-border-subtle">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => void navigate("/kanban")}
-                disabled={isSubmitting || redirecionando}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={isSubmitting || redirecionando || catalogo.isLoading || catalogo.isError || listaClientes.length === 0}
-                className="min-w-36"
-              >
-                {isSubmitting || redirecionando ? (
-                  <>
-                    <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
-                    <span>Cadastrando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span>Salvar Obra</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </section>
+            </form>
+          </div>
+        </section>
       )}
     </div>
   );

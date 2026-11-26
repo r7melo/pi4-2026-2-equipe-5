@@ -42,7 +42,7 @@ export function Drawer({ isOpen, onClose, titulo, subtitulo, icone, acoesHeader,
     onClick={e => e.stopPropagation()}
     className={cn("mwg-dialog fixed inset-y-0 left-auto right-0 m-0 ml-auto w-full h-dvh max-h-dvh p-0 bg-surface text-foreground border-0 border-l border-border-subtle shadow-2xl", TAMANHOS[tamanho], className)}>
     <div className="h-full min-h-0 flex flex-col">
-      {(headerCustomizado || titulo || icone) && <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface shrink-0 gap-3">
+      {(headerCustomizado || titulo || icone) && <div className={cn("flex justify-between px-5 py-3.5 border-b border-border-subtle bg-surface shrink-0 gap-3", headerCustomizado ? "items-start" : "items-center")}>
         <div className="min-w-0 flex-1">{headerCustomizado || <div className="flex items-center gap-2.5">{icone}<div className="min-w-0">
           {titulo && <h2 className="text-base font-bold text-foreground-secondary truncate">{titulo}</h2>}
           {subtitulo && <p className="text-xs text-muted-foreground truncate">{subtitulo}</p>}

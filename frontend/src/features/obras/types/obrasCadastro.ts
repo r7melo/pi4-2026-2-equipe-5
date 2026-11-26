@@ -18,6 +18,7 @@ export interface CriarObraPayload {
   cidade?: string;
   quantidadePaineis: number;
   quantidadeInversores?: number;
+  descricao?: string;
   dataInicioEstimada: string;
   dataFimEstimada: string;
   pagamento: {

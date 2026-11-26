@@ -13,6 +13,7 @@ import { MOCK_ATIVO } from "@/shared/lib/modoApi";
  *     usuário em produção.
  */
 import { useState, useId, useRef } from "react";
+import { FlaskConical, Globe } from "lucide-react";
 
 const STORAGE_KEY = "zl_api_mode";
 
@@ -64,27 +65,21 @@ function ApiModeSwitcherInner() {
         title={`API: ${isMock ? "Mock" : "Real"} — clique para trocar`}
         className={[
           "fixed bottom-4 right-4 z-[9999]",
-          "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
-          "text-xs font-semibold shadow-lg border",
-          "select-none",
+          "w-9 h-9 inline-flex items-center justify-center rounded-full",
+          "shadow-lg border transition-colors select-none",
           isMock
-            ? "bg-warning-light border-warning text-warning hover:underline"
-            : "bg-success-light border-success text-success hover:underline",
+            ? "bg-warning-light border-warning text-warning"
+            : "bg-success-light border-success text-success",
           reloading ? "opacity-50 cursor-wait" : "cursor-pointer",
         ].join(" ")}
         disabled={reloading}
         aria-label={`Alternar modo de API: ${isMock ? "Mock" : "API Real"}`}
       >
-        {/* Indicador colorido */}
-        <span
-          aria-hidden="true"
-          className={[
-            "inline-block w-2 h-2 rounded-full",
-            isMock ? "bg-warning" : "bg-success",
-          ].join(" ")}
-        />
-        {isMock ? "🚧 Mock" : "🌐 API Real"}
-        <span aria-hidden="true">{open ? "▲" : "▼"}</span>
+        {isMock ? (
+          <FlaskConical className="w-4 h-4" aria-hidden="true" />
+        ) : (
+          <Globe className="w-4 h-4" aria-hidden="true" />
+        )}
       </button>
 
       {/* Popup */}

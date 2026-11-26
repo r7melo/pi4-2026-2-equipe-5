@@ -14,6 +14,9 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
+import { Badge } from "@/shared/components/ui/Badge";
+import { SegmentedControl } from "@/shared/components/ui/SegmentedControl";
 import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import EmptyState from "@/shared/components/feedback/EmptyState";
@@ -169,19 +172,17 @@ function CartaoManutencao({
           <h2 className="text-sm font-bold text-foreground leading-snug break-words">
             {manutencao.clienteNome}
           </h2>
-          <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-            Chamado #{manutencao.id}
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Atendimento pós-instalação
           </p>
         </div>
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 ${
-            concluida
-              ? "bg-success-light/60 text-success border-success-border"
-              : "bg-warning-light text-warning border-warning-border"
-          }`}
+        <Badge
+          variante={concluida ? "success" : "warning"}
+          tamanho="sm"
+          comBorda
         >
           {concluida ? "Concluída" : "Pendente"}
-        </span>
+        </Badge>
       </div>
 
       <p className="text-xs text-foreground-secondary leading-relaxed break-words">
@@ -289,7 +290,7 @@ function CartaoManutencao({
                 if (erroConcluir) setErroConcluir(null);
               }}
               placeholder="Descreva o reparo ou troca realizada em campo..."
-              className="w-full rounded-lg border border-border-subtle bg-surface-subtle px-3 py-2 text-xs text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-subtle"
+              className="w-full rounded-lg border border-border-strong bg-surface-subtle px-3 py-2 text-xs text-foreground placeholder-subtle-foreground focus:bg-surface focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25"
             />
             {erroConcluir && (
               <p id={servicoErroId} role="alert" className="text-xs font-medium text-destructive">
@@ -338,7 +339,7 @@ function CartaoManutencao({
                 if (erroComentar) setErroComentar(null);
               }}
               placeholder="Ex: Cliente solicitou retorno na sexta ou peça adicional..."
-              className="w-full rounded-lg border border-border-subtle bg-surface-subtle px-3 py-2 text-xs text-foreground placeholder-subtle-foreground focus:bg-surface focus:outline-none focus:ring-2 focus:ring-border-subtle"
+              className="w-full rounded-lg border border-border-strong bg-surface-subtle px-3 py-2 text-xs text-foreground placeholder-subtle-foreground focus:bg-surface focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25"
             />
             {erroComentar && (
               <p id={comentarioErroId} role="alert" className="text-xs font-medium text-destructive">
@@ -450,9 +451,9 @@ export default function InstaladorMobile() {
   return (
     <div className="min-h-screen bg-background-app flex justify-center p-0 sm:p-4">
       {/* Container Restrito Mobile-First */}
-      <div className="w-full max-w-md bg-surface min-h-screen sm:min-h-0 sm:rounded-2xl border border-border-subtle flex flex-col relative overflow-hidden">
+      <div className="w-full max-w-md bg-surface min-h-screen sm:min-h-0 sm:rounded-xl border border-border-subtle flex flex-col relative">
         {/* Topo fixo com identificação, botão Sair e abas Instalações / Manutenções */}
-        <header className="bg-surface-subtle border-b border-border-subtle px-5 pt-4 pb-3 space-y-3">
+        <header className="bg-surface-subtle border-b border-border-subtle px-4 pt-3.5 pb-3 space-y-2.5 sm:rounded-t-xl">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Painel do Instalador
@@ -462,7 +463,7 @@ export default function InstaladorMobile() {
               onClick={handleLogout}
               title="Sair da conta"
               aria-label="Sair da conta"
-              className="h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-border-subtle transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+              className="h-8 px-2.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive-light border border-border-subtle transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sair</span>
@@ -507,49 +508,37 @@ export default function InstaladorMobile() {
 
         {abaAtiva === "manutencoes" ? (
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="px-5 py-3 border-b border-border-subtle bg-surface flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar manutenções por status">
-                {(
-                  [
-                    { valor: "todas", rotulo: "Todas" },
-                    { valor: "Pendente", rotulo: "Pendentes" },
-                    { valor: "Concluida", rotulo: "Concluídas" },
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.valor}
-                    type="button"
-                    onClick={() => setFiltroStatus(item.valor)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
-                      filtroStatus === item.valor
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-surface-subtle text-muted-foreground border-border-subtle hover:text-foreground"
-                    }`}
-                  >
-                    {item.rotulo}
-                  </button>
-                ))}
-              </div>
+            <div className="px-4 py-2.5 border-b border-border-subtle bg-surface flex items-center justify-between gap-2">
+              <SegmentedControl
+                opcoes={[
+                  { valor: "todas", rotulo: "Todas" },
+                  { valor: "Pendente", rotulo: "Pendentes" },
+                  { valor: "Concluida", rotulo: "Concluídas" },
+                ]}
+                valor={filtroStatus}
+                onChange={setFiltroStatus}
+                ariaLabel="Filtrar manutenções por status"
+                tamanho="sm"
+              />
               <span className="text-xs font-mono text-muted-foreground tabular-nums">
                 {manutencoes.length}
               </span>
             </div>
 
-            <main className="flex-1 overflow-y-auto p-5 space-y-3">
+            <main className="flex-1 p-4 space-y-3">
               {avisoManutencao && (
-                <div
-                  role="status"
-                  className="flex items-center justify-between gap-2 rounded-lg border border-success-border bg-success-light/60 px-3 py-2 text-xs text-success"
-                >
-                  <span>{avisoManutencao}</span>
-                  <button
-                    type="button"
-                    onClick={() => setAvisoManutencao(null)}
-                    className="font-semibold underline cursor-pointer shrink-0"
-                  >
-                    Fechar
-                  </button>
-                </div>
+                <AlertBanner variante="success" className="px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>{avisoManutencao}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAvisoManutencao(null)}
+                      className="font-semibold underline cursor-pointer shrink-0"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </AlertBanner>
               )}
 
               {loadingManutencoes ? (
@@ -622,7 +611,7 @@ export default function InstaladorMobile() {
           </div>
         ) : (
           <>
-            <div className="bg-surface-subtle border-b border-border-subtle pt-4 pb-5 px-5 space-y-3">
+            <div className="bg-surface-subtle border-b border-border-subtle pt-3.5 pb-4 px-4 space-y-3">
               {instalacoes.length > 1 && (
                 <div className="space-y-1">
                   <label
@@ -635,7 +624,7 @@ export default function InstaladorMobile() {
                     id="select-obra-instalador"
                     value={selectedObraId ?? ""}
                     onChange={handleSelectObra}
-                    className="w-full text-xs bg-surface border border-border-subtle rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-8"
+                    className="w-full text-xs bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 text-foreground focus-visible:outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-info/25 h-8"
                   >
                     {instalacoes.map((item) => (
                       <option key={item.obraId} value={item.obraId}>
@@ -650,12 +639,18 @@ export default function InstaladorMobile() {
                 <>
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide bg-warning-light text-warning border border-warning-border">
+                      <Badge
+                        variante="warning"
+                        formato="rounded"
+                        tamanho="sm"
+                        comBorda
+                        className="tracking-wide"
+                      >
                         {detalhes.dataInicio && formatarDataBR(detalhes.dataInicio) !== "—"
                           ? `${formatarDataBR(detalhes.dataInicio)} • `
                           : ""}
                         {detalhes.equipeNome || "Equipe de Campo"}
-                      </span>
+                      </Badge>
                       <h1 className="text-xl font-bold mt-2 text-foreground leading-tight">
                         Instalação
                         <br />
@@ -694,19 +689,19 @@ export default function InstaladorMobile() {
               </div>
             ) : (
               <>
-                <main className="flex-1 px-5 pt-5 pb-24 overflow-y-auto space-y-4">
+                <main className="flex-1 px-4 py-4 space-y-4">
                   {/* Card Contato (Quiet Panel) */}
-                  <div className="bg-surface p-4 rounded-xl border border-border-subtle flex items-center justify-between">
-                    <div>
+                  <div className="bg-surface p-3.5 rounded-xl border border-border-subtle flex items-center justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground font-medium">Cliente</p>
-                      <h3 className="font-semibold text-sm text-foreground">
+                      <h3 className="font-semibold text-sm text-foreground truncate">
                         {detalhes.clienteNome}
                       </h3>
                     </div>
                     {detalhes.clienteTelefone ? (
                       <a
                         href={`tel:${detalhes.clienteTelefone.replace(/[^\d+]/g, "")}`}
-                        className="w-9 h-9 rounded-lg bg-surface-subtle hover:bg-surface border border-border-subtle text-foreground-secondary flex items-center justify-center transition-colors cursor-pointer"
+                        className="w-9 h-9 rounded-lg bg-surface-subtle hover:bg-muted border border-border-subtle text-foreground-secondary flex items-center justify-center transition-colors cursor-pointer shrink-0"
                         title={`Ligar para ${detalhes.clienteNome}`}
                         aria-label={`Ligar para ${detalhes.clienteNome}`}
                       >
@@ -726,12 +721,12 @@ export default function InstaladorMobile() {
                           {detalhes.kit.map((item) => (
                             <li
                               key={item.tipo}
-                              className="py-2.5 px-4 flex items-center justify-between"
+                              className="py-2.5 px-3.5 flex items-center justify-between gap-2"
                             >
                               <span className="text-xs font-medium text-foreground">
                                 {item.tipo}
                               </span>
-                              <span className="text-xs font-bold font-mono text-foreground">
+                              <span className="text-xs font-bold font-mono tabular-nums text-foreground shrink-0">
                                 {item.quantidade} unid.
                               </span>
                             </li>
@@ -758,14 +753,17 @@ export default function InstaladorMobile() {
                   )}
 
                   {chegadaMarcada && (
-                    <div className="p-3 rounded-lg bg-success-light border border-success-border text-success text-xs font-medium flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                      <span>Chegada registrada no local da instalação.</span>
-                    </div>
+                    <AlertBanner
+                      variante="success"
+                      icone={<CheckCircle2 className="w-4 h-4" />}
+                      className="p-3 font-medium"
+                    >
+                      Chegada registrada no local da instalação.
+                    </AlertBanner>
                   )}
                 </main>
 
-                <div className="absolute bottom-0 left-0 w-full bg-surface border-t border-border-subtle p-3.5 flex gap-2.5">
+                <div className="sticky bottom-0 sm:rounded-b-xl bg-surface border-t border-border-subtle p-3.5 flex gap-2.5">
                   <Button
                     onClick={() => abrirRotaMapa(detalhes.endereco, detalhes.linkNavegacao)}
                     className="flex-1 h-11 text-xs font-semibold flex justify-center items-center gap-2 cursor-pointer"

@@ -6,6 +6,7 @@ import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
 import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
 import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { ConfirmDialog } from "@/shared/components/feedback/ConfirmDialog";
+import { IconActionButton } from "@/shared/components/ui/IconActionButton";
 import { deveExibirErroLocal, statusHttp } from "@/shared/lib/sessaoOperacao";
 import { cn } from "@/shared/lib/utils";
 import type { Material, StatusLogistico } from "@/shared/types/materiais";
@@ -67,7 +68,7 @@ export function PainelMateriaisObra({
   const [falha, setFalha] = useState<FalhaValidacaoMaterial | null>(null);
 
   const { data: produtosCatalogo = [], isLoading: carregandoCatalogo } = useProdutosCatalogoAtivos(
-    podeEditar && formularioAberto && !itemEmEdicao
+    podeEditar && formularioAberto
   );
 
   const [dialogoExclusaoAberto, setDialogoExclusaoAberto] = useState(false);
@@ -131,10 +132,11 @@ export function PainelMateriaisObra({
   const handleSalvarFormulario = async (validadeQuantidade?: ValidadeInputMaterial) => {
     setFalha(null);
     const produtoSelecionado = produtosCatalogo.find((p) => p.id === formProdutoId);
+    const exigirProduto = !itemEmEdicao || Boolean(itemEmEdicao.produtoId);
     const validacao = validarFormularioMaterial({
-      produtoId: !itemEmEdicao ? formProdutoId : undefined,
-      exigirProduto: !itemEmEdicao,
-      tipo: !itemEmEdicao ? (produtoSelecionado?.nome ?? formTipo) : formTipo,
+      produtoId: formProdutoId,
+      exigirProduto,
+      tipo: produtoSelecionado?.nome ?? formTipo,
       quantidade: formQuantidade,
       validadeQuantidade,
     });
@@ -154,7 +156,9 @@ export function PainelMateriaisObra({
             id: itemEmEdicao.id,
             obraId,
             payload: {
-              ...(itemEmEdicao.produtoId ? {} : { tipo: validacao.tipo }),
+              ...(formProdutoId
+                ? { produtoId: formProdutoId, tipo: produtoSelecionado?.nome ?? validacao.tipo }
+                : { tipo: validacao.tipo }),
               quantidade: validacao.quantidade,
               ...(podeMudarStatus ? { statusLogistico: formStatus } : {}),
             },
@@ -287,49 +291,55 @@ export function PainelMateriaisObra({
   }
 
   return (
-    <div className="flex flex-col relative pb-20" aria-busy={ocupado}>
+    <div className="flex flex-col relative pb-16" aria-busy={ocupado}>
       {lotePendente && (
         <output className="block text-xs text-muted-foreground">
           Processando materiais...
         </output>
       )}
       <fieldset disabled={ocupado} className="min-w-0 border-0 p-0 m-0">
-        <div className="flex items-center justify-between px-1.5 py-1 mb-2">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between min-h-7 px-1.5 py-1 mb-2">
+          <div className="flex items-center gap-2.5">
             {podeEditar && listaMateriais.length > 0 && (
               <input
                 type="checkbox"
                 id="chkMasterA"
                 checked={todosSelecionados}
                 onChange={toggleSelecionarTodos}
-                className="w-3.5 h-3.5 mt-0.5 rounded text-primary focus:ring-primary cursor-pointer accent-primary shrink-0"
+                className="w-3.5 h-3.5 rounded text-primary focus:ring-primary cursor-pointer accent-primary shrink-0"
                 title="Selecionar todos os insumos"
                 aria-label="Selecionar todos os insumos"
               />
             )}
 
-            {temSelecao && (
+            {temSelecao ? (
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-info-light text-info border border-info-border">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-info-light text-info border border-info-border tabular-nums">
                   {itensSelecionados.size} selecionado{itensSelecionados.size > 1 ? "s" : ""}
                 </span>
                 <button
                   type="button"
                   onClick={limparSelecao}
-                  className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-subtle transition-colors cursor-pointer"
+                  className="controle-compacto w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-subtle transition-colors cursor-pointer"
                   title="Desmarcar seleção"
                   aria-label="Desmarcar seleção"
                 >
                   <X className="w-3 h-3 stroke-[2.5]" aria-hidden="true" />
                 </button>
               </div>
+            ) : (
+              podeEditar && listaMateriais.length > 0 && (
+                <label htmlFor="chkMasterA" className="text-xs text-muted-foreground cursor-pointer select-none">
+                  Selecionar todos
+                </label>
+              )
             )}
           </div>
 
           <div className="flex items-center gap-1.5">
             <Link
               to={`/obras/${obraId}/materiais`}
-              className="w-7 h-7 rounded-md border border-border-subtle bg-surface text-muted-foreground hover:text-foreground hover:bg-surface-subtle flex items-center justify-center transition-colors"
+              className="controle-compacto w-7 h-7 rounded-md border border-border-subtle bg-surface text-muted-foreground hover:text-foreground hover:bg-surface-subtle flex items-center justify-center transition-colors"
               title="Abrir tela completa de materiais da obra"
               aria-label="Abrir tela completa de materiais"
             >
@@ -341,7 +351,7 @@ export function PainelMateriaisObra({
                 type="button"
                 onClick={abrirFormCriacao}
                 className={cn(
-                  "w-7 h-7 rounded-md flex items-center justify-center transition-colors cursor-pointer",
+                  "controle-compacto w-7 h-7 rounded-md flex items-center justify-center transition-colors cursor-pointer",
                   formularioAberto
                     ? "bg-surface-subtle text-foreground-muted hover:bg-muted border border-border-subtle"
                     : "bg-primary text-primary-foreground hover:bg-primary-hover shadow-xs"
@@ -361,6 +371,7 @@ export function PainelMateriaisObra({
 
         {formularioAberto && podeEditar && (
           <FormularioMaterialCompacto
+            key={itemEmEdicao?.id ?? "novo"}
             itemEmEdicao={itemEmEdicao}
             podeVerValores={podeVerValores}
             produtosCatalogo={produtosCatalogo}
@@ -368,7 +379,8 @@ export function PainelMateriaisObra({
             formProdutoId={formProdutoId}
             onFormProdutoIdChange={(produtoId, prod) => {
               setFormProdutoId(produtoId);
-              setFormTipo(prod?.nome ?? "");
+              if (prod) setFormTipo(prod.nome);
+              else if (!itemEmEdicao || itemEmEdicao.produtoId) setFormTipo("");
             }}
             formTipo={formTipo}
             onFormTipoChange={setFormTipo}
@@ -405,7 +417,7 @@ export function PainelMateriaisObra({
                   key={mat.id}
                   data-material-id={mat.id}
                   className={cn(
-                    "py-2 px-1.5 flex items-center justify-between gap-2.5 transition-colors group",
+                    "py-2.5 px-1.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 transition-colors group",
                     isSelected && "bg-info-light/40 rounded-md"
                   )}
                 >
@@ -421,10 +433,10 @@ export function PainelMateriaisObra({
                       />
                     )}
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-semibold text-foreground leading-snug break-words">
+                      <span className="text-xs font-semibold text-foreground leading-snug wrap-anywhere">
                         {mat.produtoNome || mat.tipo || mat.descricao || "Material"}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground tabular-nums">
                         Quantidade: <strong>{mat.quantidade} {mat.unidade || "un."}</strong>
                         {podeVerValores && typeof mat.custoUnitario === "number"
                           ? ` · ${formatarMoeda(mat.custoUnitario * mat.quantidade)}`
@@ -433,7 +445,7 @@ export function PainelMateriaisObra({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="pl-6 sm:pl-0 flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
                     {podeMudarStatus ? (
                       <select
                         value={metaStatus.valor}
@@ -442,7 +454,7 @@ export function PainelMateriaisObra({
                         }
                         disabled={mudandoStatus}
                         className={cn(
-                          "text-xs font-semibold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none",
+                          "controle-compacto h-7 text-xs font-semibold px-2.5 rounded-full border cursor-pointer",
                           metaStatus.badgeClasse
                         )}
                         title="Alterar status deste insumo"
@@ -457,7 +469,7 @@ export function PainelMateriaisObra({
                     ) : (
                       <span
                         className={cn(
-                          "text-xs font-semibold px-2 py-0.5 rounded-full border",
+                          "controle-compacto h-7 inline-flex items-center text-xs font-semibold px-2.5 rounded-full border",
                           metaStatus.badgeClasse
                         )}
                       >
@@ -466,26 +478,25 @@ export function PainelMateriaisObra({
                     )}
 
                     {podeEditar && (
-                      <>
-                        <button
-                          type="button"
+                      <div className="flex items-center gap-1">
+                        <IconActionButton
+                          size="sm"
                           onClick={() => abrirFormEdicao(mat)}
-                          className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-subtle transition-colors cursor-pointer"
                           title="Alterar dados cadastrais"
-                          aria-label={`Alterar ${mat.tipo || mat.descricao}`}
+                          label={`Alterar ${mat.tipo || mat.descricao}`}
                         >
-                          <Pencil className="w-3 h-3" aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
+                          <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                        </IconActionButton>
+                        <IconActionButton
+                          size="sm"
+                          tone="destructive"
                           onClick={() => solicitarExclusaoIndividual(mat.id)}
-                          className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive-light transition-colors cursor-pointer"
                           title="Excluir insumo"
-                          aria-label={`Excluir ${mat.tipo || mat.descricao}`}
+                          label={`Excluir ${mat.tipo || mat.descricao}`}
                         >
-                          <Trash2 className="w-3 h-3" aria-hidden="true" />
-                        </button>
-                      </>
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        </IconActionButton>
+                      </div>
                     )}
                   </div>
                 </div>

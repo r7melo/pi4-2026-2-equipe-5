@@ -1,8 +1,11 @@
-import { useId, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { Save } from "lucide-react";
 import { Modal } from "@/shared/components/ui/Modal";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
+import { ComboboxPesquisavel } from "@/shared/components/ui/ComboboxPesquisavel";
+import { SegmentedControl } from "@/shared/components/ui/SegmentedControl";
 import type { Produto } from "@/shared/types/produtos";
 import {
   TIPOS_PRODUTO_CANONICOS,
@@ -58,11 +61,18 @@ function FormularioProdutoInterno({
   const baseId = useId();
   const nomeId = `${baseId}-nome`;
   const tipoId = `${baseId}-tipo`;
-  const listaTiposId = `${baseId}-lista-tipos`;
   const unidadeId = `${baseId}-unidade`;
-  const listaUnidadesId = `${baseId}-lista-unidades`;
   const precoId = `${baseId}-preco`;
-  const ativoId = `${baseId}-ativo`;
+
+  const opcoesTipos = useMemo(
+    () => TIPOS_PRODUTO_CANONICOS.map((item) => ({ valor: item, rotulo: item })),
+    []
+  );
+
+  const opcoesUnidades = useMemo(
+    () => UNIDADES_PRODUTO_CANONICAS.map((u) => ({ valor: u, rotulo: u })),
+    []
+  );
 
   const salvando = criarMutation.isPending || editarMutation.isPending;
 
@@ -124,139 +134,174 @@ function FormularioProdutoInterno({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-5" noValidate>
-      {erroCampo && !erroCampo.campo && (
-        <div
-          role="alert"
-          className="rounded-lg border border-destructive-border bg-destructive-light/60 px-3.5 py-2.5 text-xs font-medium text-destructive"
-        >
-          {erroCampo.mensagem}
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className="p-5 space-y-4" noValidate>
+      <fieldset disabled={salvando} className="space-y-4 min-w-0">
+        {erroCampo && !erroCampo.campo && (
+          <AlertBanner variante="destructive" className="font-medium">
+            {erroCampo.mensagem}
+          </AlertBanner>
+        )}
 
-      <Input
-        id={nomeId}
-        label="Nome do produto"
-        required
-        autoFocus
-        maxLength={200}
-        placeholder="Ex: Painel Solar Monocristalino 550W"
-        value={nome}
-        disabled={salvando}
-        onChange={(e) => {
-          setNome(e.target.value);
-          if (erroCampo?.campo === "nome") setErroCampo(null);
-        }}
-        error={erroCampo?.campo === "nome" ? erroCampo.mensagem : undefined}
-      />
+        <div className="space-y-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Especificação
+          </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
           <Input
-            id={tipoId}
-            list={listaTiposId}
-            label="Categoria / Tipo"
+            id={nomeId}
+            label="Nome do produto"
             required
+            autoFocus
             maxLength={200}
-            placeholder="Ex: Módulo Fotovoltaico"
-            value={tipo}
-            disabled={salvando}
+            placeholder="Ex: Painel Solar Monocristalino 550W"
+            value={nome}
             onChange={(e) => {
-              setTipo(e.target.value);
-              if (erroCampo?.campo === "tipo") setErroCampo(null);
+              setNome(e.target.value);
+              if (erroCampo?.campo === "nome") setErroCampo(null);
             }}
-            error={erroCampo?.campo === "tipo" ? erroCampo.mensagem : undefined}
+            error={erroCampo?.campo === "nome" ? erroCampo.mensagem : undefined}
           />
-          <datalist id={listaTiposId}>
-            {TIPOS_PRODUTO_CANONICOS.map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
-        </div>
 
-        <div>
-          <Input
-            id={unidadeId}
-            list={listaUnidadesId}
-            label="Unidade"
-            required
-            maxLength={30}
-            placeholder="Ex: un, m, kit"
-            value={unidade}
-            disabled={salvando}
-            onChange={(e) => {
-              setUnidade(e.target.value);
-              if (erroCampo?.campo === "unidade") setErroCampo(null);
-            }}
-            error={erroCampo?.campo === "unidade" ? erroCampo.mensagem : undefined}
-          />
-          <datalist id={listaUnidadesId}>
-            {UNIDADES_PRODUTO_CANONICAS.map((u) => (
-              <option key={u} value={u} />
-            ))}
-          </datalist>
-        </div>
-      </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="space-y-1.5">
+              <label
+                htmlFor={tipoId}
+                className="block text-sm font-semibold text-foreground-muted"
+              >
+                Categoria / Tipo <span aria-hidden="true" className="text-destructive ml-0.5">*</span>
+              </label>
+              <ComboboxPesquisavel
+                id={tipoId}
+                listboxAriaLabel="Categorias de produto"
+                permitirTextoLivre
+                compacto={false}
+                opcoes={opcoesTipos}
+                valorSelecionado={tipo}
+                textoInicial={tipo}
+                placeholder="Ex: Módulo Fotovoltaico"
+                ariaInvalid={erroCampo?.campo === "tipo" || undefined}
+                ariaDescribedBy={erroCampo?.campo === "tipo" ? `${tipoId}-erro` : undefined}
+                onSelecionar={(valor) => {
+                  if (valor) {
+                    setTipo(valor);
+                    if (erroCampo?.campo === "tipo") setErroCampo(null);
+                  }
+                }}
+                onTextoChange={(texto) => {
+                  setTipo(texto);
+                  if (erroCampo?.campo === "tipo") setErroCampo(null);
+                }}
+              />
+              {erroCampo?.campo === "tipo" && (
+                <p id={`${tipoId}-erro`} className="text-xs text-destructive font-medium">
+                  {erroCampo.mensagem}
+                </p>
+              )}
+            </div>
 
-      <Input
-        id={precoId}
-        label="Preço unitário de referência (R$)"
-        required
-        inputMode="decimal"
-        placeholder="0,00"
-        className="font-mono text-right"
-        value={precoUnitario}
-        disabled={salvando}
-        onChange={(e) => {
-          setPrecoUnitario(e.target.value);
-          if (erroCampo?.campo === "precoUnitario") setErroCampo(null);
-        }}
-        helperText="Valor utilizado no momento da solicitação do material na obra."
-        error={erroCampo?.campo === "precoUnitario" ? erroCampo.mensagem : undefined}
-      />
-
-      {emEdicao && (
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface-subtle px-4 py-3">
-          <div>
-            <label
-              htmlFor={ativoId}
-              className="block text-sm font-semibold text-foreground-secondary cursor-pointer"
-            >
-              Produto ativo no catálogo
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Produtos inativos ficam indisponíveis para novas solicitações.
-            </p>
+            <div className="space-y-1.5">
+              <label
+                htmlFor={unidadeId}
+                className="block text-sm font-semibold text-foreground-muted"
+              >
+                Unidade <span aria-hidden="true" className="text-destructive ml-0.5">*</span>
+              </label>
+              <ComboboxPesquisavel
+                id={unidadeId}
+                listboxAriaLabel="Unidades de medida"
+                permitirTextoLivre
+                compacto={false}
+                opcoes={opcoesUnidades}
+                valorSelecionado={unidade}
+                textoInicial={unidade}
+                placeholder="Ex: un, m, kit"
+                ariaInvalid={erroCampo?.campo === "unidade" || undefined}
+                ariaDescribedBy={erroCampo?.campo === "unidade" ? `${unidadeId}-erro` : undefined}
+                onSelecionar={(valor) => {
+                  if (valor) {
+                    setUnidade(valor);
+                    if (erroCampo?.campo === "unidade") setErroCampo(null);
+                  }
+                }}
+                onTextoChange={(texto) => {
+                  setUnidade(texto);
+                  if (erroCampo?.campo === "unidade") setErroCampo(null);
+                }}
+              />
+              {erroCampo?.campo === "unidade" && (
+                <p id={`${unidadeId}-erro`} className="text-xs text-destructive font-medium">
+                  {erroCampo.mensagem}
+                </p>
+              )}
+            </div>
           </div>
-          <input
-            id={ativoId}
-            type="checkbox"
-            checked={ativo}
-            disabled={salvando}
-            onChange={(e) => setAtivo(e.target.checked)}
-            className="h-4 w-4 rounded border-border-strong text-primary focus:ring-border-strong cursor-pointer"
-          />
         </div>
-      )}
 
-      <div className="flex items-center justify-end gap-3 pt-2 border-t border-border-subtle">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          disabled={salvando}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={salvando}>
-          <Save className="w-4 h-4" />
-          {salvando
-            ? "Salvando..."
-            : emEdicao
-              ? "Salvar alterações"
-              : "Cadastrar produto"}
-        </Button>
-      </div>
+        <div className="pt-3 border-t border-border-subtle space-y-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Valor e disponibilidade
+          </p>
+
+          <Input
+            id={precoId}
+            label="Preço unitário de referência (R$)"
+            required
+            inputMode="decimal"
+            placeholder="0,00"
+            className="font-mono tabular-nums text-right"
+            value={precoUnitario}
+            onChange={(e) => {
+              setPrecoUnitario(e.target.value);
+              if (erroCampo?.campo === "precoUnitario") setErroCampo(null);
+            }}
+            helperText="Valor utilizado no momento da solicitação do material na obra."
+            error={erroCampo?.campo === "precoUnitario" ? erroCampo.mensagem : undefined}
+          />
+
+          {emEdicao && (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface-subtle px-3.5 py-2.5">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground-secondary">
+                  Status no catálogo
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Itens inativos ficam ocultos em novas solicitações.
+                </p>
+              </div>
+              <SegmentedControl
+                opcoes={[
+                  { valor: "ativo", rotulo: "Ativo" },
+                  { valor: "inativo", rotulo: "Inativo" },
+                ]}
+                valor={ativo ? "ativo" : "inativo"}
+                onChange={(valor) => setAtivo(valor === "ativo")}
+                ariaLabel="Status do produto no catálogo"
+                tamanho="xs"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="-mx-5 -mb-5 px-5 py-3.5 border-t border-border-subtle bg-surface-subtle flex items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={salvando}
+            className="h-10"
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={salvando} className="h-10">
+            <Save className="w-4 h-4" aria-hidden="true" />
+            {salvando
+              ? "Salvando..."
+              : emEdicao
+                ? "Salvar alterações"
+                : "Cadastrar produto"}
+          </Button>
+        </div>
+      </fieldset>
     </form>
   );
 }
@@ -277,13 +322,14 @@ export function ModalProduto({
         if (!salvando) onClose();
       }}
       fecharBloqueado={salvando}
-      titulo={emEdicao ? "Editar produto" : "Novo produto no catálogo"}
+      tamanho="md"
+      titulo={emEdicao ? "Editar produto" : "Novo produto"}
       subtitulo={
         emEdicao
           ? "Atualize os dados comerciais ou a disponibilidade deste item."
           : "Cadastre um produto padronizado para uso nas solicitações de obra."
       }
-      className="max-w-lg"
+      className="max-h-[90dvh] overflow-y-auto"
     >
       {isOpen && (
         <FormularioProdutoInterno

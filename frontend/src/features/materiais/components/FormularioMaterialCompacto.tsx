@@ -1,8 +1,10 @@
-import { useId, useLayoutEffect, useRef, type FormEvent } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, type FormEvent } from "react";
 import type { Material, StatusLogistico } from "@/shared/types/materiais";
 import type { Produto } from "@/shared/types/produtos";
 import { STATUS_LOGISTICO_OPCOES, obterMetaStatusLogistico } from "@/shared/constants/statusLogistico";
 import { formatarMoeda } from "@/shared/lib/formatters";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
+import { ComboboxPesquisavel, type OpcaoCombobox } from "@/shared/components/ui/ComboboxPesquisavel";
 import type {
   CampoValidacaoMaterial,
   FalhaValidacaoMaterial,
@@ -52,16 +54,36 @@ export function FormularioMaterialCompacto({
   onSubmeter,
   onCancelar,
 }: FormularioMaterialCompactoProps) {
-  const produtoRef = useRef<HTMLSelectElement>(null);
+  const produtoRef = useRef<HTMLInputElement>(null);
   const tipoRef = useRef<HTMLInputElement>(null);
   const quantidadeRef = useRef<HTMLInputElement>(null);
   const erroId = useId();
-  const usarSelecaoCatalogo = !itemEmEdicao && Boolean(onFormProdutoIdChange);
+  const usarSelecaoCatalogo = Boolean(onFormProdutoIdChange);
+
+  const produtoSelecionado = useMemo(
+    () => (formProdutoId ? produtosCatalogo.find((p) => p.id === formProdutoId) ?? null : null),
+    [formProdutoId, produtosCatalogo]
+  );
+
+  const opcoesCatalogo: OpcaoCombobox[] = useMemo(
+    () =>
+      produtosCatalogo.map((prod) => ({
+        valor: String(prod.id),
+        rotulo: prod.nome,
+        subtitulo: `${prod.tipo ? `${prod.tipo} · ` : ""}Unidade: ${prod.unidade}${
+          podeVerValores && typeof prod.precoUnitario === "number"
+            ? ` · ${formatarMoeda(prod.precoUnitario)}`
+            : ""
+        }`,
+        textoBusca: [prod.nome, prod.tipo, prod.unidade].filter(Boolean).join(" "),
+      })),
+    [podeVerValores, produtosCatalogo]
+  );
 
   useLayoutEffect(() => {
     if (!falha) return;
     if (falha.campo === "produtoId") produtoRef.current?.focus();
-    else if (falha.campo === "tipo") tipoRef.current?.focus();
+    else if (falha.campo === "tipo") (tipoRef.current ?? produtoRef.current)?.focus();
     else quantidadeRef.current?.focus();
   }, [falha]);
 
@@ -83,68 +105,66 @@ export function FormularioMaterialCompacto({
     <form
       noValidate
       onSubmit={handleFormSubmit}
-      className="bg-surface-subtle border border-border-subtle rounded-lg p-3 mb-3 flex flex-col gap-2.5 shadow-xs"
+      className="bg-surface-subtle border border-border-subtle rounded-lg p-3 mb-3 flex flex-col gap-2.5"
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-foreground">
-          {itemEmEdicao ? `Alterar Insumo #${itemEmEdicao.id}` : "Solicitar Insumo do Catálogo"}
+        <span className="text-xs font-semibold text-foreground">
+          {itemEmEdicao ? "Alterar Insumo" : "Adicionar do Catálogo de Produtos"}
         </span>
         <button
           type="button"
           onClick={onCancelar}
-          className="text-muted-foreground hover:text-foreground text-xs"
+          className="controle-compacto h-7 px-2 rounded text-muted-foreground hover:text-foreground hover:bg-muted text-xs cursor-pointer"
         >
           Cancelar
         </button>
       </div>
 
       {falha && (
-        <div
+        <AlertBanner
           id={erroId}
-          role="alert"
-          className="bg-destructive-light text-destructive border border-destructive-border px-2.5 py-1.5 rounded-md text-xs font-medium"
+          variante="destructive"
+          className="rounded-md px-2.5 py-1.5 font-medium"
         >
           {falha.mensagem}
-        </div>
+        </AlertBanner>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {usarSelecaoCatalogo ? (
-          <div className="sm:col-span-1.5 flex flex-col gap-1">
+          <div className="sm:col-span-2 flex flex-col gap-1">
             <label htmlFor="formProdutoSelect" className="text-[11px] font-semibold text-muted-foreground">
-              Produto do Catálogo *
+              Produto do catálogo *
             </label>
-            <select
+            <ComboboxPesquisavel
               id="formProdutoSelect"
-              ref={produtoRef}
-              required
-              disabled={carregandoCatalogo || salvando}
-              aria-invalid={falha?.campo === "produtoId" || undefined}
-              aria-describedby={falha?.campo === "produtoId" ? erroId : undefined}
-              value={formProdutoId ?? ""}
-              onChange={(e) => {
-                const valor = e.target.value ? Number(e.target.value) : null;
-                const prod = produtosCatalogo.find((p) => p.id === valor);
-                onFormProdutoIdChange?.(valor, prod);
+              inputRef={produtoRef}
+              compacto
+              listboxAriaLabel="Produtos do catálogo"
+              ariaInvalid={falha?.campo === "produtoId" || falha?.campo === "tipo" || undefined}
+              ariaDescribedBy={falha?.campo === "produtoId" || falha?.campo === "tipo" ? erroId : undefined}
+              opcoes={opcoesCatalogo}
+              valorSelecionado={formProdutoId ? String(formProdutoId) : ""}
+              textoInicial={formTipo}
+              desabilitado={carregandoCatalogo || salvando}
+              permitirTextoLivre={Boolean(itemEmEdicao && !itemEmEdicao.produtoId)}
+              placeholder={carregandoCatalogo ? "Carregando catálogo..." : "Digite nome ou tipo (ex: inversor, cabo, 550W)..."}
+              onSelecionar={(valor) => {
+                const idNum = valor ? Number(valor) : null;
+                const prod = idNum ? produtosCatalogo.find((p) => p.id === idNum) : undefined;
+                onFormProdutoIdChange?.(idNum, prod);
                 onLimparFalhaCampo("produtoId");
               }}
-              className="w-full text-xs px-2 py-1.5 rounded-md border border-border-subtle bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">
-                {carregandoCatalogo ? "Carregando catálogo..." : "Selecione um produto ativo..."}
-              </option>
-              {produtosCatalogo.map((prod) => (
-                <option key={prod.id} value={prod.id}>
-                  {prod.nome} ({prod.unidade})
-                  {podeVerValores && typeof prod.precoUnitario === "number"
-                    ? ` — ${formatarMoeda(prod.precoUnitario)}`
-                    : ""}
-                </option>
-              ))}
-            </select>
+              onTextoChange={(texto) => {
+                if (itemEmEdicao && !itemEmEdicao.produtoId) {
+                  onFormTipoChange(texto);
+                  onLimparFalhaCampo("tipo");
+                }
+              }}
+            />
           </div>
         ) : (
-          <div className="sm:col-span-1.5 flex flex-col gap-1">
+          <div className="sm:col-span-2 flex flex-col gap-1">
             <label htmlFor="formTipoInput" className="text-[11px] font-semibold text-muted-foreground">
               Nome / Tipo do Insumo *
             </label>
@@ -162,14 +182,14 @@ export function FormularioMaterialCompacto({
                 onLimparFalhaCampo("tipo");
               }}
               placeholder="Ex: Módulos Fotovoltaicos 550W"
-              className="w-full text-xs px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+              className="controle-compacto w-full h-8 text-xs px-2.5 rounded-md border border-border-strong bg-surface text-foreground disabled:opacity-60"
             />
           </div>
         )}
 
         <div className="flex flex-col gap-1">
           <label htmlFor="formQtdInput" className="text-[11px] font-semibold text-muted-foreground">
-            Quantidade *
+            Quantidade{produtoSelecionado ? ` (${produtoSelecionado.unidade})` : ""} *
           </label>
           <input
             id="formQtdInput"
@@ -185,12 +205,12 @@ export function FormularioMaterialCompacto({
               onFormQuantidadeChange(e.target.value);
               onLimparFalhaCampo("quantidade");
             }}
-            className="w-full text-xs px-2.5 py-1.5 rounded-md border border-border-subtle bg-surface font-mono text-right focus:outline-none focus:ring-1 focus:ring-primary"
+            className="controle-compacto w-full h-8 text-xs px-2.5 rounded-md border border-border-strong bg-surface font-mono tabular-nums text-right text-foreground"
           />
         </div>
 
-        {itemEmEdicao && podeAlterarStatus ? (
-          <div className="flex flex-col gap-1">
+        {itemEmEdicao && podeAlterarStatus && (
+          <div className="sm:col-span-3 flex flex-col gap-1">
             <label htmlFor="formStatusSelect" className="text-[11px] font-semibold text-muted-foreground">
               Status Logístico
             </label>
@@ -198,7 +218,7 @@ export function FormularioMaterialCompacto({
               id="formStatusSelect"
               value={formStatus}
               onChange={(e) => onFormStatusChange(e.target.value as StatusLogistico)}
-              className="w-full text-xs px-2 py-1.5 rounded-md border border-border-subtle bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
+              className="controle-compacto w-full h-8 text-xs px-2 rounded-md border border-border-strong bg-surface text-foreground"
             >
               {STATUS_LOGISTICO_OPCOES.map((opcao) => (
                 <option key={opcao.valor} value={opcao.valor}>
@@ -207,20 +227,19 @@ export function FormularioMaterialCompacto({
               ))}
             </select>
           </div>
-        ) : (
-          <p className="text-xs text-muted-foreground self-center">
-            Status: {itemEmEdicao ? obterMetaStatusLogistico(formStatus).rotulo : "Em Solicitação"}
-          </p>
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-2 pt-1">
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <span className="text-xs text-muted-foreground">
+          {itemEmEdicao ? `Status atual: ${obterMetaStatusLogistico(formStatus).rotulo}` : "Status inicial: Em Solicitação"}
+        </span>
         <button
           type="submit"
           disabled={salvando || (usarSelecaoCatalogo && carregandoCatalogo)}
-          className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-50 transition-colors cursor-pointer"
+          className="controle-compacto h-8 text-xs font-semibold px-3.5 rounded-md bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-50 transition-colors cursor-pointer shrink-0"
         >
-          {salvando ? "Salvando..." : itemEmEdicao ? "Salvar Alterações" : "Cadastrar Insumo"}
+          {salvando ? "Salvando..." : itemEmEdicao ? "Salvar alterações" : "Cadastrar insumo"}
         </button>
       </div>
     </form>

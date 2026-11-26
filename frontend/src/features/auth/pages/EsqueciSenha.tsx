@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Mail } from "lucide-react";
 import { PaginaAcesso } from "../components/PaginaAcesso";
+import { AlertBanner } from "@/shared/components/ui/AlertBanner";
 import { Button } from "@/shared/components/ui/Button";
 import { useOperacaoSenha, useGeracaoSenha } from "../hooks/useOperacaoSenha";
 import { solicitarRecuperacaoSenha } from "../services/senhas";
@@ -46,17 +47,13 @@ function Solicitacao() {
     <PaginaAcesso titulo="Recuperar senha" subtitulo="Enviaremos um link de redefinição para seu e-mail.">
       {enviado ? (
         <div className="space-y-4">
-          <div role="status" className="rounded-lg border border-success-border bg-success-light px-3.5 py-3 text-xs text-foreground-secondary leading-relaxed space-y-1.5">
-            <span className="flex items-center gap-2 text-success font-semibold text-sm">
-              <Mail className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span>Instruções enviadas</span>
-            </span>
-            <span className="block">{mensagem}</span>
-          </div>
+          <AlertBanner variante="success" icone={<Mail className="w-4 h-4" />} titulo="Instruções enviadas">
+            <span className="text-foreground-secondary">{mensagem}</span>
+          </AlertBanner>
           {erro && (
-            <p role="alert" className="rounded-lg bg-destructive-light border border-destructive-border px-3.5 py-3 text-xs leading-relaxed text-destructive">
+            <AlertBanner variante="destructive">
               {erro}
-            </p>
+            </AlertBanner>
           )}
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -107,9 +104,9 @@ function Solicitacao() {
             />
           </div>
           {erro && (
-            <p role="alert" className="rounded-lg bg-destructive-light border border-destructive-border px-3.5 py-3 text-xs leading-relaxed text-destructive">
+            <AlertBanner variante="destructive">
               {erro}
-            </p>
+            </AlertBanner>
           )}
           <Button type="submit" className="h-11 w-full" disabled={operacao.pendente || segundos > 0}>
             {operacao.pendente ? "Enviando..." : "Enviar instruções"}

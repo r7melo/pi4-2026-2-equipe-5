@@ -1,12 +1,16 @@
 import { contextoDemonstracao, executarEfeitoDemonstracao } from "@/shared/lib/contextoDemonstracao";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import type { PeriodoCompartilhado } from "@/shared/types/compartilhamentoCronograma";
 import type { GanttCompartilharModalProps } from "../types/compartilhamento";
 import { Modal } from "@/shared/components/ui/Modal";
 import { Button } from "@/shared/components/ui/Button";
-import { Input } from "@/shared/components/ui/Input";
+import { DateInputBR } from "@/shared/components/ui/DateInputBR";
+import {
+  dataBRParaIso,
+  isoParaDataBR,
+} from "@/shared/lib/datasBrasileiras";
 import { periodoCivilValido } from "@/shared/lib/datasCivis";
 import { formatarDataBR } from "@/shared/lib/formatters";
 import { useCompartilharCronograma } from "@/features/cronograma/hooks/useCompartilharCronograma";
@@ -22,6 +26,8 @@ export function GanttCompartilharModal(props: GanttCompartilharModalProps) {
 function FormularioCompartilhamento({ onClose, podeInteragir = interacaoBloqueada }: GanttCompartilharModalProps) {
   const id = useId();
   const [periodo, setPeriodo] = useState<PeriodoCompartilhado>(periodoMesAtual);
+  const [textoInicio, setTextoInicio] = useState(() => isoParaDataBR(periodo.dataInicio));
+  const [textoFim, setTextoFim] = useState(() => isoParaDataBR(periodo.dataFim));
   const [validacao, setValidacao] = useState("");
   const [copiado, setCopiado] = useState(false);
   const [avisoManual, setAvisoManual] = useState("");
@@ -63,15 +69,19 @@ function FormularioCompartilhamento({ onClose, podeInteragir = interacaoBloquead
   }
   function gerar() {
     if (!geracao.podeAgir() || geracao.estaEnviando()) return;
-    if (!periodoCivilValido(periodo.dataInicio, periodo.dataFim)) {
-      setValidacao("Informe início e fim válidos, com o fim igual ou posterior ao início.");
+    const isoInicio = dataBRParaIso(textoInicio);
+    const isoFim = dataBRParaIso(textoFim);
+    if (!isoInicio || !isoFim || !periodoCivilValido(isoInicio, isoFim)) {
+      setValidacao("Informe início e fim válidos em dd/mm/aaaa, com o fim igual ou posterior ao início.");
       return;
     }
+    const periodoValido: PeriodoCompartilhado = { dataInicio: isoInicio, dataFim: isoFim };
+    setPeriodo(periodoValido);
     setValidacao("");
     setCopiado(false);
     setAvisoManual("");
     linkAtual.current = undefined;
-    geracao.gerar({ ...periodo });
+    geracao.gerar(periodoValido);
   }
   function podeUsarLink() {
     return geracao.podeAgir() && !geracao.estaEnviando() && resultado && resultado === linkAtual.current &&
@@ -101,55 +111,140 @@ function FormularioCompartilhamento({ onClose, podeInteragir = interacaoBloquead
   }
 
   return (
-    <Modal isOpen onClose={fechar} titulo="Compartilhar cronograma"
-      subtitulo="Consulta pública por período" ariaLabelledBy={id + "-titulo"}
+    <Modal
+      isOpen
+      onClose={fechar}
+      titulo="Compartilhar cronograma"
+      subtitulo="Qualquer pessoa com o link consulta o período escolhido sem fazer login."
+      ariaLabelledBy={id + "-titulo"}
       fecharBloqueado={pendente}
-      className="flex max-h-[calc(100dvh-2rem)] max-w-lg flex-col [&>div:first-child]:shrink-0">
-      <form noValidate onSubmit={evento => { evento.preventDefault(); gerar(); }}
-        className="flex min-h-0 flex-col gap-4 overflow-y-auto p-4 sm:p-6">
-        <p className="text-sm text-muted-foreground">O link compartilha as alocações de todas as equipes no período escolhido.</p>
-        <p className="text-sm text-muted-foreground">Qualquer pessoa com o link poderá consultar este período, sem fazer login.</p>
+      className="flex max-h-[calc(100dvh-2rem)] max-w-md flex-col [&>div:first-child]:shrink-0"
+    >
+      <form
+        noValidate
+        onSubmit={evento => { evento.preventDefault(); gerar(); }}
+        className="flex min-h-0 flex-col gap-4 overflow-y-auto p-5 text-xs"
+      >
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-          <Input id={id + "-inicio"} label="Data inicial" type="date" required data-autofocus
-            value={periodo.dataInicio} disabled={pendente} className="focus:ring-info"
-            onChange={evento => editar("dataInicio", evento.target.value)}
-            aria-describedby={validacao ? id + "-erro" : undefined} />
-          <Input id={id + "-fim"} label="Data final" type="date" required
-            value={periodo.dataFim} disabled={pendente} className="focus:ring-info"
-            onChange={evento => editar("dataFim", evento.target.value)}
-            aria-describedby={validacao ? id + "-erro" : undefined} />
+          <div className="space-y-1">
+            <label htmlFor={id + "-inicio"} className="block font-semibold text-foreground-secondary">
+              Data inicial *
+            </label>
+            <DateInputBR
+              id={id + "-inicio"}
+              tamanho="md"
+              required
+              data-autofocus
+              valor={textoInicio}
+              disabled={pendente}
+              onChange={mascarado => {
+                setTextoInicio(mascarado);
+                const iso = mascarado.length === 10 ? dataBRParaIso(mascarado) : undefined;
+                editar("dataInicio", iso ?? "");
+              }}
+              aria-describedby={validacao ? id + "-erro" : undefined}
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor={id + "-fim"} className="block font-semibold text-foreground-secondary">
+              Data final *
+            </label>
+            <DateInputBR
+              id={id + "-fim"}
+              tamanho="md"
+              required
+              valor={textoFim}
+              disabled={pendente}
+              onChange={mascarado => {
+                setTextoFim(mascarado);
+                const iso = mascarado.length === 10 ? dataBRParaIso(mascarado) : undefined;
+                editar("dataFim", iso ?? "");
+              }}
+              aria-describedby={validacao ? id + "-erro" : undefined}
+            />
+          </div>
         </div>
-        {validacao && <p id={id + "-erro"} role="alert" className="text-sm text-destructive">{validacao}</p>}
-        <p role="status" aria-live="polite" className="text-sm text-muted-foreground">
-          {pendente ? "Gerando link..." : resultado ? (expirado ? "Este link expirou. Gere um novo link." : "Link disponível para copiar.") : "Escolha o período e gere o link."}
-        </p>
-        {resultado && !pendente && (
-          <div className="flex min-w-0 flex-col gap-3">
-            <p className="text-sm text-foreground-secondary">Período: {formatarDataBR(periodo.dataInicio)} a {formatarDataBR(periodo.dataFim)}</p>
-            <Input ref={campoLink} id={id + "-link"} label="Link público" readOnly
-              value={resultado.url} className="min-w-0 select-all font-mono focus:ring-info" />
-            <p className="text-sm text-muted-foreground">Válido até {new Intl.DateTimeFormat("pt-BR", {
-              dateStyle: "short", timeStyle: "short",
-            }).format(new Date(resultado.expiraEm))} ({new Intl.DateTimeFormat().resolvedOptions().timeZone})</p>
-            {!expirado && (
-              <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={() => { void copiar(); }} variant="outline" className="focus-visible:ring-info">
-                  {copiado ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
-                  {copiado ? "Copiado" : "Copiar link"}
-                </Button>
-                <a href={resultado.url} target="_blank" rel="noopener noreferrer"
-                  onClick={evento => { if (!podeUsarLink()) evento.preventDefault(); }}
-                  className="inline-flex items-center gap-2 rounded text-sm text-info underline focus-visible:outline-2 focus-visible:outline-info">
-                  <ExternalLink aria-hidden="true" className="size-4" />Abrir cronograma
-                </a>
-              </div>
+
+        {validacao && <p id={id + "-erro"} role="alert" className="text-xs font-medium text-destructive">{validacao}</p>}
+
+        <div className="flex items-center justify-between gap-2 py-2.5 border-y border-border-subtle">
+          <div role="status" aria-live="polite" className="min-w-0 text-muted-foreground tabular-nums">
+            {pendente ? (
+              <span>Gerando link público...</span>
+            ) : resultado ? (
+              expirado ? (
+                <span className="text-warning font-medium">Este link expirou. Gere um novo link.</span>
+              ) : (
+                <span>
+                  Período: {formatarDataBR(periodo.dataInicio)} a {formatarDataBR(periodo.dataFim)} · Válido até{" "}
+                  {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(resultado.expiraEm))}
+                </span>
+              )
+            ) : (
+              <span>Escolha o período e gere o link.</span>
             )}
-            {avisoManual && <p role="status" className="text-sm text-muted-foreground">{avisoManual}</p>}
+          </div>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={pendente}
+            className="h-8 rounded-md font-semibold shadow-none shrink-0"
+          >
+            {pendente ? "Gerando..." : resultado ? "Gerar novo link" : "Gerar link"}
+          </Button>
+        </div>
+
+        {resultado && !pendente && !expirado && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <input
+                ref={campoLink}
+                id={id + "-link"}
+                aria-label="Link público"
+                type="text"
+                readOnly
+                value={resultado.url}
+                className="flex-1 min-w-0 h-9 rounded-lg border border-border-subtle bg-surface-subtle px-2.5 font-mono text-[11px] text-foreground-muted select-all"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => { void copiar(); }}
+                className="h-9 text-foreground hover:bg-surface-subtle font-semibold shadow-none shrink-0"
+              >
+                {copiado ? <Check aria-hidden="true" className="w-3.5 h-3.5 text-success" /> : <Copy aria-hidden="true" className="w-3.5 h-3.5" />}
+                <span>{copiado ? "Copiado" : "Copiar"}</span>
+              </Button>
+            </div>
+            {avisoManual && <p role="status" className="text-[11px] text-muted-foreground">{avisoManual}</p>}
           </div>
         )}
-        <div className="flex flex-wrap justify-end gap-3 border-t border-border-subtle pt-4">
-          <Button onClick={fechar} disabled={pendente} variant="secondary" className="focus-visible:ring-info">Fechar</Button>
-          <Button type="submit" disabled={pendente} className="focus-visible:ring-info">{pendente ? "Gerando..." : resultado ? "Gerar novo link" : "Gerar link"}</Button>
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          {resultado && !pendente && !expirado ? (
+            <a
+              href={resultado.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={evento => { if (!podeUsarLink()) evento.preventDefault(); }}
+              className="text-xs font-semibold text-info hover:underline"
+            >
+              Abrir visão pública agora →
+            </a>
+          ) : (
+            <span />
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={fechar}
+            disabled={pendente}
+            className="h-8 border-border-subtle hover:bg-muted text-foreground shadow-none"
+          >
+            Fechar
+          </Button>
         </div>
       </form>
     </Modal>

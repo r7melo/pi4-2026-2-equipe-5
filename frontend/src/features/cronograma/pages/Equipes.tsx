@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
+import { Plus, Share2 } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { PageHeader } from '@/shared/components/ui/PageHeader';
+import { SegmentedControl } from '@/shared/components/ui/SegmentedControl';
 import FeedbackLoading from '@/shared/components/feedback/FeedbackLoading';
 import FeedbackErro from '@/shared/components/feedback/FeedbackErro';
 import { EmptyState } from '@/shared/components/feedback/EmptyState';
@@ -23,7 +25,6 @@ import { criarArmazenamentoEstadoVisual } from '../lib/estadoVisualGantt';
 import { GanttDhtmlxWrapper } from '../components/GanttDhtmlxWrapper';
 import { GanttToolbar } from '../components/GanttToolbar';
 import { GanttFilterDrawer } from '../components/GanttFilterDrawer';
-import { GanttFiltroPeriodo } from '../components/GanttFiltroPeriodo';
 import { GanttCompartilharModal } from '../components/GanttCompartilharModal';
 import { ProgramarObraModal } from '../components/ProgramarObraModal';
 import { ProgramacaoDrawer } from '../components/ProgramacaoDrawer';
@@ -55,6 +56,40 @@ export default function Equipes({ obras, carregandoObras = false, mapaHomologaco
   const [aviso, setAviso] = useState('');
   const [dataFoco, setDataFoco] = useState<Date | null>(null);
   const [mostrarGrade, setMostrarGrade] = useState(() => window.innerWidth >= 768);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true
+  );
+  const buscaInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(min-width: 768px)');
+    const sync = () => setIsDesktop(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey || modo.ativo || visao !== 'gantt') return;
+      const alvo = e.target as HTMLElement | null;
+      if (
+        alvo &&
+        (alvo.tagName === 'INPUT' ||
+          alvo.tagName === 'TEXTAREA' ||
+          alvo.tagName === 'SELECT' ||
+          alvo.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      buscaInputRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [modo.ativo, visao]);
+
   const zoom = useGanttStore(s => s.nivelZoom);
   const setZoom = useGanttStore(s => s.setNivelZoom);
   const salvarFiltros = useGanttStore(s => s.salvarFiltros);
@@ -81,30 +116,113 @@ export default function Equipes({ obras, carregandoObras = false, mapaHomologaco
     try { const resposta = await reagendamento.mutateAsync({ id, novaDataInicio: inicio }); return sessaoOperacionalVigente(origem) && resposta ? true : null; }
     catch { return sessaoOperacionalVigente(origem) ? false : null; }
   };
-  return <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden" style={modo.ativo ? { paddingBottom: modo.alturaSelo } : undefined}>
-    <PageHeader title="Cronograma de Equipes" subtitle="Programações, equipes temporais e ocupação" ocultarMenuLateral={modo.ativo}>
-      {consulta.data?.length ? <GanttToolbar nivelAtual={zoom} onMudarNivel={setZoom} onHoje={() => setDataFoco(new Date())} mostrarGrade={mostrarGrade} onToggleGrade={() => setMostrarGrade(v => !v)}
-        onAbrirCompartilhar={canEdit ? () => overlays.setModalCompartilharAberto(true) : undefined}
-        onAbrirFiltros={() => overlays.setDrawerFiltrosAberto(true)} totalFiltrosAtivos={filtros.totalFiltrosAtivos} modoAtivo={modo.ativo} /> : null}
-      {podeVerModo(perfil) && modo.elegivelParaModo && <BotaoModoDisplay />}
+  const alternadorVisao = (compactoMobile = false) => (
+    <SegmentedControl
+      opcoes={[
+        { valor: 'gantt', rotulo: compactoMobile ? 'Gantt' : 'Programações' },
+        { valor: 'ocupacao', rotulo: 'Ocupação' },
+      ]}
+      valor={visao}
+      onChange={setVisao}
+      ariaLabel="Visualização do cronograma"
+      tamanho="xs"
+    />
+  );
+
+  return <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
+    <PageHeader
+      title="Cronograma de Equipes"
+      ocultarMenuLateral={modo.ativo}
+      badge={!modo.ativo && isDesktop ? alternadorVisao(false) : undefined}
+      extraRow={
+        !modo.ativo && !isDesktop ? (
+          <div className="w-full flex items-center gap-1.5 pt-1.5 border-t border-border-subtle/60">
+            {alternadorVisao(true)}
+            {visao === 'gantt' && (
+              <SearchInput
+                ref={buscaInputRef}
+                tamanho="xs"
+                className="flex-1 min-w-0"
+                valor={filtros.filtros.termoBusca ?? ''}
+                onChange={termo => filtros.atualizarFiltros(f => ({ ...f, termoBusca: termo }))}
+                placeholder="Buscar obra ou instalador..."
+                ariaLabel="Buscar obra ou instalador"
+              />
+            )}
+          </div>
+        ) : undefined
+      }
+    >
+      {!modo.ativo && isDesktop && visao === 'gantt' && (
+        <SearchInput
+          ref={buscaInputRef}
+          tamanho="xs"
+          className="w-48"
+          valor={filtros.filtros.termoBusca ?? ''}
+          onChange={termo => filtros.atualizarFiltros(f => ({ ...f, termoBusca: termo }))}
+          placeholder="Buscar obra ou instalador (/)"
+          ariaLabel="Buscar obra ou instalador"
+        />
+      )}
+      {podeVerModo(perfil) && modo.elegivelParaModo && <BotaoModoDisplay compacto />}
+      {!modo.ativo && canEdit && Boolean(consulta.data?.length) && (
+        <button
+          type="button"
+          onClick={() => overlays.setModalCompartilharAberto(true)}
+          aria-label="Compartilhar cronograma"
+          title="Compartilhar cronograma"
+          className="controle-compacto w-7 h-7 inline-flex items-center justify-center rounded-md border border-border-strong bg-surface hover:bg-surface-subtle text-foreground-muted cursor-pointer shrink-0 transition-colors"
+        >
+          <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
+        </button>
+      )}
+      {!modo.ativo && canEdit && (
+        <button
+          type="button"
+          disabled={mutacaoEmVoo}
+          onClick={() => { if (podeEditar()) overlays.setModalNovaAlocacaoAberto(true); }}
+          className="controle-compacto h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-medium cursor-pointer shrink-0 whitespace-nowrap disabled:opacity-50 transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>Programar obra</span>
+        </button>
+      )}
     </PageHeader>
     {!modo.ativo && temporalIncerta && <div role="alert" className="px-3 py-2 bg-warning-light text-warning text-sm">
       Uma alteração pode ter sido processada. Consulte o cronograma para liberar novas escritas.
       <button type="button" className="min-h-12 px-3 underline" onClick={() => { const origem = sessao; void confirmarConsultaTemporal(cliente, origem).then(() => setErroRecuperacao('')).catch(f => { if (sessaoOperacionalVigente(origem)) setErroRecuperacao(mensagemEquipe(f)); }); }}>Consultar cronograma novamente</button>
       {erroRecuperacao && <p>{erroRecuperacao}</p>}
     </div>}
-    {!modo.ativo && <div className="cronograma-commandbar">
-      <div className="cronograma-visoes" role="group" aria-label="Visualização do cronograma">
-        <button type="button" aria-pressed={visao === 'gantt'} onClick={() => setVisao('gantt')}>Programações</button>
-        <button type="button" aria-pressed={visao === 'ocupacao'} onClick={() => setVisao('ocupacao')}>Ocupação dos instaladores</button>
-      </div>
-      {visao === 'gantt' && <>
-        <SearchInput tamanho="sm" className="cronograma-busca" valor={filtros.filtros.termoBusca ?? ''} onChange={termo => filtros.atualizarFiltros(f => ({ ...f, termoBusca: termo }))} placeholder="Buscar obra ou instalador..." />
-        <GanttFiltroPeriodo variante="kpi" dataInicial={filtros.filtros.dataInicioDe ?? ''} onDataInicialChange={v => filtros.atualizarFiltros(f => ({ ...f, dataInicioDe: v || undefined }))}
-          dataFinal={filtros.filtros.dataFimAte ?? ''} onDataFinalChange={v => filtros.atualizarFiltros(f => ({ ...f, dataFimAte: v || undefined }))} />
-      </>}
-      {canEdit && <button type="button" disabled={mutacaoEmVoo} className="cronograma-button cronograma-button-primary cronograma-nova" onClick={() => { if (podeEditar()) overlays.setModalNovaAlocacaoAberto(true); }}><span aria-hidden="true">＋</span> Programar obra</button>}
-    </div>}
+    {visao === 'gantt' && Boolean(consulta.data?.length) && (
+      <GanttToolbar
+        variante="subbar"
+        nivelAtual={zoom}
+        onMudarNivel={setZoom}
+        onHoje={() => setDataFoco(new Date())}
+        mostrarGrade={mostrarGrade}
+        onToggleGrade={() => setMostrarGrade(v => !v)}
+        dataFiltroInicio={filtros.filtros.dataInicioDe ?? ''}
+        onDataInicioChange={
+          isDesktop
+            ? v => filtros.atualizarFiltros(f => ({ ...f, dataInicioDe: v || undefined }))
+            : undefined
+        }
+        dataFiltroFim={filtros.filtros.dataFimAte ?? ''}
+        onDataFimChange={
+          isDesktop
+            ? v => filtros.atualizarFiltros(f => ({ ...f, dataFimAte: v || undefined }))
+            : undefined
+        }
+        onLimparDatas={
+          isDesktop
+            ? () => filtros.atualizarFiltros(f => ({ ...f, dataInicioDe: undefined, dataFimAte: undefined }))
+            : undefined
+        }
+        onAbrirFiltros={() => overlays.setDrawerFiltrosAberto(true)}
+        totalFiltrosAtivos={filtros.totalFiltrosAtivos}
+        modoAtivo={modo.ativo}
+      />
+    )}
     {!modo.ativo && visao === 'ocupacao' ? <OcupacaoInstaladores key={sessao} /> : <>
       {(aviso || reagendamento.aviso) && <div role="alert" className="px-3 py-2 text-warning bg-warning-light text-sm">{aviso || reagendamento.aviso}{reagendamento.aviso && <button type="button" className="min-h-12 px-3 underline" onClick={() => void reagendamento.recuperar()}>Consultar novamente</button>}</div>}
       {consulta.isLoading || carregandoObras ? <FeedbackLoading mensagem="Carregando cronograma..." /> : consulta.isError ? <FeedbackErro mensagem={consulta.error.message} onTentarNovamente={() => void consulta.refetch()} /> : !consulta.data?.length ? <EmptyState titulo="Nenhuma programação encontrada" descricao="Programe uma obra apta para iniciar o cronograma." /> :
