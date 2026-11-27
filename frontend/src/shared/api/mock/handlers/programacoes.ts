@@ -1,5 +1,6 @@
 import type MockAdapter from "axios-mock-adapter";
 import { obterEquipesArmazenadas } from "../dados/equipes";
+import { obterObrasArmazenadas } from "../dados/obras";
 import {
   obterProgramacoesArmazenadas,
   atualizarProgramacaoDataArmazenada,
@@ -22,8 +23,29 @@ export function registrarConsultasCronograma(mock: MockAdapter): void {
     if (!u) return erroUsuarioMock(401, "UNAUTHORIZED", "Sessão ausente ou expirada.");
     const q = extrairQueryParams(config);
     const instaladorId = u.perfil.nomePerfil === "InstaladorCampo" ? u.id : q.instaladorId ? Number(q.instaladorId) : undefined;
-    return [200, obterProgramacoesArmazenadas().filter(p => (!q.dataInicio || p.dataFim >= q.dataInicio) && (!q.dataFim || p.dataInicio <= q.dataFim) && (!instaladorId || p.equipe?.integrantes.some(i => i.usuarioId === instaladorId)))
-      .map(({ equipeId: _legado, ...p }) => p)];
+    const obrasAtivas = new Set(obterObrasArmazenadas().map(o => Number(o.id)));
+    const filtradas = obterProgramacoesArmazenadas()
+      .filter(p =>
+        obrasAtivas.has(Number(p.obraId)) &&
+        (!q.dataInicio || p.dataFim >= q.dataInicio) &&
+        (!q.dataFim || p.dataInicio <= q.dataFim) &&
+        (!instaladorId || p.equipe?.integrantes.some(i => i.usuarioId === instaladorId)),
+      )
+      .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio) || a.prioridade - b.prioridade || a.id - b.id);
+
+    const saida = [];
+    for (const p of filtradas) {
+      const { equipeId: _legado, equipe, ...resto } = p;
+      const equipeOrdenada = equipe
+        ? Object.assign({}, equipe, {
+            integrantes: [...equipe.integrantes].sort(
+              (a, b) => a.dataEntrada.localeCompare(b.dataEntrada) || a.nome.localeCompare(b.nome) || a.usuarioId - b.usuarioId,
+            ),
+          })
+        : undefined;
+      saida.push(equipeOrdenada ? Object.assign({}, resto, { equipe: equipeOrdenada }) : resto);
+    }
+    return [200, saida];
   });
 
   // PUT /programacoes/:id/reordenar (Contrato Canônico Rota #30)

@@ -2,10 +2,10 @@ import { useCallback, useId, useMemo, useState } from 'react';
 import { CalendarDays, Pencil, Trash2, Users } from 'lucide-react';
 import type { Programacao } from '@/shared/types/programacoes';
 import type { IntegranteTemporal, AlteracaoEquipeTemporal } from '@/shared/types/equipeTemporal';
-import { resumirEquipe } from '@/shared/lib/equipeTemporal';
-import { diasUteisCivis } from '@/shared/lib/datasCivis';
+import { resumirEquipe, diasComFaltaCobertura } from '@/shared/lib/equipeTemporal';
+import { diasUteisCivis, hojeCivilSaoPaulo } from '@/shared/lib/datasCivis';
 import { dataBRParaIso, isoParaDataBR } from '@/shared/lib/datasBrasileiras';
-import { formatarDataISO, formatarDataBR } from '@/shared/lib/formatters';
+import { formatarDataBR } from '@/shared/lib/formatters';
 import { capturarSessaoOperacional, sessaoOperacionalVigente } from '@/shared/lib/sessaoOperacao';
 import { useAuthStore } from '@/shared/stores/useAuthStore';
 import { cn } from '@/shared/lib/utils';
@@ -43,7 +43,7 @@ export function PainelEquipeTemporal({
   const [remocao, setRemocao] = useState<IntegranteTemporal | null>(null);
   const [saidaRemocaoTexto, setSaidaRemocaoTexto] = useState('');
   const [erro, setErro] = useState('');
-  const [hoje, setHoje] = useState(() => formatarDataISO(new Date()));
+  const [hoje, setHoje] = useState(() => hojeCivilSaoPaulo());
   const [sucesso, setSucesso] = useState('');
 
   const verificarPermissao = useCallback(() => {
@@ -108,8 +108,9 @@ export function PainelEquipeTemporal({
 
   if (!equipe) return <FeedbackErro mensagem="Equipe temporal não informada pelo servidor." />;
   const resumo = resumirEquipe(equipe, p.dataInicio, p.dataFim);
+  const diasFaltantes = diasComFaltaCobertura(equipe, p.dataInicio, p.dataFim);
   const vinculoIniciado = remocao ? hoje >= remocao.dataEntrada : false;
-  const equipeCompleta = resumo.vinculadas >= equipe.pessoasPrevistas;
+  const equipeCompleta = resumo.faltantes === 0 && resumo.minima >= equipe.pessoasPrevistas;
 
   async function salvar(alteracao: AlteracaoEquipeTemporal) {
     const sessao = capturarSessaoOperacional();
@@ -147,14 +148,49 @@ export function PainelEquipeTemporal({
       {resumo.esforcoUtil !== equipe.pessoaDia && ` (servidor informou ${equipe.pessoaDia})`}
     </p>
 
+    {diasFaltantes.length > 0 && (
+      <div
+        className="rounded-lg border border-warning-border bg-warning-light/60 px-2.5 py-2 space-y-1.5"
+        title={diasFaltantes.map(d => `${formatarDataBR(d.data)} (-${d.faltantes})`).join(' · ')}
+      >
+        <p className="text-[11px] font-medium text-warning">
+          Dias úteis sem cobertura completa ({diasFaltantes.length})
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {diasFaltantes.slice(0, 8).map(d => (
+            <span
+              key={d.data}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium tabular-nums bg-surface border border-warning-border text-warning"
+            >
+              {formatarDataBR(d.data).slice(0, 5)} (-{d.faltantes})
+            </span>
+          ))}
+          {diasFaltantes.length > 8 && (
+            <span className="inline-flex items-center px-1.5 py-0.5 text-[11px] font-medium text-warning tabular-nums">
+              +{diasFaltantes.length - 8} dias
+            </span>
+          )}
+        </div>
+      </div>
+    )}
+
     {equipe.integrantes.length === 0 ? <EmptyState titulo="Equipe sem integrantes" descricao="Complete a equipe quando os instaladores estiverem disponíveis." /> :
       <ul className="rounded-lg bg-surface-subtle border border-border-subtle divide-y divide-border-subtle">
-        {equipe.integrantes.map(i => (
-          <li key={i.usuarioId} className="px-3 py-2.5 flex items-center justify-between gap-3">
+        {equipe.integrantes.map(i => {
+          const encerrada = i.dataSaida < hoje;
+          return (
+          <li key={i.usuarioId} className={cn('px-3 py-2.5 flex items-center justify-between gap-3', encerrada && 'opacity-75')}>
             <div className="flex items-center gap-2.5 min-w-0">
               <AvatarIniciais nome={i.nome} fallback="?" letras={1} size="sm" tone="surface" />
               <div className="min-w-0">
-                <p className="text-xs font-medium text-foreground truncate">{i.nome}</p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{i.nome}</p>
+                  {encerrada && (
+                    <Badge variante="neutral" tamanho="xs" comBorda className="shrink-0">
+                      Encerrada
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-[11px] text-muted-foreground tabular-nums flex items-center gap-1">
                   <CalendarDays className="w-3 h-3 shrink-0" aria-hidden="true" />
                   <span>{formatarDataBR(i.dataEntrada)} a {formatarDataBR(i.dataSaida)}</span>
@@ -184,7 +220,7 @@ export function PainelEquipeTemporal({
                   disabled={mutacao.isPending || mutacao.incerta}
                   onClick={() => {
                     if (!verificarPermissao()) return;
-                    setHoje(formatarDataISO(new Date()));
+                    setHoje(hojeCivilSaoPaulo());
                     setRemocao(i);
                     setSaidaRemocaoTexto('');
                     setErro('');
@@ -197,7 +233,8 @@ export function PainelEquipeTemporal({
               </div>
             )}
           </li>
-        ))}
+          );
+        })}
       </ul>}
 
     {canEdit && <>

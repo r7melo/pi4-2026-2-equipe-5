@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validarProgramacoes } from '@/shared/lib/validarProgramacoes';
-import { resumirEquipe, cadeiaTemporal, temVinculosParciais } from '@/shared/lib/equipeTemporal';
+import { resumirEquipe, diasComFaltaCobertura, cadeiaTemporal, temVinculosParciais } from '@/shared/lib/equipeTemporal';
 import { projetarReordenacao } from '@/shared/lib/reordenarProgramacoes';
 import { transformarTarefasGantt } from '@/features/cronograma/lib/transformarTarefasGantt';
 import type { Programacao } from '@/shared/types/programacoes';
@@ -41,6 +41,18 @@ describe('Equipes temporais — contrato e cobertura', () => {
     const p=programacao(1,[]);
     expect(resumirEquipe(p.equipe!,p.dataInicio,p.dataFim)).toEqual({vinculadas:0,minima:0,faltantes:2,esforcoUtil:0});
     expect(transformarTarefasGantt({programacoesVisiveis:[p],obras:[],equipes:undefined})).toHaveLength(1);
+  });
+  it('lista exatamente os dias úteis descobertos em diasComFaltaCobertura', () => {
+    const p = programacao(1, [1, 2], '2026-11-23', '2026-11-27');
+    p.equipe!.integrantes[0].dataSaida = '2026-11-24';
+    p.equipe!.integrantes[1].dataEntrada = '2026-11-26';
+    expect(diasComFaltaCobertura(p.equipe!, p.dataInicio, p.dataFim)).toEqual([
+      { data: '2026-11-23', faltantes: 1 },
+      { data: '2026-11-24', faltantes: 1 },
+      { data: '2026-11-25', faltantes: 2 },
+      { data: '2026-11-26', faltantes: 1 },
+      { data: '2026-11-27', faltantes: 1 },
+    ]);
   });
 });
 describe('Propagação por pessoas e revisão', () => {

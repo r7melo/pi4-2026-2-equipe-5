@@ -20,7 +20,7 @@ const payloadSchema = z.object({
   clienteId: z.number().int().positive().optional(),
   cliente: z.object({ nome: z.string().min(3), cidade: z.string().optional(), endereco: z.string().optional(), cpfCnpj: z.string().optional(), telefone: z.string().optional(), email: z.string().optional() }).optional(),
   categoria: z.enum(["Residencial", "Comercial"]), quantidadePaineis: z.number().int().positive(), quantidadeInversores: z.number().int().nonnegative(),
-  endereco: z.string().optional(), dataInicioEstimada: z.string(), dataFimEstimada: z.string(),
+  endereco: z.string().optional(), dataInicioEstimada: z.string(), dataFimEstimada: z.string(), descricao: z.string().optional(),
   pagamento: z.object({ prazoContratualDias: z.number().int().positive(), dataConfirmacao: z.string().optional() }),
 });
 export function cadastrarObraCenario(valor: unknown, usuario: { id: number; nome: string }): ObraDetalhe {
@@ -38,8 +38,9 @@ export function cadastrarObraCenario(valor: unknown, usuario: { id: number; nome
   const obras = obterObrasArmazenadas();
   const excluidas = lerDadosCenario<Record<number, unknown>>("mock_excluidas_v1");
   const id = Math.max(300, ...obras.map(o => o.id), ...Object.keys(excluidas).map(Number)) + 1;
-  const detalhe: ObraDetalhe = { id, status: "MaterialComprado", ...dados, cliente: { id: cliente.id, nome: cliente.nome, cidade: cliente.cidade }, pagamento: { id, ...dados.pagamento }, dataInicioReal: null, dataFimReal: null };
-  const card: ObraCard = { id, status: detalhe.status, clienteNome: cliente.nome, cidade: cliente.cidade, categoria: dados.categoria, quantidadePaineis: dados.quantidadePaineis, dataFimEstimada: dados.dataFimEstimada, endereco: dados.endereco, prazoContratualDias: dados.pagamento.prazoContratualDias, atualizadoPor: usuario.nome };
+  const descricaoLimpa = dados.descricao?.trim() || undefined;
+  const detalhe: ObraDetalhe = { id, status: "MaterialComprado", ...dados, descricao: descricaoLimpa, cliente: { id: cliente.id, nome: cliente.nome, cidade: cliente.cidade }, pagamento: { id, ...dados.pagamento }, dataInicioReal: null, dataFimReal: null };
+  const card: ObraCard = { id, status: detalhe.status, clienteNome: cliente.nome, cidade: cliente.cidade, categoria: dados.categoria, quantidadePaineis: dados.quantidadePaineis, dataFimEstimada: dados.dataFimEstimada, endereco: dados.endereco, observacoes: descricaoLimpa, prazoContratualDias: dados.pagamento.prazoContratualDias, atualizadoPor: usuario.nome };
   salvarObrasArmazenadas([card, ...obras]);
   const detalhes = lerDadosCenario<Record<number, ObraDetalhe>>("mock_detalhes_v1");
   detalhes[id] = detalhe; salvarDadosCenario("mock_detalhes_v1", detalhes);

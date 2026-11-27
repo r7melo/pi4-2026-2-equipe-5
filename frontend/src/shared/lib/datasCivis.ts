@@ -154,3 +154,25 @@ export function dataFimDiasUteisCivil(inicio: string, dias: number): string {
   }
   return deslocarDiasUteisCivil(inicio, dias - 1);
 }
+
+const formatadorDataSaoPaulo = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Retorna a data civil atual (`yyyy-MM-dd`) no fuso operacional da empresa (`America/Sao_Paulo`). */
+export function hojeCivilSaoPaulo(agora: Date = new Date()): string {
+  try {
+    const partes = formatadorDataSaoPaulo.formatToParts(agora);
+    const ano = partes.find((p) => p.type === "year")?.value;
+    const mes = partes.find((p) => p.type === "month")?.value;
+    const dia = partes.find((p) => p.type === "day")?.value;
+    const iso = ano && mes && dia ? `${ano.padStart(4, "0")}-${mes}-${dia}` : "";
+    if (dataCivilValida(iso)) return iso;
+  } catch {
+    // Fallback fixo em UTC-3 caso o runtime não disponha de dados IANA completos
+  }
+  return new Date(agora.getTime() - 3 * 3_600_000).toISOString().slice(0, 10);
+}

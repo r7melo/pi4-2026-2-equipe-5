@@ -1,13 +1,9 @@
 import axios from "axios";
-import { herdarContexto403 } from "@/shared/lib/sessaoOperacao";
 import { z } from "zod";
+import { herdarContexto403 } from "@/shared/lib/sessaoOperacao";
 import { api, ApiErro } from "@/shared/api/api";
-import type { CriarUsuarioPayload, UsuarioCriado, EquipeOpcao } from "../types/usuarios";
+import type { CriarUsuarioPayload, UsuarioCriado } from "../types/usuarios";
 
-const equipesSchema = z.array(z.object({
-  id: z.number().int().positive().refine(Number.isSafeInteger),
-  nome: z.string().trim().min(1),
-}));
 const erroSchema = z.object({ error: z.object({ code: z.string().optional() }).optional() });
 
 export async function criarUsuario(payload: CriarUsuarioPayload, sessao403?: number): Promise<UsuarioCriado> {
@@ -32,9 +28,4 @@ export async function criarUsuario(payload: CriarUsuarioPayload, sessao403?: num
     }
     throw erro;
   }
-}
-
-export async function listarEquipesOpcoes(sessao403?: number): Promise<EquipeOpcao[]> {
-  const { data } = await api.get<unknown>("/equipes", { sessao403, politica401: "sessao" });
-  return equipesSchema.parse(data);
 }

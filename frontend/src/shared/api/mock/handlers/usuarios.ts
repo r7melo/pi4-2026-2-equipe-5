@@ -1,6 +1,6 @@
 import type MockAdapter from "axios-mock-adapter";
 import { resolverUsuarioAutenticadoMock, erroUsuarioMock } from "../core/auth";
-import { validarCadastroUsuarioMock, equipeExisteParaUsuarioMock, gerarHashSenhaMock, obterUsuariosCriados, MOCK_USUARIOS, salvarUsuariosCriados } from "../dados/usuarios";
+import { validarCadastroUsuarioMock, equipeExisteParaUsuarioMock, gerarHashSenhaMock, obterUsuariosCriados, buscarUsuarioPorEmailMock, MOCK_USUARIOS, salvarUsuariosCriados } from "../dados/usuarios";
 import { extrairDados } from "../core/http";
 
 export function registrarUsuarios(mock: MockAdapter): void {
@@ -30,8 +30,7 @@ export function registrarUsuarios(mock: MockAdapter): void {
         return erroUsuarioMock(404, "EQUIPE_NOT_FOUND", "Equipe não encontrada.");
       }
       const usuarios = obterUsuariosCriados();
-      if (Object.hasOwn(MOCK_USUARIOS, dados.email) ||
-          usuarios.some((usuario) => usuario.email === dados.email)) {
+      if (buscarUsuarioPorEmailMock(dados.email)) {
         return erroUsuarioMock(409, "EMAIL_ALREADY_EXISTS", "E-mail já cadastrado.");
       }
       const maiorId = [...Object.values(MOCK_USUARIOS), ...usuarios]

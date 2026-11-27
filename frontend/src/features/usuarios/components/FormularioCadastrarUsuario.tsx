@@ -1,12 +1,10 @@
 import { NOMES_PERFIS, ROTULOS_PERFIS } from "@/shared/constants/perfis";
 import { cn } from "@/shared/lib/utils";
 import { useContextoUsuario } from "../hooks/useContextoUsuario";
-import { usePerdaPermissao } from "../hooks/usePerdaPermissao";
 import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,22 +13,18 @@ import type { FormularioCadastroProps } from "../types/gestaoUsuarios";
 import { BotaoVisibilidadeSenha } from "@/shared/components/ui/BotaoVisibilidadeSenha";
 import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
-import FeedbackLoading from "@/shared/components/feedback/FeedbackLoading";
-import FeedbackErro from "@/shared/components/feedback/FeedbackErro";
-import { EmptyState } from "@/shared/components/feedback/EmptyState";
 import { cadastroUsuarioSchema } from "../types/usuarios";
 import type { CadastroUsuarioEntrada, CadastroUsuarioDados } from "../types/usuarios";
-import { useCriarUsuario, useEquipesOpcoes } from "../hooks/useUsuarios";
+import { useCriarUsuario } from "../hooks/useUsuarios";
 
 const VALORES_INICIAIS: CadastroUsuarioEntrada = {
-  nome: "", email: "", senha: "", perfil: "", equipeId: "",
+  nome: "", email: "", senha: "", perfil: "",
 };
 const CLASSE_SELECT = "w-full h-11 min-w-0 rounded-lg border border-border-subtle bg-surface-subtle px-3.5 text-sm text-foreground-secondary focus:bg-surface focus:border-border-strong disabled:opacity-50";
 const CLASSE_LABEL = "block text-sm font-medium text-foreground-secondary";
 
 export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onSemPermissao, emModal = false, onCancelar }: FormularioCadastroProps) {
   const capturarContexto = useContextoUsuario();
-  const navigate = useNavigate();
   const [semPermissao, setSemPermissao] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [focoPendente, setFocoPendente] = useState(false);
@@ -41,34 +35,12 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-  const { register, control, handleSubmit, reset, resetField, setValue, setError, setFocus,
+  const { register, handleSubmit, reset, setError, setFocus,
     formState: { errors, isSubmitting } } = form;
-  const perfil = useWatch({ control, name: "perfil" });
-  const equipeId = useWatch({ control, name: "equipeId" });
-  const instalador = perfil === "InstaladorCampo";
-  const equipes = useEquipesOpcoes(instalador);
   const cadastro = useCriarUsuario();
   function negarAcesso() { reset(VALORES_INICIAIS); setMostrarSenha(false); setSemPermissao(true); onSemPermissao?.(); }
-  usePerdaPermissao(semPermissao ? null : equipes.error, negarAcesso);
   const ocupado = isSubmitting || cadastro.isPending;
   useEffect(() => { onOcupado?.(ocupado); }, [ocupado, onOcupado]);
-  const opcoes = equipes.data;
-  const equipeIndisponivel = instalador &&
-    (!equipes.isSuccess || equipes.isFetching || !opcoes?.length);
-
-  useEffect(() => {
-    if (!instalador && equipeId !== "") {
-      resetField("equipeId", { defaultValue: "" });
-    }
-  }, [instalador, equipeId, resetField]);
-
-  useEffect(() => {
-    if (instalador && equipes.isSuccess && !equipes.isFetching && equipeId &&
-        !opcoes?.some((equipe) => equipe.id === Number(equipeId))) {
-      setValue("equipeId", "", { shouldValidate: false });
-      setError("equipeId", { type: "validate", message: "A equipe selecionada não está mais disponível. Selecione outra ou mantenha sem equipe." });
-    }
-  }, [instalador, equipes.isSuccess, equipes.isFetching, equipeId, opcoes, setValue, setError]);
 
   useEffect(() => {
     if (!focoPendente || ocupado) return;
@@ -80,12 +52,6 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
   }, [focoPendente, ocupado, setFocus]);
 
   async function enviar(dados: CadastroUsuarioDados) {
-    if (dados.perfil === "InstaladorCampo" && dados.equipeId !== null &&
-        (equipeIndisponivel || !opcoes?.some((equipe) => equipe.id === dados.equipeId))) {
-      setError("equipeId", { type: "validate", message: "Confirme uma equipe disponível ou mantenha sem equipe." },
-        { shouldFocus: true });
-      return;
-    }
     const vigente = capturarContexto();
     let erroObsoleto = false;
     try {
@@ -102,12 +68,6 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
         if (erro.status === 401) return;
         if (erro.status === 409 && erro.codigo === "EMAIL_ALREADY_EXISTS") {
           setError("email", { type: "server", message: "Este e-mail já está cadastrado." });
-          return;
-        }
-        if (erro.status === 404 && erro.codigo === "EQUIPE_NOT_FOUND") {
-          setError("equipeId", { type: "server",
-            message: "Equipe não encontrada. Atualize a lista e tente novamente." });
-          await equipes.refetch();
           return;
         }
         if (erro.status === 404 || erro.status === 405) {
@@ -178,6 +138,9 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
           label="E-mail"
           placeholder="nome@zl.com.br"
           autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
           className="h-11 py-0"
           required
           {...register("email")}
@@ -223,45 +186,6 @@ export default function FormularioCadastrarUsuario({ onConcluido, onOcupado, onS
             }
           />
         </div>
-        {instalador && (
-          <div className="space-y-1.5">
-            <label htmlFor="usuario-equipe" className={CLASSE_LABEL}>Equipe (opcional)</label>
-            <select
-              id="usuario-equipe"
-              autoComplete="off"
-              className={CLASSE_SELECT}
-              {...register("equipeId")}
-              disabled={ocupado}
-              aria-invalid={!!errors.equipeId}
-              aria-describedby={`usuario-equipe-ajuda${errors.equipeId ? " usuario-equipe-erro" : ""}`}
-            >
-              <option value="">Sem equipe — vincular depois</option>
-              {opcoes?.map((equipe) => (
-                <option key={equipe.id} value={equipe.id}>{equipe.nome}</option>
-              ))}
-            </select>
-            <p id="usuario-equipe-ajuda" className="text-xs text-foreground-muted">
-              Você pode cadastrar o instalador sem equipe e vinculá-lo ao criar a equipe.
-            </p>
-            {errors.equipeId && (
-              <p id="usuario-equipe-erro" className="text-xs text-destructive">
-                {errors.equipeId.message}
-              </p>
-            )}
-            {(equipes.isPending || equipes.isFetching) && (
-              <FeedbackLoading mensagem="Carregando equipes..." />
-            )}
-            {equipes.isError && !equipes.isFetching && (
-              <FeedbackErro mensagem="Não foi possível carregar as equipes."
-                onTentarNovamente={() => { void equipes.refetch(); }} />
-            )}
-            {equipes.isSuccess && !equipes.isFetching && opcoes?.length === 0 && (
-              <EmptyState titulo="Nenhuma equipe cadastrada."
-                descricao="O instalador pode ser cadastrado sem equipe e vinculado depois."
-                acao={{ label: "Cadastrar equipe", onClick: () => { void navigate("/equipes"); } }} />
-            )}
-          </div>
-        )}
         <div className="pt-3 border-t border-border-subtle flex items-center justify-end gap-2">
           {onCancelar && (
             <Button type="button" variant="outline" onClick={onCancelar} disabled={ocupado} className="h-10">

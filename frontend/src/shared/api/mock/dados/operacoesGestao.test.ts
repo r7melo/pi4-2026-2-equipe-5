@@ -6,8 +6,14 @@ import { geracaoCenario, iniciarCenario } from "@/shared/api/mock/core/estadoCen
 import { MOCK_USUARIOS } from "@/shared/api/mock/dados/usuarios";
 import { registrarGestaoUsuarios } from "@/shared/api/mock/handlers/gestaoUsuarios";
 import { registrarUsuarios } from "@/shared/api/mock/handlers/usuarios";
-import { atualizarStatus, editarUsuario, listarUsuarios } from "@/features/usuarios/services/gestaoUsuarios";
+import {
+  atualizarStatus,
+  editarUsuario,
+  listarParticipacoesFuturasInstalador,
+  listarUsuarios,
+} from "@/features/usuarios/services/gestaoUsuarios";
 import { criarUsuario } from "@/features/usuarios/services/usuarios";
+import { hojeCivilSaoPaulo, somarDiasCivisUTC } from "@/shared/lib/datasCivis";
 import { capturarSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import type { Usuario } from "@/shared/types/autorizacao";
@@ -38,7 +44,7 @@ function criarStorageMemoria(): Storage {
 
 const usuarioAdminTeste: Usuario = MOCK_USUARIOS["admin@admin.com"];
 
-describe("gestaoUsuarios no mock sem exigir equipe fixa para instalador", () => {
+describe("gestaoUsuarios alinhada ao contrato oficial sem equipe fixa", () => {
   let adapterOriginal: typeof api.defaults.adapter;
   let mock: MockAdapter | undefined;
 
@@ -78,42 +84,46 @@ describe("gestaoUsuarios no mock sem exigir equipe fixa para instalador", () => 
     vi.unstubAllGlobals();
   });
 
-  it("permite editar, inativar e reativar InstaladorCampo sem equipe fixa (equipeId: null)", async () => {
+  it("cadastra sem equipeId, edita nome/e-mail/perfil e alterna ativo via /usuarios/:id/ativo", async () => {
     const sessao = capturarSessaoOperacional();
-    const emailTeste = "instalador.sem.equipe1@zl.com.br";
+    const emailInicial = "instalador.sem.equipe1@zl.com.br";
     const criado = await criarUsuario(
       {
         nome: "Lucas Campo",
-        email: emailTeste,
+        email: emailInicial,
         senha: "Senha123!",
         perfil: "InstaladorCampo",
-        equipeId: null,
       },
       sessao,
     );
     expect(criado.equipeId).toBeNull();
 
     const listagemInicial = await listarUsuarios(
-      { page: 1, pageSize: 20, busca: emailTeste, ativo: "true" },
+      { page: 1, pageSize: 20, busca: emailInicial, ativo: "true" },
       sessao,
     );
     const usuarioCriado = listagemInicial.itens.find((u) => u.id === criado.id);
     expect(usuarioCriado).toBeDefined();
-    expect(usuarioCriado!.equipeId).toBeNull();
 
+    const emailAtualizado = "lucas.campo.novo@zl.com.br";
     const editado = await editarUsuario(
       criado.id,
       {
         nome: "Lucas Campo Atualizado",
+        email: emailAtualizado,
         perfil: "InstaladorCampo",
-        equipeId: null,
         revisao: usuarioCriado!.revisao,
       },
       sessao,
-      usuarioCriado!.email,
     );
     expect(editado.nome).toBe("Lucas Campo Atualizado");
-    expect(editado.equipeId).toBeNull();
+    expect(editado.email).toBe(emailAtualizado);
+
+    const listagemPorNovoEmail = await listarUsuarios(
+      { page: 1, pageSize: 20, busca: emailAtualizado, ativo: "true" },
+      sessao,
+    );
+    expect(listagemPorNovoEmail.itens.some((u) => u.id === criado.id)).toBe(true);
 
     const inativado = await atualizarStatus(
       criado.id,
@@ -130,7 +140,7 @@ describe("gestaoUsuarios no mock sem exigir equipe fixa para instalador", () => 
     expect(reativado.ativo).toBe(true);
   });
 
-  it("continua rejeitando equipeId inexistente quando informado", async () => {
+  it("rejeita com 409 EMAIL_ALREADY_EXISTS ao tentar editar para e-mail já em uso", async () => {
     const sessao = capturarSessaoOperacional();
     const emailTeste = "instalador.sem.equipe2@zl.com.br";
     const criado = await criarUsuario(
@@ -139,7 +149,6 @@ describe("gestaoUsuarios no mock sem exigir equipe fixa para instalador", () => 
         email: emailTeste,
         senha: "Senha123!",
         perfil: "InstaladorCampo",
-        equipeId: null,
       },
       sessao,
     );
@@ -153,17 +162,96 @@ describe("gestaoUsuarios no mock sem exigir equipe fixa para instalador", () => 
       editarUsuario(
         criado.id,
         {
-          nome: "Rafael Campo",
+          nome: "Rafael Sem Equipe",
+          email: usuarioAdminTeste.email,
           perfil: "InstaladorCampo",
-          equipeId: 99999,
           revisao: item.revisao,
         },
         sessao,
-        item.email,
       ),
     ).rejects.toMatchObject({
-      status: 404,
-      codigo: "EQUIPE_NOT_FOUND",
+      status: 409,
+      codigo: "EMAIL_ALREADY_EXISTS",
     });
+  });
+
+  it("lista participações ativas/futuras com nome da obra e ignora participações já encerradas", async () => {
+    const hoje = hojeCivilSaoPaulo();
+    const ontem = somarDiasCivisUTC(hoje, -1);
+    const anteontem = somarDiasCivisUTC(hoje, -5);
+    const amanha = somarDiasCivisUTC(hoje, 1);
+    const semanaQueVem = somarDiasCivisUTC(hoje, 5);
+
+    mock!.onGet(/\/programacoes\/?(\?.*)?$/).reply(200, [
+      {
+        id: 101,
+        obraId: 301,
+        dataInicio: anteontem,
+        dataFim: ontem,
+        prioridade: 1,
+        equipe: {
+          pessoasPrevistas: 1,
+          pessoasAlocadas: 1,
+          pessoasFaltantes: 0,
+          pessoaDia: 3,
+          integrantes: [{ usuarioId: 4, nome: "Marcos", dataEntrada: anteontem, dataSaida: ontem }],
+        },
+      },
+      {
+        id: 102,
+        obraId: 302,
+        dataInicio: ontem,
+        dataFim: amanha,
+        prioridade: 1,
+        equipe: {
+          pessoasPrevistas: 1,
+          pessoasAlocadas: 1,
+          pessoasFaltantes: 0,
+          pessoaDia: 3,
+          integrantes: [{ usuarioId: 4, nome: "Marcos", dataEntrada: ontem, dataSaida: amanha }],
+        },
+      },
+      {
+        id: 103,
+        obraId: 303,
+        dataInicio: amanha,
+        dataFim: semanaQueVem,
+        prioridade: 2,
+        equipe: {
+          pessoasPrevistas: 1,
+          pessoasAlocadas: 1,
+          pessoasFaltantes: 0,
+          pessoaDia: 4,
+          integrantes: [{ usuarioId: 4, nome: "Marcos", dataEntrada: amanha, dataSaida: semanaQueVem }],
+        },
+      },
+    ]);
+    mock!.onGet(/\/obras\/?(\?.*)?$/).reply(200, {
+      itens: [
+        { id: 302, clienteNome: "Clínica Solar" },
+        { id: 303, clienteNome: "Mercado Horizonte" },
+      ],
+    });
+
+    const sessao = capturarSessaoOperacional();
+    const participacoes = await listarParticipacoesFuturasInstalador(4, sessao);
+    expect(participacoes).toEqual([
+      {
+        programacaoId: 102,
+        obraId: 302,
+        obraNome: "Clínica Solar",
+        dataEntrada: ontem,
+        dataSaida: amanha,
+        emAndamento: true,
+      },
+      {
+        programacaoId: 103,
+        obraId: 303,
+        obraNome: "Mercado Horizonte",
+        dataEntrada: amanha,
+        dataSaida: semanaQueVem,
+        emAndamento: false,
+      },
+    ]);
   });
 });

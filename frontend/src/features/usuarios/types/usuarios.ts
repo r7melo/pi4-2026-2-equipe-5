@@ -12,17 +12,7 @@ export const cadastroUsuarioSchema = z.object({
     return bytes >= 6 && bytes <= 72;
   }, "A senha deve ter entre 6 e 72 bytes."),
   perfil: z.string().pipe(z.enum(NOMES_PERFIS, { error: "Selecione um perfil de acesso." })),
-  equipeId: z.string(),
-}).superRefine((dados, ctx) => {
-  if (dados.perfil === "InstaladorCampo" && dados.equipeId !== "" &&
-      (!/^\d+$/.test(dados.equipeId) ||
-       !Number.isSafeInteger(Number(dados.equipeId)) || Number(dados.equipeId) <= 0)) {
-    ctx.addIssue({ code: "custom", path: ["equipeId"], message: "Selecione uma equipe válida ou mantenha sem equipe." });
-  }
-}).transform((dados) => ({
-  ...dados,
-  equipeId: dados.perfil === "InstaladorCampo" && dados.equipeId !== "" ? Number(dados.equipeId) : null,
-}));
+});
 
 export type CadastroUsuarioEntrada = z.input<typeof cadastroUsuarioSchema>;
 export type CadastroUsuarioDados = z.infer<typeof cadastroUsuarioSchema>;
@@ -33,11 +23,6 @@ export interface UsuarioCriado {
   nome: string;
   email: string;
   perfil: CadastroUsuarioDados["perfil"];
-  equipeId: number | null;
+  equipeId?: number | null;
   ativo: boolean;
-}
-
-export interface EquipeOpcao {
-  id: number;
-  nome: string;
 }

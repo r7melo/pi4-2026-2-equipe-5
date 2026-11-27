@@ -160,16 +160,30 @@ export function usuarioPersistidoParaMock(usuario: UsuarioPersistidoMock): MockU
   };
 }
 
+export function listarContasBaseMock(): MockUsuario[] {
+  const contasAlteradas = lerGestao().contas;
+  const bases = [...Object.values(MOCK_USUARIOS), ...obterUsuariosCriados().map(usuarioPersistidoParaMock)];
+  const resultado: MockUsuario[] = [];
+  for (const base of bases) {
+    const alterado = contasAlteradas[String(base.id)];
+    if (!alterado) {
+      resultado.push(Object.assign({}, base, { ativo: true }));
+      continue;
+    }
+    resultado.push(Object.assign({}, base, {
+      nome: alterado.nome,
+      email: alterado.email,
+      equipeId: alterado.equipeId,
+      ativo: alterado.ativo,
+      perfil: Object.assign({}, PERFIS_USUARIOS_MOCK[alterado.perfil]),
+    }));
+  }
+  return resultado;
+}
+
 export function buscarUsuarioPorEmailMock(email: string): MockUsuario | undefined {
-  email = email.trim().toLowerCase();
-  const criado = obterUsuariosCriados().find((usuario) => usuario.email === email);
-  const base = criado ? usuarioPersistidoParaMock(criado) : Object.hasOwn(MOCK_USUARIOS, email) ? MOCK_USUARIOS[email] : undefined;
-  if (!base) return undefined;
-  const alterado = lerGestao().contas[String(base.id)];
-  if (!alterado) return { ...base, ativo: true };
-  if (alterado.email !== base.email) throw new Error("Identidade de usuário inconsistente.");
-  return { ...base, nome: alterado.nome, equipeId: alterado.equipeId, ativo: alterado.ativo,
-    perfil: { ...PERFIS_USUARIOS_MOCK[alterado.perfil] } };
+  const alvo = email.trim().toLowerCase();
+  return listarContasBaseMock().find((usuario) => usuario.email.toLowerCase() === alvo);
 }
 
 export function equipeExisteParaUsuarioMock(equipeId: number | null): boolean {

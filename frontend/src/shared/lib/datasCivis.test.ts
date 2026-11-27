@@ -60,6 +60,7 @@ describe("Demanda #106 — Datas Civis, Formatadores, Instalação e Intervalos"
       "deslocarDiasUteisCivil",
       "diaUtilCivil",
       "diasUteisCivis",
+      "hojeCivilSaoPaulo",
       "instanteISOValido",
       "periodoCivilValido",
       "proximoDiaUtilCivil",
@@ -353,5 +354,10 @@ describe("Demanda #106 — Datas Civis, Formatadores, Instalação e Intervalos"
       expect(verificarSobreposicaoPeriodos(bad, "2026-10-05", "2026-10-05", "2026-10-06")).toBe(false);
     }
     expect(normalizarIntervaloDiasUteis(new Date(Number.NaN), "2026-10-05")).toBeNull();
+  });
+
+  it("calcula hojeCivilSaoPaulo no fuso America/Sao_Paulo independente do fuso UTC/local", () => {
+    expect(datasCivis.hojeCivilSaoPaulo(new Date("2026-12-02T01:30:00Z"))).toBe("2026-12-01");
+    expect(datasCivis.hojeCivilSaoPaulo(new Date("2026-12-02T03:00:00Z"))).toBe("2026-12-02");
   });
 });

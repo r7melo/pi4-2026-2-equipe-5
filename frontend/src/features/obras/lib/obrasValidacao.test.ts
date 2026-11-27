@@ -11,7 +11,7 @@ import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { novaObraSchema } from "@/shared/types/obrasCadastro";
 import { novaObraSchema as novaObraSchemaFeature } from "@/features/obras/types/obrasCadastro";
 import { editarObraFormSchema, mapearValoresFormularioObra } from "@/features/obras/lib/editarObraFormulario";
-import { atualizarObra, criarObra } from "@/features/obras/services/obras";
+import { atualizarObra, buscarObra, criarObra, listarObras } from "@/features/obras/services/obras";
 import { listarClientes } from "@/features/obras/services/clientes";
 import { descreverEventoHistorico, montarTimelineCronologica } from "@/features/obras/lib/timelineObra";
 import { isRotaAutorizadaParaPerfil, obterELimparRotaRetorno } from "@/shared/lib/rotasSessao";
@@ -325,6 +325,7 @@ describe("criarObra e atualizarObra integrados ao handler real registrarObras", 
         quantidadeInversores: 1,
         dataInicioEstimada: "2026-12-05",
         dataFimEstimada: "2026-12-15",
+        descricao: "  Observação inicial da obra  ",
         pagamento: { prazoContratualDias: 25, dataConfirmacao: "2026-12-05" },
       },
       sessao,
@@ -332,7 +333,12 @@ describe("criarObra e atualizarObra integrados ao handler real registrarObras", 
 
     expect(clientesCenario().length).toBe(totalClientesAntes + 1);
     expect(criadaNovo.clienteNome).toBe("Cliente Novo Teste");
+    const detalheCriado = await buscarObra(criadaNovo.id);
+    const listagemCriada = await listarObras({ clienteNome: "Cliente Novo Teste" });
+    expect(detalheCriado.descricao).toBe("Observação inicial da obra");
+    expect(listagemCriada.itens.find((o) => o.id === criadaNovo.id)?.observacoes).toBe("Observação inicial da obra");
     expect(detalheCenario(criadaNovo.id)?.cliente.nome).toBe("Cliente Novo Teste");
+    expect(detalheCenario(criadaNovo.id)?.descricao).toBe("Observação inicial da obra");
   });
 
   it("atualiza obra existente com PUT /obras/301 (200) e retorna 404 para obra inexistente", async () => {

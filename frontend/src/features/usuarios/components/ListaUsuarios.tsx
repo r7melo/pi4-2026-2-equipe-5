@@ -98,7 +98,6 @@ export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, a
               <tr>
                 <th scope="col" className="px-4 py-2.5 font-semibold">Usuário</th>
                 <th scope="col" className="px-3 py-2.5 font-semibold w-44">Perfil</th>
-                <th scope="col" className="px-3 py-2.5 font-semibold w-44">Equipe</th>
                 <th scope="col" className="px-3 py-2.5 font-semibold w-28">Status</th>
                 <th scope="col" className="px-4 py-2.5 font-semibold text-right w-40">Ações</th>
               </tr>
@@ -129,7 +128,6 @@ export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, a
                         {ROTULOS_PERFIS[u.perfil]}
                       </Badge>
                     </td>
-                    <td className="px-3 py-2.5 text-foreground-muted truncate">{u.equipeNome ?? "—"}</td>
                     <td className="px-3 py-2.5"><StatusIndicador ativo={u.ativo} /></td>
                     <td className="px-4 py-2.5 text-right">
                       <BotoesLinha usuario={u} proprio={proprio} aoEditar={aoEditar} aoStatus={aoStatus} />
@@ -169,9 +167,6 @@ export function ListaUsuarios({ lista, filtros, filtrado, usuarioId, aoLimpar, a
                     <Badge variante={VARIANTE_PERFIL[u.perfil]} tamanho="xs" className="font-medium">
                       {ROTULOS_PERFIS[u.perfil]}
                     </Badge>
-                    {u.equipeNome && (
-                      <span className="text-[11px] text-muted-foreground truncate">· {u.equipeNome}</span>
-                    )}
                   </div>
                   <BotoesLinha usuario={u} proprio={proprio} aoEditar={aoEditar} aoStatus={aoStatus} />
                 </div>

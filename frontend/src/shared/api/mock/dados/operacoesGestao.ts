@@ -1,4 +1,4 @@
-import { MOCK_USUARIOS, obterUsuariosCriados, buscarUsuarioPorEmailMock } from "./usuarios";
+import { listarContasBaseMock } from "./usuarios";
 import { obterEquipesArmazenadas } from "./equipes";
 import { contaGestaoSchema, equipeGestaoSchema, lerGestao, gravarGestao } from "./estadoGestao";
 
@@ -8,12 +8,9 @@ export class FalhaGestao extends Error {
 }
 export function equipesValidas() { return obterEquipesArmazenadas(); }
 export function contasEfetivas() {
-  const emails = [...Object.keys(MOCK_USUARIOS), ...obterUsuariosCriados().map(u => u.email)];
-  return emails.map(email => {
-    const u = buscarUsuarioPorEmailMock(email);
-    if (!u) throw new Error("Conta inconsistente.");
-    return contaGestaoSchema.parse({ ...u, perfil: u.perfil.nomePerfil, ativo: u.ativo !== false });
-  });
+  return listarContasBaseMock().map(u =>
+    contaGestaoSchema.parse({ ...u, perfil: u.perfil.nomePerfil, ativo: u.ativo !== false })
+  );
 }
 export function itemUsuario(id: number) {
   const conta = contasEfetivas().find(u => u.id === id);
@@ -30,10 +27,20 @@ export function responsavelUsuario(id: number): boolean {
 export function instaladoresEfetivos() {
   return contasEfetivas().filter(c => c.ativo && c.perfil === "InstaladorCampo").map(c => ({ id: c.id, nome: c.nome, email: c.email }));
 }
-export function modificarUsuario(id: number, dados: { nome?: string; perfil?: string; equipeId?: number | null; ativo?: boolean; revisao: string }, operador: number) {
+export function modificarUsuario(
+  id: number,
+  dados: { nome?: string; email?: string; perfil?: string; equipeId?: number | null; ativo?: boolean; revisao?: string },
+  operador: number,
+) {
   const atual = itemUsuario(id);
-  if (atual.revisao !== dados.revisao) throw new FalhaGestao(409, "USER_VERSION_CONFLICT", "Este usuário foi alterado. Recarregue os dados antes de salvar.");
-  const proxima = contaGestaoSchema.parse({ ...atual, ...dados });
+  if (dados.revisao !== undefined && atual.revisao !== dados.revisao) {
+    throw new FalhaGestao(409, "USER_VERSION_CONFLICT", "Este usuário foi alterado. Recarregue os dados antes de salvar.");
+  }
+  const emailNormalizado = dados.email !== undefined ? dados.email.trim().toLowerCase() : atual.email;
+  const proxima = contaGestaoSchema.parse({ ...atual, ...dados, email: emailNormalizado });
+  if (proxima.email !== atual.email && contasEfetivas().some(c => c.id !== id && c.email.toLowerCase() === proxima.email.toLowerCase())) {
+    throw new FalhaGestao(409, "EMAIL_ALREADY_EXISTS", "Este e-mail já está cadastrado.");
+  }
   if (proxima.perfil !== "InstaladorCampo") proxima.equipeId = proxima.perfil === atual.perfil ? atual.equipeId : null;
   if (id === operador && (!proxima.ativo || proxima.perfil !== "Administrador")) throw new FalhaGestao(400, "VALIDATION_ERROR", "Não é possível alterar o acesso da própria conta.");
   const vinculoMudou = proxima.equipeId !== atual.equipeId || proxima.perfil !== atual.perfil;
@@ -56,7 +63,12 @@ export function modificarUsuario(id: number, dados: { nome?: string; perfil?: st
   estado.contas[id] = proxima;
   estado.revisoes[id] = crypto.randomUUID();
   estado.equipes = equipesNovas.map(e => equipeGestaoSchema.parse(e));
-  if (vinculoMudou || (atual.ativo && !proxima.ativo)) estado.acessos[atual.email] = (estado.acessos[atual.email] ?? 0) + 1;
+  if (vinculoMudou || (atual.ativo && !proxima.ativo) || proxima.email !== atual.email || proxima.perfil !== atual.perfil) {
+    estado.acessos[atual.email] = (estado.acessos[atual.email] ?? 0) + 1;
+    if (proxima.email !== atual.email) {
+      estado.acessos[proxima.email] = (estado.acessos[proxima.email] ?? 0) + 1;
+    }
+  }
   gravarGestao(estado);
   return itemUsuario(id);
 }

@@ -8,20 +8,21 @@ import { ApiErro } from "@/shared/api/api";
 import { erroDaSessaoAnterior } from "@/shared/lib/sessaoOperacao";
 import { useStatusUsuario, useConsultaUsuario } from "../hooks/useGestaoUsuarios";
 import { mensagemGestao } from "../services/gestaoUsuarios";
+import { AvisoParticipacoesFuturas } from "./AvisoParticipacoesFuturas";
 import type { StatusUsuarioProps } from "../types/gestaoUsuarios";
 export function ConfirmarStatusUsuario({ usuario, onFechar, onConcluido }: StatusUsuarioProps) {
   const capturarContexto = useContextoUsuario();
   const [base, setBase] = useState(usuario);
   const [erro, setErro] = useState(""); const [conflito, setConflito] = useState(false);
   const trava = useRef(false); const mutacao = useStatusUsuario(base.id);
-  const atual = useConsultaUsuario(usuario.id, usuario.email);
+  const atual = useConsultaUsuario(usuario.id);
   usePerdaPermissao(atual.error, onFechar);
   const acao = base.ativo ? "Inativar" : "Reativar";
   async function confirmar() {
     if (trava.current || conflito) return; trava.current = true;
     const vigente = capturarContexto();
     try {
-      await mutacao.mutateAsync({ ativo: !base.ativo, revisao: base.revisao });
+      await mutacao.mutateAsync({ ativo: !base.ativo, ...(base.revisao !== undefined ? { revisao: base.revisao } : {}) });
       if (!vigente()) return;
       toast.success("Status do usuário atualizado."); onConcluido();
     } catch (e) {
@@ -39,6 +40,16 @@ export function ConfirmarStatusUsuario({ usuario, onFechar, onConcluido }: Statu
   }
   return <ConfirmDialog isOpen onClose={onFechar} onConfirm={() => void confirmar()} isLoading={mutacao.isPending} confirmarBloqueado={conflito}
     titulo={acao + " usuário"} labelConfirmar={acao + " usuário"} variant={base.ativo ? "danger" : "info"}
-    descricao={base.ativo ? "Inativar " + base.nome + "? Novos acessos serão bloqueados e sessões anteriores serão recusadas na próxima solicitação ao sistema. Vínculos, responsabilidades e programações serão mantidos; revise-os na gestão de equipes." : "Reativar " + base.nome + "? Será necessário fazer login novamente."}
-    conteudo={<div className="w-full">{erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}{conflito && <Button variant="outline" onClick={() => void recarregar()}>Recarregar dados</Button>}</div>} />;
+    descricao={base.ativo ? "Inativar " + base.nome + "? Novos acessos serão bloqueados e sessões anteriores serão recusadas na próxima solicitação ao sistema. Programações registradas no cronograma mantêm o histórico." : "Reativar " + base.nome + "? Será necessário fazer login novamente."}
+    conteudo={
+      <div className="w-full space-y-2.5">
+        <AvisoParticipacoesFuturas
+          usuarioId={base.id}
+          habilitada={base.ativo && base.perfil === "InstaladorCampo"}
+          contexto="inativacao"
+        />
+        {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
+        {conflito && <Button variant="outline" onClick={() => void recarregar()}>Recarregar dados</Button>}
+      </div>
+    } />;
 }

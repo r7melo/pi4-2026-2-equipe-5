@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { cadastroUsuarioSchema } from "./usuarios";
 import { usuarioItemSchema, usuariosRespostaSchema } from "./gestaoUsuarios";
 
-const cadastro = { nome: "Pessoa de Teste", email: "pessoa@example.com", senha: "Senha123!", equipeId: "" };
-const item = { id: 5, nome: "Pessoa de Teste", email: "pessoa@example.com", equipeId: null, equipeNome: null, ativo: true, revisao: "r1" };
+const cadastro = { nome: "Pessoa de Teste", email: "pessoa@example.com", senha: "Senha123!" };
+const item = { id: 5, nome: "Pessoa de Teste", email: "pessoa@example.com", ativo: true };
 
 describe("perfis nos contratos reais de usuários", () => {
   it.each(["Administrador", "Engenharia", "Financeiro", "InstaladorCampo"])("aceita %s em cadastro, item e página", perfil => {

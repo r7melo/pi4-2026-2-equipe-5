@@ -1,10 +1,8 @@
-import { capturarSessaoOperacional, exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
-import { useSessaoUsuarios } from "./useSessaoUsuarios";
-import { useQuery } from "@tanstack/react-query";
+import { exigirSessaoOperacional } from "@/shared/lib/sessaoOperacao";
 import { useMutacaoSessao as useMutation } from "@/shared/hooks/useMutacaoSessao";
 
 import type { CriarUsuarioPayload } from "../types/usuarios";
-import { criarUsuario, listarEquipesOpcoes } from "../services/usuarios";
+import { criarUsuario } from "../services/usuarios";
 
 export function useCriarUsuario() {
   return useMutation({
@@ -12,16 +10,5 @@ export function useCriarUsuario() {
     retry: false,
     networkMode: "always",
     gcTime: 0,
-  });
-}
-
-export function useEquipesOpcoes(habilitada: boolean) {
-  const geracao = useSessaoUsuarios();
-  return useQuery({
-    queryKey: ["equipes", "opcoes", geracao],
-    queryFn: async () => { const s = capturarSessaoOperacional(); const r = await listarEquipesOpcoes(s); exigirSessaoOperacional(s); return r; },
-    enabled: habilitada,
-    retry: false,
-    staleTime: 0,
   });
 }

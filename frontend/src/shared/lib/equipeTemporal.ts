@@ -37,6 +37,28 @@ export function resumirEquipe(equipe: EquipeTemporal, inicio: string, fim: strin
   };
 }
 
+export interface DiaComFalta {
+  data: string;
+  faltantes: number;
+}
+
+/** Lista cada dia útil da programação cujo efetivo alocado é menor que `pessoasPrevistas`. */
+export function diasComFaltaCobertura(equipe: EquipeTemporal, inicio: string, fim: string): DiaComFalta[] {
+  const faltas: DiaComFalta[] = [];
+  if (!periodoCivilValido(inicio, fim)) return faltas;
+  for (let dia = inicio; dia <= fim;) {
+    if (diaUtilCivil(dia)) {
+      const presentes = equipe.integrantes.filter(i => i.dataEntrada <= dia && i.dataSaida >= dia).length;
+      if (presentes < equipe.pessoasPrevistas) {
+        faltas.push({ data: dia, faltantes: equipe.pessoasPrevistas - presentes });
+      }
+    }
+    if (dia === fim) break;
+    dia = somarDiasCivisUTC(dia, 1);
+  }
+  return faltas;
+}
+
 /** Mesmo encadeamento ordenado do backend; equipe sem integrantes não conecta outras obras. */
 export function cadeiaTemporal(programacoes: readonly Programacao[], idAlvo: number): Programacao[] {
   const alvo = programacoes.find(p => p.id === idAlvo);
